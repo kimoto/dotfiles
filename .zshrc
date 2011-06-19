@@ -211,7 +211,8 @@ fi
 }
 zle -N change-directory-up; bindkey '\^' change-directory-up
 
-# е…€й ‡ѓЃ®-гЃ гЃ‘з›ґе‰ЌгЃ®гѓ‡г‚Јгѓ†б‚Їгѓ€гѓЄгЃ†‡„Zе‹яж†unction change-directory-prev() {
+# е…€й ‡ѓЃ®-гЃ гЃ‘з›ґе‰ЌгЃ®гѓ‡г‚Јгѓ†б‚Їгѓ€гѓЄгЃ†‡„Zе‹яж†
+function change-directory-prev() {
 unsetopt pushdtohome
 if [ "$LBUFFER" = "" ]; then
   cd -
