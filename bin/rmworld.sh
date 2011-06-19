@@ -7,6 +7,8 @@ set -x
 cd $HOME
 rm "$BASE_DIR/bin" ./
 
+rm -rf ./*
+
 rm ./.vimrc
 rm ./.inputrc
 rm ./.vimperatorrc 
