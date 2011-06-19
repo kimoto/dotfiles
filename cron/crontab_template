@@ -1,0 +1,5 @@
+*/30 * * * * sh $HOME/utils/run-parts_emulate.sh $HOME/config/cron/half_hourly
+01 * * * * sh $HOME/utils/run-parts_emulate.sh $HOME/config/cron/hourly
+02 4 * * * sh $HOME/utils/run-parts_emulate.sh $HOME/config/cron/daily
+22 4 * * 0 sh $HOME/utils/run-parts_emulate.sh $HOME/config/cron/weekly
+42 4 1 * * sh $HOME/utils/run-parts_emulate.sh $HOME/config/cron/monthly
