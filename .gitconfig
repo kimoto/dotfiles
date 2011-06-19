@@ -1,0 +1,47 @@
+[user]
+  name = kimoto
+  email = sub+peerler@gmail.com
+
+[alias]
+  ci = commit -a
+  dci = svn dcommit
+  co = checkout
+  st = status -a
+  di = diff
+
+[color]
+  diff = auto
+  status = auto
+  branch = auto
+  interactive = auto
+
+[color "branch"]
+  current = red
+  local = yellow
+  remote = green
+
+[color "status"]
+  added = yellow
+  changed = green
+  untracked = cyan
+
+
+[color "diff"]
+  commit = black white bold
+  meta = blue
+  frag = black
+  old = red
+  new = green
+
+[i18n]
+  commitencoding = utf-8
+
+[core]
+  excludesfile = /Users/kimoto/.gitignore
+
+[push]
+  default = current
+
+[github]
+  user = kimoto
+
