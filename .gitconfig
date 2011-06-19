@@ -3,11 +3,12 @@
   email = sub+peerler@gmail.com
 
 [alias]
+  st = status
   ci = commit -a
+  di = diff
   dci = svn dcommit
   co = checkout
   st = status -a
-  di = diff
 
 [color]
   diff = auto
@@ -41,6 +42,12 @@
 
 [push]
   default = current
+
+#[branch]
+#  autosetuprebase = always
+
+#[diff "exif"]
+#  textconv = exiftool
 
 [github]
   user = kimoto
