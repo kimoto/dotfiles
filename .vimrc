@@ -133,6 +133,8 @@ if has('viminfo')
   set vi^=!
 endif
 
+let g:yankring_history_dir = '~/tmp/'
+
 " fuzzyfinder.vim
 "nmap ff :FuzzyFinderFile<CR>
 nmap ff :FuzzyFinderMruFile<CR>
