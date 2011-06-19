@@ -7,8 +7,10 @@ set -x
 cd $HOME
 rm "$BASE_DIR/bin" ./
 
+# remove all files (not include dotfiles)
 rm -rf ./*
 
+# remove synbolic links (dot files)
 rm ./.vimrc
 rm ./.inputrc
 rm ./.vimperatorrc 
@@ -29,3 +31,7 @@ rm ./.Xmodmap
 rm ./.emacs.d
 rm ./.emacs
 
+# remove temp files
+rm ./.zcompdump
+rm ./.viminfo
+rm ./.zsh_history
