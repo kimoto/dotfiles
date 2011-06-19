@@ -8,7 +8,6 @@
   di = diff
   dci = svn dcommit
   co = checkout
-  st = status -a
 
 [color]
   diff = auto

@@ -1,5 +1,4 @@
-#= zshrc
-#= $Id: .zshrc 876 2009-07-15 06:50:42Z recyclebox $
+#= vim:set ft=zsh
 unlimit
 limit -s
 umask 007

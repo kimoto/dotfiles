@@ -1,5 +1,4 @@
 "= vimrc 
-"= $Id: .vimrc 857 2009-07-06 08:33:09Z recyclebox $
 set nocompatible " 非互換モード
 set background=light " カラーテーマを変更
 set number " 行番号を表示する

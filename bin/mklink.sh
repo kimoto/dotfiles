@@ -18,6 +18,7 @@ ln -sf ./dotfiles/.zlogin ./
 ln -sf ./dotfiles/.bashrc ./
 ln -sf ./dotfiles/.irbrc ./
 ln -sf ./dotfiles/.gitconfig ./
+ln -sf ./dotfiles/.gemrc ./
 
 ln -sf ./dotfiles/.vim ./
 ln -sf ./dotfiles/.subversion ./
