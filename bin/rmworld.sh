@@ -1,4 +1,6 @@
 #!/bin/sh
+# 注意: $HOMEディレクトリのファイルが消えます
+# Notice: this script, remove all files in $HOME
 
 set -x
 
