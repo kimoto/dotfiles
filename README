@@ -1,3 +1,18 @@
-my dotfiles
+# =========================================================================
+#                     my dotfiles
+# =========================================================================
+#
+# Memo:
+# .emacs.dはファイルサイズがでかすぎるので保留中、解決したらアップロードする
+#
+# Install:
+# -------------------------------------------------------------------------
+# $ wget -O https://raw.github.com/kimoto/dotfiles/master/README | sh
+# -------------------------------------------------------------------------
+#
+cd $HOME;
+git clone git@github.com:kimoto/dotfiles.git;
+./dotfiles/bin/mkworld.sh
+./dotfiles/bin/mklink.sh
+./dotfiles/bin/mkcrontab.sh
 
-.emacs.dはファイルサイズがでかすぎるので保留中、解決したらアップロードする

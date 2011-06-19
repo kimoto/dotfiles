@@ -2,32 +2,29 @@
 
 set -x
 
-BASE_DIR="./svn"
+BASE_DIR="./dotfiles"
 
 cd $HOME
-ln -sf "$BASE_DIR/config" ./
-ln -sf "$BASE_DIR/utils" ./
-ln -sf "$BASE_DIR/sandbox" ./
-ln -sf "$BASE_DIR/system" ./
+ln -sf "$BASE_DIR/bin" ./
 
-ln -sf ./config/.vimrc ./
-ln -sf ./config/.inputrc ./
-ln -sf ./config/.vimperatorrc ./
-ln -sf ./config/.gitconfig ./
-ln -sf ./config/.gitignore ./
-ln -sf ./config/.screenrc ./
-ln -sf ./config/.zshrc ./
-ln -sf ./config/.zlogin ./
-ln -sf ./config/.bashrc ./
-ln -sf ./config/.irbrc ./
+ln -sf ./dotfiles/.vimrc ./
+ln -sf ./dotfiles/.inputrc ./
+ln -sf ./dotfiles/.vimperatorrc ./
+ln -sf ./dotfiles/.gitconfig ./
+ln -sf ./dotfiles/.gitignore ./
+ln -sf ./dotfiles/.screenrc ./
+ln -sf ./dotfiles/.zshrc ./
+ln -sf ./dotfiles/.zlogin ./
+ln -sf ./dotfiles/.bashrc ./
+ln -sf ./dotfiles/.irbrc ./
 
-ln -sf ./config/.vim ./
-ln -sf ./config/.subversion ./
+ln -sf ./dotfiles/.vim ./
+ln -sf ./dotfiles/.subversion ./
 
-ln -sf ./config/.Xdefaults ./
-ln -sf ./config/.Xmodmap ./
+ln -sf ./dotfiles/.Xdefaults ./
+ln -sf ./dotfiles/.Xmodmap ./
 
 # next generation .emacs!!
-ln -sf ./config/.emacs.d ./
-ln -sf ./config/.emacs ./
+ln -sf ./dotfiles/.emacs.d ./
+ln -sf ./dotfiles/.emacs ./
 
