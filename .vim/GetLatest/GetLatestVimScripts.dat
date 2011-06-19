@@ -1,0 +1,7 @@
+ScriptID SourceID Filename
+--------------------------
+1984 7906 :AutoInstall: fuzzyfinder.vim
+1234 7629 :AutoInstall: yankring.vim
+90 7435 :AutoInstall: vcscommand.vim
+890 2699 :AutoInstall: lusty-explorer.vim
+159 3640 :AutoInstall: minibufexpl.vim

@@ -28,6 +28,7 @@ if [[ "$PS1" ]]; then
 	alias ipaddr="egrep -o '[0-9]+(\.[0-9]+){3}'"
 
 	set -o emacs
+  set -u
 
 	complete -d cd
 	complete -u su finger 
@@ -53,7 +54,7 @@ if [[ "$PS1" ]]; then
 	export LESSCHARSET=latin1	# output binary
 	export PATH=$PATH:$HOME/bin
 	export GREP_OPTIONS="--binary-files=without-match --color=auto"
-  
+
   # history grep 
   function hgrep {
   	history | egrep -i "$*" | tail;
@@ -68,4 +69,8 @@ if [[ "$PS1" ]]; then
   function px {
   	local tmp=$PS0; PS0=$PS1; PS1=$tmp;
   }
+
+  if [ -e "$HOME/.bashrc.local" ]; then
+    source "$HOME/.bashrc.local"
+  fi
 fi

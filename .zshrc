@@ -1,8 +1,8 @@
 #= zshrc
-#= $Id$
+#= $Id: .zshrc 876 2009-07-15 06:50:42Z recyclebox $
 unlimit
 limit -s
-umask 022
+umask 007
 bindkey -e
 
 autoload -U zmv
@@ -50,13 +50,23 @@ setopt extended_history
 setopt complete_in_word
 setopt menu_complete
 setopt multios
+setopt auto_menu
+set -u
+
+# terminal
+stty erase '^H'
+stty stop undef
 
 # alias
+if [ `uname` = "Linux" ]; then
+  alias ls='ls --color=auto'
+fi
+
 alias mv='nocorrect mv'
 alias cp='nocorrect cp'
 alias gem='nocorrect gem'
 alias mkdir='nocorrect mkdir'
-alias ll='ls -lh'
+alias ll='ls -rlth'
 alias vi='vim'
 alias zmv='noglob zmv'
 alias mmv='zmv -W'
@@ -64,23 +74,27 @@ alias zcp='zmv -C'
 alias zln='zmv -L'
 alias memo='vi -c ":HatenaEdit"'
 alias 2ch='emacs -f navi2ch'
-alias g="gcc -framework OpenGL -framework GLUT -framework Foundation "
-alias e='emacsclient -n'
-alias s='screen -xRRU -S working_space -t working'
+alias s='screen -xRRU -S working_space'
 alias d='emacs -f dired'
 alias changelog='emacs -f add-change-log-entry-other-window'
 alias mew='emacs -f mew'
 alias svn='nocorrect svn'
+alias e='emacsclient -t -a emacs' 
+#alias rm='rm -v'
+#alias mv='mv -v'
+#alias cp='cp -v'
 
 # var
 HISTFILE=~/.zsh_history
 HISTSIZE=9999999
 SAVEHIST=9999999
+MAILCHECK=0
 
 if [ "$TERM" = "emacs" ]; then
   PROMPT="%n %~[%!]%# "
 else
-  PROMPT="%n %{$fg[blue]%}%~%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
+  OMITTED_DIR="%(3~,%-1~/.../%1~,%~)"
+  PROMPT="%n %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
 fi
 
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
@@ -90,23 +104,23 @@ watch=notme
 export PAGER=less
 export EDITOR=vi
 export LESS="-girMXfFQ"
+export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export SVN_EDITOR=vim
-export PATH="$HOME/bin:$HOME/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/utils:$HOME/bin:$HOME/local/bin:$HOME/usr/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
+export MANPATH="$HOME/local/share/man:/opt/local/share/man:$MANPATH"
 export LD_LIBRARY_PATH="$HOME/local/lib"
 export C_INCLUDE_PATH="$HOME/local/include"
 export KEYTIMEOUT=20
-export __CF_USER_TEXT_ENCODING='0x1F5:0x08000100:14' # use utf8 with pbcopy/pbpaste 
-
-# chpwd
-function chpwd(){ ls }
+export __CF_USER_TEXT_ENCODING='0x1F6:0x08000100:14' # use utf8 with pbcopy/pbpaste 
+export GREP_OPTIONS='--color=auto'
 
 # known_hosts complete
 function print_known_hosts (){ 
-  if [ -f $HOME/.ssh/known_hosts ]; then
-    cat $HOME/.ssh/known_hosts | tr ',' ' ' | cut -d' ' -f1 
-  fi  
+if [ -f $HOME/.ssh/known_hosts ]; then
+  cat $HOME/.ssh/known_hosts | tr ',' ' ' | cut -d' ' -f1 
+fi  
 }
 _cache_hosts=($( print_known_hosts ))
 
@@ -131,16 +145,15 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 export LS_COLORS
 
 # history-search
-autoload history-search-end
-zle -N history-beginning-search-backward-end history-search-end
-zle -N history-beginning-search-forward-end history-search-end
-bindkey "^P" history-beginning-search-backward-end
-bindkey "^N" history-beginning-search-forward-end
+#autoload history-search-end
+#zle -N history-beginning-search-backward-end history-search-end
+#zle -N history-beginning-search-forward-end history-search-end
+#bindkey "^P" history-beginning-search-backward-end
+#bindkey "^N" history-beginning-search-forward-end
 
 # bindkey -s
 bindkey -s "vv" '!vi\n'
-bindkey -s "hh" '\C-ucd\n'
-bindkey -s "\C-o" '\C-ucd ..\n'
+#bindkey -s "rr" '!ruby\n'
 
 # replace-string
 autoload -U replace-string
@@ -166,7 +179,7 @@ zle -N self-insert url-quote-magic
 
 # refe
 refe(){
-  $HOME/utility/refe_utf8.sh $@
+  $HOME/utils/refe_utf8.sh $@
 }
 
 # for debug
@@ -177,6 +190,169 @@ rr() {
   autoload -U $f:t
 }
 
+## test
+expand-to-home-or-insert () {
+  if [ "$LBUFFER" = "" -o "$LBUFFER[-1]" = " " ]; then
+    LBUFFER+="~/"
+  else
+    zle self-insert
+  fi
+}
+zle -N expand-to-home-or-insert
+bindkey "\\"  expand-to-home-or-insert
+
+# å…ˆé ‡ƒ®^ã ã‘äŒˆã‡áƒ‡ã‚‚ƒƒ¬ã‚ˆƒƒˆãƒ…á«ç§Ž…‹•
+function change-directory-up() {
+if [ "$LBUFFER" = "" ]; then
+  cd ..
+  zle reset-prompt
+else
+  zle self-insert
+fi
+}
+zle -N change-directory-up; bindkey '\^' change-directory-up
+
+# å…ˆé ‡ƒ®-ã ã‘ç›´å‰ã®ãƒ‡ã‚£ãƒ†á‚¯ãƒˆãƒªã†‡„Zå‹ÿæ†unction change-directory-prev() {
+unsetopt pushdtohome
+if [ "$LBUFFER" = "" ]; then
+  cd -
+  zle reset-prompt
+else
+  zle self-insert
+fi
+}
+zle -N change-directory-prev; bindkey '\-' change-directory-prev
+
+function execute-last-command-line() {
+if [ "$LBUFFER" = "" ]; then
+  LBUFFER="builtin r $EDITOR"
+  zle accept-line
+else
+  zle self-insert
+fi
+}
+zle -N execute-last-command-line; bindkey '\@' execute-last-command-line
+
+# screen dabbrev
+HARDCOPYFILE=$HOME/tmp/screen-hardcopy
+touch $HARDCOPYFILE
+
+dabbrev-complete () {
+  local reply lines=80 # 80è¡Œåˆ†
+  screen -X eval "hardcopy -h $HARDCOPYFILE"
+  reply=($(sed '/^$/d' $HARDCOPYFILE | sed '$ d' | tail -$lines))
+  compadd - "${reply[@]%[*/=@|]}"
+}
+
+zle -C dabbrev-complete menu-complete dabbrev-complete
+bindkey '^o' dabbrev-complete
+bindkey '^o^_' reverse-menu-complete
+
+# test alias
+alias reload="exec zsh"
+
+# for screen
+preexec () {
+  screen-statusline-update $@
+}
+
+screen-statusline-update () {
+  if [ "$TERM" = "screen" ]; then
+    1="$1 " # deprecated.
+    echo -ne "\ek${${(s: :)1}[0]}:$HOST\e\\"
+  fi
+}
+screen-statusline-initialize () {
+  screen-statusline-update "zsh"
+}
+
+hgrep(){
+  fc -l -E 1 | fuzzygrep $@
+}
+
+h(){
+  hgrep "$@" | tail
+}
+
+logger(){
+  exec script ~/var/log/`~/utils/timestamp`.log
+}
+
+alias-if-exist(){
+  which "$1" >/dev/null && alias $2
+}
+
+view-cheat-sheet(){
+  set +u
+  if [ "$1" = "" ]; then
+    less /tmp/cheat-sheet
+  else
+    less +/$1 /tmp/cheat-sheet
+  fi
+}
+
+cheat-sheet(){
+  set +u
+  if [ "$1" = "" ]; then
+    ;
+  else
+    cp "$1" /tmp/cheat-sheet
+  fi
+
+  view-cheat-sheet
+}
+alias t=cheat-sheet
+
+is-text-file(){
+  (file -L -s "$@" | cut -d':' -f2- | grep text) >/dev/null 
+}
+
+inspect-file(){
+  set +u
+  if [ "$1" = "" ]; then
+    ll
+  else
+    is-text-file "$1" && (pygmentize -g "$1" | less -R) || (less -R "$1")
+  fi
+}
+alias l=inspect-file
+
+# chpwd
+function chpwd(){
+  l
+}
+
+iname() {
+  find . -type d -name .svn -prune -o \( -iname "*$1*" -print \)
+}
+alias inaem=iname
+
+g(){
+  set -f
+  find . -type d '(' -name .svn -o -name CVS ')' -prune -o -print0 | xargs -0 fgrep -i "$1"
+}
+
+#cd(){
+#  target=${1:-}
+#
+#  if [ "$target" = "" ]; then
+#    builtin cd $@ 
+#  else
+#    liberal-cd $@
+#  fi
+#}
+#
+#liberal-cd(){
+#  target=${1:-}
+#  test -d "$target" && {builtin cd "$target"; return}
+#  true && {builtin cd `dirname "$target"`; return}
+#}
+
+# ex alias
+alias-if-exist tscreen screen=tscreen
+alias-if-exist colordiff diff=colordiff
+alias-if-exist colorsvn svn=colorsvn
+
 # load local config
 h=${${HOST%%.*}:l}
 if [ -f "$HOME/config/hosts/$h.zshrc" ]; then
@@ -186,3 +362,12 @@ fi
 if [ -f "$HOME/.zshrc.local" ]; then
   source "$HOME/.zshrc.local"
 fi
+
+## set environment utils
+if [ -e "$HOME/utils/env.sh" ]; then
+  . "$HOME/utils/env.sh"
+fi
+
+screen-statusline-initialize
+
+export GISTY_DIR="$HOME/dev/gists"

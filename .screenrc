@@ -1,5 +1,5 @@
 #= .screenrc
-#= $Id$
+#= $Id: .screenrc 796 2009-05-26 08:35:54Z recyclebox $
 startup_message	off
 hardstatus		off
 autodetach		on
@@ -22,17 +22,25 @@ hardstatus alwayslastline "%H %`%-w%{=b bw}%n %t%{-}%+w"
 #bindkey  next
 #bindkey  prev
 
+# termcap
+#termcapinfo xterm XT 
+#termcapinfo xterm* ti@:te@
+termcapinfo xterm 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+
 # change encoding
 bind  encoding utf8
 bind  encoding euc
 bind  encoding sjis
 
+bind 3 split -v
 bind 2 split
 bind o focus
 bind 1 only
 bind 0 remove
 
-
 bind ^y paste .
 bind ^@ copy 
 markkeys h=^b:l=^f:$=^e:^m=^@:^m=^w
+
+# autosave layout
+layout save Desktop
