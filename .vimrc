@@ -209,6 +209,11 @@ let g:rubycomplete_classes_in_global = 1
 "let g:rubycomplete_include_objectspace = 1
 "
 
+" vim-ref.vim
+"nmap <F12> :<C-u>Ref alc<Space>
+let g:ref_alc_start_linenumber = 10
+let g:ref_alc_encoding = 'UTF-8'
+
 " load local file
 let local_vimrc_path = $HOME . "/.vimrc.local"
 if(file_readable(local_vimrc_path))
