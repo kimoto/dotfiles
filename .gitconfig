@@ -6,6 +6,7 @@
   st = status
   ci = commit -a
   di = diff
+  dif = diff
   dci = svn dcommit
   co = checkout
   pu = push
@@ -39,6 +40,8 @@
 
 [core]
   excludesfile = /Users/kimoto/.gitignore
+	editor = vim
+	autoCRLF = false
 
 [push]
   default = current
@@ -53,3 +56,5 @@
   user = kimoto
 	token = b405e480287459408f385395f1d85592
 
+[gui]
+	encoding = utf-8
