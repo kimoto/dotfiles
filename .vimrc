@@ -65,16 +65,38 @@ au BufWritePost * mkview
 autocmd BufReadPost * loadview
 
 " autocomplpop無効化
-"let g:acp_enableAtStartup = 0
+let g:acp_enableAtStartup = 0
 
 " neocomplcacheの設定
-let g:neocomplcache_enable_at_startup = 0
-"let g:neocomplcache_enable_smart_case = 1
-"let g:neocomplcache_enable_camel_case_completion = 1
-"let g:neocomplcache_enable_underbar_completion = 1
-"let g:neocomplcache_min_syntax_length = 3
-"let g:neocomplcache_enable_auto_select = 1
+let g:neocomplcache_enable_at_startup = 1
+let g:neocomplcache_enable_smart_case = 1
+let g:neocomplcache_enable_camel_case_completion = 1
+let g:neocomplcache_enable_underbar_completion = 1
+let g:neocomplcache_min_syntax_length = 3
+let g:neocomplcache_enable_auto_select = 1
 "let g:neocomplcache_lock_buffer_name_pattern = *ku*’
+"let g:neocomplcache_snippets_dir = '~/.vim/snippets'
+
+" Plugin key-mappings.
+" <C-K> にマッピング
+imap <C-K> <Plug>(neocomplcache_snippets_expand)
+smap <C-K> <Plug>(neocomplcache_snippets_expand)
+imap <C-O> <Plug>(neocomplcache_snippets_jump)
+smap <C-O> <Plug>(neocomplcache_snippets_jump)
+
+" SuperTab like snippets behavior.
+"imap <expr><TAB> neocomplcache#sources#snippets_complete#expandable() ? "\<Plug>(neocomplcache_snippets_expand)" : pumvisible() ? "\<C-n>" : "\<TAB>"
+
+" Recommended key-mappings.
+" <CR>: close popup and save indent.
+inoremap <expr><CR>  neocomplcache#smart_close_popup() . "\<CR>"
+" <TAB>: completion.
+inoremap <expr><TAB>  pumvisible() ? "\<C-n>" : "\<TAB>"
+" <C-h>, <BS>: close popup and delete backword char.
+inoremap <expr><C-h> neocomplcache#smart_close_popup()."\<C-h>"
+inoremap <expr><BS> neocomplcache#smart_close_popup()."\<C-h>"
+inoremap <expr><C-y>  neocomplcache#close_popup()
+inoremap <expr><C-e>  neocomplcache#cancel_popup()
 
 " cursorline表示する
 "autocmd InsertEnter * set nocul
@@ -231,10 +253,26 @@ nmap bq :FufQuickfix<CR>
 
 " fuzzyfinderで行検索
 nmap bl :FufLine<CR>
+nmap ff :FufMruF<CR>
 
 " jptemplate
 "let g:jpTemplateKey '<C-A>'
-
+" neocomplcache
+"let g:NeoComplCache_EnableAtStartup = 1
+" 大文字小文字を区別する
+"let g:NeoComplCache_SmartCase = 1
+"" キャメルケース補完を有効にする
+"let g:NeoComplCache_EnableCamelCaseCompletion = 1
+"" アンダーバー補完を有効にする
+"let g:NeoComplCache_EnableUnderbarCompletion = 1
+"" シンタックスファイルの補完対象キーワードとする最小の長さ
+"let g:NeoComplCache_MinSyntaxLength = 3
+"" プラグイン毎の補完関数を呼び出す文字数
+"let g:NeoComplCache_PluginCompletionLength = {
+"  \ 'keyword_complete'  : 2,
+"  \ 'syntax_complete'   : 2
+"  \ }
+"
 nnoremap <silent> <C-]> :FufTag! <C-r>=expand('<cword>')<CR><CR> 
 
 " load local file
