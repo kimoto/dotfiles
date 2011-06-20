@@ -205,6 +205,8 @@ let g:rubycomplete_classes_in_global = 1
 "let g:rubycomplete_include_object = 1
 "let g:rubycomplete_include_objectspace = 1
 
+call pathogen#runtime_append_all_bundles()
+
 " load local file
 let local_vimrc_path = $HOME . "/.vimrc.local"
 if(file_readable(local_vimrc_path))
