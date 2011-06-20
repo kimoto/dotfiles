@@ -1,4 +1,4 @@
-#= vim:set ft=zsh
+#= zshrc
 unlimit
 limit -s
 umask 007
@@ -107,7 +107,7 @@ export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export SVN_EDITOR=vim
-export PATH="$HOME/utils:$HOME/bin:$HOME/local/bin:$HOME/usr/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/utils:$HOME/bin:$HOME/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
 export MANPATH="$HOME/local/share/man:/opt/local/share/man:$MANPATH"
 export LD_LIBRARY_PATH="$HOME/local/lib"
 export C_INCLUDE_PATH="$HOME/local/include"
@@ -200,7 +200,7 @@ expand-to-home-or-insert () {
 zle -N expand-to-home-or-insert
 bindkey "\\"  expand-to-home-or-insert
 
-# 先頇���^だけ䌈ぇჇも���よ���ヅၫ秎���
+# 先頭の^だけ上のディレクトリに移動
 function change-directory-up() {
 if [ "$LBUFFER" = "" ]; then
   cd ..
@@ -211,7 +211,7 @@ fi
 }
 zle -N change-directory-up; bindkey '\^' change-directory-up
 
-# 先頇���-だけ直前のディテႯトリう��Z���
+# 先頭の-だけ直前のディレクトリに移動
 function change-directory-prev() {
 unsetopt pushdtohome
 if [ "$LBUFFER" = "" ]; then
