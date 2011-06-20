@@ -371,13 +371,3 @@ fi
 screen-statusline-initialize
 
 export GISTY_DIR="$HOME/dev/gists"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
-=======
->>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
-=======
->>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
-=======
->>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
