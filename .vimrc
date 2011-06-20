@@ -139,9 +139,9 @@ let g:yankring_history_dir = '~/tmp/'
 
 " fuzzyfinder.vim
 "nmap ff :FuzzyFinderFile<CR>
-nmap ff :FuzzyFinderMruFile<CR>
+"nmap ff :FuzzyFinderMruFile<CR>
 "nmap bb :FuzzyFinderBuffer<CR>
-let g:FuzzyFinder_Migemo = 0
+"let g:FuzzyFinder_Migemo = 0
 
 " for debug
 nmap ss :source %<CR>
@@ -214,6 +214,29 @@ let g:rubycomplete_classes_in_global = 1
 let g:ref_alc_start_linenumber = 10
 let g:ref_alc_encoding = 'UTF-8'
 
+" fuzzy finder
+let g:fuf_modesDisable = ['mrucmd']
+let g:fuf_file_exclude = '\v\~$|\.(o|exe|bak|swp|gif|jpg|png)$|(^|[/\\])\.(hg|git|bzr)($|[/\\])'
+let g:fuf_mrufile_exclude = '\v\~$|\.bak$|\.swp|\.howm$|\.(gif|jpg|png)$'
+let g:fuf_mrufile_maxItem = 10000
+let g:fuf_enumeratingLimit = 20
+let g:fuf_keyPreview = '<C-]>'
+let g:fuf_previewHeight = 0
+
+nmap bg :FufBuffer<CR>
+nmap bG :FufFile <C-r>=expand('%:~:.')[:-1-len(expand('%:~:.:t'))]<CR><CR>
+nmap gb :FufFile **/<CR>
+nmap bb :FufMruFile<CR>
+nmap bq :FufQuickfix<CR>
+
+" fuzzyfinderで行検索
+nmap bl :FufLine<CR>
+
+" jptemplate
+"let g:jpTemplateKey '<C-A>'
+
+nnoremap <silent> <C-]> :FufTag! <C-r>=expand('<cword>')<CR><CR> 
+
 " load local file
 let local_vimrc_path = $HOME . "/.vimrc.local"
 if(file_readable(local_vimrc_path))
@@ -223,5 +246,4 @@ endif
 "if v:version >= 700
 "  set runtimepath+=$HOME/.vim/fullsets
 "endif
-
 

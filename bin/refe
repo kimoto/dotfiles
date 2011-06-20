@@ -1,0 +1,3 @@
+#!/bin/sh
+exec ruby -Ke -I ~/rubyrefm/bitclust/lib ~/rubyrefm/bitclust/bin/refe.rb -d ~/rubyrefm/db-1_8_7 "$@"
+

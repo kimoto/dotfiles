@@ -10,3 +10,18 @@
 [submodule ".vim/bundle/l9"]
 	path = .vim/bundle/l9
 	url = git://github.com/vim-scripts/L9.git
+[submodule ".vim/bundle/refe2-vim"]
+	path = .vim/bundle/refe2-vim
+	url = git://github.com/mootoh/refe2-vim.git
+[submodule ".vim/bundle/vim-ruby"]
+	path = .vim/bundle/vim-ruby
+	url = git://github.com/vim-ruby/vim-ruby.git
+[submodule ".vim/bundle/FuzzyFinder"]
+	path = .vim/bundle/FuzzyFinder
+	url = git://github.com/vim-scripts/FuzzyFinder.git
+[submodule ".vim/bundle/jptemplate"]
+	path = .vim/bundle/jptemplate
+	url = https://github.com/Jannis/jptemplate.git
+[submodule ".vim/bundle/neocomplcache"]
+	path = .vim/bundle/neocomplcache
+	url = git://github.com/Shougo/neocomplcache.git

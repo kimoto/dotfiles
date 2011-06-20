@@ -177,9 +177,9 @@ autoload -U url-quote-magic
 zle -N self-insert url-quote-magic
 
 # refe
-refe(){
-  $HOME/utils/refe_utf8.sh $@
-}
+#refe(){
+#  $HOME/utils/refe_utf8.sh $@
+#}
 
 # for debug
 rr() {
