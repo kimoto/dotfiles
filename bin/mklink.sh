@@ -21,6 +21,7 @@ ln -sf ./dotfiles/.gitconfig ./
 ln -sf ./dotfiles/.gemrc ./
 
 ln -sf ./dotfiles/.vim ./
+ln -sf ./dotfiles/.zsh ./
 ln -sf ./dotfiles/.subversion ./
 
 ln -sf ./dotfiles/.Xdefaults ./

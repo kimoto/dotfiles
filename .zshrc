@@ -128,6 +128,13 @@ autoload insert-files
 zle -N insert-files
 bindkey '^X^F' insert-files
 
+# binding SourceEngine like key config
+#function reloadconfig {
+#  source ~/.zshrc;
+#}
+#zle -N reloadconfig
+#bindkey '^[[15~' reloadconfig
+
 # ls-colors
 LS_COLORS="fi=37:di=36:ex=32:ln=34:bd=33:cd=33:pi=35:so=35"
 LS_COLORS="$LS_COLORS:*.gz=31:*.Z=31:*.lzh=31:*.zip=31:*.bz2=31"
@@ -198,7 +205,7 @@ expand-to-home-or-insert () {
   fi
 }
 zle -N expand-to-home-or-insert
-bindkey "\\"  expand-to-home-or-insert
+#bindkey "\\"  expand-to-home-or-insert
 
 # 先頭の^だけ上のディレクトリに移動
 function change-directory-up() {
