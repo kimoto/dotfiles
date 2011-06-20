@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 #= zshrc
 unlimit
 limit -s
@@ -377,6 +378,8 @@ export SHELL=`which zsh`
 =======
 =======
 >>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
+=======
+>>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
 #= zshrc
 unlimit
 limit -s
@@ -751,6 +754,9 @@ screen-statusline-initialize
 
 export GISTY_DIR="$HOME/dev/gists"
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
+=======
 >>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
 =======
 >>>>>>> e041604bd0a07a1d3c522f6eb119fa93c7ae36b6
