@@ -27,6 +27,8 @@ set directory=~/tmp
 set termencoding=utf8
 set encoding=utf8
 
+nmap <F5> :QuickRun<CR>
+
 " シンタックスカラー表示を有効にする
 syntax on
 "colorscheme desert
@@ -81,6 +83,7 @@ let g:neocomplcache_enable_at_startup = 0
 "set cursorline
 "set nocursorline
 "highlight CursorLine cterm=reverse,standout ctermbg=6
+call pathogen#runtime_append_all_bundles()
 
 " コマンドモードで Emacs キーバインド
 cmap <C-A> <Home>
@@ -204,8 +207,7 @@ let g:rubycomplete_rails = 1
 let g:rubycomplete_classes_in_global = 1
 "let g:rubycomplete_include_object = 1
 "let g:rubycomplete_include_objectspace = 1
-
-call pathogen#runtime_append_all_bundles()
+"
 
 " load local file
 let local_vimrc_path = $HOME . "/.vimrc.local"
@@ -213,6 +215,8 @@ if(file_readable(local_vimrc_path))
   execute "source " . local_vimrc_path
 endif
 
-if v:version >= 700
-  set runtimepath+=$HOME/.vim/fullsets
-endif
+"if v:version >= 700
+"  set runtimepath+=$HOME/.vim/fullsets
+"endif
+
+
