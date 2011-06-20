@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ "$1" == "" ]; then
+  echo "arguments error"
+  exit 1
+fi
+
+if [ -e "$HOME/.ssh/id_rsa.pub" ]; then
+  cat "$HOME/.ssh/id_rsa.pub" | ssh "$1" "mkdir -p ./.ssh/; cat >> ./.ssh/authorized_keys" 
+else
+  ssh-keygen -t rsa
+  cat "$HOME/.ssh/id_rsa.pub" | ssh "$1" "mkdir -p ./.ssh/; cat >> ./.ssh/authorized_keys" 
+fi
+

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+HOST=$1
+
+if [ -e "$HOME/.ssh/id_rsa.pub" ]; then
+  ssh "$HOST" 'cat $HOME/.ssh/authorized_keys' | fgrep "`cat $HOME/.ssh/id_rsa.pub`"
+
+  if [ "$?" = "0" ]; then
+    echo "ok, do not anything"
+  else
+    ssh-copy-id-emulate "$HOST"
+  fi
+else
+  ssh-copy-id-emulate "$HOST"
+fi
+
+
