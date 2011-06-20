@@ -1,2 +1,12 @@
+ipch/
 .DS_Store
 *~
+*.sdf
+*.suo
+*.ini
+*.pdb
+*.lib
+*.dll
+*.zip
+*.exp
+

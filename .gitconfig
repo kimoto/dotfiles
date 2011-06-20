@@ -38,7 +38,7 @@
   commitencoding = utf-8
 
 [core]
-  excludesfile = /Users/kimoto/.gitignore
+  excludesfile = ~/.gitignore
 
 [push]
   default = current

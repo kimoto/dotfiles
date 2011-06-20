@@ -371,3 +371,4 @@ fi
 screen-statusline-initialize
 
 export GISTY_DIR="$HOME/dev/gists"
+export SHELL=`which zsh`
