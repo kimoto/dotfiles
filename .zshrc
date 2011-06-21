@@ -17,6 +17,7 @@ compinit -u
 autoload -U colors
 colors
 
+zstyle ':completion:*' special-dirs true
 zstyle ':completion:*:default' menu select=1
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' verbose yes
