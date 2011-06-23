@@ -9,4 +9,4 @@ ipch/
 *.dll
 *.zip
 *.exp
-
+*.exe
