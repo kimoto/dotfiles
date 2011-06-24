@@ -34,7 +34,20 @@ zstyle ':completion:*:descriptions' format '%B%d%b'
 zstyle ':completion:*:messages' format '%d'
 zstyle ':completion:*:warnings' format 'No matches for: %d'
 zstyle ':completion:*' group-name ''
-zstyle ':completion:*' use-cache true
+
+zstyle ':completion:*' use-cache on               # 補完のキャッシュを有効にする
+zstyle ':completion:*' cache-path ~/tmp/zsh_cache # 補完のキャッシュパス
+
+# 曖昧な入力でも補完キーにより自動でマッチさせる
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*:match:*' original only
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+zstyle ':completion:*:functions' ignored-patterns '_*' # 持っていないコマンドの補完を無効化
+zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
+# zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+
+# TODO = .. nyuuryoku de parent directory he
 
 # setopt
 setopt autocd
@@ -89,9 +102,9 @@ alias changelog='emacs -f add-change-log-entry-other-window'
 alias mew='emacs -f mew'
 alias svn='nocorrect svn'
 alias e='emacsclient -t -a emacs' 
-#alias rm='rm -v'
-#alias mv='mv -v'
-#alias cp='cp -v'
+alias rm='rm -v' # verbose
+alias mv='mv -v' # verbose
+alias cp='cp -v' # verbose
 
 # var
 HISTFILE=~/.zsh_history
@@ -107,7 +120,7 @@ else
 fi
 
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-watch=notme
+watch=notme # watch and notify, other login user
 
 # env
 export PAGER=less
@@ -125,7 +138,7 @@ export KEYTIMEOUT=20
 export __CF_USER_TEXT_ENCODING='0x1F6:0x08000100:14' # use utf8 with pbcopy/pbpaste 
 export GREP_OPTIONS='--color=auto'
 
-# known_hosts complete
+# ~/.ssh/known_hostsからホスト名を補完します
 function print_known_hosts (){ 
 if [ -f $HOME/.ssh/known_hosts ]; then
   cat $HOME/.ssh/known_hosts | tr ',' ' ' | cut -d' ' -f1 
@@ -167,9 +180,13 @@ export LS_COLORS
 #bindkey "^P" history-beginning-search-backward-end
 #bindkey "^N" history-beginning-search-forward-end
 
+bindkey "^R" history-incremental-pattern-search-backward
+
 # bindkey -s
 bindkey -s "vv" '!vi\n'
 #bindkey -s "rr" '!ruby\n'
+
+bindkey "^\\" undo
 
 # replace-string
 autoload -U replace-string
@@ -199,22 +216,22 @@ zle -N self-insert url-quote-magic
 #}
 
 # for debug
-rr() {
-  local f
-  f=(~/.zsh/*(.))
-  unfunction $f:t 2> /dev/null
-  autoload -U $f:t
-}
+#rr() {
+#  local f
+#  f=(~/.zsh/*(.))
+#  unfunction $f:t 2> /dev/null
+#  autoload -U $f:t
+#}
 
 ## test
-expand-to-home-or-insert () {
-  if [ "$LBUFFER" = "" -o "$LBUFFER[-1]" = " " ]; then
-    LBUFFER+="~/"
-  else
-    zle self-insert
-  fi
-}
-zle -N expand-to-home-or-insert
+#expand-to-home-or-insert () {
+#  if [ "$LBUFFER" = "" -o "$LBUFFER[-1]" = " " ]; then
+#    LBUFFER+="~/"
+#  else
+#    zle self-insert
+#  fi
+#}
+#zle -N expand-to-home-or-insert
 #bindkey "\\"  expand-to-home-or-insert
 
 # 先頭の^だけ上のディレクトリに移動
@@ -228,6 +245,7 @@ fi
 }
 zle -N change-directory-up; bindkey '\^' change-directory-up
 
+
 # 先頭の-だけ直前のディレクトリに移動
 function change-directory-prev() {
 unsetopt pushdtohome
@@ -238,7 +256,8 @@ else
   zle self-insert
 fi
 }
-zle -N change-directory-prev; bindkey '\-' change-directory-prev
+#zle -N change-directory-prev; bindkey '\-' change-directory-prev
+zle -N change-directory-prev; bindkey '^O' change-directory-prev
 
 function execute-last-command-line() {
 if [ "$LBUFFER" = "" ]; then
@@ -261,9 +280,9 @@ dabbrev-complete () {
   compadd - "${reply[@]%[*/=@|]}"
 }
 
-zle -C dabbrev-complete menu-complete dabbrev-complete
-bindkey '^o' dabbrev-complete
-bindkey '^o^_' reverse-menu-complete
+#zle -C dabbrev-complete menu-complete dabbrev-complete
+#bindkey '^o' dabbrev-complete
+#bindkey '^o^_' reverse-menu-complete
 
 # test alias
 alias reload="exec zsh"
