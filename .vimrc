@@ -100,15 +100,15 @@ call pathogen#runtime_append_all_bundles()
 source $VIMRUNTIME/macros/matchit.vim
 
 " autocomplpop無効化
-let g:acp_enableAtStartup = 0
+let g:acp_enableAtStartup = 1
 
 " neocomplcacheの設定
-let g:neocomplcache_enable_at_startup = 1
-let g:neocomplcache_enable_smart_case = 1
-let g:neocomplcache_enable_camel_case_completion = 1
-let g:neocomplcache_enable_underbar_completion = 1
-let g:neocomplcache_min_syntax_length = 3
-let g:neocomplcache_enable_auto_select = 1
+let g:neocomplcache_enable_at_startup = 0
+"let g:neocomplcache_enable_smart_case = 1
+"let g:neocomplcache_enable_camel_case_completion = 1
+"let g:neocomplcache_enable_underbar_completion = 1
+"let g:neocomplcache_min_syntax_length = 3
+"let g:neocomplcache_enble_auto_select = 1
 
 " for php
 let php_sql_query=1
@@ -245,12 +245,12 @@ imap <C-O> <Plug>(neocomplcache_snippets_jump)
 smap <C-O> <Plug>(neocomplcache_snippets_jump)
 
 " 以下neocomplcacheに書いてあった推奨設定をコピペ
-inoremap <expr><CR>  neocomplcache#smart_close_popup() . "\<CR>"
-inoremap <expr><TAB>  pumvisible() ? "\<C-n>" : "\<TAB>"
-inoremap <expr><C-h> neocomplcache#smart_close_popup()."\<C-h>"
-inoremap <expr><BS> neocomplcache#smart_close_popup()."\<C-h>"
-inoremap <expr><C-y>  neocomplcache#close_popup()
-inoremap <expr><C-e>  neocomplcache#cancel_popup()
+"inoremap <expr><CR>  neocomplcache#smart_close_popup() . "\<CR>"
+"inoremap <expr><TAB>  pumvisible() ? "\<C-n>" : "\<TAB>"
+"inoremap <expr><C-h> neocomplcache#smart_close_popup()."\<C-h>"
+"inoremap <expr><BS> neocomplcache#smart_close_popup()."\<C-h>"
+"inoremap <expr><C-y>  neocomplcache#close_popup()
+"inoremap <expr><C-e>  neocomplcache#cancel_popup()
 
 " コメントアウト、アンコメント機能
 "nnoremap <Leader>c <Esc>:set opfunc=DoCommentOp<CR>g@
