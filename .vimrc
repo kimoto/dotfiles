@@ -221,9 +221,9 @@ nmap <F7> :q<CR>
 nmap <F8> :q!<CR>
 
 " fuzzyfinder (簡易にファイルを検索するための仕組み)
-nmap bG :FufFile <C-r>=expand('%:~:.')[:-1-len(expand('%:~:.:t'))]<CR><CR>
-nmap gb :FufFile **/<CR>
-nmap bq :FufQuickfix<CR>
+"nmap bG :FufFile <C-r>=expand('%:~:.')[:-1-len(expand('%:~:.:t'))]<CR><CR>
+"nmap gb :FufFile **/<CR>
+"nmap bq :FufQuickfix<CR>
 nmap ff :FufMruFile<CR>
 "nmap bb :FufBuffer<CR>
 " bbだと左方向単語移動するときにtypoするのでキツイ

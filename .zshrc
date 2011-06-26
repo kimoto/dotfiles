@@ -102,8 +102,6 @@ alias changelog='emacs -f add-change-log-entry-other-window'
 alias mew='emacs -f mew'
 alias svn='nocorrect svn'
 alias e='emacsclient -t -a emacs' 
-alias rm='rm -v' # verbose
-alias mv='mv -v' # verbose
 alias cp='cp -v' # verbose
 
 # var
