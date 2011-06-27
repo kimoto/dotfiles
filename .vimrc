@@ -22,7 +22,8 @@ set laststatus=2 " ステータスラインを表示
 set statusline=[%n]%t\ %=%1*%m%*%r%{'['.(&fenc!=''?&fenc:&enc).':'.&ff.']'}[%<%{fnamemodify(getcwd(),':~')}]\ %-6(%l,%c%V%)\ %4P
 set smartindent " 自動インデント
 set showmatch " 対応する括弧を強調表示
-set nowrap " 長い行を折り返さない
+"set nowrap " 長い行を折り返さない
+set wrap " 長い行を折り返さない
 set backspace=indent,eol,start " バックスペースの挙動
 set expandtab " タブではなく適切な数の空白を使う
 set smartcase " 大文字小文字を無視して検索
