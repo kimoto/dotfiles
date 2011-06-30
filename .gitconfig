@@ -11,6 +11,9 @@
   co = checkout
   pu = push
 
+# 覚えるのめんどいgit操作系は日本語でbindすることに
+  modosu = reset --hard HEAD
+
 [color]
   diff = auto
   status = auto
