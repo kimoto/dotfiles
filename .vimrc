@@ -40,6 +40,8 @@ set nomodeline " モードライン機能の無効化
 set wildmenu " 強化されたコマンドライン補完を使用
 set hidden " バッファを保存しないで他のファイルを開けるようにする
 set sidescroll=1 " 水平スクロール時の文字数
+set ambiwidth=double "特殊な文字でもカーソル位置がずれないように
+set display+=lastline "最後の行を可能な限り最後まで表示
 
 " Tab入力したときに入力される空白の数
 set tabstop=2
@@ -237,6 +239,9 @@ nnoremap <silent> <C-x>3 :vsp<CR>
 " 矢印キーでバッファ切替制御
 "nnoremap <silent> <Right> :bn<CR>
 "nnoremap <silent> <Left> :bp<CR>
+
+" 次のバッファに切り替え
+nmap <C-T> :bn<CR>
 
 " #2. insert mode bindings
 " <C-K> にsnippetsの展開をマッピング
