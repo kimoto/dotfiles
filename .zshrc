@@ -125,6 +125,8 @@ alias mew='emacs -f mew'
 alias svn='nocorrect svn'
 alias e='emacsclient -t -a emacs' 
 alias cp='cp -v' # verbose
+alias q='exit'
+bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
 
 # var
 HISTFILE=~/.zsh_history
@@ -143,7 +145,7 @@ WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 watch=notme # watch and notify, other login user
 
 # env
-export PAGER=less
+export PAGER="less --RAW-CONTROL-CHARS"
 export EDITOR=vi
 export LESS="-girMXfFQ"
 #export LESSOPEN="|lesspipe.sh %s"

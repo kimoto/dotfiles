@@ -13,6 +13,7 @@
 
 # 覚えるのめんどいgit操作系は日本語でbindすることに
   modosu = reset --hard HEAD
+  logall = !git log --all --patch --color | git name-rev --stdin | $PAGER
 
 [color]
   diff = auto
