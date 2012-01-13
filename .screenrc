@@ -22,10 +22,15 @@ hardstatus alwayslastline "%H %`%-w%{=b bw}%n %t%{-}%+w"
 #bindkey  next
 #bindkey  prev
 
+bindkey "^[[C" next
+bindkey "^[[D" prev
+
 # termcap
 #termcapinfo xterm XT 
 #termcapinfo xterm* ti@:te@
-termcapinfo xterm 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+#termcapinfo xterm 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+termcapinfo xterm "ks=\E[?1l\E:ku=\E[A:kd=\E[B:kl=\E[D:kr=\E[C:kh=\E[5~:kH=\E[F"
+termcapinfo xterm-color "ks=\E[?1l\E:ku=\E[A:kd=\E[B:kl=\E[D:kr=\E[C:kh=\E[5~:kH=\E[F"
 
 # change encoding
 bind  encoding utf8

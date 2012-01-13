@@ -174,11 +174,11 @@ zle -N insert-files
 bindkey '^X^F' insert-files
 
 # binding SourceEngine like key config
-#function reloadconfig {
-#  source ~/.zshrc;
-#}
-#zle -N reloadconfig
-#bindkey '^[[15~' reloadconfig
+function reloadconfig {
+  source ~/.zshrc
+}
+zle -N reloadconfig
+bindkey '^[[15~' reloadconfig
 
 # ls-colors
 LS_COLORS="fi=37:di=36:ex=32:ln=34:bd=33:cd=33:pi=35:so=35"
@@ -389,27 +389,6 @@ g(){
   set -f
   find . -type d '(' -name .svn -o -name CVS ')' -prune -o -print0 | xargs -0 fgrep -i "$1"
 }
-
-#cd(){
-#  target=${1:-}
-#
-#  if [ "$target" = "" ]; then
-#    builtin cd $@ 
-#  else
-#    liberal-cd $@
-#  fi
-#}
-#
-#liberal-cd(){
-#  target=${1:-}
-#  test -d "$target" && {builtin cd "$target"; return}
-#  true && {builtin cd `dirname "$target"`; return}
-#}
-
-# ex alias
-alias-if-exist tscreen screen=tscreen
-alias-if-exist colordiff diff=colordiff
-alias-if-exist colorsvn svn=colorsvn
 
 # load local config
 h=${${HOST%%.*}:l}
