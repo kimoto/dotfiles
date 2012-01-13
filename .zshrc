@@ -95,7 +95,7 @@ setopt complete_in_word
 setopt menu_complete
 setopt multios
 setopt auto_menu
-set -u
+#set -u
 
 # terminal
 stty erase '^H'

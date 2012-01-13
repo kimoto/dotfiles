@@ -28,7 +28,7 @@ if [[ "$PS1" ]]; then
 	alias ipaddr="egrep -o '[0-9]+(\.[0-9]+){3}'"
 
 	set -o emacs
-  set -u
+  #set -u
 
 	complete -d cd
 	complete -u su finger 
