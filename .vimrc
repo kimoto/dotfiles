@@ -91,6 +91,10 @@ autocmd FileType perl set omnifunc=perlcomplete#CompletePERL
 autocmd FileType c set omnifunc=ccomplete#Complete
 autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
 
+" template
+autocmd BufNewFile *.pl 0r /home/kimoto/.vim/template/perl.txt
+autocmd BufNewFile *.rb 0r /home/kimoto/.vim/template/ruby.txt
+
 " ===============================
 "   プラグインの読み込みと設定
 " ===============================
