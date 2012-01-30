@@ -92,6 +92,10 @@ autocmd FileType c set omnifunc=ccomplete#Complete
 autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
 "autocmd FileType txt set let g:acp_enableAtStartup = 0
 
+" template
+autocmd BufNewFile *.pl 0r /home/kimoto/.vim/template/perl.txt
+autocmd BufNewFile *.rb 0r /home/kimoto/.vim/template/ruby.txt
+
 " ===============================
 "   プラグインの読み込みと設定
 " ===============================

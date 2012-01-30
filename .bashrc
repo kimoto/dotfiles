@@ -29,7 +29,7 @@ if [[ "$PS1" ]]; then
 
 	set -o emacs
   #set -o errexit
-  set +o nounset
+  #set -u
 
 	complete -d cd
 	complete -u su finger 
@@ -75,6 +75,7 @@ if [[ "$PS1" ]]; then
     source "$HOME/.bashrc.local"
   fi
 fi
-#[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
 
-source ~/perl5/perlbrew/etc/bashrc
+[[ -s "~/perl5/perlbrew/etc/bashrc" ]] && source "~/perl5/perlbrew/etc/bashrc"
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" 
+

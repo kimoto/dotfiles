@@ -32,3 +32,5 @@ ln -sf ./dotfiles/.Xmodmap ./
 ln -sf ./dotfiles/.emacs.d ./
 ln -sf ./dotfiles/.emacs ./
 
+ln -sf ./dotfiles ./config
+
