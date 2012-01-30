@@ -19,6 +19,7 @@ ln -sf ./dotfiles/.bashrc ./
 ln -sf ./dotfiles/.irbrc ./
 ln -sf ./dotfiles/.gitconfig ./
 ln -sf ./dotfiles/.gemrc ./
+ln -sf ./dotfiles/.tmux.conf ./
 
 ln -sf ./dotfiles/.vim ./
 ln -sf ./dotfiles/.zsh ./

@@ -90,6 +90,7 @@ autocmd FileType xml set omnifunc=xmlcomplete#CompleteTags
 autocmd FileType perl set omnifunc=perlcomplete#CompletePERL
 autocmd FileType c set omnifunc=ccomplete#Complete
 autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
+"autocmd FileType txt set let g:acp_enableAtStartup = 0
 
 " ===============================
 "   プラグインの読み込みと設定
@@ -102,11 +103,10 @@ call pathogen#runtime_append_all_bundles()
 " コンテキストにふさわしい移動の仕方をするようになる
 source $VIMRUNTIME/macros/matchit.vim
 
-" autocomplpop無効化
-let g:acp_enableAtStartup = 1
+let g:acp_enableAtStartup = 1 "有効化
 
 " neocomplcacheの設定
-let g:neocomplcache_enable_at_startup = 0
+let g:neocomplcache_enable_at_startup = 0 "無効化
 "let g:neocomplcache_enable_smart_case = 1
 "let g:neocomplcache_enable_camel_case_completion = 1
 "let g:neocomplcache_enable_underbar_completion = 1

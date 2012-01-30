@@ -95,7 +95,10 @@ setopt complete_in_word
 setopt menu_complete
 setopt multios
 setopt auto_menu
-set -u
+#set -u
+
+set +o nounset
+#set -o errexit
 
 # terminal
 stty erase '^H'
@@ -119,6 +122,7 @@ alias zln='zmv -L'
 alias memo='vi -c ":HatenaEdit"'
 alias 2ch='emacs -f navi2ch'
 alias s='screen -xRRU -S working_space'
+alias t='tmux -2 -u'
 alias d='emacs -f dired'
 alias changelog='emacs -f add-change-log-entry-other-window'
 alias mew='emacs -f mew'
@@ -359,7 +363,6 @@ cheat-sheet(){
 
   view-cheat-sheet
 }
-alias t=cheat-sheet
 
 is-text-file(){
   (file -L -s "$@" | cut -d':' -f2- | grep text) >/dev/null 
