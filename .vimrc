@@ -269,6 +269,11 @@ smap <C-O> <Plug>(neocomplcache_snippets_jump)
 "vnoremap <Leader>c <Esc>:call CommentMark(1,'<','>')<CR>
 "vnoremap <Leader>C <Esc>:call CommentMark(0,'<','>')<CR>
 
+set rtp+=~/.vim/vundle/
+call vundle#rc()
+filetype plugin on
+Bundle 'Lokaltog/vim-powerline'
+
 " load local config file
 let local_vimrc_path = $HOME . "/.vimrc.local"
 if(file_readable(local_vimrc_path))
