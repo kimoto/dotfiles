@@ -1,12 +1,17 @@
-$KCODE='utf8'
-require 'rubygems'
+require 'irb/completion'
+require 'irb/ext/save-history'
+require 'time'
+require 'date'
 require 'wirble'
-#Wirble.init(:skip_prompt => :DEFAULT)
-#Wirble.colorize
-#
-#class Object
-#  def local_methods
-#    (methods - Object.instance_methods).sort
-#  end
-#end
-#
+require 'active_support/all'
+require 'open-uri'
+
+Wirble.init(:skip_prompt => :DEFAULT)
+Wirble.colorize
+
+class Object
+  def local_methods
+    (methods - Object.instance_methods).sort
+  end
+end
+
