@@ -55,3 +55,6 @@
 [submodule "gitignore"]
 	path = gitignore
 	url = https://github.com/github/gitignore.git
+[submodule ".vim/vundle"]
+	path = .vim/vundle
+	url = git://github.com/gmarik/vundle
