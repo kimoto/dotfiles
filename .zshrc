@@ -95,7 +95,8 @@ setopt complete_in_word
 setopt menu_complete
 setopt multios
 setopt auto_menu
-set -u
+#set -u
+#set -o errexit
 
 # terminal
 stty erase '^H'
@@ -119,6 +120,7 @@ alias zln='zmv -L'
 alias memo='vi -c ":HatenaEdit"'
 alias 2ch='emacs -f navi2ch'
 alias s='screen -xRRU -S working_space'
+alias t='tmux -2 -u'
 alias d='emacs -f dired'
 alias changelog='emacs -f add-change-log-entry-other-window'
 alias mew='emacs -f mew'
@@ -161,6 +163,7 @@ export C_INCLUDE_PATH="$HOME/local/include"
 export KEYTIMEOUT=20
 export __CF_USER_TEXT_ENCODING='0x1F6:0x08000100:14' # use utf8 with pbcopy/pbpaste 
 export GREP_OPTIONS='--color=auto'
+export GISTY_DIR="$HOME/dev/gists"
 
 # ~/.ssh/known_hostsからホスト名を補完します
 function print_known_hosts (){ 
@@ -174,20 +177,6 @@ _cache_hosts=($( print_known_hosts ))
 autoload insert-files
 zle -N insert-files
 bindkey '^X^F' insert-files
-
-# binding SourceEngine like key config
-#function reloadconfig {
-#  source ~/.zshrc;
-#}
-#zle -N reloadconfig
-#bindkey '^[[15~' reloadconfig
-#
-#function listup {
-#  clear
-#  zle -M "`ls -rlth`"
-#}
-#zle -N listup;
-#bindkey '^L' 'listup';
 
 # ls-colors
 LS_COLORS="fi=37:di=36:ex=32:ln=34:bd=33:cd=33:pi=35:so=35"
@@ -371,7 +360,6 @@ cheat-sheet(){
 
   view-cheat-sheet
 }
-alias t=cheat-sheet
 
 is-text-file(){
   (file -L -s "$@" | cut -d':' -f2- | grep text) >/dev/null 
@@ -402,27 +390,6 @@ g(){
   find . -type d '(' -name .svn -o -name CVS ')' -prune -o -print0 | xargs -0 fgrep -i "$1"
 }
 
-#cd(){
-#  target=${1:-}
-#
-#  if [ "$target" = "" ]; then
-#    builtin cd $@ 
-#  else
-#    liberal-cd $@
-#  fi
-#}
-#
-#liberal-cd(){
-#  target=${1:-}
-#  test -d "$target" && {builtin cd "$target"; return}
-#  true && {builtin cd `dirname "$target"`; return}
-#}
-
-# ex alias
-alias-if-exist tscreen screen=tscreen
-alias-if-exist colordiff diff=colordiff
-alias-if-exist colorsvn svn=colorsvn
-
 # load local config
 h=${${HOST%%.*}:l}
 if [ -f "$HOME/config/hosts/$h.zshrc" ]; then
@@ -439,5 +406,3 @@ if [ -e "$HOME/utils/env.sh" ]; then
 fi
 
 screen-statusline-initialize
-
-export GISTY_DIR="$HOME/dev/gists"

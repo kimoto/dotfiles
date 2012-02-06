@@ -19,6 +19,7 @@ ln -sf ./dotfiles/.bashrc ./
 ln -sf ./dotfiles/.irbrc ./
 ln -sf ./dotfiles/.gitconfig ./
 ln -sf ./dotfiles/.gemrc ./
+ln -sf ./dotfiles/.tmux.conf ./
 
 ln -sf ./dotfiles/.vim ./
 ln -sf ./dotfiles/.zsh ./
@@ -30,4 +31,6 @@ ln -sf ./dotfiles/.Xmodmap ./
 # next generation .emacs!!
 ln -sf ./dotfiles/.emacs.d ./
 ln -sf ./dotfiles/.emacs ./
+
+ln -sf ./dotfiles ./config
 

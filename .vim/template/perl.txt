@@ -1,0 +1,6 @@
+#!/bin/env perl
+# Author: kimoto
+
+use strict;
+use warnings;
+

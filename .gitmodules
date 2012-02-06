@@ -52,3 +52,6 @@
 [submodule ".vim/bundle/vim-align"]
 	path = .vim/bundle/vim-align
 	url = git://github.com/tsaleh/vim-align.git
+[submodule "gitignore"]
+	path = gitignore
+	url = https://github.com/github/gitignore.git
