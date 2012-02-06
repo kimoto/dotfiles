@@ -148,7 +148,7 @@ watch=notme # watch and notify, other login user
 
 # env
 export PAGER="less --RAW-CONTROL-CHARS"
-export EDITOR=vi
+export EDITOR=vim
 export LESS="-girMXfFQ"
 #export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8

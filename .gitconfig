@@ -43,7 +43,7 @@
   commitencoding = utf-8
 
 [core]
-  excludesfile = ~/.gitignore
+	excludesfile = ~/.gitignore
 	editor = vim
 	autoCRLF = false
 
