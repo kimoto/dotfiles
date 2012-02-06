@@ -14,6 +14,7 @@
 # 覚えるのめんどいgit操作系は日本語でbindすることに
   modosu = reset --hard HEAD
   logall = !git log --all --patch --color | git name-rev --stdin | $PAGER
+  show-graph = log --graph --abbrev-commit --pretty=oneline
 
 [color]
   diff = auto
