@@ -273,6 +273,7 @@ set rtp+=~/.vim/vundle/
 call vundle#rc()
 filetype plugin on
 Bundle 'Lokaltog/vim-powerline'
+Bundle 'vim-ruby/vim-ruby'
 
 " load local config file
 let local_vimrc_path = $HOME . "/.vimrc.local"

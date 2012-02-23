@@ -10,7 +10,7 @@
 #===============================================================
 unlimit
 limit -s
-umask 007
+umask 022
 bindkey -e
 
 autoload -U zmv
