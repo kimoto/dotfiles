@@ -128,6 +128,7 @@ alias svn='nocorrect svn'
 alias e='emacsclient -t -a emacs' 
 alias cp='cp -v' # verbose
 alias q='exit'
+alias px='ps auxw'
 bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
 
 # var
@@ -149,11 +150,12 @@ watch=notme # watch and notify, other login user
 # env
 export PAGER="less --RAW-CONTROL-CHARS"
 export EDITOR=vim
+export GIT_EDITOR=vim
+export SVN_EDITOR=vim
 export LESS="-girMXfFQ"
 #export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
-export SVN_EDITOR=vim
 export PATH="$HOME/utils:$HOME/bin:$HOME/local/bin:$HOME/usr/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
 export MANPATH="$HOME/local/share/man:/opt/local/share/man:$MANPATH"
 export LD_LIBRARY_PATH="$HOME/local/lib"
@@ -175,13 +177,6 @@ _cache_hosts=($( print_known_hosts ))
 autoload insert-files
 zle -N insert-files
 bindkey '^X^F' insert-files
-
-# binding SourceEngine like key config
-function reloadconfig {
-  source ~/.zshrc
-}
-zle -N reloadconfig
-bindkey '^[[15~' reloadconfig
 
 # ls-colors
 LS_COLORS="fi=37:di=36:ex=32:ln=34:bd=33:cd=33:pi=35:so=35"
@@ -327,8 +322,11 @@ screen-statusline-initialize () {
   screen-statusline-update "zsh"
 }
 
+#hgrep(){
+#  fc -l -E 1 | fuzzygrep $@
+#}
 hgrep(){
-  fc -l -E 1 | fuzzygrep $@
+  fc -l -E 1 | egrep -i $@
 }
 
 h(){

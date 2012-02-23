@@ -62,15 +62,15 @@ set cursorline
 syntax on
 "colorscheme desert
 
+" 前回編集していた場所に自動でジャンプするように
+au BufWritePost * mkview
+autocmd BufReadPost * loadview
+
 " ファイルタイプごとのプラグインを有効にする
 filetype on
 filetype plugin on
 filetype plugin indent on
 filetype indent on
-
-" 前回編集していた場所に自動でジャンプするように
-au BufWritePost * mkview
-autocmd BufReadPost * loadview
 
 " 一定の時間ごとに自動保存
 "set autowrite
