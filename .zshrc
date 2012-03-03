@@ -73,13 +73,13 @@ zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、�
 
 # setopt
 setopt autocd
+setopt autopushd
 setopt nocorrectall
 setopt histignoredups
 setopt pushdignoredups
 setopt interactivecomments
 setopt multios
 setopt incappendhistory
-setopt autopushd
 setopt extendedhistory
 setopt extendedglob
 setopt noclobber
@@ -405,4 +405,10 @@ if [ -e "$HOME/utils/env.sh" ]; then
   . "$HOME/utils/env.sh"
 fi
 
-screen-statusline-initialize
+_Z_CMD=j
+source ~/.zsh/z.sh
+precmd() {
+  _z --add "$(pwd -P)"
+}
+
+#screen-statusline-initialize
