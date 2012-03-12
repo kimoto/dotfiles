@@ -131,10 +131,13 @@ alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
 
-alias -g L='| less '
-alias -g G='| grep '
-
+bindkey -s L '| less '
+bindkey -s G '| grep '
+bindkey -s P 'ps auxw'
+bindkey -s S 'ssh '
 bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
+bindkey -s '5~' 'connect_to_favorite_server_1\n' # F5
+bindkey -s '7~' 'connect_to_favorite_server_2\n' # F6
 
 # var
 HISTFILE=~/.zsh_history
