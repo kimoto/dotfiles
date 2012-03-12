@@ -129,6 +129,11 @@ alias e='emacsclient -t -a emacs'
 alias cp='cp -v' # verbose
 alias q='exit'
 alias px='ps auxw'
+alias p='ps auxw'
+
+alias -g L='| less '
+alias -g G='| grep '
+
 bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
 
 # var

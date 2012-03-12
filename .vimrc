@@ -91,6 +91,7 @@ autocmd FileType perl set omnifunc=perlcomplete#CompletePERL
 autocmd FileType c set omnifunc=ccomplete#Complete
 autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
 "autocmd FileType txt set let g:acp_enableAtStartup = 0
+au BufRead,BufNewFile /etc/nginx/*.conf set ft=nginx 
 
 " template
 autocmd BufNewFile *.pl 0r /home/kimoto/.vim/template/perl.txt
@@ -274,6 +275,20 @@ call vundle#rc()
 filetype plugin on
 Bundle 'Lokaltog/vim-powerline'
 Bundle 'vim-ruby/vim-ruby'
+"Bundle 'scrooloose/syntastic'
+Bundle 'basyura/jslint.vim'
+
+" jslint.vim
+function! s:javascript_filetype_settings()
+  autocmd BufLeave     <buffer> call jslint#clear()
+  autocmd BufWritePost <buffer> call jslint#check()
+  autocmd CursorMoved  <buffer> call jslint#message()
+endfunction
+autocmd FileType javascript call s:javascript_filetype_settings()
+
+let g:syntastic_mode_map = { 'mode': 'passive',
+                           \ 'active_filetypes': ['ruby', 'javascript', 'html'],
+                           \ 'passive_filetypes': [] }
 
 " load local config file
 let local_vimrc_path = $HOME . "/.vimrc.local"
