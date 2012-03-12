@@ -136,8 +136,14 @@ bindkey -s G '| grep '
 bindkey -s P 'ps auxw'
 bindkey -s S 'ssh '
 bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
-bindkey -s '5~' 'connect_to_favorite_server_1\n' # F5
-bindkey -s '7~' 'connect_to_favorite_server_2\n' # F6
+
+# quick login (call alias)
+bindkey -s '5~' 'f5\n' # F5
+bindkey -s '7~' 'f6\n' # F6
+bindkey -s '8~' 'f7\n' # F7
+bindkey -s '9~' 'f8\n' # F8
+
+alias F8='exit'
 
 # var
 HISTFILE=~/.zsh_history
