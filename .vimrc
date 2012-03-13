@@ -61,6 +61,7 @@ set cursorline
 " シンタックスカラー表示を有効にする
 syntax on
 "colorscheme desert
+colorscheme molokai
 
 " 前回編集していた場所に自動でジャンプするように
 au BufWritePost * mkview
@@ -289,6 +290,8 @@ autocmd FileType javascript call s:javascript_filetype_settings()
 let g:syntastic_mode_map = { 'mode': 'passive',
                            \ 'active_filetypes': ['ruby', 'javascript', 'html'],
                            \ 'passive_filetypes': [] }
+
+"let g:molokai_original = 1
 
 " load local config file
 let local_vimrc_path = $HOME . "/.vimrc.local"
