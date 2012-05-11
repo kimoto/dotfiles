@@ -109,10 +109,11 @@ call pathogen#runtime_append_all_bundles()
 " コンテキストにふさわしい移動の仕方をするようになる
 source $VIMRUNTIME/macros/matchit.vim
 
-let g:acp_enableAtStartup = 1 "有効化
+"let g:acp_enableAtStartup = 1 "有効化
 
 " neocomplcacheの設定
-let g:neocomplcache_enable_at_startup = 0 "無効化
+"let g:neocomplcache_enable_at_startup = 0 "無効化
+let g:neocomplcache_enable_at_startup = 1 "無効化
 "let g:neocomplcache_enable_smart_case = 1
 "let g:neocomplcache_enable_camel_case_completion = 1
 "let g:neocomplcache_enable_underbar_completion = 1
@@ -233,7 +234,8 @@ nmap <F8> :q!<CR>
 "nmap bG :FufFile <C-r>=expand('%:~:.')[:-1-len(expand('%:~:.:t'))]<CR><CR>
 "nmap gb :FufFile **/<CR>
 "nmap bq :FufQuickfix<CR>
-nmap ff :FufMruFile<CR>
+"nmap ff :FufMruFile<CR>
+nmap ff :Unite file<CR>
 "nmap bb :FufBuffer<CR>
 " bbだと左方向単語移動するときにtypoするのでキツイ
 
@@ -278,6 +280,7 @@ Bundle 'Lokaltog/vim-powerline'
 Bundle 'vim-ruby/vim-ruby'
 "Bundle 'scrooloose/syntastic'
 Bundle 'basyura/jslint.vim'
+Bundle 'thinca/vim-ref'
 
 " jslint.vim
 function! s:javascript_filetype_settings()
@@ -298,3 +301,9 @@ let local_vimrc_path = $HOME . "/.vimrc.local"
 if(file_readable(local_vimrc_path))
   execute "source " . local_vimrc_path
 endif
+
+let g:unite_enable_start_insert=1
+nnoremap <silent> ,uf :<C-u>UniteWithBufferDir -buffer-name=files file<CR>
+
+au FileType unite nnoremap <silent> <buffer> <ESC><ESC> :q<CR>
+au FileType unite inoremap <silent> <buffer> <ESC><ESC> <ESC>:q<CR>
