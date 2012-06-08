@@ -131,6 +131,7 @@ alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
 
+alias -g L='| less '
 #bindkey -s L '| less '
 #bindkey -s G '| grep '
 #bindkey -s P 'ps auxw'
