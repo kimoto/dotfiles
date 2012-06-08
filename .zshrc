@@ -131,10 +131,10 @@ alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
 
-bindkey -s L '| less '
-bindkey -s G '| grep '
-bindkey -s P 'ps auxw'
-bindkey -s S 'ssh '
+#bindkey -s L '| less '
+#bindkey -s G '| grep '
+#bindkey -s P 'ps auxw'
+#bindkey -s S 'ssh '
 bindkey -s ':q' "^A^Kexit\n" # :qとすばやく入力するとexitされる
 
 # quick login (call alias)
