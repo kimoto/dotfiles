@@ -278,7 +278,7 @@ call vundle#rc()
 filetype plugin on
 Bundle 'Lokaltog/vim-powerline'
 Bundle 'vim-ruby/vim-ruby'
-"Bundle 'scrooloose/syntastic'
+Bundle 'scrooloose/syntastic'
 Bundle 'basyura/jslint.vim'
 Bundle 'thinca/vim-ref'
 
