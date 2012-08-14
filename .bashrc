@@ -26,6 +26,7 @@ if [[ "$PS1" ]]; then
 	alias h='history 25'
 	alias total='sort | uniq -c | sort -nr' 
 	alias ipaddr="egrep -o '[0-9]+(\.[0-9]+){3}'"
+  alias irb='pry'
 
 	set -o emacs
   #set -o errexit
@@ -46,10 +47,10 @@ if [[ "$PS1" ]]; then
 
   # env
 	export PAGER=less
-	export EDITOR=vi
-	export VISUAL=vi
-	export CVSEDITOR=vi
-	export SVN_EDITOR=vi
+	export EDITOR=vim
+	export VISUAL=vim
+	export CVSEDITOR=vim
+	export SVN_EDITOR=vim
 	export LANG=ja_JP.UTF-8
 	export LESS="-gieRmX"
 	export LESSCHARSET=latin1	# output binary
@@ -76,6 +77,7 @@ if [[ "$PS1" ]]; then
   fi
 fi
 
-[[ -s "~/perl5/perlbrew/etc/bashrc" ]] && source "~/perl5/perlbrew/etc/bashrc"
+[[ -s "$HOME/perl5/perlbrew/etc/bashrc" ]] && source "$HOME/perl5/perlbrew/etc/bashrc"
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" 
+[[ -s "$HOME/.phpbrew/bashrc" ]] && source "$HOME/.phpbrew/bashrc"
 
