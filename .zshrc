@@ -47,6 +47,11 @@ zstyle ':completion:*:functions' ignored-patterns '_*' # 持っていないコ�
 zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
 # zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
 
+# sudo時も$PATH内のコマンドを補完する
+zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH}
+
+
+
 # TODO = .. nyuuryoku de parent directory he
 #autoload -Uz add-zsh-hook
 #autoload -Uz vcs_info
@@ -230,13 +235,11 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 export LS_COLORS
 
 # history-search
-#autoload history-search-end
-#zle -N history-beginning-search-backward-end history-search-end
-#zle -N history-beginning-search-forward-end history-search-end
-#bindkey "^P" history-beginning-search-backward-end
-#bindkey "^N" history-beginning-search-forward-end
-
-bindkey "^R" history-incremental-pattern-search-backward
+autoload -Uz is-at-least
+if is-at-least 4.3.10; then
+  bindkey "^R" history-incremental-pattern-search-backward
+  bindkey "^S" history-incremental-pattern-search-forward
+fi
 
 # bindkey -s
 bindkey -s "vv" '!vi\n'
