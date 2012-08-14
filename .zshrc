@@ -95,6 +95,8 @@ setopt complete_in_word
 setopt menu_complete
 setopt multios
 setopt auto_menu
+setopt magic_equal_subst # --prefix=~/local の~も展開できるように
+setopt ignore_eof # Ctrl-Dを無視
 #set -u
 #set -o errexit
 
@@ -162,8 +164,13 @@ fi
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 watch=notme # watch and notify, other login user
 
+typeset -U path # 重複したパスをPATHに登録しない
+typeset -xT SUDO_PATH sudo_path
+typeset -U manpath
+
 # env
 export PAGER="less --RAW-CONTROL-CHARS"
+export VISUAL=vim
 export EDITOR=vim
 export GIT_EDITOR=vim
 export SVN_EDITOR=vim
@@ -171,14 +178,28 @@ export LESS="-girMXfFQ"
 #export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
-export PATH="$HOME/utils:$HOME/bin:$HOME/local/bin:$HOME/usr/local/bin:/opt/local/bin:/usr/local/bin:$PATH"
-export MANPATH="$HOME/local/share/man:/opt/local/share/man:$MANPATH"
+path+=(
+  $HOME/utils
+  $HOME/bin
+  $HOME/local/bin
+  $HOME/usr/local/bin
+  /opt/local/bin
+  /usr/local/bin
+)
+sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
+manpath+=(
+  $HOME/local/share/man
+  /opt/local/share/man
+  /usr/local/share/man
+  /usr/share/man
+)
 export LD_LIBRARY_PATH="$HOME/local/lib"
 export C_INCLUDE_PATH="$HOME/local/include"
 export KEYTIMEOUT=20
 export __CF_USER_TEXT_ENCODING='0x1F6:0x08000100:14' # use utf8 with pbcopy/pbpaste 
 export GREP_OPTIONS='--color=auto'
 export GISTY_DIR="$HOME/dev/gists"
+REPORTTIME=3 # プロセスが3秒以上かかったら自動的に消費時間の統計を出力
 
 # ~/.ssh/known_hostsからホスト名を補完します
 function print_known_hosts (){ 
@@ -419,11 +440,5 @@ fi
 if [ -e "$HOME/utils/env.sh" ]; then
   . "$HOME/utils/env.sh"
 fi
-
-_Z_CMD=j
-source ~/.zsh/z.sh
-precmd() {
-  _z --add "$(pwd -P)"
-}
 
 #screen-statusline-initialize
