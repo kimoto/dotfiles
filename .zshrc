@@ -444,16 +444,20 @@ fi
 #screen-statusline-initialize
 
 # cdrを有効化
-autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
-add-zsh-hook chpwd chpwd_recent_dirs
-zstyle ':chpwd:*' recent-dirs-max 5000
-zstyle ':chpwd:*' recent-dirs-default yes
-zstyle ':completion:*' recent-dirs-insert both
+if is-at-least 4.3.11; then
+  autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
+  add-zsh-hook chpwd chpwd_recent_dirs
+  zstyle ':chpwd:*' recent-dirs-max 5000
+  zstyle ':chpwd:*' recent-dirs-default yes
+  zstyle ':completion:*' recent-dirs-insert both
+fi
 
-# load zaw
+# Ctrl-Rが過去実行コマンドの履歴検索、Ctrl-Sが過去にいたディレクトリの履歴検索
 source $HOME/.zsh/zaw/zaw.zsh
 bindkey '^R' zaw-history
 
 # zaw-cdrをbindkey
-bindkey '^@' zaw-cdr 
+if is-at-least 4.3.11; then
+  bindkey '^S' zaw-cdr 
+fi
 
