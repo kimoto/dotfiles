@@ -443,7 +443,17 @@ fi
 
 #screen-statusline-initialize
 
+# cdrを有効化
+autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
+add-zsh-hook chpwd chpwd_recent_dirs
+zstyle ':chpwd:*' recent-dirs-max 5000
+zstyle ':chpwd:*' recent-dirs-default yes
+zstyle ':completion:*' recent-dirs-insert both
+
 # load zaw
 source $HOME/.zsh/zaw/zaw.zsh
 bindkey '^R' zaw-history
+
+# zaw-cdrをbindkey
+bindkey '^@' zaw-cdr 
 
