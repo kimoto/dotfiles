@@ -150,6 +150,8 @@ bindkey -s '9~' 'f8\n' # F8
 
 alias F8='exit'
 
+function temp(){ cd `mktemp -d --tmpdir="$HOME/tmp/" \`date +'%Y%m%d'.$1${1:+.}\`XXXXXX` }
+
 # var
 HISTFILE=~/.zsh_history
 HISTSIZE=9999999
