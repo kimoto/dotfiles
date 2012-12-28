@@ -134,6 +134,7 @@ alias cp='cp -v' # verbose
 alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
+alias be='bundle exec'
 
 alias -g L='| less '
 #bindkey -s L '| less '
