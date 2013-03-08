@@ -85,7 +85,7 @@ filetype indent on
 autocmd FileType javascript set omnifunc=javascriptcomplete#CompleteJS
 autocmd FileType php set omnifunc=phpcomplete#CompletePHP
 autocmd FileType python set omnifunc=pythoncomplete#Complete
-autocmd FileType html set omnifunc=htmlcomplete#CompleteTags
+" autocmd FileType html set omnifunc=htmlcomplete#CompleteTags
 autocmd FileType css set omnifunc=csscomplete#CompleteCSS
 autocmd FileType xml set omnifunc=xmlcomplete#CompleteTags
 autocmd FileType perl set omnifunc=perlcomplete#CompletePERL
@@ -281,6 +281,7 @@ Bundle 'vim-ruby/vim-ruby'
 Bundle 'scrooloose/syntastic'
 Bundle 'basyura/jslint.vim'
 Bundle 'thinca/vim-ref'
+Bundle 'Shougo/unite.vim'
 
 " jslint.vim
 function! s:javascript_filetype_settings()
