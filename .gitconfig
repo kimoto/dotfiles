@@ -17,8 +17,7 @@
   show-graph = log --graph --abbrev-commit --pretty=oneline
 
 [color]
-  diff = auto
-  status = auto
+  ui = auto
   branch = auto
   interactive = auto
 

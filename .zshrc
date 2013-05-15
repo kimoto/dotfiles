@@ -18,7 +18,7 @@ autoload -U zargs
 zmodload -i zsh/files
 
 # compinit
-fpath=($HOME/.zsh $fpath)
+fpath=($HOME/.zsh $HOME/.zsh/completion $fpath)
 autoload -U compinit
 compinit -u
 
@@ -50,7 +50,8 @@ zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、�
 # sudo時も$PATH内のコマンドを補完する
 zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH}
 
-
+# git completion
+zstyle ':completion:*:*:git:*' script $HOME/.zsh/git-completion.bash
 
 # TODO = .. nyuuryoku de parent directory he
 autoload -Uz add-zsh-hook
@@ -464,7 +465,4 @@ bindkey '^R' zaw-history
 if is-at-least 4.3.11; then
   bindkey '^S' zaw-cdr 
 fi
-
-# git completion
-source /home/kimoto/.zsh/git-completion.zsh
 
