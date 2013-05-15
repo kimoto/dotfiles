@@ -135,6 +135,7 @@ alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
 alias be='bundle exec'
+alias st='git status'
 
 alias -g L='| less '
 #bindkey -s L '| less '
@@ -463,4 +464,7 @@ bindkey '^R' zaw-history
 if is-at-least 4.3.11; then
   bindkey '^S' zaw-cdr 
 fi
+
+# git completion
+source /home/kimoto/.zsh/git-completion.zsh
 
