@@ -10,3 +10,6 @@ ipch/
 *.zip
 *.exp
 *.exe
+doc/tags
+doc/tags-ja
+
