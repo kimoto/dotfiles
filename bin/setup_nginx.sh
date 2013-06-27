@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VER="1.3.9"
+VER="1.4.1"
 PASSENGER_PATH="`passenger-config --root`/ext/nginx"
 PREFIX="/usr/local/nginx"
 
@@ -15,7 +15,7 @@ sudo yum install -y libcurl-devel pcre-devel gd gd-devel
 make
 sudo make install
 
-curl https://gist.github.com/raw/3046138/4531d38d660129079146bba6232c3ce87caedb82/nginx > ./nginx
+curl -L1 https://gist.github.com/kimoto/3046138/raw/4531d38d660129079146bba6232c3ce87caedb82/nginx > ./nginx
 sudo mv ./nginx /etc/init.d/nginx
 sudo chmod u+x /etc/init.d/nginx
 
