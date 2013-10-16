@@ -136,8 +136,10 @@ alias q='exit'
 alias px='ps auxw'
 alias p='ps auxw'
 alias be='bundle exec'
+alias bx='bundle exec'
 alias st='git status'
 alias rest='touch ./tmp/restart.txt'
+alias wget="wget --content-disposition"
 
 alias -g L='| less '
 #bindkey -s L '| less '
@@ -186,13 +188,15 @@ export LESS="-girMXfFQ"
 #export LESSOPEN="|lesspipe.sh %s"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
-path+=(
-  $HOME/utils
+path=(
   $HOME/bin
-  $HOME/local/bin
   $HOME/usr/local/bin
-  /opt/local/bin
+  $HOME/local/bin
+  $HOME/utils
   /usr/local/bin
+  /opt/local/bin
+  /usr/bin
+  /bin
 )
 sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
 manpath+=(
