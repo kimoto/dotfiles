@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Page Title</title>
+    <script type="text/javascript" src="./path/to/jsfile.js"></script>
+    <link rel="stylesheet" href="./path/to/cssfile.css" />
+    <style type="text/css">
+      body{
+        background-color: gray;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Page Title</h1>
+    <p>
+        body
+    </p>
+  </body>
+</html>
