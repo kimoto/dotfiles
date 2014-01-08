@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VER="1.4.1"
+VER="1.5.8"
 PASSENGER_PATH="`passenger-config --root`/ext/nginx"
 PREFIX="/usr/local/nginx"
 WORKDIR="/tmp"
