@@ -11,10 +11,11 @@
   co = checkout
   pu = push
 
-# 覚えるのめんどいgit操作系は日本語でbindすることに
-  modosu = reset --hard HEAD
-  logall = !git log --all --patch --color | git name-rev --stdin | $PAGER
+  # 覚えるのめんどいgit操作系は日本語でbindすることに
   show-graph = log --graph --abbrev-commit --pretty=oneline
+  lg = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+  s = status -s
+  dp = diff --patience
 
 [color]
   ui = auto
@@ -58,3 +59,16 @@
 
 [gui]
 	encoding = utf-8
+
+[diff]
+	algorithm = patience
+
+[url "git@github.com:"]
+  pushinsteadof = "git://github.com/"
+  pushinsteadof = "https://github.com/"
+
+[pager]
+        log = diff-highlight | less
+        show = diff-highlight | less
+        diff = diff-highlight | less
+
