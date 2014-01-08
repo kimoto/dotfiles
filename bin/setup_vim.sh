@@ -1,7 +1,7 @@
 #!/bin/sh
 
-VER="7.3"
-DIRVER="73"
+VER="7.4"
+DIRVER="74"
 WORKDIR="/tmp"
 PREFIX="/usr/local"
 
