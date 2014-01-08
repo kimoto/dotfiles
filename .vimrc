@@ -199,7 +199,10 @@ NeoBundle 'yuku-t/vim-ref-ri'
 NeoBundle 'soh335/vim-ref-jquery'
 NeoBundle 'soh335/vim-ref-pman'
 NeoBundle 'mojako/ref-sources.vim'
+
 NeoBundle 'vim-scripts/YankRing.vim'
+let g:yankring_history_dir = $HOME.'/tmp'
+
 NeoBundle 'houtsnip/vim-emacscommandline'
 NeoBundle 'Lokaltog/vim-powerline'
 "NeoBundle 'airblade/vim-gitgutter'
