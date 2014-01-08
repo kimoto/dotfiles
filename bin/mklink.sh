@@ -33,5 +33,5 @@ ln -sf ./dotfiles/.Xmodmap ./
 ln -sf ./dotfiles/.emacs.d ./
 ln -sf ./dotfiles/.emacs ./
 
-ln -sf ./dotfiles ./config
-
+# $HOMEに./configというシンボリックリンクがなければ作成する
+test -h ./config || ln -sf ./dotfiles ./config
