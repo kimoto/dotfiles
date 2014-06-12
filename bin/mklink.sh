@@ -25,6 +25,7 @@ ln -sf ./dotfiles/.tmux.conf ./
 ln -sf ./dotfiles/.vim ./
 ln -sf ./dotfiles/.zsh ./
 ln -sf ./dotfiles/.subversion ./
+ln -sf ./dotfiles/.peco ./
 
 ln -sf ./dotfiles/.Xdefaults ./
 ln -sf ./dotfiles/.Xmodmap ./
