@@ -179,6 +179,7 @@ typeset -xT SUDO_PATH sudo_path
 typeset -U manpath
 
 # env
+export GOPATH="$HOME/go"
 export PAGER="less --RAW-CONTROL-CHARS"
 export VISUAL=vim
 export EDITOR=vim
@@ -193,9 +194,12 @@ path=(
   $HOME/usr/local/bin
   $HOME/local/bin
   $HOME/utils
+  $HOME/go/bin
   /usr/local/bin
+  /usr/local/sbin
   /opt/local/bin
   /usr/bin
+  /usr/sbin
   /bin
 )
 sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
@@ -470,4 +474,8 @@ bindkey '^R' zaw-history
 if is-at-least 4.3.11; then
   bindkey '^S' zaw-cdr 
 fi
+
+# かんたん移動
+alias ccd='cd $(find . -type d -maxdepth 10 | peco)'
+alias iv='vi $(find . -type f -maxdepth 10 | peco)'
 
