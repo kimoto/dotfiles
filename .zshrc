@@ -476,6 +476,16 @@ if is-at-least 4.3.11; then
 fi
 
 # かんたん移動
-alias ccd='cd $(find . -type d -maxdepth 10 | peco)'
-alias iv='vi $(find . -type f -maxdepth 10 | peco)'
+alias ccd='cd $(find . -maxdepth 5 -type d | peco)'
+alias iv='vi $(find . -maxdepth 5 -type f | peco)'
 
+function in_place_history_keyword_completion() {
+        pos=CURSOR # 現在のカーソル位置を取得
+        #selected=$(history -10000 | cut -d' ' -f3- | tr '|' ' ' | tr ' ' '\n' | sort -u | peco) # 選択した結果
+        selected=$(find . -maxdepth 5 -type f | peco)
+        BUFFER="${BUFFER[1,$pos]}${selected}${BUFFER[$pos,-1]}"
+        CURSOR=$#BUFFER         # move cursor
+        zle -R -c               # refresh
+}
+#zle -N in_place_history_keyword_completion
+#bindkey '^R' in_place_history_keyword_completion
