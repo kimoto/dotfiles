@@ -2,6 +2,8 @@
     "Keymap": {
         "C-p": "peco.SelectPrevious",
         "C-n": "peco.SelectNext",
-        "C-k": "peco.KillEndOfLine"
+        "C-k": "peco.KillEndOfLine",
+        "C-c": "peco.Cancel",
+        "C-w": "peco.DeleteBackwardWord"
     }
 }
