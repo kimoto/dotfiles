@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Time::Piece;
+use Pod::Usage;
+
+&main; exit;
+
+sub show($) {
+    my $time = shift;
+    printf "%s %s\n", $time->strftime("%Y-%m-%d %H:%M:%S%z"), $time->epoch;
+}
+
+sub main {
+    my $stuff = shift @ARGV;
+    if (!defined $stuff) {
+        show(localtime());
+    } elsif ($stuff =~ /^\d{4}-\d\d$/) {
+        my $first = localtime()->strptime($stuff, '%Y-%m');
+        my $last = localtime()->strptime($stuff . '-' . $first->month_last_day . ' 23:59:59', '%Y-%m-%d %H:%M:%S');
+        show($first);
+        show($last);
+    } elsif ($stuff =~ /^\d{4}-\d\d-\d\d$/) {
+        show(localtime()->strptime($stuff . ' 00:00:00', '%Y-%m-%d %H:%M:%S'));
+        show(localtime()->strptime($stuff . ' 23:59:59', '%Y-%m-%d %H:%M:%S'));
+    } elsif ($stuff =~ /^\d+$/) {
+        show(localtime($stuff));
+    } else {
+        pod2usage(1);
+    }
+}
+
+
+__END__
+
+=head1 SYNOPSIS
+
+% epoch 2013-05
+% epoch 
