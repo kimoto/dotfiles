@@ -140,6 +140,7 @@ alias bx='bundle exec'
 alias st='git status'
 alias rest='touch ./tmp/restart.txt'
 alias wget="wget --content-disposition"
+alias quicklook="qlmanage -p" # quicklook呼び出すコマンドのメモ代わり
 
 alias -g L='| less '
 #bindkey -s L '| less '
