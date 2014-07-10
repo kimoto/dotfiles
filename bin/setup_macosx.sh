@@ -50,6 +50,10 @@ brew update
 if [ ! $(brew tap | grep phinze/cask) ]; then
 	brew tap phinze/homebrew-cask
 fi
+if [ ! $(brew tap | grep homebrew/binary) ]; then
+        brew tap homebrew/binary
+fi
+
 brew install brew-cask
 
 brew install jq
