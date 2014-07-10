@@ -60,6 +60,7 @@ nmap ff :Unite file<CR>
 nnoremap <silent> <C-x>1 :only<CR>
 nnoremap <silent> <C-x>2 :sp<CR>
 nnoremap <silent> <C-x>3 :vsp<CR>
+noremap!  
 
 " 次のバッファに切り替え
 nmap <C-T> :bn<CR>
@@ -161,6 +162,7 @@ let g:neocomplcache_omni_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
 let g:neocomplcache_omni_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 
 NeoBundle 'Shougo/neosnippet'
+NeoBundle 'Shougo/neosnippet-snippets'
 " Plugin key-mappings.
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
