@@ -51,7 +51,7 @@ zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、�
 zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH}
 
 # git completion
-#zstyle ':completion:*:*:git:*' script $HOME/.zsh/git-completion.bash
+zstyle ':completion:*:*:git:*' script $HOME/.zsh/git-completion.zsh
 
 # TODO = .. nyuuryoku de parent directory he
 autoload -Uz add-zsh-hook
