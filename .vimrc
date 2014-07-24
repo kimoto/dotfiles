@@ -45,10 +45,10 @@ au BufWritePost * mkview
 autocmd BufReadPost * loadview
 
 " 言語ごとの初期テンプレートファイル
-autocmd BufNewFile *.pl 0r /home/kimoto/.vim/template/perl.txt
-autocmd BufNewFile *.rb 0r /home/kimoto/.vim/template/ruby.txt
-autocmd BufNewFile *.html 0r /home/kimoto/.vim/template/html.txt
-autocmd BufNewFile *.js 0r /home/kimoto/.vim/template/js.txt
+autocmd BufNewFile *.pl 0r $HOME/.vim/template/perl.txt
+autocmd BufNewFile *.rb 0r $HOME/.vim/template/ruby.txt
+autocmd BufNewFile *.html 0r $HOME/.vim/template/html.txt
+autocmd BufNewFile *.js 0r $HOME/.vim/template/js.txt
 
 " key maps
 " 保存/終了関係
