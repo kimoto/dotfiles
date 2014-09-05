@@ -23,6 +23,8 @@ set hidden " バッファを保存しないで他のファイルを開けるよ�
 set sidescroll=1 " 水平スクロール時の文字数
 set ambiwidth=double "特殊な文字でもカーソル位置がずれないように
 set display+=lastline "最後の行を可能な限り最後まで表示
+set list "いろいろ表示
+set listchars=tab:>\ ,
 " Tab入力したときに入力される空白の数
 "set tabstop=2
 "set shiftwidth=2
@@ -239,5 +241,12 @@ set background=dark
 let g:solarized_termcolors=256
 filetype plugin indent on " Required!
 colorscheme solarized
+
+" 行末スペースの可視化
+augroup HighlightTrailingSpaces
+        autocmd!
+        autocmd VimEnter,WinEnter,ColorScheme * highlight TrailingSpaces term=underline guibg=Red ctermbg=Red
+        autocmd VimEnter,WinEnter * match TrailingSpaces /\s\+$/
+augroup END
 
 NeoBundleCheck
