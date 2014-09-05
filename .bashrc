@@ -54,7 +54,7 @@ if [[ "$PS1" ]]; then
 	export LANG=ja_JP.UTF-8
 	export LESS="-gieRmX"
 	export LESSCHARSET=latin1	# output binary
-	export PATH=$PATH:$HOME/bin
+	export PATH=$HOME/bin:$HOME/local/bin:$PATH
 	export GREP_OPTIONS="--binary-files=without-match --color=auto"
 
   # history grep 
