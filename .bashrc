@@ -8,7 +8,7 @@ if [[ "$PS1" ]]; then
 	# terminal 
 	workdir="\[\e[34m\]\w\[\e[m\]"
 	PS0="\u $workdir\\$ "
-	PS1="\u@\h $workdir\\$ "
+	PS1="\u@\H $workdir\\$ "
 	unset workdir
 
 	shopt -s cdspell
