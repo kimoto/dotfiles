@@ -169,7 +169,7 @@ if [ "$TERM" = "emacs" ]; then
   PROMPT="%n %~[%!]%# "
 else
   OMITTED_DIR="%(3~,%-1~/.../%1~,%~)"
-  PROMPT="%n %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
+  PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
 fi
 
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
