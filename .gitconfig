@@ -1,55 +1,55 @@
 [user]
-  name = kimoto
-  email = peerler@gmail.com
+        name = kimoto
+        email = peerler@gmail.com
 
 [alias]
-  st = status
-  ci = commit -a
-  di = diff
-  dif = diff
-  dci = svn dcommit
-  co = checkout
-  pu = push
+        st = status
+        ci = commit -a
+        di = diff
+        dif = diff
+        dci = svn dcommit
+        co = checkout
+        pu = push
 
-  # 覚えるのめんどいgit操作系は日本語でbindすることに
-  show-graph = log --graph --abbrev-commit --pretty=oneline
-  lg = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-  s = status -s
-  dp = diff --patience
+        # 覚えるのめんどいgit操作系は日本語でbindすることに
+        show-graph = log --graph --abbrev-commit --pretty=oneline
+        lg = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+        s = status -s
+        dp = diff --patience
 
 [color]
-  ui = auto
-  branch = auto
-  interactive = auto
+        ui = auto
+        branch = auto
+        interactive = auto
 
 [color "branch"]
-  current = red
-  local = yellow
-  remote = green
+        current = red
+        local = yellow
+        remote = green
 
 [color "status"]
-  added = yellow
-  changed = green
-  untracked = cyan
+        added = yellow
+        changed = green
+        untracked = cyan
 
 
 [color "diff"]
-  commit = black white bold
-  meta = blue
-  frag = black
-  old = red
-  new = green
+        commit = black white bold
+        meta = blue
+        frag = black
+        old = red
+        new = green
 
 [i18n]
-  commitencoding = utf-8
+        commitencoding = utf-8
 
 [core]
-	excludesfile = ~/.gitignore
-	editor = vim
-	autoCRLF = false
+        excludesfile = ~/.gitignore
+        editor = vim
+        autoCRLF = false
 
 [push]
-  default = current
+        default = current
 
 #[branch]
 #  autosetuprebase = always
@@ -58,14 +58,14 @@
 #  textconv = exiftool
 
 [gui]
-	encoding = utf-8
+        encoding = utf-8
 
 [diff]
-	algorithm = patience
+        algorithm = patience
 
 [url "git@github.com:"]
-  pushinsteadof = "git://github.com/"
-  pushinsteadof = "https://github.com/"
+        pushinsteadof = "git://github.com/"
+        pushinsteadof = "https://github.com/"
 
 [pager]
         log = diff-highlight | less
