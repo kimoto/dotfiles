@@ -134,6 +134,7 @@ autocmd FileType text set expandtab tabstop=2 shiftwidth=2 softtabstop=2
 autocmd FileType html set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType javascript set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType perl set expandtab tabstop=4 shiftwidth=4 softtabstop=4
+au BufNewFile,BufRead *.tx set filetype=tt2html
 
 " Recommended key-mappings.
 " <CR>: close popup and save indent.
@@ -203,6 +204,9 @@ NeoBundle 'yuku-t/vim-ref-ri'
 NeoBundle 'soh335/vim-ref-jquery'
 NeoBundle 'soh335/vim-ref-pman'
 NeoBundle 'mojako/ref-sources.vim'
+
+NeoBundle 'vim-scripts/TT2-syntax'
+NeoBundle 'vim-perl/vim-perl'
 
 NeoBundle 'vim-scripts/YankRing.vim'
 let g:yankring_history_dir = $HOME.'/tmp'
