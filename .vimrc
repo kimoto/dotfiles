@@ -135,6 +135,7 @@ autocmd FileType html set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType javascript set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType perl set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 au BufNewFile,BufRead *.tx set filetype=tt2html
+au BufNewFile,BufRead *.psgi set filetype=perl
 
 " Recommended key-mappings.
 " <CR>: close popup and save indent.
