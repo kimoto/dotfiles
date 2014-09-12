@@ -216,6 +216,10 @@ NeoBundle 'Lokaltog/vim-powerline'
 "NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'tpope/vim-fugitive' " 重いのでやめた
 
+"NeoBundle 'othree/html5.vim'
+"NeoBundle 'pangloss/vim-javascript'
+NeoBundle 'lukaszb/vim-web-indent'
+
 "================================
 " Syntax Check
 "================================
