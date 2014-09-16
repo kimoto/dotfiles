@@ -254,8 +254,10 @@ let g:syntastic_auto_loc_list = 2
 let g:syntastic_javascript_checkers = ["jshint"]
 let g:syntastic_html_checkers = ["jshint"]
 let g:syntastic_mode_map = { 'mode': 'passive',
-                           \ 'active_filetypes': ['ruby', 'javascript', 'html', 'perl'],
+                           \ 'active_filetypes': ['ruby', 'javascript', 'html'],
                            \ 'passive_filetypes': [] }
+let g:syntastic_error_symbol = '✗'
+let g:syntastic_warning_symbol = '!'
 
 " Vimを終了してもUndo
 if has('persistent_undo')
