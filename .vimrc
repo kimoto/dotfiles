@@ -232,6 +232,9 @@ NeoBundle 'tpope/vim-fugitive' " 重いのでやめた
 "NeoBundle 'pangloss/vim-javascript'
 NeoBundle 'lukaszb/vim-web-indent'
 
+NeoBundle 'rking/ag.vim'
+NeoBundle 'mileszs/ack.vim'
+
 "NeoBundle 'Lokaltog/vim-easymotion'
 "nmap s <Plug>(easymotion-s2)
 "
