@@ -29,6 +29,7 @@ set display+=lastline "最後の行を可能な限り最後まで表示
 "set tabstop=2
 "set shiftwidth=2
 "set softtabstop=2
+set tags=$HOME/tags,./tags,./TAGS,tags,TAGS
 
 " バックアップファイルを作成する
 set backup
@@ -100,7 +101,7 @@ NeoBundle "Shougo/vimfiler.vim" "ref: http://d.hatena.ne.jp/h1mesuke/20100611/p1
 NeoBundle 'Shougo/neocomplcache'
 let g:neocomplcache_enable_at_startup = 1
 let g:neocomplcache_enable_smart_case = 1
-let g:neocomplcache_min_syntax_length = 3
+let g:neocomplcache_min_syntax_length = 2
 
 " Plugin key-mappings.
 inoremap <expr><C-g>     neocomplcache#undo_completion()
@@ -205,6 +206,9 @@ let g:rubycomplete_classes_in_global = 1
 NeoBundle 'vim-ruby/vim-ruby'
 NeoBundle 'thinca/vim-ref'
 NeoBundle 'thinca/vim-quickrun'
+map <C-r> :QuickRun<CR>
+inoremap <C-r> <Esc>:QuickRun<CR>a
+
 NeoBundle 'tpope/vim-endwise'
 "NeoBundle 'git://github.com/tsukkee/unite-tag.git'
 NeoBundle 'vim-scripts/ruby-matchit'
@@ -254,7 +258,7 @@ let g:syntastic_auto_loc_list = 2
 let g:syntastic_javascript_checkers = ["jshint"]
 let g:syntastic_html_checkers = ["jshint"]
 let g:syntastic_mode_map = { 'mode': 'passive',
-                           \ 'active_filetypes': ['ruby', 'javascript', 'html', 'perl'],
+                           \ 'active_filetypes': ['ruby', 'javascript', 'html', 'css'],
                            \ 'passive_filetypes': [] }
 
 " Vimを終了してもUndo
