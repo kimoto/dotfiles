@@ -208,6 +208,7 @@ NeoBundle 'thinca/vim-ref'
 NeoBundle 'thinca/vim-quickrun'
 map <C-r> :QuickRun<CR>
 inoremap <C-r> <Esc>:QuickRun<CR>a
+let g:quickrun_config={'*': {'split': ':botright 8sp'}}
 
 NeoBundle 'tpope/vim-endwise'
 "NeoBundle 'git://github.com/tsukkee/unite-tag.git'
