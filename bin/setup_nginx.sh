@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VER="1.7.3"
+VER="1.7.4"
 PASSENGER_PATH="`passenger-config --root`/ext/nginx"
 PREFIX="/usr/local/nginx"
 WORKDIR="/tmp"
@@ -11,7 +11,7 @@ wget "http://nginx.org/download/nginx-$VER.tar.gz"
 tar xvfz "./nginx-$VER.tar.gz"
 cd "./nginx-$VER"
 
-git clone git://gitorious.org/ngx-fancyindex/ngx-fancyindex.git ngx-fancyindex
+git clone https://github.com/aperezdc/ngx-fancyindex ngx-fancyindex
 sudo yum install -y libcurl-devel pcre-devel gd gd-devel
 
 ./configure --prefix="$PREFIX" --with-http_ssl_module --with-cc-opt='-Wno-error -O3' --add-module="$PASSENGER_PATH" --with-http_stub_status_module --add-module=./ngx-fancyindex/ --conf-path="$PREFIX/conf/nginx.conf" 
