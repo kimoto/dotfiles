@@ -206,8 +206,8 @@ let g:rubycomplete_classes_in_global = 1
 NeoBundle 'vim-ruby/vim-ruby'
 NeoBundle 'thinca/vim-ref'
 NeoBundle 'thinca/vim-quickrun'
-map <C-r> :QuickRun<CR>
-inoremap <C-r> <Esc>:QuickRun<CR>a
+map ,r :QuickRun<CR>
+inoremap ,r <Esc>:QuickRun<CR>a
 let g:quickrun_config={'*': {'split': ':botright 8sp'}}
 
 NeoBundle 'tpope/vim-endwise'
