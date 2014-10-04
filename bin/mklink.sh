@@ -8,6 +8,7 @@ cd $HOME
 ln -sf "$BASE_DIR/bin" ./
 
 ln -sf ./dotfiles/.vimrc ./
+ln -sf ./dotfiles/.bvirc ./
 ln -sf ./dotfiles/.inputrc ./
 ln -sf ./dotfiles/.vimperatorrc ./
 ln -sf ./dotfiles/.gitconfig ./
