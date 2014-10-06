@@ -26,7 +26,7 @@ set display+=lastline "最後の行を可能な限り最後まで表示
 "set list "いろいろ表示
 "set listchars=tab:>\ ,
 " Tab入力したときに入力される空白の数
-"set tabstop=2
+set tabstop=4
 "set shiftwidth=2
 "set softtabstop=2
 set tags=$HOME/tags,./tags,./TAGS,tags,TAGS
@@ -243,6 +243,8 @@ NeoBundle 'mileszs/ack.vim'
 
 NeoBundle 'Yggdroot/indentLine'
 let g:indentLine_faster = 1
+
+NeoBundle 'slim-template/vim-slim'
 
 "================================
 " Syntax Check
