@@ -23,12 +23,13 @@ set hidden " バッファを保存しないで他のファイルを開けるよ�
 set sidescroll=1 " 水平スクロール時の文字数
 set ambiwidth=double "特殊な文字でもカーソル位置がずれないように
 set display+=lastline "最後の行を可能な限り最後まで表示
-set list "いろいろ表示
-set listchars=tab:>\ ,
+"set list "いろいろ表示
+"set listchars=tab:>\ ,
 " Tab入力したときに入力される空白の数
-"set tabstop=2
+set tabstop=4
 "set shiftwidth=2
 "set softtabstop=2
+set tags=$HOME/tags,./tags,./TAGS,tags,TAGS
 
 " バックアップファイルを作成する
 set backup
@@ -57,6 +58,7 @@ autocmd BufNewFile *.js 0r $HOME/.vim/template/js.txt
 nmap mm :w<CR>
 nmap qq :q<CR>
 nmap ff :Unite file<CR>
+nmap fb :<C-u>Unite file_mru buffer<CR>
 
 " emacs風のウインドウ制御
 nnoremap <silent> <C-x>1 :only<CR>
@@ -85,7 +87,11 @@ NeoBundle 'Shougo/vimproc', {
       \    },
       \ }
 NeoBundle 'Shougo/vimshell'
+
+" Unite
 NeoBundle 'Shougo/unite.vim'
+let g:unite_enable_start_insert=1
+
 NeoBundle "Shougo/vimfiler.vim" "ref: http://d.hatena.ne.jp/h1mesuke/20100611/p1
 
 
@@ -95,7 +101,7 @@ NeoBundle "Shougo/vimfiler.vim" "ref: http://d.hatena.ne.jp/h1mesuke/20100611/p1
 NeoBundle 'Shougo/neocomplcache'
 let g:neocomplcache_enable_at_startup = 1
 let g:neocomplcache_enable_smart_case = 1
-let g:neocomplcache_min_syntax_length = 3
+let g:neocomplcache_min_syntax_length = 2
 
 " Plugin key-mappings.
 inoremap <expr><C-g>     neocomplcache#undo_completion()
@@ -126,7 +132,7 @@ autocmd FileType xml set omnifunc=xmlcomplete#CompleteTags
 autocmd FileType perl set omnifunc=perlcomplete#CompletePERL
 autocmd FileType c set omnifunc=ccomplete#Complete
 autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete
-au BufRead,BufNewFile nginx.conf set ft=nginx 
+au BufRead,BufNewFile nginx.conf set ft=nginx
 
 " tabstop settings
 autocmd FileType ruby set expandtab tabstop=2 shiftwidth=2 softtabstop=2
@@ -136,6 +142,8 @@ autocmd FileType javascript set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType perl set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 au BufNewFile,BufRead *.tx set filetype=tt2html
 au BufNewFile,BufRead *.psgi set filetype=perl
+"au BufNewFile,BufRead *.jshintrc set filetype=json
+"au BufNewFile,BufRead *.jslintrc set filetype=json
 
 " Recommended key-mappings.
 " <CR>: close popup and save indent.
@@ -194,17 +202,21 @@ NeoBundle 'tpope/vim-rails', { 'autoload' : {
 let g:rubycomplete_rails = 1
 let g:rubycomplete_classes_in_global = 1
 
-NeoBundle 'basyura/unite-rails'
+"NeoBundle 'basyura/unite-rails'
 NeoBundle 'vim-ruby/vim-ruby'
 NeoBundle 'thinca/vim-ref'
 NeoBundle 'thinca/vim-quickrun'
+map ,r :QuickRun<CR>
+inoremap ,r <Esc>:QuickRun<CR>a
+let g:quickrun_config={'*': {'split': ':botright 8sp'}}
+
 NeoBundle 'tpope/vim-endwise'
-NeoBundle 'git://github.com/tsukkee/unite-tag.git'
+"NeoBundle 'git://github.com/tsukkee/unite-tag.git'
 NeoBundle 'vim-scripts/ruby-matchit'
-NeoBundle 'yuku-t/vim-ref-ri'
-NeoBundle 'soh335/vim-ref-jquery'
-NeoBundle 'soh335/vim-ref-pman'
-NeoBundle 'mojako/ref-sources.vim'
+"NeoBundle 'yuku-t/vim-ref-ri'
+"NeoBundle 'soh335/vim-ref-jquery'
+"NeoBundle 'soh335/vim-ref-pman'
+"NeoBundle 'mojako/ref-sources.vim'
 
 NeoBundle 'vim-scripts/TT2-syntax'
 NeoBundle 'vim-perl/vim-perl'
@@ -221,6 +233,19 @@ NeoBundle 'tpope/vim-fugitive' " 重いのでやめた
 "NeoBundle 'pangloss/vim-javascript'
 NeoBundle 'lukaszb/vim-web-indent'
 
+NeoBundle 'rking/ag.vim'
+NeoBundle 'mileszs/ack.vim'
+
+"NeoBundle 'Lokaltog/vim-easymotion'
+"nmap s <Plug>(easymotion-s2)
+"
+"NeoBundle "elzr/vim-json"
+
+NeoBundle 'Yggdroot/indentLine'
+let g:indentLine_faster = 1
+
+NeoBundle 'slim-template/vim-slim'
+
 "================================
 " Syntax Check
 "================================
@@ -234,9 +259,15 @@ NeoBundle 'scrooloose/syntastic'
 "endfunction
 "autocmd FileType javascript call s:javascript_filetype_settings()
 
+let g:syntastic_enable_signs = 1
+let g:syntastic_auto_loc_list = 2
+let g:syntastic_javascript_checkers = ["jshint"]
+let g:syntastic_html_checkers = ["jshint"]
 let g:syntastic_mode_map = { 'mode': 'passive',
-                           \ 'active_filetypes': ['ruby', 'javascript', 'html'],
+                           \ 'active_filetypes': ['ruby', 'javascript', 'html', 'css'],
                            \ 'passive_filetypes': [] }
+let g:syntastic_error_symbol = '✗'
+let g:syntastic_warning_symbol = '!'
 
 " Vimを終了してもUndo
 if has('persistent_undo')

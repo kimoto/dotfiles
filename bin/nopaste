@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+require 'net/http'
+require 'json'
+
+body = ARGF.read
+endpoint = ENV['NOPASTE'] || "http://nopaste.kymt.me/api/post"
+resp = Net::HTTP.post_form(URI(endpoint), {:body => body})
+data = JSON.parse(resp.body)
+
+if data["status"]["code"] == 200
+  puts data["permalink"]
+else
+  puts "Failed create permalink!"
+  puts data.inspect
+end
