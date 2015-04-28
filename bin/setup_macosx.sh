@@ -1,6 +1,5 @@
 #!/bin/sh
 # target: marverics
-set -e
 
 ## Config
 RUBY_VERSION="2.0.0-p451"
@@ -40,10 +39,11 @@ fi
 # 2. Install HomeBrew
 which brew
 if [ $? != 0 ]; then
-	ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go/install)"
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 else
 	echo "already installed brew"
 fi
+
 brew doctor
 brew update
 
