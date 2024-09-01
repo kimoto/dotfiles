@@ -27,6 +27,7 @@ vim.keymap.set('n', '<leader>6', ':b 6<CR>')
 vim.keymap.set('n', '<leader>n', ':bn<CR>')
 vim.keymap.set('n', '<leader>p', ':bp<CR>')
 vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
+vim.keymap.set('n', '<D-l>', ':Telescope frecency<CR>')
 
 --vim.api.nvim_set_keymap(
 --  "n",
@@ -72,6 +73,7 @@ vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', {})
 
 -- color themes
 -- vim.cmd('colorscheme solarized')

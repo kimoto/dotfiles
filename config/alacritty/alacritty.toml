@@ -18,11 +18,8 @@ padding.y = 4
 decorations = 'none'
 dynamic_padding = true
 option_as_alt = 'Both'
-
-##[bell#]
-#animation = "linear"
-#duration = 0
-#command = "None"
+# opacity = 0.9
+# blur = true
 
 [[keyboard.bindings]]
 key = "¥"

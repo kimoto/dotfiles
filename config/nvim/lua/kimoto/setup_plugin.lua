@@ -24,6 +24,7 @@ require('jetpack.paq') {
   'nvim-lua/plenary.nvim',
   {'nvim-telescope/telescope.nvim', tag = '0.1.8'},
   {'nvim-telescope/telescope-file-browser.nvim'},
+  {"nvim-telescope/telescope-frecency.nvim", config = function() require("telescope").load_extension "frecency" end},
 
   'nvim-tree/nvim-web-devicons',
   {'nvim-lualine/lualine.nvim', requires = 'kyazdani42/nvim-web-devicons'},
