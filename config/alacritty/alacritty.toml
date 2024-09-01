@@ -1,0 +1,34 @@
+import = ["~/.config/alacritty_themes/solarized_dark.toml"]
+
+[env]
+TERM = "alacritty"
+
+[font]
+size = 14.0
+normal.family = 'BitstromWera Nerd Font'
+normal.style = 'Regular'
+
+[shell]
+program = "/bin/zsh"
+args = ["-l", "-c", "tmux a -t 0 || tmux"]
+
+[window]
+padding.x = 4
+padding.y = 4
+decorations = 'none'
+dynamic_padding = true
+option_as_alt = 'Both'
+
+##[bell#]
+#animation = "linear"
+#duration = 0
+#command = "None"
+
+[[keyboard.bindings]]
+key = "¥"
+chars = "\\"
+
+[[keyboard.bindings]]
+key = "/"
+mods = "Control"
+chars = "\u001f"

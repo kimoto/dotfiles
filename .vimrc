@@ -41,7 +41,7 @@ set termencoding=utf8
 set encoding=utf8
 
 " カーソルのある行を強調する
-" set cursorline
+"set cursorline
 
 " 前回編集していた場所に自動でジャンプするように
 au BufWritePost * mkview
@@ -74,7 +74,7 @@ if has('vim_starting')
 	set nocompatible               " Be iMproved
 	set runtimepath+=~/.vim/bundle/neobundle.vim/
 endif
-call neobundle#rc(expand('~/.vim/bundle/'))
+call neobundle#begin(expand('~/.vim/bundle/'))
 NeoBundleFetch 'Shougo/neobundle.vim'
 
 NeoBundle 'Shougo/neobundle.vim'
@@ -175,6 +175,7 @@ let g:neocomplcache_omni_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 
 NeoBundle 'Shougo/neosnippet'
 NeoBundle 'Shougo/neosnippet-snippets'
+
 " Plugin key-mappings.
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
@@ -278,7 +279,7 @@ endif
 " Solarized
 syntax enable
 set background=dark
-let g:solarized_termcolors=256
+"let g:solarized_termcolors=256
 filetype plugin indent on " Required!
 colorscheme solarized
 
@@ -288,5 +289,7 @@ augroup HighlightTrailingSpaces
         autocmd VimEnter,WinEnter,ColorScheme * highlight TrailingSpaces term=underline guibg=Red ctermbg=Red
         autocmd VimEnter,WinEnter * match TrailingSpaces /\s\+$/
 augroup END
+
+call neobundle#end()
 
 NeoBundleCheck

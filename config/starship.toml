@@ -1,0 +1,36 @@
+format = '$all$directory$character'
+
+[character]
+success_symbol = '[\$]()'
+error_symbol = '[\$](red)'
+
+[cmd_duration]
+min_time = 1000
+show_milliseconds = true
+
+[directory]
+truncate_to_repo = false
+truncation_symbol = ".../"
+style = 'blue'
+
+[git_metrics]
+disabled = false
+added_style = "green"
+deleted_style = "red"
+
+[git_status]
+disabled = false
+style = "purple"
+
+[hostname]
+disabled = false
+ssh_only = false
+format = '[$hostname]($style) '
+
+[localip]
+disabled = true
+
+[username]
+disabled = false
+show_always = true
+format = '[$user]($style)@'
