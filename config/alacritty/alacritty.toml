@@ -1,4 +1,4 @@
-import = ["~/.config/alacritty_themes/solarized_dark.toml"]
+import = ["~/.config/alacritty-theme/themes/solarized_dark.toml"]
 
 [env]
 TERM = "alacritty"
