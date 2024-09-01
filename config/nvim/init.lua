@@ -28,12 +28,12 @@ vim.keymap.set('n', '<leader>n', ':bn<CR>')
 vim.keymap.set('n', '<leader>p', ':bp<CR>')
 vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
 
-vim.api.nvim_set_keymap(
-  "n",
-  "<space>ff",
-  ":Telescope file_browser<CR>",
-  { noremap = true }
-)
+--vim.api.nvim_set_keymap(
+--  "n",
+--  "<space>ff",
+--  ":Telescope file_browser<CR>",
+--  { noremap = true }
+--)
 require('telescope').setup{
   defaults = {
     -- Default configuration for telescope goes here:
@@ -68,7 +68,7 @@ require('telescope').setup{
   }
 }
 local builtin = require('telescope.builtin')
---vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
