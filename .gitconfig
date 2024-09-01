@@ -1,15 +1,14 @@
 [alias]
   st = status
-  ci = commit -a
+  ci = commit -a -v
   di = diff
   dif = diff
-  dci = svn dcommit
   co = checkout
   pu = push
 
 [core]
   excludesfile = ~/.gitignore
-  editor = vim
+  editor = nvim
   autoCRLF = false
   syntax-theme = Solarized (dark)
 
