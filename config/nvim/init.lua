@@ -89,3 +89,4 @@ require('lualine').setup {
   }
 }
 
+require('colorizer').setup()
