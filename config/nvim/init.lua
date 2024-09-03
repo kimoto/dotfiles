@@ -84,6 +84,8 @@ require('onedark').load()
 
 require('lualine').setup {
   options = {
-    theme = 'solarized'
+    theme = 'onedark',
+    globalstatus = true, -- 画面分割時にstatuslineを統合
   }
 }
+

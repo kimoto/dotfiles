@@ -14,3 +14,6 @@ opt.expandtab = true
 opt.relativenumber = true
 opt.number = true
 opt.termguicolors = true
+
+opt.smartcase = true
+opt.ignorecase = true

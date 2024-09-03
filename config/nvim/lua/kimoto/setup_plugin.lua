@@ -50,4 +50,8 @@ require('jetpack.paq') {
   'ishan9299/nvim-solarized-lua',
   'folke/tokyonight.nvim',
   'navarasu/onedark.nvim',
+
+  -- dev
+  {'neoclide/coc.nvim', branch = 'release'},
+  'farmergreg/vim-lastplace', -- 最後の編集地点に移動
 }

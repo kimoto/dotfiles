@@ -23,7 +23,7 @@ disabled = false
 style = "purple"
 
 [hostname]
-disabled = false
+disabled = true
 ssh_only = false
 format = '[$hostname]($style) '
 
@@ -31,6 +31,33 @@ format = '[$hostname]($style) '
 disabled = true
 
 [username]
-disabled = false
+disabled = true
 show_always = true
 format = '[$user]($style)@'
+
+[perl]
+disabled = true
+
+[ruby]
+disabled = true
+
+[python]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[lua]
+disabled = true
+
+[java]
+disabled = true
+
+[gradle]
+disabled = true
+
+[aws]
+disabled = true
+
+[docker_context]
+disabled = true

@@ -17,7 +17,23 @@ bindkey -e
 autoload -Uz compinit
 compinit
 
+#zstyle ':completion:*' special-dirs true
 zstyle ':completion:*:default' menu select=1
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
+#zstyle ':completion:*' verbose yes
+#zstyle ':completion:*:descriptions' format '%B%d%b'
+#zstyle ':completion:*:messages' format '%d'
+#zstyle ':completion:*:warnings' format 'No matches for: %d'
+#zstyle ':completion:*' group-name ''
+#zstyle ':completion:*' use-cache on               # 補完のキャッシュを有効にする
+#zstyle ':completion:*' cache-path ~/tmp/zsh_cache # 補完のキャッシュパス
+zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
+#zstyle ':completion:*:match:*' original only
+#zstyle ':completion:*:approximate:*' max-errors 1 numeric
+#zstyle ':completion:*:functions' ignored-patterns '_*' # 持っていないコマンドの補完を無効化
+zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
+zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+#zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH} # sudo時も$PATH内のコマンドを補完する
 
 # setopt
 setopt autocd # cd不要
@@ -45,17 +61,13 @@ setopt incappendhistory # incrementalに追加
 #setopt magic_equal_subst # --prefix=~/local の~も展開できるように
 #setopt ignore_eof # Ctrl-Dを無視
 
-# eza
-alias eza_ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
-alias eza_ls='eza --git --icons'
-alias eza_tree='eza -T -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
-
 # aliases
+alias ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
+alias ls='eza --git --icons'
+alias tree='eza -T -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp'
 alias mkdir='nocorrect mkdir'
-alias ls=eza_ls
-alias ll=eza_ll
 alias tree=eza_tree
 alias vi='nvim'
 alias cp='cp -v' # verbose
@@ -130,7 +142,7 @@ bindkey "^\\" undo
 
 # chpwd
 function chpwd(){
-  eza_ls
+  ll
 }
 
 g() {
@@ -139,6 +151,7 @@ g() {
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
+# temporary disabled
 #b() {
 #  local branch
 #  branch=$(git branch -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
