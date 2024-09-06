@@ -150,17 +150,17 @@ g() {
 }
 
 # temporary disabled
-#b() {
-#  local branch
-#  branch=$(git branch -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
-#  test -z "$branch" || git checkout "$branch"
-#}
+b() {
+  local branch
+  branch=$(git branch -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
+  test -z "$branch" || git switch "$branch"
+}
 
-#B() {
-#  local branch
-#  branch=$(git branch -a -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
-#  test -z "$branch" || git checkout "$branch"
-#}
+B() {
+  local branch
+  branch=$(git branch -a -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
+  test -z "$branch" || git switch "$branch"
+}
 
 export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS="
