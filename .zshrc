@@ -66,11 +66,9 @@ alias ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modifi
 alias ls='eza --git --icons'
 alias tree='eza -T -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
 alias mv='nocorrect mv'
-alias cp='nocorrect cp'
+alias cp='cnocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
-alias tree=eza_tree
 alias vi='nvim'
-alias cp='cp -v' # verbose
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
