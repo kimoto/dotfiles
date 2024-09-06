@@ -33,9 +33,9 @@
   conflictstyle = diff3
 
 [pager]
-  log = delta
-  show = delta
-  diff = delta
+  log = bat
+  show = bat
+  diff = bat
 
 [push]
   default = current
