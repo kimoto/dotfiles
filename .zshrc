@@ -45,21 +45,24 @@ setopt pushdignoredups # 重複を記録しない
 setopt interactivecomments # コメントを有効化
 setopt share_history # historyを共有
 setopt incappendhistory # incrementalに追加
-#setopt multios
-#setopt extendedhistory
-#setopt extendedglob
-#setopt noclobber
-#setopt printeightbit
-#setopt listpacked
-#setopt listrowsfirst
-#setopt cdablevars
-#unsetopt promptcr
-#setopt extended_glob
-#setopt complete_in_word
-#setopt menu_complete
-#setopt auto_menu
-#setopt magic_equal_subst # --prefix=~/local の~も展開できるように
-#setopt ignore_eof # Ctrl-Dを無視
+setopt multios # 複数のリダイレクトやパイプに対応
+setopt extended_history # ヒストリに時刻を追加
+setopt noclobber # リダイレクトで上書き禁止
+setopt listpacked # 詰めて表示
+#setopt listrowsfirst # 最初の項目をまず選択
+#setopt cdablevars # 同じ名前の変なディレクトリに移動しちゃうやつ
+setopt nopromptcr # 改行コードで終わらない出力をケア、しない
+setopt complete_in_word # 語の途中でも補完
+setopt always_last_prompt # カーソル位置は保持したままファイル名一覧を順次その場で表示
+setopt magic_equal_subst # --prefix=~/local の~も展開できるように
+setopt ignore_eof # Ctrl-Dを無視
+setopt auto_param_slash # 末尾/を自動的に付加
+setopt mark_dirs # ディレクトリは末尾に/追加
+setopt list_types #
+setopt auto_menu # 補完キー連打
+setopt auto_param_keys # カッコの対応などを自動的に補完
+setopt print_eight_bit
+setopt globdots # dotも補完
 
 # aliases
 alias ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
@@ -144,34 +147,35 @@ function chpwd(){
 }
 
 g() {
-  local dir
-  dir=$(ghq list | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*")
+  local dir=$(ghq list | fzf --preview '' --query="$*")
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
 # temporary disabled
 b() {
-  local branch
-  branch=$(git branch -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
+  local branch=$(git branch -l | fzf --preview '' --query="$*" | awk '{print $2}')
   test -z "$branch" || git switch "$branch"
 }
 
 B() {
-  local branch
-  branch=$(git branch -a -l | fzf --height=20% --layout=reverse --info=inline --margin=0 --padding=0 --no-multi --exit-0 --query="$*" | awk '{print $1}')
+  local branch=$(git branch -a -l | fzf --preview '' --query="$*" | awk '{print $2}')
   test -z "$branch" || git switch "$branch"
 }
 
 export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!**/.git/*"'
-export FZF_DEFAULT_OPTS="
-    --height 20% --reverse
-    --margin=0 --info=inline
-    --tiebreak=index --filepath-word
-    --color fg:-1,bg:-1,hl:33,fg+:250,bg+:235,hl+:33
-    --color info:37,prompt:37,pointer:230,marker:230,spinner:37
-    --bind='ctrl-w:backward-kill-word,ctrl-x:jump,down:preview-page-down'
-    --bind='ctrl-z:ignore,ctrl-]:replace-query,up:preview-page-up'
-    --bind='ctrl-a:toggle-all,?:toggle-preview'
+export FZF_DEFAULT_OPTS=" \
+    --height 20% --layout=reverse \
+    --margin=0 --padding=0 --info=inline \
+    --tiebreak=index --filepath-word \
+    --exit-0 \
+    --preview 'bat --color=always {1}' \
+    --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
+    --bind='ctrl-x:jump' \
+    --bind='up:preview-page-up' \
+    --bind='down:preview-page-down' \
+    --bind='ctrl-z:ignore' \
+    --bind='ctrl-]:replace-query' \
+    --bind='?:toggle-preview' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS"
