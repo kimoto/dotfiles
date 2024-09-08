@@ -162,6 +162,27 @@ B() {
   test -z "$branch" || git switch "$branch"
 }
 
+# ripgrep->fzf->vim [QUERY]
+livegrep () (
+  RELOAD='reload:rg --column --color=always --smart-case {q} || :'
+  OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
+            nvim {1} +{2}     # No selection. Open the current line in Vim.
+          else
+            nvim +cw -q {+f}  # Build quickfix list for the selected items.
+          fi'
+  fzf --disabled --ansi --multi \
+      --bind "start:$RELOAD" --bind "change:$RELOAD" \
+      --bind "enter:become:$OPENER" \
+      --bind "ctrl-o:execute:$OPENER" \
+      --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
+      --delimiter : \
+      --preview 'bat --style=plain --color=always --highlight-line {2} {1}' \
+      --preview-window '~4,+{2}+4/3,<80(up)' \
+      --query "$*"
+)
+zle -N livegrep
+bindkey '^G' livegrep
+
 export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS=" \
     --height 20% --layout=reverse \
