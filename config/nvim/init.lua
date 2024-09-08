@@ -75,6 +75,14 @@ vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', {})
 
+require('nvim-treesitter').setup {
+  indent = {
+    enable = true,
+  },
+}
+
+require('git').setup()
+
 -- color themes
 -- vim.cmd('colorscheme solarized')
 require('onedark').setup {
@@ -91,4 +99,4 @@ require('lualine').setup {
 
 require('colorizer').setup()
 
-vim.g.auto_ctags = 1 -- tagsの自動更新
+-- vim.g.auto_ctags = 1 -- tagsの自動更新
