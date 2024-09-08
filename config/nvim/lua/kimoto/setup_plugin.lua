@@ -54,4 +54,6 @@ require('jetpack.paq') {
   -- dev
   {'neoclide/coc.nvim', branch = 'release'},
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
+
+  'tpope/vim-surround',
 }

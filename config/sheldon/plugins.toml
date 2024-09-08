@@ -28,8 +28,8 @@ github = "zsh-users/zsh-autosuggestions"
 [plugins.zsh-autosuggestions.hooks]
 post = "export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=60'"
 
-[plugins.zsh-syntax-highlighting]
-github = 'zsh-users/zsh-syntax-highlighting'
+[plugins.fast-syntax-highlighting]
+github = 'zdharma-continuum/fast-syntax-highlighting'
 
 [plugins.jq-zsh-plugin]
 github = 'reegnz/jq-zsh-plugin'
@@ -45,6 +45,9 @@ inline = 'eval "$(mise activate zsh)"'
 
 [plugins.kubectl-completion]
 inline = 'source <(kubectl completion zsh)'
+
+[plugins.zsh-you-should-use]
+github = "MichaelAquilina/zsh-you-should-use"
 
 [templates]
 fzf-install = "{{ dir }}/install --bin > /dev/null \n[[ ! $PATH == *{{ dir }}* ]] && export PATH=\"$PATH:{{ dir }}/bin\"\n"
