@@ -56,4 +56,5 @@ require('jetpack.paq') {
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
 
   'tpope/vim-surround',
+  'soramugi/auto-ctags.vim',
 }

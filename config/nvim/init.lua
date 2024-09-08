@@ -90,3 +90,5 @@ require('lualine').setup {
 }
 
 require('colorizer').setup()
+
+vim.g.auto_ctags = 1 -- tagsの自動更新
