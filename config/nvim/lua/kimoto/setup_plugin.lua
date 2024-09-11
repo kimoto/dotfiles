@@ -11,7 +11,6 @@ require('jetpack.paq') {
   {'tani/vim-jetpack', opt = 1}, -- bootstrap
 
   {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate'},
-  'tpope/vim-endwise', -- Rubyのendなどの自動補完
 
   'nvim-tree/nvim-web-devicons',
   {'nvim-tree/nvim-tree.lua', -- treesitter
@@ -58,4 +57,8 @@ require('jetpack.paq') {
   'tpope/vim-surround', -- text objectの拡張
   -- 'soramugi/auto-ctags.vim',
   -- 'hiphish/rainbow-delimiters.nvim' -- rainbow brackets
+
+  -- lang
+  'tpope/vim-endwise', -- Rubyのendなどの自動補完
+  'rust-lang/rust.vim', -- Rust
 }
