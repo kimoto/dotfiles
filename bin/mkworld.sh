@@ -1,9 +1,10 @@
 #!/bin/sh
 
+set -e
 set -x 
 
 cd $HOME
-mkdir ./tmp 
+mkdir -p ./tmp
 
 CURRENT_DIR=`dirname $0`
 . "$CURRENT_DIR/mklink.sh"

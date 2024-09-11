@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell script syntax
+        run: bash -n bin/*.sh
+
+      - name: Run install script
+        run: ./bin/mkworld.sh
+
+      - name: Load .zshrc
+        run: |
+          zsh ~/.zshrc 2> ./error.log; cat error.log
+          if [ -s error.log ]; then false; fi
