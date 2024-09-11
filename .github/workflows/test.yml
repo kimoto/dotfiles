@@ -1,18 +1,8 @@
-name: Test
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
+name: test
 
 jobs:
-  tests:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        os:
-          - macos-latest
+  test:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
