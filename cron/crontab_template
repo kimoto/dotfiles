@@ -1,5 +1,0 @@
-*/30 * * * * sh $HOME/bin/run-parts_emulate.sh $HOME/dotfiles/cron/half_hourly
-01 * * * * sh $HOME/bin/run-parts_emulate.sh $HOME/dotfiles/cron/hourly
-02 4 * * * sh $HOME/bin/run-parts_emulate.sh $HOME/dotfiles/cron/daily
-22 4 * * 0 sh $HOME/bin/run-parts_emulate.sh $HOME/dotfiles/cron/weekly
-42 4 1 * * sh $HOME/bin/run-parts_emulate.sh $HOME/dotfiles/cron/monthly
