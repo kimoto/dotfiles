@@ -13,8 +13,7 @@
 
 ;; user information
 ; changelog
-(setq user-full-name "KIMOTO Takumi")
-(setq user-mail-address "peerler@gmail.com")
+(setq user-full-name "kimoto")
 
 ;; utility
 ; ディレクトリ内で正規表現にマッチするファイルをloadします
