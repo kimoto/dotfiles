@@ -46,6 +46,9 @@ inline = 'eval "$(mise activate zsh)"'
 [plugins.kubectl-completion]
 inline = 'source <(kubectl completion zsh)'
 
+[plugins.direnv]
+inline = 'eval "$(direnv hook zsh)"'
+
 # command実行時にもっとよいaliasがあったら教えてくれる
 [plugins.zsh-you-should-use]
 github = "MichaelAquilina/zsh-you-should-use"
