@@ -130,8 +130,8 @@ manpath+=(
 sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
 
 # install homebrew
-if [ -d "/opt/homebrew/bin" ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+if builtin command -v brew >/dev/null; then
+  eval "$(brew shellenv)"
   eval "$(sheldon source)"
 fi
 
