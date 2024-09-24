@@ -147,7 +147,7 @@ function chpwd(){
 }
 
 g() {
-  local dir=$(ghq list | fzf --preview '' --query="$*")
+  local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
@@ -163,13 +163,14 @@ B() {
 }
 
 # ripgrep->fzf->vim [QUERY]
+RELOAD='reload:rg --column --color=always --smart-case {q} || :'
+OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
+          nvim {1} +{2}     # No selection. Open the current line in Vim.
+        else
+          nvim +cw -q {+f}  # Build quickfix list for the selected items.
+        fi'
+
 livegrep () (
-  RELOAD='reload:rg --column --color=always --smart-case {q} || :'
-  OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
-            nvim {1} +{2}     # No selection. Open the current line in Vim.
-          else
-            nvim +cw -q {+f}  # Build quickfix list for the selected items.
-          fi'
   fzf --disabled --ansi --multi \
       --bind "start:$RELOAD" --bind "change:$RELOAD" \
       --bind "enter:become:$OPENER" \
@@ -189,17 +190,17 @@ export FZF_DEFAULT_OPTS=" \
     --margin=0 --padding=0 --info=inline \
     --tiebreak=index --filepath-word \
     --exit-0 \
-    --preview 'bat --color=always {1}' \
     --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
     --bind='ctrl-x:jump' \
     --bind='up:preview-page-up' \
     --bind='down:preview-page-down' \
+    --bind=\"ctrl-o:execute:$OPENER\" \
     --bind='ctrl-z:ignore' \
     --bind='ctrl-]:replace-query' \
     --bind='?:toggle-preview' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS"
+export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
 export FZF_COMPLETION_OPTS="--border --info=inline"
 # Use fd (https://github.com/sharkdp/fd) for listing path candidates.
 # - The first argument to the function ($1) is the base path to start traversal
