@@ -132,6 +132,9 @@ sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
 # install homebrew
 if builtin command -v brew >/dev/null; then
   eval "$(brew shellenv)"
+fi
+
+if builtin command -v sheldon >/dev/null; then
   eval "$(sheldon source)"
 fi
 
