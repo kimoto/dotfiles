@@ -183,7 +183,7 @@ livegrep () (
 zle -N livegrep
 bindkey '^G' livegrep
 
-export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!**/.git/*"'
+export FZF_DEFAULT_COMMAND='rg --files --hidden --color=auto --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS=" \
     --height 20% --layout=reverse \
     --margin=0 --padding=0 --info=inline \
