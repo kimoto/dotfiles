@@ -174,8 +174,6 @@ livegrep () (
   fzf --disabled --ansi --multi \
       --bind "start:$RELOAD" --bind "change:$RELOAD" \
       --bind "enter:become:$OPENER" \
-      --bind "ctrl-o:execute:$OPENER" \
-      --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
       --delimiter : \
       --preview 'bat --style=plain --color=always --highlight-line {2} {1}' \
       --preview-window '~4,+{2}+4/3,<80(up)' \
@@ -198,6 +196,7 @@ export FZF_DEFAULT_OPTS=" \
     --bind='ctrl-z:ignore' \
     --bind='ctrl-]:replace-query' \
     --bind='?:toggle-preview' \
+    --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
