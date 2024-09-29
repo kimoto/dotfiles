@@ -196,7 +196,6 @@ let g:neosnippet#enable_snipmate_compatibility = 1
 " Tell Neosnippet about the other snippets
 let g:neosnippet#snippets_directory='~/.vim/bundle/vim-snippets/snippets'
 
-NeoBundle 'altercation/vim-colors-solarized'
 NeoBundle 'tpope/vim-rails', { 'autoload' : {
 			\ 'filetypes' : ['haml', 'ruby', 'eruby'] }}
 " rails.vim
@@ -277,11 +276,7 @@ if has('persistent_undo')
 endif
 
 " Solarized
-syntax enable
-set background=dark
-"let g:solarized_termcolors=256
-filetype plugin indent on " Required!
-colorscheme solarized
+NeoBundle 'altercation/vim-colors-solarized'
 
 " 行末スペースの可視化
 augroup HighlightTrailingSpaces
@@ -291,5 +286,11 @@ augroup HighlightTrailingSpaces
 augroup END
 
 call neobundle#end()
+
+syntax enable
+set background=dark
+"let g:solarized_termcolors=256
+filetype plugin indent on " Required!
+colorscheme solarized
 
 NeoBundleCheck
