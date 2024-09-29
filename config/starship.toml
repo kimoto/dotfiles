@@ -1,63 +1,64 @@
-format = '$all$directory$character'
-
-[character]
-success_symbol = '[\$]()'
-error_symbol = '[\$](red)'
-
-[cmd_duration]
-min_time = 1000
-show_milliseconds = true
+format = '$all'
+command_timeout = 1000
 
 [directory]
+style = "blue"
 truncate_to_repo = false
-truncation_symbol = ".../"
-style = 'blue'
-
-[git_metrics]
-disabled = false
-added_style = "green"
-deleted_style = "red"
-
-[git_status]
-disabled = false
-style = "purple"
-
-[hostname]
-disabled = true
-ssh_only = false
-format = '[$hostname]($style) '
-
-[localip]
-disabled = true
+truncation_symbol = '.../'
 
 [username]
-disabled = true
-show_always = true
-format = '[$user]($style)@'
+show_always = false
 
-[perl]
-disabled = true
+[character]
+success_symbol = "[\\$]()"
+error_symbol = "[\\$](red)"
+vimcmd_symbol = "[\\$](green)"
 
-[ruby]
-disabled = true
+[git_branch]
+format = "[$branch]($style) "
+style = "bright-purple"
 
+[git_status]
+disabled = true
+format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218) ($ahead_behind$stashed)]($style)"
+style = "cyan"
+conflicted = "​"
+untracked = "​"
+modified = "​"
+staged = "​"
+renamed = "​"
+deleted = "​"
+stashed = "≡"
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-black"
+
+[cmd_duration]
+format = " [$duration]($style) "
+style = "yellow"
+
+## disabled
 [python]
-disabled = true
-
-[nodejs]
-disabled = true
-
-[lua]
-disabled = true
-
-[java]
 disabled = true
 
 [gradle]
 disabled = true
 
-[aws]
+[java]
+disabled = true
+
+[perl]
 disabled = true
 
 [docker_context]
+disabled = true
+
+[kotlin]
+disabled = true
+
+[package]
+disabled = true
+
+[aws]
 disabled = true
