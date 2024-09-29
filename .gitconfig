@@ -1,10 +1,7 @@
 [alias]
   st = status
   ci = commit -a -v
-  di = diff
-  dif = diff
   co = checkout
-  pu = push
 
 [core]
   excludesfile = ~/.gitignore
@@ -13,7 +10,7 @@
   syntax-theme = Solarized (dark)
 
 [diff]
-  algorithm = patience
+  algorithm = histogram
   colorMoved = default
 
 [diff "exif"]
@@ -30,7 +27,18 @@
 
 [merge]
   ff = false
-  conflictstyle = diff3
+  conflictstyle = zdiff3
+  tool = nvimdiff
+
+[mergetool]
+  prompt = false
+  keepBackup = false
+
+[mergetool "diffview"]
+  cmd = nvim -n -c "DiffviewOpen" "$MERGE"
+
+[mergetool "nvimdiff"]
+  layout = "LOCAL,BASE,REMOTE / MERGED"
 
 [pager]
   log = bat
@@ -61,5 +69,3 @@
   line-numbers = true
   #true-color = always
   syntax-theme = Solarized (dark)
-[maintenance]
-	repo = /Users/kimoto/dotfiles

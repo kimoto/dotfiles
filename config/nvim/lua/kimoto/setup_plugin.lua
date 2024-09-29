@@ -61,4 +61,6 @@ require('jetpack.paq') {
   -- lang
   'tpope/vim-endwise', -- Rubyのendなどの自動補完
   'rust-lang/rust.vim', -- Rust
+
+  'sindrets/diffview.nvim', -- for git mergetool
 }
