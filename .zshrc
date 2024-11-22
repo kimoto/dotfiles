@@ -154,14 +154,13 @@ g() {
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
-# temporary disabled
 b() {
-  local branch=$(git branch -l | fzf --preview '' --query="$*" | awk '{print $2}')
+  local branch=$(git branch -l --format='%(refname:short)' | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 
 B() {
-  local branch=$(git branch -a -l | fzf --preview '' --query="$*" | awk '{print $2}')
+  local branch=$(git branch -a --format='%(refname:short)' | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 
