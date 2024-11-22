@@ -3,7 +3,6 @@ ipch/
 *~
 *.sdf
 *.suo
-*.ini
 *.pdb
 *.lib
 *.dll
@@ -12,4 +11,3 @@ ipch/
 *.exe
 doc/tags
 doc/tags-ja
-
