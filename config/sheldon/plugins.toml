@@ -43,6 +43,9 @@ inline = 'eval "$(starship init zsh)"'
 [plugins.zoxide]
 inline = 'eval "$(zoxide init zsh)"'
 
+[plugins.zsh-abbr]
+github = 'olets/zsh-abbr'
+
 [plugins.mise]
 inline = 'eval "$(mise activate zsh)"'
 

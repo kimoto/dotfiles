@@ -1,7 +1,12 @@
 [alias]
+  ga = add
   st = status
   ci = commit -a -v
   co = checkout
+  di = diff
+  lo = log -p
+  gr = grep
+  pu = pull
 
 [core]
   excludesfile = ~/.gitignore

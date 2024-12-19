@@ -160,8 +160,7 @@ b() {
 }
 
 B() {
-  local branch=$(git branch -a --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
-  test -z "$branch" || git switch "$branch"
+  gh branch
 }
 
 # ripgrep->fzf->vim [QUERY]
