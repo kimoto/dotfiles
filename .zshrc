@@ -155,12 +155,12 @@ g() {
 }
 
 b() {
-  local branch=$(git branch -l --format='%(refname:short)' | fzf --preview '' --query="$*")
+  local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 
 B() {
-  local branch=$(git branch -a --format='%(refname:short)' | fzf --preview '' --query="$*")
+  local branch=$(git branch -a --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 

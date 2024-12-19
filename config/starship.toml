@@ -3,7 +3,7 @@ command_timeout = 1000
 
 [directory]
 style = "blue"
-truncate_to_repo = false
+truncate_to_repo = true
 truncation_symbol = '.../'
 
 [username]
@@ -51,6 +51,10 @@ disabled = true
 [perl]
 disabled = true
 
+[kubernetes]
+disabled = false
+detect_env_vars = ['OS_AUTH_URL']
+
 [docker_context]
 disabled = true
 
@@ -61,4 +65,14 @@ disabled = true
 disabled = true
 
 [aws]
+disabled = true
+
+[shlvl]
+disabled = false
+symbol = '> '
+
+[status]
+disabled = true
+
+[time]
 disabled = true
