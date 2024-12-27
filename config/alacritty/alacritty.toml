@@ -10,7 +10,7 @@ normal.style = 'Regular'
 
 [shell]
 program = "/bin/zsh"
-args = ["-l", "-c", "/opt/homebrew/bin/tmux a -t 0 || /opt/homebrew/bin/tmux"]
+args = ["-l", "-c", "/opt/homebrew/bin/tmux new -A -s alacritty"]
 
 [window]
 padding.x = 4
