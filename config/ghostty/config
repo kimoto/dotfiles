@@ -1,0 +1,7 @@
+theme = Builtin Solarized Dark
+command = /bin/zsh -l -c "/opt/homebrew/bin/tmux new -A -s ghostty"
+macos-option-as-alt = true
+macos-titlebar-style = hidden
+macos-non-native-fullscreen = true
+quick-terminal-animation-duration = 0
+keybind = global:f12=toggle_quick_terminal
