@@ -34,6 +34,10 @@ stashed = "≡"
 format = '\([$state( $progress_current/$progress_total)]($style)\) '
 style = "bright-black"
 
+[git_metrics]
+disabled = false
+ignore_submodules = true
+
 [cmd_duration]
 format = " [$duration]($style) "
 style = "yellow"
@@ -50,10 +54,6 @@ disabled = true
 
 [perl]
 disabled = true
-
-[kubernetes]
-disabled = false
-detect_env_vars = ['OS_AUTH_URL']
 
 [docker_context]
 disabled = true
@@ -75,4 +75,7 @@ symbol = '> '
 disabled = true
 
 [time]
+disabled = true
+
+[battery]
 disabled = true

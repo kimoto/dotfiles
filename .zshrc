@@ -128,6 +128,7 @@ manpath+=(
   /usr/share/man
 )
 sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
+zle_highlight+=(paste:none)
 
 # install homebrew
 if builtin command -v brew >/dev/null; then
@@ -161,6 +162,10 @@ b() {
 
 B() {
   gh branch
+}
+
+c() {
+  kubectx
 }
 
 # ripgrep->fzf->vim [QUERY]
@@ -212,6 +217,20 @@ _fzf_compgen_path() {
 _fzf_compgen_dir() {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
+
+#============
+# This speeds up pasting w/ autosuggest
+# https://github.com/zsh-users/zsh-autosuggestions/issues/238
+pasteinit() {
+  OLD_SELF_INSERT=${${(s.:.)widgets[self-insert]}[2,3]}
+  zle -N self-insert url-quote-magic # I wonder if you'd need `.url-quote-magic`?
+}
+pastefinish() {
+  zle -N self-insert $OLD_SELF_INSERT
+}
+zstyle :bracketed-paste-magic paste-init pasteinit
+zstyle :bracketed-paste-magic paste-finish pastefinish
+#============
 
 # load local config
 h=${${HOST%%.*}:l}
