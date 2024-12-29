@@ -19,6 +19,8 @@ require('jetpack.paq') {
     },
   },
 
+  'vim-scripts/YankRing.vim',
+
   -- telescope
   'nvim-lua/plenary.nvim',
   {'nvim-telescope/telescope.nvim', tag = '0.1.8'},
