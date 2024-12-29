@@ -3,9 +3,9 @@
 set -e
 set -x
 
-BASE_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/..;" pwd)
 
-cd $HOME
+cd "$HOME"
 ln -sf "$BASE_DIR/bin" ./bin
 
 if [ ! -h "./.config" ]; then
