@@ -1,4 +1,3 @@
-import = ["~/.config/alacritty-theme/themes/solarized_dark.toml"]
 
 [env]
 TERM = "alacritty"
@@ -8,7 +7,7 @@ size = 14.0
 normal.family = 'BitstromWera Nerd Font'
 normal.style = 'Regular'
 
-[shell]
+[terminal.shell]
 program = "/bin/zsh"
 args = ["-l", "-c", "/opt/homebrew/bin/tmux new -A -s alacritty"]
 
@@ -29,3 +28,8 @@ chars = "\\"
 key = "/"
 mods = "Control"
 chars = "\u001f"
+
+[general]
+import = ["~/.config/alacritty-theme/themes/solarized_dark.toml"]
+
+[terminal]
