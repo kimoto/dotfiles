@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 set -x
 
-cd $HOME
-mkdir -p ./tmp
-
+echo $(dirname $(readlink -f $0))
 SCRIPT_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
 
+cd $HOME
+mkdir -p ./tmp
 sh "$SCRIPT_DIR/bin/mklink.sh"
