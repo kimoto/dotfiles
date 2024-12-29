@@ -18,5 +18,6 @@ jobs:
 
       - name: Load .zshrc
         run: |
+          export TERM="dumb";
           zsh ~/.zshrc 2> ./error.log; cat error.log
           if [ -s error.log ]; then false; fi
