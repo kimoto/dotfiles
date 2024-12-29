@@ -3,9 +3,10 @@
 set -e
 set -x
 
-echo $(dirname $(readlink -f $0))
-SCRIPT_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
+BASE_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
 
 cd $HOME
 mkdir -p ./tmp
-sh "$SCRIPT_DIR/bin/mklink.sh"
+
+sh "$BASE_DIR/bin/mklink.sh"
+sh "$BASE_DIR/bin/setup_homebrew.sh"
