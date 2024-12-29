@@ -17,4 +17,4 @@ jobs:
         run: ./bin/mkworld.sh
 
       - name: Load .zshrc
-        run: zsh ~/.zshrc
+        run: zsh ~/.zshrc 2>&1
