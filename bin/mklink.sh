@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -e
+set -x
 
 SCRIPT_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
 
