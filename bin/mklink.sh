@@ -6,7 +6,11 @@ set -x
 BASE_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
 
 cd $HOME
-ln -sf "$BASE_DIR/bin" ./
+ln -sf "$BASE_DIR/bin" ./bin
+
+if [ ! -h "./.config" ]; then
+  mv ./.config ./.config.backup
+fi
 ln -sf "$BASE_DIR/config" ./.config
 
 ln -sf "$BASE_DIR/.inputrc" ./

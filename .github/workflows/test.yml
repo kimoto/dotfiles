@@ -18,7 +18,5 @@ jobs:
 
       - name: Load .zshrc
         run: |
-          ls -ld /Users/runner/.config
-          ls -ld /Users/runner/.config/*
           zsh ~/.zshrc 2> ./error.log; cat error.log
           if [ -s error.log ]; then false; fi
