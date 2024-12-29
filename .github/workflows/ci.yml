@@ -5,13 +5,18 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  check_shell_script_syntax:
-    name: shell_check
+  setup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Validate shell script syntax
+  validate_shell_script_syntax:
+    name: shell_check
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Run bash lint
         run: bash -n bin/*.sh
 
       - name: Run ShellCheck
@@ -19,11 +24,12 @@ jobs:
 
   zsh_loading_test:
     runs-on: macos-latest
+    needs: setup
     steps:
-      - uses: actions/checkout@v4
-
       - name: Run install script
         run: ./bin/mkworld.sh
 
       - name: Load to test .zshrc
-        run: export TERM=xterm; zsh ~/.zshrc 2>&1
+        run: |
+          export TERM=xterm
+          zsh ~/.zshrc 2>&1
