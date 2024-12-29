@@ -5,16 +5,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  check_shell_script:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate shell script syntax
+      run: bash -n bin/*.sh
+
+    - name: Run ShellCheck
+      run: shellcheck bin/*.sh
+
   test:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate shell script syntax
-        run: bash -n bin/*.sh
-
       - name: Run install script
         run: ./bin/mkworld.sh
 
-      - name: Load .zshrc
+      - name: Load to test .zshrc
         run: export TERM=xterm; zsh ~/.zshrc 2>&1
