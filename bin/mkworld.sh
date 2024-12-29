@@ -1,11 +1,10 @@
 #!/bin/sh
 
 set -e
-set -x 
 
 cd $HOME
 mkdir -p ./tmp
 
-CURRENT_DIR=`dirname $0`
-. "$CURRENT_DIR/mklink.sh"
-# . "$CURRENT_DIR/mkcrontab.sh"
+SCRIPT_DIR=$(cd $(dirname $(readlink -f $0))/..; pwd)
+
+sh "$SCRIPT_DIR/bin/mklink.sh"
