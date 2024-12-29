@@ -1,12 +1,12 @@
 ---
-name: test
+name: ci
 on:
   push: {}
   workflow_dispatch: {}
 
 jobs:
-  check_shell_script:
-    name: ShellCheck
+  check_shell_script_syntax:
+    name: shell_check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
       - name: Run ShellCheck
         run: shellcheck bin/*.sh
 
-  test:
+  zsh_loading_test:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
