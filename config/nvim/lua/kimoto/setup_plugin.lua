@@ -19,7 +19,8 @@ require('jetpack.paq') {
     },
   },
 
-  'vim-scripts/YankRing.vim',
+  -- なんかうまく動かないので一時的に外す
+  -- 'vim-scripts/YankRing.vim',
 
   -- telescope
   'nvim-lua/plenary.nvim',
