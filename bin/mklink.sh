@@ -1,39 +1,28 @@
 #!/bin/sh
 
+set -e
 set -x
 
-BASE_DIR="./dotfiles"
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
-cd $HOME
-ln -sf "$BASE_DIR/bin" ./
+cd "$HOME"
+ln -sf "$BASE_DIR/bin" ./bin
 
-ln -sf ./dotfiles/.vimrc ./
-ln -sf ./dotfiles/.bvirc ./
-ln -sf ./dotfiles/.inputrc ./
-ln -sf ./dotfiles/.vimperatorrc ./
-ln -sf ./dotfiles/.gitconfig ./
-ln -sf ./dotfiles/.gitignore ./
-ln -sf ./dotfiles/.screenrc ./
-ln -sf ./dotfiles/.zshrc ./
-ln -sf ./dotfiles/.zlogin ./
-ln -sf ./dotfiles/.bashrc ./
-ln -sf ./dotfiles/.irbrc ./
-ln -sf ./dotfiles/.gitconfig ./
-ln -sf ./dotfiles/.gemrc ./
-ln -sf ./dotfiles/.nanorc ./
-ln -sf ./dotfiles/.tmux.conf ./
+if [ ! -h "./.config" ]; then
+  mv ./.config ./.config.backup
+fi
+ln -sf "$BASE_DIR/config" ./.config
 
-ln -sf ./dotfiles/.vim ./
-ln -sf ./dotfiles/.zsh ./
-ln -sf ./dotfiles/.subversion ./
-ln -sf ./dotfiles/.peco ./
+ln -sf "$BASE_DIR/.inputrc" ./
+ln -sf "$BASE_DIR/.gitconfig" ./
+ln -sf "$BASE_DIR/.gitignore" ./
+ln -sf "$BASE_DIR/.tmux.conf" ./
+ln -sf "$BASE_DIR/.zshrc" ./
+ln -sf "$BASE_DIR/.zlogin" ./
+ln -sf "$BASE_DIR/.irbrc" ./
 
-ln -sf ./dotfiles/.Xdefaults ./
-ln -sf ./dotfiles/.Xmodmap ./
+ln -sf "$BASE_DIR/.vimrc" ./
+ln -sf "$BASE_DIR/.vim" ./
 
-# next generation .emacs!!
-ln -sf ./dotfiles/.emacs.d ./
-ln -sf ./dotfiles/.emacs ./
-
-# $HOMEに./configというシンボリックリンクがなければ作成する
-test -h ./config || ln -sf ./dotfiles ./config
+ln -sf "$BASE_DIR/.Xdefaults" ./
+ln -sf "$BASE_DIR/.Xmodmap" ./

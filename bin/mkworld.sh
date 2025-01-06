@@ -1,10 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
-set -x 
+set -e
+set -x
 
-cd $HOME
-mkdir ./tmp 
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
-CURRENT_DIR=`dirname $0`
-. "$CURRENT_DIR/mklink.sh"
-. "$CURRENT_DIR/mkcrontab.sh"
+cd "$HOME"
+
+mkdir -p ./tmp
+sh "$BASE_DIR/bin/mklink.sh"
+sh "$BASE_DIR/bin/setup_homebrew.sh"

@@ -1,15 +1,9 @@
 # encoding: utf-8
-require 'irb/completion'
-require 'irb/ext/save-history'
 require 'time'
 require 'date'
-require 'wirble'
 require 'pp'
-require 'open-uri'
-require 'readline'
 IRB.conf[:AUTO_INDENT] = true
-Wirble.init(:skip_prompt => :DEFAULT)
-Wirble.colorize
+IRB.conf[:SAVE_HISTORY] = 10000
 
 class Object
   def local_methods

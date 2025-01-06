@@ -1,0 +1,81 @@
+format = '$all'
+command_timeout = 1000
+
+[directory]
+style = "blue"
+truncate_to_repo = true
+truncation_symbol = '.../'
+
+[username]
+show_always = false
+
+[character]
+success_symbol = "[\\$]()"
+error_symbol = "[\\$](red)"
+vimcmd_symbol = "[\\$](green)"
+
+[git_branch]
+format = "[$branch]($style) "
+style = "bright-purple"
+
+[git_status]
+disabled = true
+format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218) ($ahead_behind$stashed)]($style)"
+style = "cyan"
+conflicted = "​"
+untracked = "​"
+modified = "​"
+staged = "​"
+renamed = "​"
+deleted = "​"
+stashed = "≡"
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-black"
+
+[git_metrics]
+disabled = false
+ignore_submodules = true
+
+[cmd_duration]
+format = " [$duration]($style) "
+style = "yellow"
+
+## disabled
+[python]
+disabled = true
+
+[gradle]
+disabled = true
+
+[java]
+disabled = true
+
+[perl]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[kotlin]
+disabled = true
+
+[package]
+disabled = true
+
+[aws]
+disabled = true
+
+[shlvl]
+disabled = false
+symbol = '> '
+
+[status]
+disabled = true
+
+[time]
+disabled = true
+
+[battery]
+disabled = true

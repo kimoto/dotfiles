@@ -1,0 +1,35 @@
+
+[env]
+TERM = "alacritty"
+
+[font]
+size = 14.0
+normal.family = 'JetBrainsMono Nerd Font'
+normal.style = 'Regular'
+
+[terminal.shell]
+program = "/bin/zsh"
+args = ["-l", "-c", "/opt/homebrew/bin/tmux new -A -s alacritty"]
+
+[window]
+padding.x = 4
+padding.y = 4
+decorations = 'none'
+dynamic_padding = true
+option_as_alt = 'Both'
+# opacity = 0.9
+# blur = true
+
+[[keyboard.bindings]]
+key = "¥"
+chars = "\\"
+
+[[keyboard.bindings]]
+key = "/"
+mods = "Control"
+chars = "\u001f"
+
+[general]
+import = ["~/.config/alacritty-theme/themes/solarized_dark.toml"]
+
+[terminal]

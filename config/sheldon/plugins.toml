@@ -1,0 +1,69 @@
+# `sheldon` configuration file
+# ----------------------------
+#
+# You can modify this file directly or you can use one of the following
+# `sheldon` commands which are provided to assist in editing the config file:
+#
+# - `sheldon add` to add a new plugin to the config file
+# - `sheldon edit` to open up the config file in the default editor
+# - `sheldon remove` to remove a plugin from the config file
+#
+# See the documentation for more https://github.com/rossmacarthur/sheldon#readme
+
+shell = "zsh"
+
+[plugins.compinit]
+inline = 'autoload -Uz compinit'
+
+[plugins.fzf]
+github = 'junegunn/fzf'
+apply = ['fzf-install', 'fzf-source']
+
+[plugins.zsh-completions]
+github = 'zsh-users/zsh-completions'
+
+[plugins.zsh-autosuggestions]
+github = "zsh-users/zsh-autosuggestions"
+
+[plugins.zsh-autosuggestions.hooks]
+post = "export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=60'"
+
+[plugins.fast-syntax-highlighting]
+github = 'zdharma-continuum/fast-syntax-highlighting'
+
+[plugins.fast-syntax-highlighting.hooks]
+post = "fast-theme -q ~/.config/fsh/solarized.ini"
+
+[plugins.jq-zsh-plugin]
+github = 'reegnz/jq-zsh-plugin'
+
+[plugins.starship]
+inline = 'eval "$(starship init zsh)"'
+
+[plugins.zoxide]
+inline = 'eval "$(zoxide init zsh)"'
+
+[plugins.zsh-abbr]
+github = 'olets/zsh-abbr'
+
+[plugins.mise]
+inline = 'eval "$(mise activate zsh)"'
+
+[plugins.kubectl-completion]
+inline = 'source <(kubectl completion zsh)'
+
+[plugins.direnv]
+inline = 'eval "$(direnv hook zsh)"'
+
+# command実行時にもっとよいaliasがあったら教えてくれる
+[plugins.zsh-you-should-use]
+github = "MichaelAquilina/zsh-you-should-use"
+
+[templates]
+fzf-install = "{{ dir }}/install --bin > /dev/null \n[[ ! $PATH == *{{ dir }}* ]] && export PATH=\"$PATH:{{ dir }}/bin\"\n"
+fzf-source = "{% for file in files %}source \"{{ file }}\"\n{% endfor %}"
+
+# For example:
+#
+# [plugins.base16]
+# github = "chriskempson/base16-shell"

@@ -41,7 +41,7 @@ set termencoding=utf8
 set encoding=utf8
 
 " カーソルのある行を強調する
-" set cursorline
+"set cursorline
 
 " 前回編集していた場所に自動でジャンプするように
 au BufWritePost * mkview
@@ -74,7 +74,7 @@ if has('vim_starting')
 	set nocompatible               " Be iMproved
 	set runtimepath+=~/.vim/bundle/neobundle.vim/
 endif
-call neobundle#rc(expand('~/.vim/bundle/'))
+call neobundle#begin(expand('~/.vim/bundle/'))
 NeoBundleFetch 'Shougo/neobundle.vim'
 
 NeoBundle 'Shougo/neobundle.vim'
@@ -175,6 +175,7 @@ let g:neocomplcache_omni_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 
 NeoBundle 'Shougo/neosnippet'
 NeoBundle 'Shougo/neosnippet-snippets'
+
 " Plugin key-mappings.
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
@@ -195,7 +196,6 @@ let g:neosnippet#enable_snipmate_compatibility = 1
 " Tell Neosnippet about the other snippets
 let g:neosnippet#snippets_directory='~/.vim/bundle/vim-snippets/snippets'
 
-NeoBundle 'altercation/vim-colors-solarized'
 NeoBundle 'tpope/vim-rails', { 'autoload' : {
 			\ 'filetypes' : ['haml', 'ruby', 'eruby'] }}
 " rails.vim
@@ -276,11 +276,7 @@ if has('persistent_undo')
 endif
 
 " Solarized
-syntax enable
-set background=dark
-let g:solarized_termcolors=256
-filetype plugin indent on " Required!
-colorscheme solarized
+NeoBundle 'altercation/vim-colors-solarized'
 
 " 行末スペースの可視化
 augroup HighlightTrailingSpaces
@@ -288,5 +284,13 @@ augroup HighlightTrailingSpaces
         autocmd VimEnter,WinEnter,ColorScheme * highlight TrailingSpaces term=underline guibg=Red ctermbg=Red
         autocmd VimEnter,WinEnter * match TrailingSpaces /\s\+$/
 augroup END
+
+call neobundle#end()
+
+syntax enable
+set background=dark
+"let g:solarized_termcolors=256
+filetype plugin indent on " Required!
+colorscheme solarized
 
 NeoBundleCheck

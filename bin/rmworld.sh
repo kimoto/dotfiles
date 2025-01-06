@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # 注意: $HOMEディレクトリのファイルが消えます
 # Notice: this script, remove all files in $HOME
 #
@@ -9,7 +9,7 @@
 
 set -x
 
-cd $HOME
+cd "$HOME" || exit 1
 
 # remove all files (not include dotfiles)
 # rm -rf ./*

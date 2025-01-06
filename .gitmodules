@@ -1,10 +1,7 @@
-[submodule "gitignore"]
-	path = gitignore
-	url = git://github.com/github/gitignore.git
-[submodule ".zsh/zaw"]
-  path = .zsh/zaw
-  url = git://github.com/zsh-users/zaw.git
 
+[submodule "config/alacritty-theme"]
+	path = config/alacritty-theme
+	url = https://github.com/alacritty/alacritty-theme.git
 [submodule ".vim/bundle/neobundle.vim"]
 	path = .vim/bundle/neobundle.vim
 	url = https://github.com/Shougo/neobundle.vim
