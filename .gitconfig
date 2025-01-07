@@ -58,7 +58,7 @@
 
 [user]
   name = kimoto
-  email = your-username@users.noreply.github.com
+  email = kimoto@users.noreply.github.com
 
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"
