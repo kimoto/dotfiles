@@ -13,12 +13,9 @@
 #
 # Install:
 # -------------------------------------------------------------------------
-# $ wget -O- https://raw.github.com/kimoto/dotfiles/master/README | sh  
+# $ wget -O- https://raw.github.com/kimoto/dotfiles/main/README | sh
 # -------------------------------------------------------------------------
 #
-cd $HOME;
-git clone --recursive git@github.com:kimoto/dotfiles.git;
+cd $HOME
+git clone --recursive git@github.com:kimoto/dotfiles.git
 ./dotfiles/bin/mkworld.sh
-./dotfiles/bin/mklink.sh
-./dotfiles/bin/mkcrontab.sh
-
