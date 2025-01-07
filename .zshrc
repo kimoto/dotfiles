@@ -232,6 +232,10 @@ zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 #============
 
+# replace --help for colorize
+alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
+alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
+
 # load local config
 h=${${HOST%%.*}:l}
 if [ -f "$HOME/config/hosts/$h.zshrc" ]; then
