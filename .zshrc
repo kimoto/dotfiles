@@ -236,12 +236,13 @@ zstyle :bracketed-paste-magic paste-finish pastefinish
 alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
 alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
 
-# load local config
+# load host-based config
 h=${${HOST%%.*}:l}
-if [ -f "$HOME/config/hosts/$h.zshrc" ]; then
-  source "$HOME/config/hosts/$h.zshrc"
+if [ -f "$HOME/.config/hosts/$h.zshrc" ]; then
+  source "$HOME/.config/hosts/$h.zshrc"
 fi
 
+# load local config
 if [ -f "$HOME/.zshrc.local" ]; then
   source "$HOME/.zshrc.local"
 fi
