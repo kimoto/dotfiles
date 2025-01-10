@@ -4,9 +4,6 @@ shell = "zsh"
 github = 'romkatv/zsh-defer'
 apply = ['source']
 
-#[plugins.compinit]
-#inline = 'autoload -Uz compinit && zsh-defer compinit'
-
 [plugins.fzf]
 github = 'junegunn/fzf'
 apply = ['fzf-install', 'fzf-source']
@@ -29,20 +26,24 @@ apply = ['source']
 [plugins.fast-syntax-highlighting.hooks]
 post = "test -e ~/.cache/fsh/current_theme.zsh || fast-theme -q ~/.config/fsh/solarized.ini --secondary=zdharma"
 
+[plugins.evalcache]
+github = 'mroth/evalcache'
+apply = ['source']
+
 [plugins.starship]
-inline = 'eval "$(starship init zsh)"'
+inline = '_evalcache starship init zsh'
 
 [plugins.zoxide]
-inline = 'eval "$(zoxide init zsh)"'
+inline = '_evalcache zoxide init zsh'
 
 [plugins.mise]
-inline = 'eval "$(mise activate zsh)"'
+inline = '_evalcache mise activate zsh'
 
 [plugins.kubectl-completion]
-inline = 'source <(kubectl completion zsh)'
+inline = '_evalcache kubectl completion zsh'
 
 [plugins.direnv]
-inline = 'eval "$(direnv hook zsh)"'
+inline = '_evalcache direnv hook zsh'
 
 [templates]
 defer = "{{ hooks?.pre | nl }}{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}{{ hooks?.post | nl }}"
