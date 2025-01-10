@@ -20,20 +20,9 @@ compinit
 #zstyle ':completion:*' special-dirs true
 zstyle ':completion:*:default' menu select=1
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-#zstyle ':completion:*' verbose yes
-#zstyle ':completion:*:descriptions' format '%B%d%b'
-#zstyle ':completion:*:messages' format '%d'
-#zstyle ':completion:*:warnings' format 'No matches for: %d'
-#zstyle ':completion:*' group-name ''
-#zstyle ':completion:*' use-cache on               # 補完のキャッシュを有効にする
-#zstyle ':completion:*' cache-path ~/tmp/zsh_cache # 補完のキャッシュパス
 zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-#zstyle ':completion:*:match:*' original only
-#zstyle ':completion:*:approximate:*' max-errors 1 numeric
-#zstyle ':completion:*:functions' ignored-patterns '_*' # 持っていないコマンドの補完を無効化
 zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
 zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
-#zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH} # sudo時も$PATH内のコマンドを補完する
 
 # setopt
 setopt autocd # cd不要
@@ -49,8 +38,6 @@ setopt multios # 複数のリダイレクトやパイプに対応
 setopt extended_history # ヒストリに時刻を追加
 setopt noclobber # リダイレクトで上書き禁止
 setopt listpacked # 詰めて表示
-#setopt listrowsfirst # 最初の項目をまず選択
-#setopt cdablevars # 同じ名前の変なディレクトリに移動しちゃうやつ
 setopt nopromptcr # 改行コードで終わらない出力をケア、しない
 setopt complete_in_word # 語の途中でも補完
 setopt always_last_prompt # カーソル位置は保持したままファイル名一覧を順次その場で表示
