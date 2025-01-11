@@ -8,6 +8,13 @@ apply = ['source']
 github = 'junegunn/fzf'
 apply = ['fzf-install', 'fzf-source']
 
+[plugins.evalcache]
+github = 'mroth/evalcache'
+apply = ['source']
+
+#================
+# defer loading
+#================
 [plugins.zsh-completions]
 github = 'zsh-users/zsh-completions'
 apply = ['defer']
@@ -19,21 +26,20 @@ apply = ['defer']
 [plugins.zsh-autosuggestions.hooks]
 post = "export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=60'"
 
-[plugins.fast-syntax-highlighting]
-github = 'zdharma-continuum/fast-syntax-highlighting'
-apply = ['source']
-
-[plugins.fast-syntax-highlighting.hooks]
-post = "test -e ~/.cache/fsh/current_theme.zsh || fast-theme -q ~/.config/fsh/solarized.ini --secondary=zdharma"
-
-[plugins.evalcache]
-github = 'mroth/evalcache'
-apply = ['source']
-
 [plugins.zsh-abbr]
 github = 'olets/zsh-abbr'
 apply = ['defer']
 
+[plugins.fast-syntax-highlighting]
+github = 'zdharma-continuum/fast-syntax-highlighting'
+apply = ['defer']
+
+[plugins.fast-syntax-highlighting.hooks]
+post = "test -e ~/.cache/fsh/current_theme.zsh || fast-theme -q ~/.config/fsh/solarized.ini --secondary=zdharma"
+
+#================
+# eval cache
+#================
 [plugins.starship]
 inline = '_evalcache starship init zsh'
 
