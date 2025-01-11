@@ -1,8 +1,22 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
-format = '$all'
-right_format = '$time'
+format = """$all\
+$fill\
+$time\
+$line_break\
+$jobs\
+$battery\
+$status\
+$os\
+$container\
+$shell\
+$character\
+"""
+
 command_timeout = 1000
+
+[fill]
+symbol = ' '
 
 [directory]
 style = "blue"
