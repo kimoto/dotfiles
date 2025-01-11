@@ -66,4 +66,6 @@ require('jetpack.paq') {
   'rust-lang/rust.vim', -- Rust
 
   'sindrets/diffview.nvim', -- for git mergetool
+
+  'mikavilpas/yazi.nvim',
 }
