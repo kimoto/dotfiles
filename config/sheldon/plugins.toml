@@ -30,6 +30,10 @@ post = "test -e ~/.cache/fsh/current_theme.zsh || fast-theme -q ~/.config/fsh/so
 github = 'mroth/evalcache'
 apply = ['source']
 
+[plugins.zsh-abbr]
+github = 'olets/zsh-abbr'
+apply = ['defer']
+
 [plugins.starship]
 inline = '_evalcache starship init zsh'
 
