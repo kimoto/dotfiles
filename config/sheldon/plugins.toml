@@ -49,9 +49,6 @@ inline = '_evalcache zoxide init zsh'
 [plugins.mise]
 inline = '_evalcache mise activate zsh'
 
-[plugins.kubectl-completion]
-inline = '_evalcache kubectl completion zsh'
-
 [plugins.direnv]
 inline = '_evalcache direnv hook zsh'
 
