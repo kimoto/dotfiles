@@ -1,6 +1,7 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 format = '$all'
+right_format = '$time'
 command_timeout = 1000
 
 [directory]
@@ -77,7 +78,10 @@ symbol = '> '
 disabled = true
 
 [time]
-disabled = true
+disabled = false
+format = '[$time]($style) '
+time_format = '%Y-%m-%d %T'
+style = "cyan"
 
 [battery]
 disabled = true
