@@ -68,4 +68,15 @@ require('jetpack.paq') {
   'sindrets/diffview.nvim', -- for git mergetool
 
   'mikavilpas/yazi.nvim',
+
+  -- debugger
+  ---- base
+  'mfussenegger/nvim-dap',
+  'nvim-neotest/nvim-nio',
+  'rcarriga/nvim-dap-ui',
+  -- python
+  'https://github.com/mfussenegger/nvim-dap-python',
+  -- ruby
+  'mfussenegger/nvim-dap',
+  'suketa/nvim-dap-ruby',
 }
