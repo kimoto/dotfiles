@@ -2,3 +2,8 @@
 on   = "<C-d>"
 run  = "plugin diff"
 desc = "Diff the selected with the hovered file"
+
+[[manager.prepend_keymap]]
+on   = "F"
+run  = "plugin smart-filter"
+desc = "Smart filter"

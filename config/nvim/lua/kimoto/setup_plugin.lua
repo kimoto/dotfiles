@@ -79,4 +79,8 @@ require('jetpack.paq') {
   -- ruby
   'mfussenegger/nvim-dap',
   'suketa/nvim-dap-ruby',
+
+  -- javascript/typescript
+  'mxsdev/nvim-dap-vscode-js',
+  -- {"microsoft/vscode-js-debug", opt = 1, run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"},
 }
