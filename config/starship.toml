@@ -99,3 +99,6 @@ style = "cyan"
 
 [battery]
 disabled = true
+
+[lua]
+disabled = true
