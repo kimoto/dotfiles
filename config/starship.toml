@@ -49,7 +49,7 @@ stashed = "≡"
 
 [git_state]
 format = '\([$state( $progress_current/$progress_total)]($style)\) '
-style = "bright-black"
+style = "purple"
 
 [git_metrics]
 disabled = false
