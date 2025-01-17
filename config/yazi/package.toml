@@ -1,5 +1,5 @@
 [plugin]
-deps = [{ use = "yazi-rs/plugins:git", rev = "600614a" }, { use = "yazi-rs/plugins:diff", rev = "600614a" }, { use = "Reledia/miller", rev = "40e0265" }, { use = "Rolv-Apneseth/starship", rev = "4053c8c" }]
+deps = [{ use = "yazi-rs/plugins:git", rev = "600614a" }, { use = "yazi-rs/plugins:diff", rev = "600614a" }, { use = "Reledia/miller", rev = "40e0265" }, { use = "Rolv-Apneseth/starship", rev = "4053c8c" }, { use = "yazi-rs/plugins:smart-filter", rev = "e4aaf43" }]
 
 [flavor]
 deps = [{ use = "Chromium-3-Oxide/everforest-medium", rev = "65bc09b" }, { use = "dangooddd/kanagawa", rev = "d98f0c3" }, { use = "yazi-rs/flavors:catppuccin-mocha", rev = "fc8eeaa" }]
