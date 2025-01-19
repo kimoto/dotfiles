@@ -7,6 +7,7 @@
   lo = log -p
   gr = grep
   pu = pull
+  l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 
 [core]
   excludesfile = ~/.gitignore
