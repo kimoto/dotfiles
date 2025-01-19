@@ -21,3 +21,4 @@ config/btop/
 config/iterm2/
 config/yazi/flavors/
 config/yazi/plugins/
+config/gh/hosts.yml
