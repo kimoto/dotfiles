@@ -9,5 +9,15 @@ ipch/
 *.zip
 *.exp
 *.exe
+*.tar
+*.tar.gz
+*.gz
+.mono/
 doc/tags
 doc/tags-ja
+config/coc
+config/raycast/
+config/btop/
+config/iterm2/
+config/yazi/flavors/
+config/yazi/plugins/
