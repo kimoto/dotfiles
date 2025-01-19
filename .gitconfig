@@ -10,6 +10,7 @@
 
 [core]
   excludesfile = ~/.gitignore
+  pager = delta
   editor = nvim
   autoCRLF = false
   syntax-theme = Solarized (dark)
@@ -46,9 +47,9 @@
   layout = "LOCAL,BASE,REMOTE / MERGED"
 
 [pager]
-  log = bat
-  show = bat
-  diff = bat
+#  log = bat
+#  show = bat
+#  diff = bat
 
 [push]
   default = current
@@ -68,11 +69,13 @@
 # plugins
 # --------
 [delta]
-  side-by-side = true
-  # navigate = true
   dark = true
   line-numbers = true
-  #true-color = always
+  navigate = true
+  hunk-header-style = omit
+  # true-color = always
   syntax-theme = Solarized (dark)
+  hyperlinks = true
+
 [rerere]
-	enabled = true
+  enabled = true
