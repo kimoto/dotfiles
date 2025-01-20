@@ -40,6 +40,7 @@ require('jetpack.paq') {
 
   'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
+  {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
 
   'windwp/nvim-ts-autotag', -- tagsの自動生成
   'pocco81/auto-save.nvim', -- 自動保存
