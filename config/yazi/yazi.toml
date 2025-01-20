@@ -38,3 +38,8 @@ run  = "git"
 id   = "git"
 name = "*/"
 run  = "git"
+
+[[plugin.prepend_fetchers]]
+id = "glow"
+name = "*.md"
+run = "glow"
