@@ -156,6 +156,14 @@ c() {
   kubectx
 }
 
+l() {
+  if [[ "$#" == 0 ]]; then
+    ll
+  else
+    bat $@
+  fi
+}
+
 # ripgrep->fzf->vim [QUERY]
 RELOAD='reload:rg --column --color=always --smart-case {q} || :'
 OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
