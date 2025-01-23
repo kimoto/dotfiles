@@ -90,6 +90,7 @@ export LESS="-girMXfFQ"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
+export GREP_OPTIONS="--color=auto"
 
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
