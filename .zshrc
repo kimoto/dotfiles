@@ -59,6 +59,7 @@ alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
+alias v='nvim'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
