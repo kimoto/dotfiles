@@ -17,3 +17,8 @@ desc = "Cancel input"
 on   = "!"
 run  = 'shell "$SHELL" --block'
 desc = "Open shell here"
+
+[[manager.prepend_keymap]]
+on   = [ "g", "i" ]
+run  = "plugin lazygit"
+desc = "run lazygit"
