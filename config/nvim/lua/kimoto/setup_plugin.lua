@@ -84,4 +84,6 @@ require('jetpack.paq') {
   -- javascript/typescript
   'mxsdev/nvim-dap-vscode-js',
   -- {"microsoft/vscode-js-debug", opt = 1, run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"},
+
+  'editorconfig/editorconfig-vim',
 }
