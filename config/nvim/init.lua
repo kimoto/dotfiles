@@ -103,7 +103,7 @@ require('lualine').setup {
 require('colorizer').setup()
 
 -- coc
-vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-json', 'coc-git', 'coc-java', 'coc-eslint', 'coc-prettier', 'coc-yank', 'coc-python', 'coc-css'}
+vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-json', 'coc-git', 'coc-java', 'coc-sql', 'coc-eslint', 'coc-prettier', 'coc-yank', 'coc-python', 'coc-css'}
 
 -- related nvim-dap (debug adapter protocol)
 vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })

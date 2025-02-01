@@ -9,7 +9,8 @@
     "javascriptreact",
     "typescript",
     "typescriptreact",
-    "typescript.tsx"
+    "typescript.tsx",
+    "sql"
   ],
   "eslint.autoFixOnSave": true,
   "coc.preferences.formatOnSaveFiletypes": [
@@ -25,6 +26,7 @@
     "markdown",
     "yaml",
     "json",
-    "html"
+    "html",
+    "sql"
   ]
 }
