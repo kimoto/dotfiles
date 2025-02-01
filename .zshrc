@@ -141,7 +141,7 @@ export LS_COLORS
 bindkey "^\\" undo
 
 # chpwd
-function chpwd(){
+function chpwd() {
   ll
 }
 
@@ -254,8 +254,7 @@ y() {
 }
 
 # lazygit
-lg()
-{
+lg() {
   export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
 
   lazygit "$@"
