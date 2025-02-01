@@ -82,12 +82,13 @@ watch=notme # watch and notify, other login user
 
 # env
 export GOPATH="$HOME/go"
-export PAGER="less --RAW-CONTROL-CHARS"
+export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen"
+export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen"
+export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export VISUAL=nvim
 export EDITOR=nvim
 export GIT_EDITOR=nvim
-export LESS="-girMXfFQ"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
