@@ -63,6 +63,7 @@ alias v='vi'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
+alias less='bat --pager=less'
 
 temp(){
   cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX`
