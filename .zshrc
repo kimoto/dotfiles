@@ -64,6 +64,7 @@ alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
+alias curl='curlie' # for pretty-print
 
 temp(){
   cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX`
