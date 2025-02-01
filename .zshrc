@@ -82,8 +82,8 @@ watch=notme # watch and notify, other login user
 
 # env
 export GOPATH="$HOME/go"
-export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen"
-export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen"
+export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
+export BAT_PAGER="$PAGER"
 export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export VISUAL=nvim
