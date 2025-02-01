@@ -66,6 +66,9 @@ require('telescope').setup{
     --   extension_config_key = value,
     -- }
     -- please take a look at the readme of the extension you want to configure
+    frecency = {
+      db_safe_mode = false, -- 古いエントリの自動削除時に確認を求めない
+    }
   }
 }
 local builtin = require('telescope.builtin')
