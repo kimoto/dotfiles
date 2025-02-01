@@ -164,7 +164,11 @@ l() {
   if [[ "$#" == 0 ]]; then
     ll
   else
-    bat $@
+    if [[ -d "$1" ]]; then
+      ll $@
+    else
+      bat $@
+    fi
   fi
 }
 
