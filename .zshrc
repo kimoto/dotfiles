@@ -52,14 +52,14 @@ setopt print_eight_bit
 setopt globdots # dotも補完
 
 # aliases
-alias ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
-alias ls='eza --git --icons'
-alias tree='eza -T -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
+alias ls='eza --hyperlink --icons auto'
+alias ll='ls --long --all --git-repos-no-status --time-style=relative --sort=modified'
+alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
-alias v='nvim'
+alias v='vi'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
