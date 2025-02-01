@@ -1,0 +1,8 @@
+abbr "ci"="git commit -a -v"
+abbr "co"="git checkout"
+abbr "di"="git diff"
+abbr "ga"="git add"
+abbr "gr"="git grep"
+abbr "lo"="git log -p"
+abbr "pu"="git pull"
+abbr "st"="git status"

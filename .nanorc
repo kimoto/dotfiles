@@ -1,5 +1,0 @@
-include "/usr/share/nano/nanorc.nanorc"
-include "/usr/share/nano/perl.nanorc"
-include "/usr/share/nano/ruby.nanorc"
-
-set mouse

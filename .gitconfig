@@ -7,9 +7,11 @@
   lo = log -p
   gr = grep
   pu = pull
+  l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 
 [core]
   excludesfile = ~/.gitignore
+  pager = delta
   editor = nvim
   autoCRLF = false
   syntax-theme = Solarized (dark)
@@ -46,9 +48,9 @@
   layout = "LOCAL,BASE,REMOTE / MERGED"
 
 [pager]
-  log = bat
-  show = bat
-  diff = bat
+#  log = bat
+#  show = bat
+#  diff = bat
 
 [push]
   default = current
@@ -58,7 +60,7 @@
 
 [user]
   name = kimoto
-  email = your-username@users.noreply.github.com
+  email = kimoto@users.noreply.github.com
 
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"
@@ -68,11 +70,13 @@
 # plugins
 # --------
 [delta]
-  side-by-side = true
-  # navigate = true
   dark = true
   line-numbers = true
-  #true-color = always
+  navigate = true
+  hunk-header-style = omit
+  # true-color = always
   syntax-theme = Solarized (dark)
+  hyperlinks = true
+
 [rerere]
-	enabled = true
+  enabled = true
