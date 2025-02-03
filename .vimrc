@@ -64,7 +64,6 @@ nmap fb :<C-u>Unite file_mru buffer<CR>
 nnoremap <silent> <C-x>1 :only<CR>
 nnoremap <silent> <C-x>2 :sp<CR>
 nnoremap <silent> <C-x>3 :vsp<CR>
-noremap!  
 
 " 次のバッファに切り替え
 nmap <C-T> :bn<CR>

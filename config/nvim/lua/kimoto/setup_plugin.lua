@@ -40,6 +40,7 @@ require('jetpack.paq') {
 
   'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
+  {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
 
   'windwp/nvim-ts-autotag', -- tagsの自動生成
   'pocco81/auto-save.nvim', -- 自動保存
@@ -66,4 +67,23 @@ require('jetpack.paq') {
   'rust-lang/rust.vim', -- Rust
 
   'sindrets/diffview.nvim', -- for git mergetool
+
+  'mikavilpas/yazi.nvim',
+
+  -- debugger
+  ---- base
+  'mfussenegger/nvim-dap',
+  'nvim-neotest/nvim-nio',
+  'rcarriga/nvim-dap-ui',
+  -- python
+  'https://github.com/mfussenegger/nvim-dap-python',
+  -- ruby
+  'mfussenegger/nvim-dap',
+  'suketa/nvim-dap-ruby',
+
+  -- javascript/typescript
+  'mxsdev/nvim-dap-vscode-js',
+  -- {"microsoft/vscode-js-debug", opt = 1, run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"},
+
+  'editorconfig/editorconfig-vim',
 }

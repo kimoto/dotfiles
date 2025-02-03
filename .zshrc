@@ -20,20 +20,9 @@ compinit
 #zstyle ':completion:*' special-dirs true
 zstyle ':completion:*:default' menu select=1
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-#zstyle ':completion:*' verbose yes
-#zstyle ':completion:*:descriptions' format '%B%d%b'
-#zstyle ':completion:*:messages' format '%d'
-#zstyle ':completion:*:warnings' format 'No matches for: %d'
-#zstyle ':completion:*' group-name ''
-#zstyle ':completion:*' use-cache on               # 補完のキャッシュを有効にする
-#zstyle ':completion:*' cache-path ~/tmp/zsh_cache # 補完のキャッシュパス
 zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-#zstyle ':completion:*:match:*' original only
-#zstyle ':completion:*:approximate:*' max-errors 1 numeric
-#zstyle ':completion:*:functions' ignored-patterns '_*' # 持っていないコマンドの補完を無効化
 zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
 zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
-#zstyle ':completion:*:sudo:*' command-path ${(s.:.)PATH} # sudo時も$PATH内のコマンドを補完する
 
 # setopt
 setopt autocd # cd不要
@@ -49,8 +38,6 @@ setopt multios # 複数のリダイレクトやパイプに対応
 setopt extended_history # ヒストリに時刻を追加
 setopt noclobber # リダイレクトで上書き禁止
 setopt listpacked # 詰めて表示
-#setopt listrowsfirst # 最初の項目をまず選択
-#setopt cdablevars # 同じ名前の変なディレクトリに移動しちゃうやつ
 setopt nopromptcr # 改行コードで終わらない出力をケア、しない
 setopt complete_in_word # 語の途中でも補完
 setopt always_last_prompt # カーソル位置は保持したままファイル名一覧を順次その場で表示
@@ -65,18 +52,23 @@ setopt print_eight_bit
 setopt globdots # dotも補完
 
 # aliases
-alias ll='eza -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
-alias ls='eza --git --icons'
-alias tree='eza -T -l --git --git-repos-no-status --time-style=relative --sort=modified --icons'
+alias ls='eza --hyperlink --icons auto'
+alias ll='ls --long --all --git-repos-no-status --time-style=relative --sort=modified'
+alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
+alias v='vi'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
+alias less='bat --pager=less'
+alias curl='curlie' # for pretty-print
 
-function temp(){ cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX` }
+temp(){
+  cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX`
+}
 
 # var
 HISTFILE=~/.zsh_history
@@ -92,14 +84,17 @@ watch=notme # watch and notify, other login user
 
 # env
 export GOPATH="$HOME/go"
-export PAGER="less --RAW-CONTROL-CHARS"
+export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
+export BAT_PAGER="$PAGER"
+export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export VISUAL=nvim
 export EDITOR=nvim
 export GIT_EDITOR=nvim
-export LESS="-girMXfFQ"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
+export XDG_CONFIG_HOME="$HOME/.config"
+export GREP_OPTIONS="--color=auto"
 
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
@@ -146,7 +141,7 @@ export LS_COLORS
 bindkey "^\\" undo
 
 # chpwd
-function chpwd(){
+function chpwd() {
   ll
 }
 
@@ -166,6 +161,18 @@ B() {
 
 c() {
   kubectx
+}
+
+l() {
+  if [[ "$#" == 0 ]]; then
+    ll
+  else
+    if [[ -d "$1" ]]; then
+      ll $@
+    else
+      bat $@
+    fi
+  fi
 }
 
 # ripgrep->fzf->vim [QUERY]
@@ -232,12 +239,39 @@ zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 #============
 
-# load local config
+# replace --help for colorize
+alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
+alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
+
+# yazi
+y() {
+  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+    builtin cd -- "$cwd"
+  fi
+  rm -f -- "$tmp"
+}
+
+# lazygit
+lg() {
+  export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
+
+  lazygit "$@"
+
+  if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
+    cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
+    rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
+  fi
+}
+
+# load host-based config
 h=${${HOST%%.*}:l}
-if [ -f "$HOME/config/hosts/$h.zshrc" ]; then
-  source "$HOME/config/hosts/$h.zshrc"
+if [ -f "$HOME/.config/hosts/$h.zshrc" ]; then
+  source "$HOME/.config/hosts/$h.zshrc"
 fi
 
+# load local config
 if [ -f "$HOME/.zshrc.local" ]; then
   source "$HOME/.zshrc.local"
 fi

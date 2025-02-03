@@ -66,6 +66,9 @@ require('telescope').setup{
     --   extension_config_key = value,
     -- }
     -- please take a look at the readme of the extension you want to configure
+    frecency = {
+      db_safe_mode = false, -- 古いエントリの自動削除時に確認を求めない
+    }
   }
 }
 local builtin = require('telescope.builtin')
@@ -99,4 +102,72 @@ require('lualine').setup {
 
 require('colorizer').setup()
 
--- vim.g.auto_ctags = 1 -- tagsの自動更新
+-- coc
+vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-json', 'coc-git', 'coc-java', 'coc-sql', 'coc-eslint', 'coc-prettier', 'coc-yank', 'coc-python', 'coc-css'}
+
+-- related nvim-dap (debug adapter protocol)
+vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<F9>', ':DapToggleBreakpoint<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<F10>', ':DapStepOver<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<F11>', ':DapStepInto<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<S-F11>', ':DapStepOut<CR>', { silent = true })
+-- vim.api.nvim_set_keymap('n', '<leader>b', ':DapToggleBreakpoint<CR>', { silent = true })
+-- vim.api.nvim_set_keymap('n', '<leader>B', ':lua require("dap").set_breakpoint(nil, nil, vim.fn.input("Breakpoint condition: "))<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<leader>lp', ':lua require("dap").set_breakpoint(nil, nil, vim.fn.input("Log point message: "))<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dr', ':lua require("dap").repl.open()<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dl', ':lua require("dap").run_last()<CR>', { silent = true })
+vim.api.nvim_set_keymap('n', '<leader>d', ':lua require("dapui").toggle()<CR>', {})
+require('dap-python').setup('python')
+require('dap-ruby').setup()
+require("dapui").setup()
+local dap, dapui = require("dap"), require("dapui")
+dap.listeners.before.attach.dapui_config = function()
+  dapui.open()
+end
+dap.listeners.before.launch.dapui_config = function()
+  dapui.open()
+end
+dap.listeners.before.event_terminated.dapui_config = function()
+  dapui.close()
+end
+dap.listeners.before.event_exited.dapui_config = function()
+  dapui.close()
+end
+-- require("dap-vscode-js").setup({
+--   debugger_path = vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug", -- Path to vscode-js-debug installation.
+--   -- debugger_cmd = { "js-debug-adapter" }, -- Command to use to launch the debug server. Takes precedence over `node_path` and `debugger_path`.
+--   adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' }, -- which adapters to register in nvim-dap
+--   -- log_file_path = "(stdpath cache)/dap_vscode_js.log" -- Path for file logging
+--   -- log_file_level = false -- Logging level for output to file. Set to false to disable file logging.
+--   -- log_console_level = vim.log.levels.ERROR -- Logging level for output to console. Set to false to disable console output.
+-- })
+local dap = require("dap")
+
+-- dap.adapters['pwa-node'] = {
+--   type = 'server',
+--   host = 'localhost',
+--   port = '${port}',
+--   executable = {
+--     command = 'tsx',
+--     args = {vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug/src/dapDebugServer.ts", "${port}"},
+--   },
+-- }
+--
+-- for _, language in ipairs({ "typescript", "javascript" }) do
+--   dap.configurations[language] = {
+--     {
+--       type = "pwa-node",
+--       request = "launch",
+--       name = "Launch file",
+--       program = "${file}",
+--       cwd = "${workspaceFolder}",
+--       executable = {
+--         command = "tsx",
+--         -- 💀 Make sure to update this path to point to your installation
+--         args = {vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug/src/dapDebugServer.ts", "${port}"},
+--       },
+--     },
+--   }
+-- end
+--
+-- -- vim.g.auto_ctags = 1 -- tagsの自動更新

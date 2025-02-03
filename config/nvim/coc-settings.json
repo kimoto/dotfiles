@@ -1,0 +1,32 @@
+{
+  "diagnostic.checkCurrentLine": true,
+  "diagnostic.virtualText": true,
+  "diagnostic.virtualTextCurrentLineOnly": false,
+  "solargraph.diagnostics": true,
+  "eslint.enable": true,
+  "eslint.filetypes": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "sql"
+  ],
+  "eslint.autoFixOnSave": true,
+  "coc.preferences.formatOnSaveFiletypes": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "typescript.tsx",
+    "json",
+    "graphql",
+    "handlebars",
+    "css",
+    "markdown",
+    "yaml",
+    "json",
+    "html",
+    "sql"
+  ]
+}
