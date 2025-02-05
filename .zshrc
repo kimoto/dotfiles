@@ -89,7 +89,6 @@ alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
-alias v='vi'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
@@ -132,7 +131,7 @@ bindkey "^\\" undo
 
 # utility functions
 temp(){
-  cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX`
+  cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
 }
 
 # yazi
