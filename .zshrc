@@ -27,23 +27,18 @@ typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
 path=(
   $HOME/bin
-  $HOME/usr/local/bin
-  $HOME/local/bin
   $HOME/.local/bin
   $HOME/.cargo/bin
   $HOME/.docker/bin
-  $HOME/utils
-  $HOME/go/bin
-  /usr/local/bin
-  /usr/local/sbin
-  /opt/local/bin
   /opt/homebrew/bin
-  /usr/bin
+  /usr/local/sbin
+  /usr/local/bin
   /usr/sbin
+  /usr/bin
   /bin
 )
 manpath+=(
-  $HOME/local/share/man
+  $HOME/.local/share/man
   /opt/local/share/man
   /usr/local/share/man
   /usr/share/man
@@ -111,14 +106,13 @@ watch=notme # watch and notify, other login user
 zle_highlight+=(paste:none)
 
 # env
-export GOPATH="$HOME/go"
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="$PAGER"
 export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-export VISUAL=nvim
 export EDITOR=nvim
-export GIT_EDITOR=nvim
+export VISUAL="$EDITOR"
+export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
