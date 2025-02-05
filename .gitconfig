@@ -1,12 +1,7 @@
 [alias]
-  ga = add
   st = status
   ci = commit -a -v
   co = checkout
-  di = diff
-  lo = log -p
-  gr = grep
-  pu = pull
   l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 
 [core]
@@ -74,7 +69,6 @@
   line-numbers = true
   navigate = true
   hunk-header-style = omit
-  # true-color = always
   syntax-theme = Solarized (dark)
   hyperlinks = true
 
