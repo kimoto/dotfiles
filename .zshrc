@@ -25,17 +25,12 @@ PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
-path=(
+path+=(
   $HOME/bin
   $HOME/.local/bin
   $HOME/.cargo/bin
   $HOME/.docker/bin
   /opt/homebrew/bin
-  /usr/local/sbin
-  /usr/local/bin
-  /usr/sbin
-  /usr/bin
-  /bin
 )
 manpath+=(
   $HOME/.local/share/man
