@@ -6,6 +6,6 @@ git:
   paging:
     colorArg: always
     pager: DELTA_FEATURES=+lazygit delta --paging=never
-  branchLogCmd: "git log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' {{branchName}} --"
-  allBranchesLogCmd: "git log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --all"
+  branchLogCmd: "git l {{branchName}} --"
+  allBranchesLogCmd: "git l --all"
 promptToReturnFromSubprocess: false
