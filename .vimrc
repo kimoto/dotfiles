@@ -23,12 +23,8 @@ set hidden " バッファを保存しないで他のファイルを開けるよ�
 set sidescroll=1 " 水平スクロール時の文字数
 set ambiwidth=double "特殊な文字でもカーソル位置がずれないように
 set display+=lastline "最後の行を可能な限り最後まで表示
-"set list "いろいろ表示
-"set listchars=tab:>\ ,
 " Tab入力したときに入力される空白の数
 set tabstop=4
-"set shiftwidth=2
-"set softtabstop=2
 set tags=$HOME/tags,./tags,./TAGS,tags,TAGS
 
 " バックアップファイルを作成する
@@ -39,9 +35,6 @@ set directory=~/tmp
 " 日本語設定
 set termencoding=utf8
 set encoding=utf8
-
-" カーソルのある行を強調する
-"set cursorline
 
 " 前回編集していた場所に自動でジャンプするように
 au BufWritePost * mkview
@@ -141,8 +134,6 @@ autocmd FileType javascript set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 autocmd FileType perl set expandtab tabstop=4 shiftwidth=4 softtabstop=4
 au BufNewFile,BufRead *.tx set filetype=tt2html
 au BufNewFile,BufRead *.psgi set filetype=perl
-"au BufNewFile,BufRead *.jshintrc set filetype=json
-"au BufNewFile,BufRead *.jslintrc set filetype=json
 
 " Recommended key-mappings.
 " <CR>: close popup and save indent.
@@ -210,12 +201,7 @@ inoremap ,r <Esc>:QuickRun<CR>a
 let g:quickrun_config={'*': {'split': ':botright 8sp'}}
 
 NeoBundle 'tpope/vim-endwise'
-"NeoBundle 'git://github.com/tsukkee/unite-tag.git'
 NeoBundle 'vim-scripts/ruby-matchit'
-"NeoBundle 'yuku-t/vim-ref-ri'
-"NeoBundle 'soh335/vim-ref-jquery'
-"NeoBundle 'soh335/vim-ref-pman'
-"NeoBundle 'mojako/ref-sources.vim'
 
 NeoBundle 'vim-scripts/TT2-syntax'
 NeoBundle 'vim-perl/vim-perl'
@@ -225,20 +211,12 @@ let g:yankring_history_dir = $HOME.'/tmp'
 
 NeoBundle 'houtsnip/vim-emacscommandline'
 NeoBundle 'Lokaltog/vim-powerline'
-"NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'tpope/vim-fugitive' " 重いのでやめた
 
-"NeoBundle 'othree/html5.vim'
-"NeoBundle 'pangloss/vim-javascript'
 NeoBundle 'lukaszb/vim-web-indent'
 
 NeoBundle 'rking/ag.vim'
 NeoBundle 'mileszs/ack.vim'
-
-"NeoBundle 'Lokaltog/vim-easymotion'
-"nmap s <Plug>(easymotion-s2)
-"
-"NeoBundle "elzr/vim-json"
 
 NeoBundle 'Yggdroot/indentLine'
 let g:indentLine_faster = 1
@@ -248,15 +226,7 @@ NeoBundle 'slim-template/vim-slim'
 "================================
 " Syntax Check
 "================================
-"NeoBundle 'basyura/jslint.vim'
 NeoBundle 'scrooloose/syntastic'
-" jslint.vim
-"function! s:javascript_filetype_settings()
-"  autocmd BufLeave     <buffer> call jslint#clear()
-"  autocmd BufWritePost <buffer> call jslint#check()
-"  autocmd CursorMoved  <buffer> call jslint#message()
-"endfunction
-"autocmd FileType javascript call s:javascript_filetype_settings()
 
 let g:syntastic_enable_signs = 1
 let g:syntastic_auto_loc_list = 2
@@ -288,7 +258,6 @@ call neobundle#end()
 
 syntax enable
 set background=dark
-"let g:solarized_termcolors=256
 filetype plugin indent on " Required!
 colorscheme solarized
 
