@@ -8,3 +8,6 @@ quick-terminal-animation-duration = 0
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
 quit-after-last-window-closed = true
+shell-integration-features = no-cursor
+cursor-style = bar
+cursor-click-to-move = true
