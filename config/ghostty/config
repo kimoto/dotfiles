@@ -8,6 +8,8 @@ quick-terminal-animation-duration = 0
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
 quit-after-last-window-closed = true
+shell-integration = zsh
 shell-integration-features = no-cursor
-cursor-style = bar
+cursor-style = underline
+cursor-style-blink = true
 cursor-click-to-move = true
