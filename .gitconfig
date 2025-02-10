@@ -42,11 +42,6 @@
 [mergetool "nvimdiff"]
   layout = "LOCAL,BASE,REMOTE / MERGED"
 
-[pager]
-#  log = bat
-#  show = bat
-#  diff = bat
-
 [push]
   default = current
 
