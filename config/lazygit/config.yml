@@ -6,6 +6,11 @@ git:
   paging:
     colorArg: always
     pager: DELTA_FEATURES=+lazygit delta --paging=never
+  commitPrefix:
+    pattern: "^\\w+\\/(\\w+-\\w+).*"
+    replace: "$1 "
   branchLogCmd: "git l {{branchName}} --"
   allBranchesLogCmd: "git l --all"
 promptToReturnFromSubprocess: false
+os:
+  editPreset: "nvim"
