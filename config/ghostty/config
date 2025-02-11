@@ -10,6 +10,7 @@ keybind = ¥=text:\\
 quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor
-cursor-style = underline
+cursor-style = block
+cursor-opacity = 0.3
 cursor-style-blink = true
 cursor-click-to-move = true

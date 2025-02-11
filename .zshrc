@@ -112,6 +112,7 @@ export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
 export GREP_OPTIONS="--color=auto"
 export LS_COLORS=$(vivid generate solarized-dark)
+export TERM=xterm-256color
 
 # zstyles
 zstyle ':completion:*:default' menu select=1
