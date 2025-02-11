@@ -90,6 +90,8 @@ alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
+alias ag='rg'
+alias grep='grep --color=auto'
 
 # vars
 HISTFILE=~/.zsh_history
@@ -111,7 +113,6 @@ export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-export GREP_OPTIONS="--color=auto"
 export LS_COLORS=$(vivid generate solarized-dark)
 export TERM=xterm-256color
 
