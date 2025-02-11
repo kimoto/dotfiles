@@ -36,6 +36,8 @@ brew "yq"
 brew "zoxide"
 brew "zsh"
 brew "zsh-completions"
+brew "less"
+brew "lazygit"
 
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
