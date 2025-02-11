@@ -11,6 +11,6 @@ quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor
 cursor-style = block
-cursor-opacity = 0.3
+cursor-opacity = 0.5
 cursor-style-blink = true
 cursor-click-to-move = true
