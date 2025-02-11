@@ -256,6 +256,19 @@ zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 #============
 
+# test: switch starship main / sub prompt
+starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
+starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
+px() {
+  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  elif [ "$STARSHIP_CONFIG" = "" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  else
+    export STARSHIP_CONFIG="$starship_conf_main"
+  fi
+}
+
 #=====================
 # load other settings
 #=====================
