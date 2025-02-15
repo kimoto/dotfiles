@@ -217,19 +217,19 @@ bindkey '^G' livegrep
 # setup fzf
 export FZF_DEFAULT_COMMAND='rg --files --hidden --color=auto --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS=" \
-    --height 20% --layout=reverse \
-    --margin=0 --padding=0 --info=inline \
-    --tiebreak=index --filepath-word \
-    --exit-0 \
-    --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
-    --bind='ctrl-x:jump' \
-    --bind='up:preview-page-up' \
-    --bind='down:preview-page-down' \
-    --bind=\"ctrl-o:execute:$OPENER\" \
-    --bind='ctrl-z:ignore' \
-    --bind='ctrl-]:replace-query' \
-    --bind='?:toggle-preview' \
-    --bind='alt-a:select-all,alt-d:deselect-all' \
+  --height 20% --layout=reverse \
+  --margin=0 --padding=0 --info=inline \
+  --tiebreak=index --filepath-word \
+  --exit-0 \
+  --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
+  --bind='ctrl-x:jump' \
+  --bind='up:preview-page-up' \
+  --bind='down:preview-page-down' \
+  --bind=\"ctrl-o:execute:$OPENER\" \
+  --bind='ctrl-z:ignore' \
+  --bind='ctrl-]:replace-query' \
+  --bind='?:toggle-preview' \
+  --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
