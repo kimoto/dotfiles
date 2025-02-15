@@ -193,3 +193,7 @@ local dap = require("dap")
 -- end
 --
 -- -- vim.g.auto_ctags = 1 -- tagsの自動更新
+--
+-- Vimを終了してもUndo
+vim.opt.undofile = true
+vim.opt.undodir = os.getenv("HOME") .. "/.cache/nvim/undodir"
