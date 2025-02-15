@@ -21,6 +21,7 @@ require('jetpack.paq') {
 
   -- なんかうまく動かないので一時的に外す
   -- 'vim-scripts/YankRing.vim',
+  {"gbprod/yanky.nvim"},
 
   -- telescope
   'nvim-lua/plenary.nvim',
