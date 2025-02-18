@@ -38,6 +38,7 @@ brew "zsh"
 brew "zsh-completions"
 brew "less"
 brew "lazygit"
+brew "fastfetch"
 
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
