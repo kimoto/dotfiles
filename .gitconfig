@@ -66,3 +66,9 @@
 
 [rerere]
   enabled = true
+
+# --------
+# local
+# --------
+[include]
+  path = ~/.gitconfig.local
