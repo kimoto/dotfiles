@@ -11,6 +11,9 @@
   autoCRLF = false
   syntax-theme = Solarized (dark)
 
+[commit]
+  gpgsign = true
+
 [diff]
   algorithm = histogram
   colorMoved = default
