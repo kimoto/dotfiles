@@ -72,6 +72,9 @@ disabled = true
 [perl]
 disabled = true
 
+[nodejs]
+disabled = true
+
 [docker_context]
 disabled = true
 
