@@ -40,5 +40,9 @@ brew "less"
 brew "lazygit"
 brew "fastfetch"
 
+brew "cowsay"
+brew "fortune"
+brew "lolcat"
+
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
