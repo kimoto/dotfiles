@@ -48,11 +48,6 @@
 [pull]
   ff = only
 
-[user]
-  name = kimoto
-  email = kimoto@users.noreply.github.com
-  signingkey = C12793A565F8E58D
-
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"
   pushinsteadof = "https://github.com/"
@@ -74,5 +69,8 @@
 # --------
 # local
 # --------
+[include]
+  path = ~/.gitconfig.default_user
+
 [include]
   path = ~/.gitconfig.local
