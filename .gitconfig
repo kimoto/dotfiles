@@ -51,6 +51,7 @@
 [user]
   name = kimoto
   email = kimoto@users.noreply.github.com
+  signingkey = C12793A565F8E58D
 
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"

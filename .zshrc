@@ -115,6 +115,7 @@ export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
 export LS_COLORS=$(vivid generate solarized-dark)
 export TERM=xterm-256color
+export GPG_TTY=$(tty)
 
 # zstyles
 zstyle ':completion:*:default' menu select=1
