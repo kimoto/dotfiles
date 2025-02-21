@@ -275,7 +275,8 @@ px() {
 # load other settings
 #=====================
 source-if-exist() {
-  [[ -f "$1" ]] && source "$1"
+  file_path="$1"
+  [[ -f "$file_path" ]] && source "$file_path"
 }
 
 # host-based config
