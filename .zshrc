@@ -271,14 +271,16 @@ px() {
 #=====================
 # load other settings
 #=====================
+source-if-exist() {
+  $file_path=$1
+  if [ -f "$file_path" ]; then
+    source $file_path
+  fi
+}
 
-# load host-based config
+# host-based config
 h=${${HOST%%.*}:l}
-if [ -f "$XDG_CONFIG_HOME/hosts/$h.zshrc" ]; then
-  source "$XDG_CONFIG_HOME/hosts/$h.zshrc"
-fi
+source-if-exist "$XDG_CONFIG_HOME/hosts/$h.zshrc"
 
-# load local config
-if [ -f "$HOME/.zshrc.local" ]; then
-  source "$HOME/.zshrc.local"
-fi
+# local config
+source-if-exist "$HOME/.zshrc.local"
