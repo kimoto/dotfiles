@@ -56,7 +56,7 @@ disabled = false
 ignore_submodules = true
 
 [cmd_duration]
-format = " [$duration]($style) "
+format = "[$duration]($style) "
 style = "yellow"
 
 [time]
