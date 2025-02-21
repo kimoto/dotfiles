@@ -280,7 +280,11 @@ source-if-exist() {
 }
 
 # host-based config
-source-if-exist "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc"
+if [ -f "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc" ]; then
+  source "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc"
+fi
 
 # local config
-source-if-exist "$HOME/.zshrc.local"
+if [ -f "$HOME/.zshrc.local" ]; then
+  source "$HOME/.zshrc.local"
+fi
