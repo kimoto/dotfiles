@@ -25,15 +25,18 @@ PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
-path+=(
+path=(
   $HOME{,/.local,/.cargo,/.docker}/bin(N-/)
   {/opt/homebrew,/home/linuxbrew/.linuxbrew}/bin(N-/)
+  $path
 )
-manpath+=(
+manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
+  $manpath
 )
-sudo_path+=(
+sudo_path=(
   {,/usr/pkg,/usr/local,/usr}/sbin(N-/)
+  $sudo_path
 )
 
 # setup base commands
@@ -272,15 +275,11 @@ px() {
 # load other settings
 #=====================
 source-if-exist() {
-  $file_path=$1
-  if [ -f "$file_path" ]; then
-    source $file_path
-  fi
+  [[ -f "$1" ]] && source "$1"
 }
 
 # host-based config
-h=${${HOST%%.*}:l}
-source-if-exist "$XDG_CONFIG_HOME/hosts/$h.zshrc"
+source-if-exist "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc"
 
 # local config
 source-if-exist "$HOME/.zshrc.local"
