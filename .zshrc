@@ -26,20 +26,15 @@ typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
 path+=(
-  $HOME/bin
-  $HOME/.local/bin
-  $HOME/.cargo/bin
-  $HOME/.docker/bin
-  /opt/homebrew/bin
-  /home/linuxbrew/.linuxbrew/bin
+  $HOME{, /.local, /.cargo, /.docker}/bin(N-/)
+  {/opt/homebrew, /home/linuxbrew/.linuxbrew}/bin(N-/)
 )
 manpath+=(
-  $HOME/.local/share/man
-  /opt/local/share/man
-  /usr/local/share/man
-  /usr/share/man
+  {$HOME/.local, /opt/local, /usr/local, /usr}/share/man(N-/)
 )
-sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
+sudo_path+=(
+  {, /usr/pkg, /usr/local, /usr}/sbin(N-/)
+)
 
 # setup base commands
 if builtin command -v brew >/dev/null; then
