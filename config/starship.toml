@@ -59,7 +59,19 @@ ignore_submodules = true
 format = " [$duration]($style) "
 style = "yellow"
 
-## disabled
+[time]
+disabled = false
+format = '[$time]($style) '
+time_format = '%Y-%m-%d %T'
+style = "cyan"
+
+[shlvl]
+disabled = false
+symbol = '> '
+
+#================
+# disabled
+#================
 [python]
 disabled = true
 
@@ -87,18 +99,8 @@ disabled = true
 [aws]
 disabled = true
 
-[shlvl]
-disabled = false
-symbol = '> '
-
 [status]
 disabled = true
-
-[time]
-disabled = false
-format = '[$time]($style) '
-time_format = '%Y-%m-%d %T'
-style = "cyan"
 
 [battery]
 disabled = true
