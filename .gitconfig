@@ -3,6 +3,7 @@
   ci = commit -a -v
   co = checkout
   l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+  lp = log -p
 
 [core]
   excludesfile = ~/.gitignore

@@ -39,6 +39,7 @@ brew "zsh-completions"
 brew "less"
 brew "lazygit"
 brew "fastfetch"
+brew "aichat"
 
 brew "cowsay"
 brew "fortune"
