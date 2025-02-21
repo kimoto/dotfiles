@@ -1,6 +1,5 @@
 # show banner
-if command -v fastfetch &> /dev/null &&
-   command -v fortune &> /dev/null &&
+if command -v fortune &> /dev/null &&
    command -v lolcat &> /dev/null &&
    command -v cowsay &> /dev/null; then
   if [[ $SHLVL -eq 1 ]]; then
