@@ -90,6 +90,7 @@ alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
 alias ag='rg'
 alias grep='grep --color=auto'
+alias navi='navi --print --prevent-interpolation'
 
 # vars
 HISTFILE=~/.zsh_history
@@ -172,6 +173,13 @@ B() {
 c() {
   kubectx
 }
+
+search_snippet_and_replace_lbuffer() {
+  LBUFFER+=$(navi)
+  zle redisplay
+}
+zle -N search_snippet_and_replace_lbuffer
+bindkey '^X^N' search_snippet_and_replace_lbuffer
 
 l() {
   if [[ "$#" == 0 ]]; then
