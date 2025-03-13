@@ -27,8 +27,11 @@ jobs:
             /opt/homebrew/Cellar
           key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
 
-      - name: Install dependencies if cache miss
+      - name: Install homebrew if cache miss
         if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: ./bin/setup_homebrew.sh
+
+      - name: Make world
         run: ./bin/mkworld.sh
 
       - name: Load to test .zshrc
