@@ -57,7 +57,7 @@ brew "starship"
 brew "telnet"
 brew "tmux"
 brew "tmuxinator"
-brew "tor", restart_service: :changed
+#brew "tor", restart_service: :changed
 brew "vim"
 brew "vivid"
 brew "watch"
