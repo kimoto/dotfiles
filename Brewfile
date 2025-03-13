@@ -71,9 +71,6 @@ brew "morantron/tmux-fingers/tmux-fingers"
 cask "font-bitstream-vera-sans-mono-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
+#cask "multipass"
 cask "rectangle"
 cask "stats"
-
-if RUBY_PLATFORM =~ /darwin/
-  brew "multipass"
-end
