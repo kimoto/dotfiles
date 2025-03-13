@@ -8,23 +8,47 @@
 #
 # Author: kimoto
 #===============================================================
+
+#=====================
+# base settings
+#=====================
 unlimit
 limit -s
 umask 022
 bindkey -e
-
-# compinit
 autoload -Uz compinit
 compinit
+OMITTED_DIR="%(3~,%-1~/.../%1~,%~)"
+PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
 
-#zstyle ':completion:*' special-dirs true
-zstyle ':completion:*:default' menu select=1
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
-zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+# paths
+typeset -U path # 重複したパスをPATHに登録しない
+typeset -U manpath
+typeset -xT SUDO_PATH sudo_path
+path=(
+  $HOME{,/.local,/.cargo,/.docker}/bin(N-/)
+  {/opt/homebrew,/home/linuxbrew/.linuxbrew}/bin(N-/)
+  $path
+)
+manpath=(
+  {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
+  $manpath
+)
+sudo_path=(
+  {,/usr/pkg,/usr/local,/usr}/sbin(N-/)
+  $sudo_path
+)
 
-# setopt
+# setup base commands
+if builtin command -v brew >/dev/null; then
+  eval "$(brew shellenv)"
+fi
+
+if builtin command -v sheldon >/dev/null; then
+  eval "$(sheldon source)"
+fi
+
+# setopts
 setopt autocd # cd不要
 setopt autopushd # cdの履歴に残す
 setopt nocorrectall # correctallの無効化
@@ -59,89 +83,76 @@ alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
-alias v='vi'
 alias reload="exec zsh"
 alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
+alias ag='rg'
+alias grep='grep --color=auto'
+alias navi='navi --print --prevent-interpolation'
 
-temp(){
-  cd `mktemp -d $HOME/tmp/\`date +'%Y%m%d'.$1${1:+.}\`XXXXXX`
-}
-
-# var
+# vars
 HISTFILE=~/.zsh_history
 HISTSIZE=9999999
 SAVEHIST=9999999
 MAILCHECK=0
-
-OMITTED_DIR="%(3~,%-1~/.../%1~,%~)"
-PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
-
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 watch=notme # watch and notify, other login user
+zle_highlight+=(paste:none)
 
 # env
-export GOPATH="$HOME/go"
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="$PAGER"
 export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-export VISUAL=nvim
 export EDITOR=nvim
-export GIT_EDITOR=nvim
+export VISUAL="$EDITOR"
+export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-export GREP_OPTIONS="--color=auto"
+export LS_COLORS=$(vivid generate solarized-dark)
+export TERM=xterm-256color
+export GPG_TTY=$(tty)
 
-typeset -U path # 重複したパスをPATHに登録しない
-typeset -U manpath
-typeset -xT SUDO_PATH sudo_path
-path=(
-  $HOME/bin
-  $HOME/usr/local/bin
-  $HOME/local/bin
-  $HOME/.local/bin
-  $HOME/.cargo/bin
-  $HOME/.docker/bin
-  $HOME/utils
-  $HOME/go/bin
-  /usr/local/bin
-  /usr/local/sbin
-  /opt/local/bin
-  /opt/homebrew/bin
-  /usr/bin
-  /usr/sbin
-  /bin
-)
-manpath+=(
-  $HOME/local/share/man
-  /opt/local/share/man
-  /usr/local/share/man
-  /usr/share/man
-)
-sudo_path=({,/usr/pkg,/usr/local,/usr}/sbin(N-/))
-zle_highlight+=(paste:none)
-
-# install homebrew
-if builtin command -v brew >/dev/null; then
-  eval "$(brew shellenv)"
-fi
-
-if builtin command -v sheldon >/dev/null; then
-  eval "$(sheldon source)"
-fi
-
-LS_COLORS=$(vivid generate solarized-dark)
+# zstyles
+zstyle ':completion:*:default' menu select=1
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
+zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
+zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
+zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-export LS_COLORS
 
+# bindkeys
 bindkey "^\\" undo
 
-# chpwd
-function chpwd() {
+# utility functions
+temp(){
+  cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
+}
+
+# yazi
+y() {
+  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+    builtin cd -- "$cwd"
+  fi
+  rm -f -- "$tmp"
+}
+
+# yazi
+lg() {
+  export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
+  lazygit "$@"
+  if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
+    cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
+    rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
+  fi
+}
+
+chpwd() {
   ll
 }
 
@@ -163,6 +174,13 @@ c() {
   kubectx
 }
 
+search_snippet_and_replace_lbuffer() {
+  LBUFFER+=$(navi)
+  zle redisplay
+}
+zle -N search_snippet_and_replace_lbuffer
+bindkey '^X^N' search_snippet_and_replace_lbuffer
+
 l() {
   if [[ "$#" == 0 ]]; then
     ll
@@ -174,6 +192,14 @@ l() {
     fi
   fi
 }
+
+#=====================
+# extras
+#=====================
+
+# replace --help for colorize
+alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
+alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
 
 # ripgrep->fzf->vim [QUERY]
 RELOAD='reload:rg --column --color=always --smart-case {q} || :'
@@ -195,21 +221,22 @@ livegrep () (
 zle -N livegrep
 bindkey '^G' livegrep
 
+# setup fzf
 export FZF_DEFAULT_COMMAND='rg --files --hidden --color=auto --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS=" \
-    --height 20% --layout=reverse \
-    --margin=0 --padding=0 --info=inline \
-    --tiebreak=index --filepath-word \
-    --exit-0 \
-    --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
-    --bind='ctrl-x:jump' \
-    --bind='up:preview-page-up' \
-    --bind='down:preview-page-down' \
-    --bind=\"ctrl-o:execute:$OPENER\" \
-    --bind='ctrl-z:ignore' \
-    --bind='ctrl-]:replace-query' \
-    --bind='?:toggle-preview' \
-    --bind='alt-a:select-all,alt-d:deselect-all' \
+  --height 20% --layout=reverse \
+  --margin=0 --padding=0 --info=inline \
+  --tiebreak=index --filepath-word \
+  --exit-0 \
+  --bind='ctrl-w:backward-kill-word,ctrl-k:kill-line' \
+  --bind='ctrl-x:jump' \
+  --bind='up:preview-page-up' \
+  --bind='down:preview-page-down' \
+  --bind=\"ctrl-o:execute:$OPENER\" \
+  --bind='ctrl-z:ignore' \
+  --bind='ctrl-]:replace-query' \
+  --bind='?:toggle-preview' \
+  --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
@@ -239,39 +266,33 @@ zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 #============
 
-# replace --help for colorize
-alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
-alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
-
-# yazi
-y() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-  yazi "$@" --cwd-file="$tmp"
-  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-    builtin cd -- "$cwd"
-  fi
-  rm -f -- "$tmp"
-}
-
-# lazygit
-lg() {
-  export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
-
-  lazygit "$@"
-
-  if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
-    cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
-    rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
+# test: switch starship main / sub prompt
+starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
+starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
+px() {
+  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  elif [ "$STARSHIP_CONFIG" = "" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  else
+    export STARSHIP_CONFIG="$starship_conf_main"
   fi
 }
 
-# load host-based config
-h=${${HOST%%.*}:l}
-if [ -f "$HOME/.config/hosts/$h.zshrc" ]; then
-  source "$HOME/.config/hosts/$h.zshrc"
+#=====================
+# load other settings
+#=====================
+source-if-exist() {
+  file_path="$1"
+  [[ -f "$file_path" ]] && source "$file_path"
+}
+
+# host-based config
+if [ -f "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc" ]; then
+  source "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc"
 fi
 
-# load local config
+# local config
 if [ -f "$HOME/.zshrc.local" ]; then
   source "$HOME/.zshrc.local"
 fi

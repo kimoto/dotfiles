@@ -29,6 +29,28 @@ vim.keymap.set('n', '<leader>p', ':bp<CR>')
 vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
 vim.keymap.set('n', '<D-l>', ':Telescope frecency<CR>')
 
+vim.keymap.set({"n","x"}, "p", "<Plug>(YankyPutAfter)")
+vim.keymap.set({"n","x"}, "P", "<Plug>(YankyPutBefore)")
+vim.keymap.set({"n","x"}, "gp", "<Plug>(YankyGPutAfter)")
+vim.keymap.set({"n","x"}, "gP", "<Plug>(YankyGPutBefore)")
+vim.keymap.set("n", "<c-p>", "<Plug>(YankyPreviousEntry)")
+vim.keymap.set("n", "<c-n>", "<Plug>(YankyNextEntry)")
+
+require("yanky").setup({
+  ring = {
+    history_length = 100,
+    storage = "shada",
+    sync_with_numbered_registers = true,
+    cancel_event = "update",
+    ignore_registers = { "_" },
+    update_register_on_cycle = false,
+    permanent_wrapper = nil,
+  },
+  system_clipboard = {
+    sync_with_ring = true,
+  },
+})
+
 --vim.api.nvim_set_keymap(
 --  "n",
 --  "<space>ff",
@@ -171,3 +193,7 @@ local dap = require("dap")
 -- end
 --
 -- -- vim.g.auto_ctags = 1 -- tagsの自動更新
+--
+-- Vimを終了してもUndo
+vim.opt.undofile = true
+vim.opt.undodir = os.getenv("HOME") .. "/.cache/nvim/undodir"

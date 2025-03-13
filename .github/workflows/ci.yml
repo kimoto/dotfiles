@@ -18,8 +18,22 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run install script
+
+      - name: Cache Homebrew dependencies
+        id: cache-brew
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/homebrew
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+
+      - name: Install homebrew if cache miss
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: ./bin/setup_homebrew.sh
+
+      - name: Make world
         run: ./bin/mkworld.sh
+
       - name: Load to test .zshrc
         run: |
           export TERM=xterm

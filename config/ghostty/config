@@ -1,5 +1,6 @@
 theme = Builtin Solarized Dark
 command = /bin/zsh -l -c "/opt/homebrew/bin/tmux new -A -s ghostty"
+font-feature = -calt, -liga, -dlig
 macos-option-as-alt = true
 macos-titlebar-style = hidden
 quick-terminal-position = right
@@ -7,3 +8,9 @@ quick-terminal-animation-duration = 0
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
 quit-after-last-window-closed = true
+shell-integration = zsh
+shell-integration-features = no-cursor
+cursor-style = block
+cursor-opacity = 0.5
+cursor-style-blink = true
+cursor-click-to-move = true

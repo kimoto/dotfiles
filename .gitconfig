@@ -1,13 +1,9 @@
 [alias]
-  ga = add
   st = status
   ci = commit -a -v
   co = checkout
-  di = diff
-  lo = log -p
-  gr = grep
-  pu = pull
   l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+  lp = log -p
 
 [core]
   excludesfile = ~/.gitignore
@@ -15,6 +11,9 @@
   editor = nvim
   autoCRLF = false
   syntax-theme = Solarized (dark)
+
+[commit]
+  gpgsign = true
 
 [diff]
   algorithm = histogram
@@ -41,26 +40,14 @@
   prompt = false
   keepBackup = false
 
-[mergetool "diffview"]
-  cmd = nvim -n -c "DiffviewOpen" "$MERGE"
-
 [mergetool "nvimdiff"]
   layout = "LOCAL,BASE,REMOTE / MERGED"
-
-[pager]
-#  log = bat
-#  show = bat
-#  diff = bat
 
 [push]
   default = current
 
 [pull]
   ff = only
-
-[user]
-  name = kimoto
-  email = kimoto@users.noreply.github.com
 
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"
@@ -74,9 +61,17 @@
   line-numbers = true
   navigate = true
   hunk-header-style = omit
-  # true-color = always
   syntax-theme = Solarized (dark)
   hyperlinks = true
 
 [rerere]
   enabled = true
+
+# --------
+# local
+# --------
+[include]
+  path = ~/.gitconfig.default_user
+
+[include]
+  path = ~/.gitconfig.local
