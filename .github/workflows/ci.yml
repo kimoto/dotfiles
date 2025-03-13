@@ -17,6 +17,18 @@ jobs:
   zsh_loading_test:
     runs-on: macos-latest
     steps:
+      - name: Cache Homebrew dependencies
+        id: cache-brew
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/homebrew/Cellar
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+
+      - name: Install dependencies if cache miss
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: ./bin/mkworld.sh
+
       - uses: actions/checkout@v4
       - name: Run install script
         run: ./bin/mkworld.sh
