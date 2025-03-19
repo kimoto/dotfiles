@@ -8,8 +8,8 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 cd "$HOME"
 ln -nsf "$BASE_DIR/bin/" ./bin
 ln -nsf "$BASE_DIR/config" ./.config
+ln -nsf "$BASE_DIR/hammerspoon" ./.hammerspoon
 ln -nsf "$BASE_DIR/.vim" ./.vim
-ln -nsf "$BASE_DIR/.hammerspoon" ./.hammerspoon
 
 ln -sf "$BASE_DIR/.inputrc" ./
 ln -sf "$BASE_DIR/.editrc" ./
