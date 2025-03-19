@@ -72,6 +72,9 @@ symbol = '> '
 #================
 # disabled
 #================
+[ruby]
+disabled = true
+
 [python]
 disabled = true
 
