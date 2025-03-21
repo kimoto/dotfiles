@@ -90,6 +90,7 @@ alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
 alias grep='grep --color=auto'
 alias navi='navi --print --prevent-interpolation'
+alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 
 # vars
 HISTFILE=~/.zsh_history

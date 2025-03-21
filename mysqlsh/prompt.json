@@ -62,10 +62,33 @@
       "bg": 38,
       "fg": 15
     },
+    "local": {
+      "text": " LOCAL ",
+      "bg": "blue",
+      "fg": "white"
+    },
+    "beta": {
+      "text": " BETA ",
+      "bg": "yellow",
+      "fg": "white"
+    },
     "production": {
       "text": " PRODUCTION ",
       "bg": "red",
       "fg": "white"
+    },
+    "flag_read_write": {
+      "text": "READ_WRITE",
+      "bg": "red",
+      "fg": "white"
+    },
+    "flag_read_only": {
+      "text": "READ_ONLY",
+      "bg": "black",
+      "fg": "white"
+    },
+    "real_host": {
+      "text": "%user%@%sysvar:hostname%:%port%"
     }
   },
   "variables": {
@@ -75,6 +98,22 @@
         "value": ";%env:PRODUCTION_SERVERS%;"
       },
       "if_true": "production",
+      "if_false": ""
+    },
+    "is_beta": {
+      "match": {
+        "pattern": "*dev*",
+        "value": "%host%"
+      },
+      "if_true": "beta",
+      "if_false": ""
+    },
+    "is_local": {
+      "match": {
+        "pattern": "*;%host%;*",
+        "value": ";127.0.0.1;"
+      },
+      "if_true": "local",
       "if_false": ""
     },
     "target": {
@@ -92,6 +131,14 @@
       },
       "if_true": "%target%",
       "if_false": "%ssh_host% \u2192 %target%"
+    },
+    "read_only_str": {
+      "match": {
+        "pattern": "OFF",
+        "value": "%sysvar:read_only%"
+      },
+      "if_true": "flag_read_write",
+      "if_false": "flag_read_only"
     }
   },
   "symbols": {
@@ -105,10 +152,10 @@
   },
   "segments": [
     {
-      "classes": ["disconnected%host%", "%is_production%"]
+      "classes": ["%is_production%", "%is_beta%", "%is_local%"]
     },
     {
-      "classes": ["disconnected%host%", "%ssl%host%session%"],
+      "classes": ["real_host", "disconnected%host%", "%ssl%host%session%"],
       "shrink": "truncate_on_dot",
       "bg": 237,
       "fg": 15,
@@ -128,8 +175,7 @@
       "weight": -1
     },
     {
-      "classes": ["%Mode%"],
-      "text": "%Mode%",
+      "classes": ["%read_only_str%"],
       "padding": 1
     },
     {
