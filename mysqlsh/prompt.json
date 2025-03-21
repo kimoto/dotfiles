@@ -64,12 +64,12 @@
     },
     "local": {
       "text": " LOCAL ",
-      "bg": "blue",
+      "bg": "black",
       "fg": "white"
     },
     "beta": {
       "text": " BETA ",
-      "bg": "yellow",
+      "bg": "magenta",
       "fg": "white"
     },
     "production": {
@@ -94,8 +94,8 @@
   "variables": {
     "is_production": {
       "match": {
-        "pattern": "*;%host%;*",
-        "value": ";%env:PRODUCTION_SERVERS%;"
+        "pattern": "*prod*",
+        "value": "%host%"
       },
       "if_true": "production",
       "if_false": ""
