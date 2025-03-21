@@ -88,7 +88,6 @@ alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
-alias ag='rg'
 alias grep='grep --color=auto'
 alias navi='navi --print --prevent-interpolation'
 
