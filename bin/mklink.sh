@@ -9,6 +9,7 @@ cd "$HOME"
 ln -nsf "$BASE_DIR/bin/" ./bin
 ln -nsf "$BASE_DIR/config" ./.config
 ln -nsf "$BASE_DIR/hammerspoon" ./.hammerspoon
+ln -nsf "$BASE_DIR/mysqlsh" ./.mysqlsh
 ln -nsf "$BASE_DIR/.vim" ./.vim
 
 ln -sf "$BASE_DIR/.inputrc" ./

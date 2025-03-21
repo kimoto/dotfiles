@@ -12,6 +12,7 @@ ipch/
 *.tar
 *.tar.gz
 *.gz
+*.log
 .mono/
 doc/tags
 doc/tags-ja
@@ -22,3 +23,8 @@ config/iterm2/
 config/yazi/flavors/
 config/yazi/plugins/
 config/gh/hosts.yml
+
+# mysqlsh
+mysqlsh/*
+!mysqlsh/options.json
+!mysqlsh/prompt.json
