@@ -147,7 +147,7 @@
     "ellipsis": "\u2026"
   },
   "prompt": {
-    "text": "  > ",
+    "text": "mysql> ",
     "cont_text": "%linectx%> "
   },
   "segments": [
