@@ -91,6 +91,7 @@ alias curl='curlie' # for pretty-print
 alias grep='grep --color=auto'
 alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
+alias gist='gh gist create --web'
 
 # vars
 HISTFILE=~/.zsh_history
