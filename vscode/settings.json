@@ -1,10 +1,17 @@
 {
-    "roo-cline.allowedCommands": [
-        "npm test",
-        "npm install",
-        "tsc",
-        "git log",
-        "git diff",
-        "git show"
-    ]
+  "roo-cline.allowedCommands": [
+    "npm test",
+    "npm install",
+    "tsc",
+    "git log",
+    "git diff",
+    "git show"
+  ],
+  "markdown.experimental.copyFiles.destination": {
+    "**/*": "images/"
+  },
+  "editor.experimental.pasteActions.enabled": true,
+  "diffEditor.ignoreTrimWhitespace": true,
+  "diffEditor.renderSideBySide": true,
+  "git.autofetch": true
 }
