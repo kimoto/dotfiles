@@ -58,13 +58,16 @@ symbol = '> '
 
 [git_commit]
 tag_symbol = " tag "
+only_detached = false
+#style = "bright-purple"
 
 [git_status]
-ahead = ">"
-behind = "<"
-diverged = "<>"
-renamed = "r"
-deleted = "x"
+disabled = true
+#ahead = ">"
+#behind = "<"
+#diverged = "<>"
+#renamed = "r"
+#deleted = "x"
 
 [os.symbols]
 AIX = "aix "
