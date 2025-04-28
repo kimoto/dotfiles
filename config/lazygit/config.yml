@@ -6,7 +6,7 @@ git:
   paging:
     colorArg: always
     pager: DELTA_FEATURES=+lazygit delta --paging=never
-  commitPrefix:
+  commitPrefix: # branch名がBTS番号っぽかったら補完する (例: feature/JIRA-12345 →commit message先頭にJIRA-12345 を補完)
     - pattern: "^\\w+\\/(\\w+-\\w+).*"
       replace: "$1 "
   branchLogCmd: "git l {{branchName}} --"
