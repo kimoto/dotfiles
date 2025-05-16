@@ -1,6 +1,4 @@
 tap "b-ramsey/kali"
-tap "homebrew/bundle"
-tap "homebrew/services"
 tap "morantron/tmux-fingers"
 tap "rs/tap"
 brew "aichat"
