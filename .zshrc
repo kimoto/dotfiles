@@ -198,10 +198,6 @@ l() {
 # extras
 #=====================
 
-# replace --help for colorize
-alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
-alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
-
 # ripgrep->fzf->vim [QUERY]
 RELOAD='reload:rg --column --color=always --smart-case {q} || :'
 OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
