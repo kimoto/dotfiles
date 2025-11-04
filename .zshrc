@@ -84,7 +84,7 @@ alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
 alias reload="exec zsh"
-alias cd="z"
+[[ $- == *i* ]] && alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
