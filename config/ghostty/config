@@ -6,7 +6,7 @@ font-thicken-strength = 10
 font-size = 13
 macos-option-as-alt = true
 macos-titlebar-style = hidden
-quick-terminal-position = right
+quick-terminal-position = top
 quick-terminal-animation-duration = 1000
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
@@ -26,3 +26,5 @@ cursor-style = block
 cursor-opacity = 0.5
 cursor-style-blink = true
 cursor-click-to-move = true
+background-opacity = 0.9
+custom-shader = ./shaders/cursor_sweep.glsl
