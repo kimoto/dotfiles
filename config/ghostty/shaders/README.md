@@ -1,0 +1,1 @@
+- copied from github.com/sahaj-b/ghostty-cursor-shaders
