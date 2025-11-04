@@ -10,7 +10,8 @@ git:
     - pattern: "^\\w+\\/(\\w+-\\w+).*"
       replace: "$1 "
   branchLogCmd: "git l {{branchName}} --"
-  allBranchesLogCmd: "git l --all"
+  allBranchesLogCmds:
+    - git l --all
 promptToReturnFromSubprocess: false
 os:
   editPreset: "nvim"
