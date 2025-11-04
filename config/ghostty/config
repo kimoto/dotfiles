@@ -1,12 +1,24 @@
 theme = Builtin Solarized Dark
 command = /bin/zsh -l -c "/opt/homebrew/bin/tmux new -A -s ghostty"
 font-feature = -calt, -liga, -dlig
+font-thicken = true
+font-thicken-strength = 10
+font-size = 13
 macos-option-as-alt = true
 macos-titlebar-style = hidden
 quick-terminal-position = right
-quick-terminal-animation-duration = 0
+quick-terminal-animation-duration = 1000
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
+keybind = super+digit_1=text:\x1b1
+keybind = super+digit_2=text:\x1b2
+keybind = super+digit_3=text:\x1b3
+keybind = super+digit_4=text:\x1b4
+keybind = super+digit_5=text:\x1b5
+keybind = super+digit_6=text:\x1b6
+keybind = super+digit_7=text:\x1b7
+keybind = super+digit_8=text:\x1b8
+keybind = super+digit_9=text:\x1b9
 quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor
