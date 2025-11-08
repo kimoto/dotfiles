@@ -276,6 +276,15 @@ px() {
   fi
 }
 
+# tmux
+update_tmux_window () {
+  [[ -n "$TMUX" ]] || return
+  tmux rename-window "$(basename "$PWD")"
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd update_tmux_window
+add-zsh-hook precmd update_tmux_window
+
 #=====================
 # load other settings
 #=====================
