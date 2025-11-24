@@ -22,3 +22,4 @@ ln -sf "$BASE_DIR/.zshrc" ./
 ln -sf "$BASE_DIR/.zlogin" ./
 ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
+ln -sf "$BASE_DIR/.aerospace.toml" ./
