@@ -26,5 +26,5 @@ cursor-style = block
 cursor-opacity = 0.5
 cursor-style-blink = true
 cursor-click-to-move = true
-background-opacity = 0.9
+background-opacity = 1
 custom-shader = ./shaders/cursor_sweep.glsl

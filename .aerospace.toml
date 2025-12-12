@@ -1,4 +1,5 @@
 # After that, you can edit ~/.aerospace.toml to your liking
+config-version = 2
 
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
@@ -30,7 +31,7 @@ default-root-container-orientation = 'auto'
 # See https://nikitabobko.github.io/AeroSpace/commands#move-mouse
 # Fallback value (if you omit the key): on-focused-monitor-changed = []
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
-on-focus-changed = "move-mouse window-lazy-center"
+# on-focus-changed = "move-mouse window-lazy-center"
 
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
@@ -137,6 +138,17 @@ automatically-unhide-macos-hidden-apps = false
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'
 
+[workspace-to-monitor-force-assignment]
+    1 = 'main'
+    2 = 'main'
+    3 = 'main'
+    4 = 'main'
+    5 = ['secondary', 'main']
+    6 = ['secondary', 'main']
+    7 = ['secondary', 'main']
+    8 = ['secondary', 'main']
+    9 = ['secondary', 'main']
+
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 [mode.service.binding]
@@ -144,6 +156,9 @@ automatically-unhide-macos-hidden-apps = false
     r = ['flatten-workspace-tree', 'mode main'] # reset layout
     f = ['layout floating tiling', 'mode main'] # Toggle between floating and tiling layout
     backspace = ['close-all-windows-but-current', 'mode main']
+
+    alt-shift-t = ['exec-and-forget ~/bin/tile-focused-workspace.sh tiling', 'mode main']
+    alt-shift-f = ['exec-and-forget ~/bin/tile-focused-workspace.sh floating', 'mode main']
 
     # sticky is not yet supported https://github.com/nikitabobko/AeroSpace/issues/2
     #s = ['layout sticky tiling', 'mode main']
@@ -158,7 +173,6 @@ automatically-unhide-macos-hidden-apps = false
     shift-down = ['volume set 0', 'mode main']
 
 [[on-window-detected]]
-  if.workspace = '1'
   check-further-callbacks = true
   run = 'layout floating'
 
