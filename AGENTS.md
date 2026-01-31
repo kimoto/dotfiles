@@ -20,6 +20,7 @@
 ### PR updates
 - Use `gh pr edit --body-file` to avoid newline/markdown issues.
 - Always include an AI disclosure line at the end of the PR body when requested.
+ - Default: add an AI disclosure footer at the end of the PR detail (and commit message if requested).
 
 ### Commit signing
 - If `git commit -S` hangs, run:
