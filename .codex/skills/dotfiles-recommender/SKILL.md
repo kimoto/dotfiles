@@ -50,7 +50,8 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
 
 ### 4) Apply and PR
 
-- 実装依頼を受けたら `dotfiles-pr-flow` を使ってPRまで進める。
+- 変更提案が採用されたら `dotfiles-pr-flow` を**呼び出して**PR作成フローに移譲する。
+- PR手順の詳細はこのスキルで繰り返さず、`dotfiles-pr-flow` に従う。
 - PR本文のSummaryに「Created via dotfiles-recommender skill」を1行追加する（AI disclosureは末尾）。
 - 作業後は作成したworktreeの削除と `git worktree prune` を行う。
 
