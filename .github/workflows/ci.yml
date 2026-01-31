@@ -15,26 +15,34 @@ jobs:
         run: shellcheck bin/*.sh
 
   zsh_loading_test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Homebrew dependencies
+      - name: Restore Homebrew cache
         id: cache-brew
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             /opt/homebrew
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+            /home/linuxbrew/.linuxbrew
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}
 
       - name: Install homebrew if cache miss
         if: steps.cache-brew.outputs.cache-hit != 'true'
         run: ./bin/setup_homebrew.sh
 
       - name: Make world
-        run: ./bin/mkworld.sh
+        run: SKIP_BREW=1 ./bin/mkworld.sh
+
+      - name: Save Homebrew cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          key: ${{ steps.cache-brew.outputs.cache-primary-key }}
 
       - name: Load to test .zshrc
-        run: |
-          export TERM=xterm
-          zsh ~/.zshrc 2>&1
+        run: ./bin/ci_zsh_loading_test.sh
