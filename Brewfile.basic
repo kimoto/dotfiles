@@ -1,14 +1,29 @@
+# NOTE: Keep entries sorted A-Z within this file.
+# Additional Homebrew tap
 tap "rs/tap"
+# GNU File, Shell, and Text utilities
 brew "coreutils"
+# Get a file from an HTTP, HTTPS or FTP server
 brew "curl"
-brew "git"
-brew "vivid"
-brew "starship"
-brew "zoxide"
-brew "mise"
+# Load/unload environment variables based on $PWD
 brew "direnv"
+# Program that can automate interactive applications
 brew "expect"
-brew "ripgrep"
-brew "sheldon"
+# Modern, maintained replacement for ls
 brew "eza"
+# Distributed revision control system
+brew "git"
+# Polyglot runtime manager (asdf rust clone)
+brew "mise"
+# Search tool like grep and The Silver Searcher
+brew "ripgrep"
+# Fast, configurable, shell plugin manager
+brew "sheldon"
+# Cross-shell prompt for astronauts
+brew "starship"
+# Generator for LS_COLORS with support for multiple color themes
+brew "vivid"
+# Shell extension to navigate your filesystem faster
+brew "zoxide"
+# UNIX shell (command interpreter)
 brew "zsh"
