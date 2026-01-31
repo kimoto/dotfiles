@@ -1,7 +1,4 @@
 
-[submodule "config/alacritty-theme"]
-	path = config/alacritty-theme
-	url = https://github.com/alacritty/alacritty-theme.git
 [submodule ".vim/bundle/neobundle.vim"]
 	path = .vim/bundle/neobundle.vim
 	url = https://github.com/Shougo/neobundle.vim
