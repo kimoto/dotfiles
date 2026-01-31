@@ -129,6 +129,8 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無�
 zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
 zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
 zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zcompcache
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 
 # bindkeys
