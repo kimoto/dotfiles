@@ -21,7 +21,7 @@
 - Use `gh pr edit --body-file` to avoid newline/markdown issues.
 - Always include an AI disclosure line at the end of the PR body when requested.
 - Default: add an AI disclosure footer at the end of the PR detail (and commit message if requested).
- - Prefer 1 commit per PR; only use multiple commits when there is a clear reason.
+- Prefer 1 commit per PR; only use multiple commits when there is a clear reason.
 
 ### Commit signing
 - If `git commit -S` hangs, run:
