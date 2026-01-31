@@ -63,6 +63,8 @@ brew "jq"
 brew "k9s"
 # Tool that can switch between kubectl contexts easily and create aliases
 brew "kubectx"
+# Kubernetes CLI
+brew "kubectl"
 # Simple terminal UI for git commands
 brew "lazygit"
 # Pager program similar to more
