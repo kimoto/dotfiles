@@ -9,7 +9,9 @@ cd "$HOME"
 
 mkdir -p ./tmp
 sh "$BASE_DIR/bin/mklink.sh"
-sh "$BASE_DIR/bin/setup_homebrew.sh"
+if [ "${SKIP_BREW:-0}" = "0" ]; then
+    sh "$BASE_DIR/bin/setup_homebrew.sh"
+fi
 
 if [ ! -d ~/.tmux ]; then
     mkdir -p ~/.tmux/plugins
