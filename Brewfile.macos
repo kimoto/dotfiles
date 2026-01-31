@@ -1,15 +1,30 @@
-cask "font-bitstream-vera-sans-mono-nerd-font"
-cask "font-jetbrains-mono-nerd-font"
-cask "ghostty"
-cask "multipass"
-cask "rectangle"
-cask "stats"
-cask "raycast"
-cask "hammerspoon"
-cask "google-japanese-ime"
-cask "cleanshot"
-cask "deepl"
-cask "monitorcontrol"
-cask "gitify"
-brew "telnet"
+# Rainbows and unicorns in your console!
 brew "lolcat"
+# User interface to the TELNET protocol
+brew "telnet"
+# Screen capturing tool
+cask "cleanshot"
+# AI-powered translator
+cask "deepl"
+# Homebrew cask
+cask "font-bitstream-vera-sans-mono-nerd-font"
+# Homebrew cask
+cask "font-jetbrains-mono-nerd-font"
+# Terminal emulator that uses platform-native UI and GPU acceleration
+cask "ghostty"
+# GitHub notifications on your menu bar
+cask "gitify"
+# Japanese input software
+cask "google-japanese-ime"
+# Desktop automation application
+cask "hammerspoon"
+# Tool to control external monitor brightness & volume
+cask "monitorcontrol"
+# Orchestrates virtual Ubuntu instances
+cask "multipass"
+# Control your tools with a few keystrokes
+cask "raycast"
+# Move and resize windows using keyboard shortcuts or snap areas
+cask "rectangle"
+# System monitor for the menu bar
+cask "stats"
