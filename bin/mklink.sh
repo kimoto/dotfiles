@@ -7,6 +7,10 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
 cd "$HOME"
 ln -nsf "$BASE_DIR/bin/" ./bin
+if [ -d "$HOME/.config" ] && [ ! -L "$HOME/.config" ]; then
+    backup_path="$HOME/.config.bak.$(date +%Y%m%d%H%M%S)"
+    mv "$HOME/.config" "$backup_path"
+fi
 ln -nsf "$BASE_DIR/config" ./.config
 ln -nsf "$BASE_DIR/hammerspoon" ./.hammerspoon
 ln -nsf "$BASE_DIR/mysqlsh" ./.mysqlsh

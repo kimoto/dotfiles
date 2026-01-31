@@ -48,6 +48,12 @@ if builtin command -v sheldon >/dev/null; then
   eval "$(sheldon source)"
 fi
 
+# CI strict mode: fail on actual command errors during .zshrc load.
+if [[ -n "$CI" ]]; then
+  setopt err_exit
+  setopt err_return
+fi
+
 # setopts
 setopt autocd # cd不要
 setopt autopushd # cdの履歴に残す
@@ -290,7 +296,11 @@ add-zsh-hook precmd update_tmux_window
 #=====================
 source-if-exist() {
   file_path="$1"
-  [[ -f "$file_path" ]] && source "$file_path"
+  if [[ -f "$file_path" ]]; then
+    source "$file_path"
+    return $?
+  fi
+  return 0
 }
 
 # host-based config

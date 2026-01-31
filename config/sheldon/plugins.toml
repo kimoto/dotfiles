@@ -34,7 +34,7 @@ github = 'zdharma-continuum/fast-syntax-highlighting'
 apply = ['defer']
 
 [plugins.fast-syntax-highlighting.hooks]
-post = "test -e ~/.cache/fsh/current_theme.zsh || fast-theme -q ~/.config/fsh/solarized.ini --secondary=zdharma"
+post = "test -e ~/.cache/fsh/current_theme.zsh || { command -v fast-theme >/dev/null && fast-theme -q ~/.config/fsh/solarized.ini --secondary=zdharma; }"
 
 #================
 # eval cache

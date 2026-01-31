@@ -28,3 +28,4 @@ config/gh/hosts.yml
 mysqlsh/*
 !mysqlsh/options.json
 !mysqlsh/prompt.json
+.zcompdump*
