@@ -1,60 +1,62 @@
 ---
 name: dotfiles-pr-flow
-description: Dotfiles pull request workflow from local changes through shellcheck, commit, push, and gh pr create. Use when preparing a PR for this dotfiles repo and you need the exact sequence and repo-specific rules from AGENTS.md.
+description: DotfilesリポジトリのPR作成フローを、ローカル変更の整理からShellCheck・コミット・push・gh pr createまで、AGENTS.mdのルールに従って実行する必要があるときに使う。dotfiles向けのPR手順や必須ルールを正確に踏む依頼で使用する。
 ---
 
 # Dotfiles PR Flow
 
 ## Overview
 
-Follow the repo-specific PR flow: create a branch if missing, make changes, run required checks, commit with rules, push, and open a PR with the required footer.
+dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更、チェック、コミット、push、PR作成までを順に行う。
 
 ## Workflow
 
 ### 1) Confirm scope and repo rules
 
-- Read `AGENTS.md` from the repo root and apply its PR, ShellCheck, and commit rules.
-- Assume one commit per PR unless there is a clear reason to split.
+- リポジトリ直下の `AGENTS.md` を読み、PR/ShellCheck/コミット規約を適用する。
+- 明確な理由がない限り、1 PR = 1 commit とする。
 
 ### 2) Create a branch if missing
 
-- If no branch exists yet, create one with a meaningful name.
+- ブランチが無ければ作成する。
+- 命名は `fix/yyyymm` / `vk/<slug>` / `chore/<slug>` を使う。迷う場合はユーザーに確認する。
+- 既存の作業ツリーが汚れていて分離が必要なら、別worktreeで作業する。
 
 ### 3) Make changes
 
-- Edit files as requested.
-- Keep changes minimal and focused on the requested task.
+- 依頼されたファイルのみを編集する。
+- 変更は最小限に留め、タスクに集中させる。
 
 ### 4) Run required checks
 
-- If any shell scripts under `bin/` changed, run:
+- `bin/` 配下のシェルを変更した場合は必ず実行する:
   - `shellcheck bin/*.sh`
-- Keep checks minimal unless explicitly asked to run more.
+- 明示依頼がない限り、チェックは最小限にする。
 
 ### 5) Commit (rules apply)
 
-- Use an English commit message.
-- If commit signing hangs, run:
+- コミットメッセージは英語にする。
+- 署名がハングする場合は次を実行する:
   - `export GPG_TTY=$(tty)`
-  - Ensure pinentry is configured (macOS: pinentry-mac + gpg-agent.conf).
-- Example:
+  - pinentry設定を確認（macOS: pinentry-mac + gpg-agent.conf）。
+- 例:
   - `git add <user-specified files>`
   - `git commit -m "<English summary>"`
 
 ### 6) Push
 
-- Push the branch to origin:
-  - `git push -u origin <branch>`
+- `git push -u origin <branch>` を実行する。
 
 ### 7) Create PR
 
-- After committing, confirm with the user before creating a PR.
-- Use `gh pr create` only after user confirmation.
-- Include an AI disclosure footer at the end of the PR body by default.
-  - Default line: `AI disclosure: Drafted with Codex.`
-- Prefer `--body-file` to avoid newline/markdown issues.
+- コミット後、PR作成は必ずユーザー確認を取る。
+- 確認後に `gh pr create` を実行する。
+- PR本文の末尾にAI開示文を入れる（デフォルト）:
+  - `AI disclosure: Drafted with Codex.`
+- 変更がスキル由来の場合はSummaryに1行入れる（例: `Created via dotfiles-recommender skill`）。
+- 改行崩れ回避のため `--body-file` を優先する。
 
-Example PR body (ensure the AI disclosure line is last):
+PR本文例（AI開示は末尾）:
 
 ```
 ## Summary
@@ -66,10 +68,10 @@ Example PR body (ensure the AI disclosure line is last):
 AI disclosure: Drafted with Codex.
 ```
 
-If updating PR text later, use:
+PR本文の更新は次で行う:
 - `gh pr edit --body-file <file>`
 
 ## Notes
 
-- If a user requests an AI disclosure in commit messages, add a final line in the commit message.
-- Keep the flow linear: change -> shellcheck (if needed) -> commit -> push -> PR.
+- コミットメッセージにもAI開示を要求された場合は、末尾に1行追加する。
+- フローは必ず「変更 →（必要ならShellCheck）→ commit → push → PR」の順で進める。
