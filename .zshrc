@@ -162,6 +162,7 @@ lg() {
 }
 
 chpwd() {
+  [[ -o interactive ]] || return
   ll
 }
 
