@@ -14,13 +14,18 @@ run_zsh() {
   local cmd="source \"$ZDOTDIR/.zshrc\"; $*"
   if command -v script >/dev/null 2>&1; then
     # Allocate a pseudo-tty so zle widgets can initialize in CI.
+    # Try Linux util-linux syntax (options before file).
+    if script -q -c "true" /dev/null </dev/null >/dev/null 2>&1; then
+      script -q -c "env CI= $ZSH_BIN -ic \"$cmd\"" /dev/null 2>&1
+      return
+    fi
+    # Try older Linux / macOS syntax.
     if script -q /dev/null -c "true" </dev/null >/dev/null 2>&1; then
       script -q /dev/null -c "env CI= $ZSH_BIN -ic \"$cmd\"" 2>&1
-    else
-      script -q /dev/null env CI= "$ZSH_BIN" -ic "$cmd" 2>&1
+      return
     fi
-    return
   fi
+  # Fallback: no pseudo-tty (zle warnings are harmless).
   env CI= "$ZSH_BIN" -ic "$cmd" 2>&1
 }
 
