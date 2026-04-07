@@ -1,4 +1,4 @@
-theme = Builtin Solarized Dark
+theme = Iterm2 Solarized Dark
 command = /bin/zsh -l -c "/opt/homebrew/bin/tmux new -A -s ghostty"
 font-feature = -calt, -liga, -dlig
 font-thicken = true
