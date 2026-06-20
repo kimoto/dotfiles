@@ -1,30 +1,22 @@
 ## Dotfiles Agent Notes
 
-### CI triage
-- Prefer `gh run view <run_id> --log-failed` to fetch failure logs quickly.
-- Decide up front: "CI-only pass" vs "full CI environment parity".
-- Keep CI checks minimal unless explicitly asked (default: starship + ls only).
-- Avoid interactive-only checks in CI; use non-interactive substitutes when needed.
+### Hooks & CI
+- Lefthook runs various checks on commit; CI mirrors the same checks.
+- Commit messages must follow Conventional Commits: `type(scope): description` — type ∈ {feat, fix, chore, docs, refactor, ci}.
+- For CI failures: `gh run view <run_id> --log-failed`.
 
 ### ~/.config policy
-- When setting up links, always back up a real `~/.config` and replace it with a symlink to this repo's `config/`.
-- Reason: GitHub macOS runners already have a real `~/.config`, which prevents symlink replacement.
+- Always replace a real `~/.config` with a symlink to this repo's `config/` (back it up first).
+- Reason: GitHub macOS runners ship with a real `~/.config`, which blocks symlink creation.
 
 ### Zsh/CI reproducibility
-- When running CI zsh checks, explicitly set `ZDOTDIR` to the repo root to ensure the repo `.zshrc` is used.
-- If CI requires skipping portions of `.zshrc`, prefer a dedicated flag or controlled environment variable over early returns.
-
-### ShellCheck
-- Always run `shellcheck bin/*.sh` (or the repo’s CI equivalent) after shell script edits.
+- Set `ZDOTDIR` to the repo root when running CI zsh checks.
+- To skip parts of `.zshrc` in CI, use a dedicated env flag — not an early return.
 
 ### PR updates
 - Use `gh pr edit --body-file` to avoid newline/markdown issues.
-- Always include an AI disclosure line at the end of the PR body when requested.
-- Default: add an AI disclosure footer at the end of the PR detail (and commit message if requested).
-- Prefer 1 commit per PR; only use multiple commits when there is a clear reason.
-- Default: write commit messages in English.
+- Claude Code auto-appends `🤖 Generated with Claude Code` to PR bodies and `Co-Authored-By: Claude ...` to commits — do not remove these.
+- Prefer 1 commit per PR. Write commit messages in English.
 
 ### Commit signing
-- If `git commit -S` hangs, run:
-  - `export GPG_TTY=$(tty)`
-  - Ensure pinentry is configured (macOS: pinentry-mac + gpg-agent.conf).
+- If `git commit -S` hangs: `export GPG_TTY=$(tty)` and ensure pinentry-mac is configured.
