@@ -1,0 +1,12 @@
+
+# <type>(<scope>): <subject>   <= max 50 chars / imperative / no trailing period
+#
+# Conventional Commits. Allowed types are enforced by lefthook
+# (the commit-msg hook rejects violations and prints the type list).
+#
+# scope (optional, recommended): ghostty | zsh | starship | ci ...
+#
+# body (optional, wrap at 72): explain why, not what
+#
+# --- example ---
+# feat(ghostty): add opacity toggle keybind and tune transparency

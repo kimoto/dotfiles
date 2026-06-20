@@ -1,0 +1,52 @@
+# pre-commit / pre-push run the SAME bin/ scripts that CI runs, so problems
+# surface locally before a push instead of waiting for CI. The check logic
+# lives only in those scripts (single source of truth, no duplication).
+pre-commit:
+  parallel: true
+  commands:
+    shell-lint:
+      glob: "bin/*.sh"
+      run: ./bin/lint_shell.sh
+    zsh-syntax:
+      glob:
+        - ".zshrc"
+        - ".zshenv"
+        - ".zprofile"
+        - "*.zsh"
+      run: ./bin/lint_zsh.sh {staged_files}
+    config-syntax:
+      glob:
+        - "*.toml"
+        - "*.json"
+        - "*.yaml"
+        - "*.yml"
+      run: ./bin/lint_config.sh {staged_files}
+    brewfile-sort:
+      glob: "Brewfile.*"
+      run: ./bin/check_brewfile_sort.sh
+    secret-files:
+      run: ./bin/check_secret_files.sh {staged_files}
+    gitleaks:
+      run: gitleaks git --staged --no-banner --redact
+
+pre-push:
+  commands:
+    gitleaks-full:
+      run: gitleaks git --no-banner --redact
+
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        msg=$(head -1 "{1}")
+        case "$msg" in
+          Merge*|Revert*|"fixup! "*|"squash! "*) exit 0 ;;
+        esac
+        if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci)(\([a-z0-9-]+\))?!?: .+'; then
+          exit 0
+        fi
+        echo "x Not a valid Conventional Commits message:"
+        echo "    $msg"
+        echo "  example: feat(ghostty): add opacity toggle keybind"
+        echo "  type: feat|fix|chore|docs|refactor|ci"
+        exit 1

@@ -1,0 +1,13 @@
+# gitleaks configuration. Auto-loaded by every `gitleaks` invocation
+# (pre-commit / pre-push hooks and CI), so allowlists stay consistent everywhere.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project allowlist"
+# A GPG signingkey in .gitconfig is a public key identifier, not a secret.
+regexTarget = "line"
+regexes = [
+  '''signingkey\s*=''',
+]

@@ -5,14 +5,33 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  shell_check:
+  static_checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run bash lint
-        run: bash -n bin/*.sh
-      - name: Run ShellCheck
-        run: shellcheck bin/*.sh
+        with:
+          fetch-depth: 0
+      - name: Install check tools (zsh, yq, gitleaks)
+        run: |
+          set -e
+          sudo apt-get update -qq
+          sudo apt-get install -y zsh
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          sudo curl -sSfL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      - name: Lint shell scripts
+        run: ./bin/lint_shell.sh
+      - name: Lint zsh syntax
+        run: ./bin/lint_zsh.sh
+      - name: Validate config files
+        run: ./bin/lint_config.sh
+      - name: Check Brewfile sort
+        run: ./bin/check_brewfile_sort.sh
+      - name: Check for sensitive filenames
+        run: ./bin/check_secret_files.sh
+      - name: Scan for secrets (gitleaks)
+        run: gitleaks git --no-banner --redact
 
   zsh_loading_test:
     runs-on: ubuntu-latest
