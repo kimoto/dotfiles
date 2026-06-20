@@ -1,3 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      run: gitleaks git --staged --no-banner --redact
+    secret-files:
+      run: |
+        bad=$(git diff --cached --name-only --diff-filter=ACMR \
+          | grep -iE '(^|/)(id_rsa|id_dsa|id_ecdsa|id_ed25519)$|\.(pem|key|p12|pfx|ppk|keychain|keystore|jks|kdbx)$|(^|/)\.env(\.[^/]+)?$' \
+          | grep -viE '\.env\.(example|sample|template|dist)$' || true)
+        if [ -n "$bad" ]; then
+          echo "x Sensitive files are staged:"
+          echo "$bad" | sed 's/^/    /'
+          echo "  If intentional, add to .gitignore or run: git commit --no-verify"
+          exit 1
+        fi
+
 commit-msg:
   commands:
     conventional:
@@ -9,8 +26,8 @@ commit-msg:
         if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci)(\([a-z0-9-]+\))?!?: .+'; then
           exit 0
         fi
-        echo "✗ Conventional Commits 形式ではありません:"
+        echo "x Not a valid Conventional Commits message:"
         echo "    $msg"
-        echo "  例: feat(ghostty): add opacity toggle keybind"
+        echo "  example: feat(ghostty): add opacity toggle keybind"
         echo "  type: feat|fix|chore|docs|refactor|ci"
         exit 1
