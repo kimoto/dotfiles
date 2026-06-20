@@ -22,7 +22,7 @@ keybind = super+digit_9=text:\x1b9
 keybind = super+shift+o=toggle_background_opacity
 quit-after-last-window-closed = true
 shell-integration = zsh
-shell-integration-features = no-cursor
+shell-integration-features = no-cursor,ssh-env,ssh-terminfo
 cursor-style = block
 cursor-opacity = 0.5
 cursor-style-blink = true
