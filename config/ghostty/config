@@ -19,6 +19,7 @@ keybind = super+digit_6=text:\x1b6
 keybind = super+digit_7=text:\x1b7
 keybind = super+digit_8=text:\x1b8
 keybind = super+digit_9=text:\x1b9
+keybind = super+shift+o=toggle_background_opacity
 quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor
@@ -26,5 +27,6 @@ cursor-style = block
 cursor-opacity = 0.5
 cursor-style-blink = true
 cursor-click-to-move = true
-background-opacity = 1
+background-opacity = 0.6
+background-blur = false
 custom-shader = ./shaders/cursor_sweep.glsl
