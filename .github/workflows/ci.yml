@@ -5,12 +5,28 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  shell_check:
+  static_checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
+      - name: Lint zsh syntax
+        run: ./bin/lint_zsh.sh
+      - name: Validate config files
+        run: ./bin/lint_config.sh
+      - name: Check Brewfile sort
+        run: ./bin/check_brewfile_sort.sh
+      - name: Check for sensitive filenames
+        run: ./bin/check_secret_files.sh
+      - name: Scan for secrets (gitleaks)
+        run: |
+          if ! command -v gitleaks >/dev/null 2>&1; then
+            brew install gitleaks
+          fi
+          gitleaks git --no-banner --redact
 
   zsh_loading_test:
     runs-on: ubuntu-latest

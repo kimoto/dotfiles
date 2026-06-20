@@ -1,22 +1,38 @@
+# pre-commit / pre-push run the SAME bin/ scripts that CI runs, so problems
+# surface locally before a push instead of waiting for CI. The check logic
+# lives only in those scripts (single source of truth, no duplication).
 pre-commit:
   parallel: true
   commands:
     shell-lint:
       glob: "bin/*.sh"
       run: ./bin/lint_shell.sh
+    zsh-syntax:
+      glob:
+        - ".zshrc"
+        - ".zshenv"
+        - ".zprofile"
+        - "*.zsh"
+      run: ./bin/lint_zsh.sh {staged_files}
+    config-syntax:
+      glob:
+        - "*.toml"
+        - "*.json"
+        - "*.yaml"
+        - "*.yml"
+      run: ./bin/lint_config.sh {staged_files}
+    brewfile-sort:
+      glob: "Brewfile.*"
+      run: ./bin/check_brewfile_sort.sh
+    secret-files:
+      run: ./bin/check_secret_files.sh {staged_files}
     gitleaks:
       run: gitleaks git --staged --no-banner --redact
-    secret-files:
-      run: |
-        bad=$(git diff --cached --name-only --diff-filter=ACMR \
-          | grep -iE '(^|/)(id_rsa|id_dsa|id_ecdsa|id_ed25519)$|\.(pem|key|p12|pfx|ppk|keychain|keystore|jks|kdbx)$|(^|/)\.env(\.[^/]+)?$' \
-          | grep -viE '\.env\.(example|sample|template|dist)$' || true)
-        if [ -n "$bad" ]; then
-          echo "x Sensitive files are staged:"
-          echo "$bad" | sed 's/^/    /'
-          echo "  If intentional, add to .gitignore or run: git commit --no-verify"
-          exit 1
-        fi
+
+pre-push:
+  commands:
+    gitleaks-full:
+      run: gitleaks git --no-banner --redact
 
 commit-msg:
   commands:
