@@ -1,12 +1,12 @@
 
-# <type>(<scope>): <subject>   ← 50字以内 / 英語 / 命令形 / 末尾ピリオドなし
+# <type>(<scope>): <subject>   <= max 50 chars / imperative / no trailing period
 #
-# Conventional Commits 形式。許可される type は lefthook が検証します
-# （違反すると commit-msg フックで弾かれ、型一覧が表示されます）。
+# Conventional Commits. Allowed types are enforced by lefthook
+# (the commit-msg hook rejects violations and prints the type list).
 #
-# scope（任意・推奨）: ghostty | zsh | starship | ci ...
+# scope (optional, recommended): ghostty | zsh | starship | ci ...
 #
-# 本文（任意・72字で折り返し）: なぜ変えたか / 背景
+# body (optional, wrap at 72): explain why, not what
 #
-# --- 例 ---
+# --- example ---
 # feat(ghostty): add opacity toggle keybind and tune transparency

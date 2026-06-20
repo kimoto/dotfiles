@@ -39,6 +39,8 @@ brew "gh"
 brew "ghq"
 # Syntax-highlighting pager for git and diff output
 brew "git-delta"
+# Audit git repos for secrets
+brew "gitleaks"
 # Render markdown on the CLI
 brew "glow"
 # GNU implementation of the famous stream editor
@@ -57,6 +59,8 @@ brew "kubectl"
 brew "kubectx"
 # Simple terminal UI for git commands
 brew "lazygit"
+# Fast and powerful Git hooks manager
+brew "lefthook"
 # Pager program similar to more
 brew "less"
 # Linux virtual machines
