@@ -3,8 +3,6 @@
 tap "b-ramsey/kali"
 # Additional Homebrew tap
 tap "morantron/tmux-fingers"
-# All-in-one AI-Powered CLI Chat & Copilot
-brew "aichat"
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
 # Searches a binary image for embedded files and executable code
