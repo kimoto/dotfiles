@@ -8,7 +8,7 @@ jobs:
   static_checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Install check tools (zsh, yq, gitleaks)
@@ -36,11 +36,11 @@ jobs:
   zsh_loading_test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Restore Homebrew cache
         id: cache-brew
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             /opt/homebrew
@@ -55,8 +55,10 @@ jobs:
         run: SKIP_BREW=1 ./bin/mkworld.sh
 
       - name: Save Homebrew cache
-        if: always()
-        uses: actions/cache/save@v4
+        # Only save on a cache miss; saving on a hit re-uses the same key and
+        # fails with "Cache already exists" (harmless warning).
+        if: always() && steps.cache-brew.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
         with:
           path: |
             /opt/homebrew
