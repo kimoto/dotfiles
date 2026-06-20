@@ -9,10 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run bash lint
-        run: bash -n bin/*.sh
-      - name: Run ShellCheck
-        run: shellcheck bin/*.sh
+      - name: Lint shell scripts
+        run: ./bin/lint_shell.sh
 
   zsh_loading_test:
     runs-on: ubuntu-latest

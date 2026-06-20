@@ -1,6 +1,9 @@
 pre-commit:
   parallel: true
   commands:
+    shell-lint:
+      glob: "bin/*.sh"
+      run: ./bin/lint_shell.sh
     gitleaks:
       run: gitleaks git --staged --no-banner --redact
     secret-files:
