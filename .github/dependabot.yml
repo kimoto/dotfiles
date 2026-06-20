@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep the SHA-pinned GitHub Actions fresh: Dependabot bumps each pin to the
+  # newest commit SHA and updates the trailing "# vX" version comment. ratchet
+  # (bin/lint_actions.sh) enforces that everything stays pinned; this keeps the
+  # pins from going stale.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Let a new release age before proposing it, so a freshly-published
+    # (possibly compromised) version is not pulled in immediately.
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
