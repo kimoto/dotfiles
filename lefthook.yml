@@ -1,0 +1,16 @@
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        msg=$(head -1 "{1}")
+        case "$msg" in
+          Merge*|Revert*|"fixup! "*|"squash! "*) exit 0 ;;
+        esac
+        if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci)(\([a-z0-9-]+\))?!?: .+'; then
+          exit 0
+        fi
+        echo "✗ Conventional Commits 形式ではありません:"
+        echo "    $msg"
+        echo "  例: feat(ghostty): add opacity toggle keybind"
+        echo "  type: feat|fix|chore|docs|refactor|ci"
+        exit 1
