@@ -141,17 +141,7 @@ temp(){
   cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
 }
 
-# yazi
-y() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-  yazi "$@" --cwd-file="$tmp"
-  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-    builtin cd -- "$cwd"
-  fi
-  rm -f -- "$tmp"
-}
-
-# yazi
+# lazygit
 lg() {
   export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
   lazygit "$@"

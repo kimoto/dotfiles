@@ -38,14 +38,11 @@ config/*
 !config/mise/
 !config/nvim/
 !config/sheldon/
-!config/yazi/
 !config/zsh-abbr/
 !config/starship.toml
 !config/starship_sub.toml
 # Inner ignores within allowed directories (preserve previous behavior)
 config/gh/hosts.yml
-config/yazi/flavors/
-config/yazi/plugins/
 
 # mysqlsh
 mysqlsh/*

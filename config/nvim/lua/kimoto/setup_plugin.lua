@@ -69,8 +69,6 @@ require('jetpack.paq') {
 
   'sindrets/diffview.nvim', -- for git mergetool
 
-  'mikavilpas/yazi.nvim',
-
   -- debugger
   ---- base
   'mfussenegger/nvim-dap',
