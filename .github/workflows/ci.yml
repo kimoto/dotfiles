@@ -24,6 +24,9 @@ jobs:
       - name: Scan for secrets (gitleaks)
         run: |
           if ! command -v gitleaks >/dev/null 2>&1; then
+            if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            fi
             brew install gitleaks
           fi
           gitleaks git --no-banner --redact
