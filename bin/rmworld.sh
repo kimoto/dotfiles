@@ -1,42 +1,39 @@
-#!/bin/bash
-# 注意: $HOMEディレクトリのファイルが消えます
-# Notice: this script, remove all files in $HOME
+#!/bin/sh
+# 注意: このスクリプトは mklink.sh が $HOME に張ったシンボリックリンクを外します。
+# Notice: removes the symlinks created by mklink.sh from $HOME.
 #
-# 用法:
-# 気が向いたときに$HOMEディレクトリ以下を支障のない範囲で全部消して
-# 気分をリフレッシュさせると同時にファイルにアクスビリティを高めると同時に
-# リビジョン管理しっかりしようねというモチベーションを発生させるためのものです
+# mklink.sh と対になっているので、リンク対象を増減したら両方を更新すること。
+# Keep this list in sync with bin/mklink.sh.
 
-set -x
+set -u
 
 cd "$HOME" || exit 1
 
-# remove all files (not include dotfiles)
-# rm -rf ./*
+# このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。
+# Only remove the entry if it is a symlink (never touch real files).
+unlink_if_symlink() {
+    if [ -L "$1" ]; then
+        rm "$1"
+        echo "removed symlink: $1"
+    fi
+}
 
-# remove synbolic links (dot files)
-rm ./bin
-rm ./.vimrc
-rm ./.inputrc
-rm ./.vimperatorrc 
-rm ./.gitconfig
-rm ./.gitignore
-rm ./.screenrc
-rm ./.zshrc
-rm ./.zlogin
-rm ./.bashrc
-rm ./.irbrc
+# ディレクトリリンク (mklink.sh と同じ並び)
+unlink_if_symlink "./bin"
+unlink_if_symlink "./.config"
+unlink_if_symlink "./.hammerspoon"
+unlink_if_symlink "./.mysqlsh"
+unlink_if_symlink "./.vim"
 
-rm ./.vim
-rm ./.subversion
-
-rm ./.Xdefaults
-rm ./.Xmodmap
-
-rm ./.emacs.d
-rm ./.emacs
-
-# remove temp files
-#rm ./.zcompdump
-#rm ./.viminfo
-#rm ./.zsh_history
+# ファイルリンク (mklink.sh と同じ並び)
+unlink_if_symlink "./.inputrc"
+unlink_if_symlink "./.editrc"
+unlink_if_symlink "./.gitconfig"
+unlink_if_symlink "./.gitconfig.default_user"
+unlink_if_symlink "./.gitignore"
+unlink_if_symlink "./.tmux.conf"
+unlink_if_symlink "./.zshrc"
+unlink_if_symlink "./.zlogin"
+unlink_if_symlink "./.irbrc"
+unlink_if_symlink "./.vimrc"
+unlink_if_symlink "./.aerospace.toml"

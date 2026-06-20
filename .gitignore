@@ -18,8 +18,14 @@ doc/tags
 doc/tags-ja
 # config/: whitelist model. Ignore everything by default so tool-generated
 # directories (which may contain secrets) are never committed by accident;
-# then explicitly allow only the configs we actually track. To start tracking
-# a new one, add a "!config/<name>/" line below.
+# then explicitly allow only the configs we actually track.
+#
+# Policy / how to track a new config:
+#   - Directory: add  !config/<name>/   (keep the trailing slash)
+#   - Single file: add !config/<file>   (no trailing slash, e.g. starship.toml)
+#   - Keep the allow-list below in alphabetical order.
+#   - To re-ignore a path inside an allowed dir, add it under
+#     "Inner ignores within allowed directories" below (e.g. config/gh/hosts.yml).
 config/*
 !config/bat/
 !config/fastfetch/
