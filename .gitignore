@@ -47,4 +47,8 @@ mysqlsh/*
 !mysqlsh/prompt.json
 .zcompdump*
 
+# local-only (machine-specific / editor state)
+.vim/undodir/
+.zshrc.local
+
 **/.claude/settings.local.json
