@@ -21,6 +21,11 @@ pre-commit:
         - "*.yaml"
         - "*.yml"
       run: ./bin/lint_config.sh {staged_files}
+    action-pinning:
+      glob:
+        - ".github/workflows/*.yml"
+        - ".github/workflows/*.yaml"
+      run: ./bin/lint_actions.sh
     brewfile-sort:
       glob: "Brewfile.*"
       run: ./bin/check_brewfile_sort.sh

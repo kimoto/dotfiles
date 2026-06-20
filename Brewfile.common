@@ -83,6 +83,8 @@ brew "nmap"
 brew "openvpn"
 # Generic machine emulator and virtualizer
 brew "qemu"
+# Pin/lint GitHub Actions workflows to immutable commit SHAs
+brew "ratchet"
 # Persistent key-value database, with built-in net interface
 brew "redis"
 # Wrapper around ripgrep that adds multiple rich file types
