@@ -16,16 +16,35 @@ ipch/
 .mono/
 doc/tags
 doc/tags-ja
-config/coc
-config/raycast/
-config/btop/
-config/iterm2/
+# config/: whitelist model. Ignore everything by default so tool-generated
+# directories (which may contain secrets) are never committed by accident;
+# then explicitly allow only the configs we actually track. To start tracking
+# a new one, add a "!config/<name>/" line below.
+config/*
+!config/bat/
+!config/fastfetch/
+!config/fsh/
+!config/gh/
+!config/ghostty/
+!config/glow/
+!config/k9s/
+!config/lazygit/
+!config/mise/
+!config/nvim/
+!config/sheldon/
+!config/yazi/
+!config/zsh-abbr/
+!config/starship.toml
+!config/starship_sub.toml
+# Inner ignores within allowed directories (preserve previous behavior)
+config/gh/hosts.yml
 config/yazi/flavors/
 config/yazi/plugins/
-config/gh/hosts.yml
 
 # mysqlsh
 mysqlsh/*
 !mysqlsh/options.json
 !mysqlsh/prompt.json
 .zcompdump*
+
+**/.claude/settings.local.json
