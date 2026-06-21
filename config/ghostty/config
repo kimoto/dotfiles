@@ -18,6 +18,14 @@ keybind = super+digit_7=text:\x1b7
 keybind = super+digit_8=text:\x1b8
 keybind = super+digit_9=text:\x1b9
 keybind = super+shift+o=toggle_background_opacity
+
+# Alt+数字はAeroSpaceのワークスペース切り替えに使うため素通しさせる
+keybind = alt+digit_0=unbind
+keybind = alt+digit_1=unbind
+keybind = alt+digit_2=unbind
+keybind = alt+digit_3=unbind
+keybind = alt+digit_4=unbind
+keybind = alt+digit_5=unbind
 quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor,ssh-env,ssh-terminfo
