@@ -14,5 +14,5 @@
 # -------------------------------------------------------------------------
 #
 cd $HOME
-git clone --recursive git@github.com:kimoto/dotfiles.git
+git clone --recursive https://github.com/kimoto/dotfiles.git
 ./dotfiles/bin/mkworld.sh
