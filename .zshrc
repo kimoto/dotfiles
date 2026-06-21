@@ -110,7 +110,7 @@ zle_highlight+=(paste:none)
 
 # env
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
-export BAT_PAGER="$PAGER"
+export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
 export LESS='-M -i -M -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export EDITOR=nvim
