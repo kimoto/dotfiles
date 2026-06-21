@@ -71,3 +71,14 @@ jobs:
 
       - name: Load to test .zshrc
         run: ./bin/ci_zsh_loading_test.sh
+
+      - name: Install tmux (Homebrew, to exercise the 3.6+ path)
+        run: |
+          set -e
+          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            brew install tmux
+          fi
+
+      - name: Load to test .tmux.conf
+        run: ./bin/ci_tmux_loading_test.sh
