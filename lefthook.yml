@@ -18,6 +18,7 @@ pre-commit:
       glob:
         - "*.toml"
         - "*.json"
+        - "*.jsonc"
         - "*.yaml"
         - "*.yml"
       run: ./bin/lint_config.sh {staged_files}
