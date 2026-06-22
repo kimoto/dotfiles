@@ -7,6 +7,8 @@ tap "morantron/tmux-fingers"
 brew "bat"
 # Searches a binary image for embedded files and executable code
 brew "binwalk"
+# Toolchain of the web; parses/validates JSON with comments (JSONC)
+brew "biome"
 # Apjanke's fork of the classic cowsay project
 brew "cowsay"
 # Reimplementation of ctags(1)

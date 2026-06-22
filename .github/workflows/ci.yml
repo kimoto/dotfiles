@@ -4,6 +4,10 @@ on:
   push: {}
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static_checks:
     runs-on: ubuntu-latest
@@ -11,7 +15,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-      - name: Install check tools (zsh, yq, gitleaks, ratchet)
+      - name: Install check tools (zsh, yq, gitleaks, ratchet, biome)
         run: |
           set -e
           sudo apt-get update -qq
@@ -22,6 +26,8 @@ jobs:
             | sudo tar -xz -C /usr/local/bin ratchet
           sudo curl -sSfL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
+          sudo curl -sSfL -o /usr/local/bin/biome https://github.com/biomejs/biome/releases/download/@biomejs/biome@2.5.0/biome-linux-x64
+          sudo chmod +x /usr/local/bin/biome
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
       - name: Lint zsh syntax
