@@ -4,6 +4,19 @@
 pre-commit:
   parallel: true
   commands:
+    # Block direct commits to main: work happens on feature branches + PRs.
+    # GitHub branch protection is the server-side enforcement; this is the
+    # fast local feedback. Bypass intentionally with: git commit --no-verify
+    protect-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$branch" = "main" ]; then
+          echo "x Direct commits to 'main' are blocked."
+          echo "  Create a feature branch and open a PR:"
+          echo "    git switch -c <type>/<short-desc>"
+          echo "  Intentional bypass: git commit --no-verify"
+          exit 1
+        fi
     shell-lint:
       glob: "bin/*.sh"
       run: ./bin/lint_shell.sh
@@ -36,6 +49,20 @@ pre-commit:
 
 pre-push:
   commands:
+    # Refuse to push anything to refs/heads/main. lefthook feeds the git
+    # pre-push stdin (each line: <local-ref> <local-sha> <remote-ref> <remote-sha>)
+    # to the command, so we can inspect exactly what is being pushed.
+    protect-main:
+      run: |
+        while read -r _ _ remote_ref _; do
+          case "$remote_ref" in
+            refs/heads/main)
+              echo "x Direct push to 'main' is blocked. Open a PR instead."
+              echo "  Intentional bypass: git push --no-verify"
+              exit 1
+              ;;
+          esac
+        done
     gitleaks-full:
       run: gitleaks git --no-banner --redact
 
