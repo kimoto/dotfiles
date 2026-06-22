@@ -2,10 +2,9 @@
 # Claude Code on the web — SessionStart hook.
 #
 # Installs this dotfiles repo's dev/CI tooling into the ephemeral web sandbox so
-# the lefthook checks and bin/ lint + loading-test scripts behave the same as in
-# GitHub Actions. Without this, every fresh web session is missing zsh, yq,
-# gitleaks, ratchet, shellcheck, lefthook and tmux, so commits get blocked and
-# the lint scripts fail.
+# the lefthook checks and bin/ lint scripts behave the same as in GitHub Actions.
+# Without this, every fresh web session is missing zsh, yq, gitleaks, ratchet,
+# shellcheck and lefthook, so commits get blocked and the lint scripts fail.
 #
 # Local (non-remote) sessions are skipped — on a real machine `brew bundle` /
 # bin/mkworld.sh already set everything up.
@@ -27,11 +26,11 @@ SUDO=""
 
 log() { echo "[session-start] $*"; }
 
-# 1. apt packages: zsh (syntax check), tmux (loading test), shellcheck, fzf.
+# 1. apt packages: zsh (syntax check), shellcheck, fzf.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   $SUDO apt-get update -qq || true
-  $SUDO apt-get install -y -qq zsh tmux shellcheck fzf >/dev/null
+  $SUDO apt-get install -y -qq zsh shellcheck fzf >/dev/null
 fi
 
 # 2. mikefarah yq — config-syntax check relies on `yq -p toml|json|yaml`.
@@ -64,10 +63,4 @@ if cd "${CLAUDE_PROJECT_DIR:-$PWD}"; then
   lefthook install >/dev/null 2>&1 || true
 fi
 
-# 6. tpm — so bin/ci_tmux_loading_test.sh can load .tmux.conf as on a real machine.
-if [ ! -e "$HOME/.tmux/plugins/tpm/tpm" ]; then
-  mkdir -p "$HOME/.tmux/plugins"
-  git clone -q --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm" || true
-fi
-
-log "tooling ready: zsh tmux shellcheck fzf yq gitleaks ratchet lefthook tpm"
+log "tooling ready: zsh shellcheck fzf yq gitleaks ratchet lefthook"
