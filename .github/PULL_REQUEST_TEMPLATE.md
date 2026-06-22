@@ -25,9 +25,8 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Verification
 
-<!-- How was this checked? -->
+<!-- How was this checked? (CI passing is enforced by branch protection.) -->
 - [ ] `lefthook run pre-commit` passes locally (lint, config, secrets)
-- [ ] CI is green
 - [ ] Manually verified the affected dotfile(s) load
 
 ## Checklist
