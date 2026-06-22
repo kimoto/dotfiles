@@ -13,11 +13,11 @@ set -euo pipefail
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1
 
-if ! command -v ec >/dev/null 2>&1; then
-    echo "x editorconfig-checker (ec) not found; install it (brew install editorconfig-checker)" >&2
+if ! command -v editorconfig-checker >/dev/null 2>&1; then
+    echo "x editorconfig-checker not found; install it (brew install editorconfig-checker)" >&2
     exit 1
 fi
 
-# With explicit files, ec still reads .editorconfig + .editorconfig-checker.json
+# With explicit files, editorconfig-checker still reads .editorconfig + .editorconfig-checker.json
 # from the repo root, so per-file rules and disabled checks are respected.
-ec "$@"
+editorconfig-checker "$@"
