@@ -13,16 +13,6 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 <!-- Bullet list of the concrete changes. -->
 -
 
-## Type
-
-<!-- Check all that apply. Must match the commit type. -->
-- [ ] feat — new functionality
-- [ ] fix — bug fix
-- [ ] chore — tooling / maintenance
-- [ ] docs — documentation only
-- [ ] refactor — no behavior change
-- [ ] ci — CI / workflow
-
 ## Verification
 
 <!-- How was this checked? -->
