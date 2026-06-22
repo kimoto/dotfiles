@@ -24,5 +24,9 @@
 - Claude Code auto-appends `🤖 Generated with Claude Code` to PR bodies and `Co-Authored-By: Claude ...` to commits — do not remove these.
 - Prefer 1 commit per PR. Write commit messages in English.
 
+### Language
+- Public artifacts (commit messages, PR title/body, code comments, docs) are written in English — English is the de facto standard for published work.
+- Chat/sessions with Claude are in Japanese.
+
 ### Commit signing
 - If `git commit -S` hangs: `export GPG_TTY=$(tty)` and ensure pinentry-mac is configured.

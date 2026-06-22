@@ -6,7 +6,7 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Summary
 
-<!-- What does this PR change and why? 1-3 sentences. -->
+<!-- State this PR's intent (what & why) concisely. 1-3 sentences. -->
 
 ## Changes
 
@@ -15,9 +15,8 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Verification
 
-<!-- How was this checked? (CI passing is enforced by branch protection.) -->
-- [ ] `lefthook run pre-commit` passes locally (lint, config, secrets)
-- [ ] Manually verified the affected dotfile(s) load
+<!-- PR-specific checks, if any (steps/results). Otherwise "none". CI is enforced by branch protection. -->
+-
 
 ## Checklist
 
