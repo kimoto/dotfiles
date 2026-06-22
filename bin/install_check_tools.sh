@@ -10,6 +10,8 @@ GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
 RATCHET_VERSION="${RATCHET_VERSION:-0.11.4}"
 YQ_VERSION="${YQ_VERSION:-4.53.2}"
 BIOME_VERSION="${BIOME_VERSION:-2.5.0}"
+EC_VERSION="${EC_VERSION:-3.4.0}"
+CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.37.3}"
 
 # Run a command as root, using sudo only when we are not already root.
 as_root() {
@@ -51,4 +53,21 @@ if ! command -v biome >/dev/null 2>&1; then
   as_root curl -sSfL -o /usr/local/bin/biome \
     "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-x64"
   as_root chmod +x /usr/local/bin/biome
+fi
+
+# editorconfig-checker (editorconfig: max line length, trailing ws, final newline).
+if ! command -v ec >/dev/null 2>&1; then
+  curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-amd64.tar.gz" \
+    | as_root tar -xz -C /usr/local/bin --strip-components=1 bin/ec-linux-amd64
+  as_root mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/ec
+fi
+
+# check-jsonschema (schema-validate: validates files declaring a "$schema").
+if ! command -v check-jsonschema >/dev/null 2>&1; then
+  if command -v pipx >/dev/null 2>&1; then
+    pipx install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+  else
+    pip install --break-system-packages "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" \
+      || pip install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+  fi
 fi

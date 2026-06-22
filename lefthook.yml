@@ -35,6 +35,16 @@ pre-commit:
         - "*.yaml"
         - "*.yml"
       run: ./bin/lint_config.sh {staged_files}
+    schema-validate:
+      glob:
+        - "*.toml"
+        - "*.json"
+        - "*.jsonc"
+        - "*.yaml"
+        - "*.yml"
+      run: ./bin/lint_schema.sh {staged_files}
+    editorconfig:
+      run: ./bin/lint_editorconfig.sh {staged_files}
     action-pinning:
       glob:
         - ".github/workflows/*.yml"
