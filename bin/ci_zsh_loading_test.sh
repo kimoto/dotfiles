@@ -87,3 +87,60 @@ echo "== ls -l bin/mkworld.sh =="
 ls_out="$(run_zsh 'ls -l bin/mkworld.sh')"
 printf '%s\n' "$ls_out"
 require_grep "ls -l output missing bin/mkworld.sh" "$ls_out" "mkworld.sh"
+
+# Extended assertions: confirm the rest of .zshrc's aliases, env vars, options,
+# functions and keybindings actually take effect after an interactive load.
+#
+# The probe is written to a temp file and sourced, rather than passed inline to
+# run_zsh. run_zsh runs the command through nested shells (script -c "... zsh
+# -ic \"$cmd\""), so any `$VAR` written inline would be expanded by the
+# intermediate shell (where it is empty) before the inner zsh ever sees it.
+# Sourcing a file keeps every `$` expansion inside the inner zsh, after .zshrc
+# has loaded. It still loads .zshrc only once.
+echo "== extended .zshrc assertions =="
+probe="$(mktemp)"
+cat >"$probe" <<'PROBE'
+alias ll
+alias vi
+alias cat
+alias reload
+print "EDITOR=$EDITOR"
+print "VISUAL=$VISUAL"
+print "PAGER=$PAGER"
+for o in autocd autopushd share_history interactivecomments noclobber; do
+  [[ -o $o ]] && print "OPT_ON:$o"
+done
+for fn in temp lg g l px livegrep source-if-exist; do
+  whence -w "$fn"
+done
+bindkey "^G"
+bindkey "^X^N"
+PROBE
+env_out="$(run_zsh "source '$probe'")"
+rm -f "$probe"
+printf '%s\n' "$env_out"
+
+# aliases
+require_grep "ll alias missing --long flags"   "$env_out" "ll=.*--long"
+require_grep "vi is not aliased to nvim"        "$env_out" "vi=.*nvim"
+require_grep "cat is not aliased to bat"        "$env_out" "cat=.*bat"
+require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
+
+# environment variables
+require_grep "EDITOR is not nvim"   "$env_out" "EDITOR=nvim"
+require_grep "VISUAL is not nvim"   "$env_out" "VISUAL=nvim"
+require_grep "PAGER does not use less" "$env_out" "PAGER=less"
+
+# shell options (setopt)
+for opt in autocd autopushd share_history interactivecomments noclobber; do
+  require_grep "setopt not enabled: $opt" "$env_out" "OPT_ON:$opt"
+done
+
+# utility functions defined in .zshrc
+for fn in temp lg g l px livegrep source-if-exist; do
+  require_grep "function not defined: $fn" "$env_out" "$fn: function"
+done
+
+# zle widgets / keybindings
+require_grep "livegrep not bound to ^G" "$env_out" "livegrep"
+require_grep "navi snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
