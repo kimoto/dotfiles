@@ -13,6 +13,11 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 <!-- Bullet list of the concrete changes. -->
 -
 
+## Verification
+
+<!-- このPR固有の確認があれば書く（手順・結果など）。なければ "none"。CI は branch protection で担保。 -->
+-
+
 ## Checklist
 
 - [ ] Branched off `main` — no direct commits to `main`
