@@ -9,6 +9,7 @@ set -euo pipefail
 GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
 RATCHET_VERSION="${RATCHET_VERSION:-0.11.4}"
 YQ_VERSION="${YQ_VERSION:-4.53.2}"
+BIOME_VERSION="${BIOME_VERSION:-2.5.0}"
 
 # Run a command as root, using sudo only when we are not already root.
 as_root() {
@@ -43,4 +44,11 @@ fi
 if ! command -v ratchet >/dev/null 2>&1; then
   curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_amd64.tar.gz" \
     | as_root tar -xz -C /usr/local/bin ratchet
+fi
+
+# biome (config-syntax: validates .jsonc, e.g. config/fastfetch/config.jsonc).
+if ! command -v biome >/dev/null 2>&1; then
+  as_root curl -sSfL -o /usr/local/bin/biome \
+    "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-x64"
+  as_root chmod +x /usr/local/bin/biome
 fi
