@@ -13,11 +13,6 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 <!-- Bullet list of the concrete changes. -->
 -
 
-## Verification
-
-<!-- How was this checked? (CI passing is enforced by branch protection.) -->
-- [ ] `lefthook run pre-commit` passes locally (lint, config, secrets)
-
 ## Checklist
 
 - [ ] Branched off `main` — no direct commits to `main`
