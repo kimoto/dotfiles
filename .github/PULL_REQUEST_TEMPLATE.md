@@ -1,0 +1,41 @@
+<!--
+Keep this PR small and focused. Prefer 1 commit per PR.
+Commit subjects must follow Conventional Commits (enforced by lefthook):
+  type(scope): description   type ∈ {feat, fix, chore, docs, refactor, ci}
+-->
+
+## Summary
+
+<!-- What does this PR change and why? 1-3 sentences. -->
+
+## Changes
+
+<!-- Bullet list of the concrete changes. -->
+-
+
+## Type
+
+<!-- Check all that apply. Must match the commit type. -->
+- [ ] feat — new functionality
+- [ ] fix — bug fix
+- [ ] chore — tooling / maintenance
+- [ ] docs — documentation only
+- [ ] refactor — no behavior change
+- [ ] ci — CI / workflow
+
+## Verification
+
+<!-- How was this checked? -->
+- [ ] `lefthook run pre-commit` passes locally (lint, config, secrets)
+- [ ] CI is green
+- [ ] Manually verified the affected dotfile(s) load
+
+## Checklist
+
+- [ ] Branched off `main` — no direct commits to `main`
+- [ ] Commit subjects follow Conventional Commits
+- [ ] No secrets / sensitive files committed (gitleaks clean)
+
+## Related
+
+<!-- Closes #123, refs #456, or "none". -->
