@@ -15,13 +15,13 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Type
 
-<!-- Check all that apply. Must match the commit type. -->
-- [ ] feat — new functionality
-- [ ] fix — bug fix
-- [ ] chore — tooling / maintenance
-- [ ] docs — documentation only
-- [ ] refactor — no behavior change
-- [ ] ci — CI / workflow
+<!-- Pick exactly one (radio group); it must match the commit type. -->
+- [ ] feat — new functionality <!-- TaskRadio type -->
+- [ ] fix — bug fix <!-- TaskRadio type -->
+- [ ] chore — tooling / maintenance <!-- TaskRadio type -->
+- [ ] docs — documentation only <!-- TaskRadio type -->
+- [ ] refactor — no behavior change <!-- TaskRadio type -->
+- [ ] ci — CI / workflow <!-- TaskRadio type -->
 
 ## Verification
 
