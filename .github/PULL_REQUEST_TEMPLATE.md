@@ -6,7 +6,7 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Summary
 
-<!-- このPRの意図（何を・なぜ）を簡潔な言葉で。1-3文。 -->
+<!-- State this PR's intent (what & why) concisely. 1-3 sentences. -->
 
 ## Changes
 
@@ -15,7 +15,7 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Verification
 
-<!-- このPR固有の確認があれば書く（手順・結果など）。なければ "none"。CI は branch protection で担保。 -->
+<!-- PR-specific checks, if any (steps/results). Otherwise "none". CI is enforced by branch protection. -->
 -
 
 ## Checklist
