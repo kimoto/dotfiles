@@ -6,7 +6,7 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 
 ## Summary
 
-<!-- What does this PR change and why? 1-3 sentences. -->
+<!-- このPRの意図（何を・なぜ）を簡潔な言葉で。1-3文。 -->
 
 ## Changes
 
