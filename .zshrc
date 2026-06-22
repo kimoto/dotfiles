@@ -301,3 +301,15 @@ source-if-exist "$XDG_CONFIG_HOME/hosts/${${HOST%%.*}:l}.zshrc"
 
 # local config
 source-if-exist "$HOME/.zshrc.local"
+
+#=====================
+# dotfiles sync reminder
+#=====================
+# Remind at startup when the dotfiles repo needs syncing between machines
+# (uncommitted / unpushed / behind upstream) so updates aren't forgotten when
+# hopping between home and office. Skipped in CI via DOTFILES_NO_SYNC_CHECK.
+if [[ -z "${DOTFILES_NO_SYNC_CHECK:-}" ]]; then
+  _dotfiles_dir="${${(%):-%x}:A:h}"
+  [[ -x "$_dotfiles_dir/bin/dotfiles_sync_check.sh" ]] && "$_dotfiles_dir/bin/dotfiles_sync_check.sh"
+  unset _dotfiles_dir
+fi

@@ -4,6 +4,9 @@ set -euo pipefail
 
 export TERM="xterm-256color"
 export COLORTERM="truecolor"
+# Don't run the dotfiles sync reminder during the load test: it would touch the
+# network (background fetch) and print reminder noise unrelated to this check.
+export DOTFILES_NO_SYNC_CHECK=1
 
 die() {
   echo "CI error: $*" >&2
