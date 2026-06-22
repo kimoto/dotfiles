@@ -1,0 +1,11 @@
+{
+  "$comment": "Config for editorconfig-checker (https://github.com/editorconfig-checker/editorconfig-checker). Indentation enforcement is disabled to avoid a repo-wide reindent of existing files; .editorconfig still advertises indent rules to editors. The checker enforces max_line_length, trailing whitespace and final newline.",
+  "Exclude": [
+    "\\.vim/bundle/neobundle\\.vim/",
+    "\\.public_key\\.asc$"
+  ],
+  "Disable": {
+    "Indentation": true,
+    "IndentSize": true
+  }
+}

@@ -5,7 +5,7 @@ umask 022
 ulimit -c 0
 
 if [[ "$PS1" ]]; then
-  # terminal 
+  # terminal
   workdir="\[\e[34m\]\w\[\e[m\]"
   PS0="\u $workdir\\$ "
   PS1="\u@\H $workdir\\$ "
@@ -15,7 +15,7 @@ if [[ "$PS1" ]]; then
   shopt -s cmdhist
   shopt -s histappend
   shopt -s no_empty_cmd_completion
-  # shopt -s implicitcd 
+  # shopt -s implicitcd
 
   # alias
   alias ..='cd ..'
@@ -24,7 +24,7 @@ if [[ "$PS1" ]]; then
   alias vi='vim'
   alias s='screen -xRR'
   alias h='history 25'
-  alias total='sort | uniq -c | sort -nr' 
+  alias total='sort | uniq -c | sort -nr'
   alias ipaddr="egrep -o '[0-9]+(\.[0-9]+){3}'"
   alias irb='pry'
 
@@ -33,7 +33,7 @@ if [[ "$PS1" ]]; then
   #set -u
 
   complete -d cd
-  complete -u su finger 
+  complete -u su finger
   complete -c man
 
   # shell var
@@ -57,7 +57,7 @@ if [[ "$PS1" ]]; then
   export PATH=$HOME/bin:$HOME/local/bin:$PATH
   export GREP_OPTIONS="--binary-files=without-match --color=auto"
 
-  # history grep 
+  # history grep
   function hgrep {
     history | egrep -i "$*" | tail;
   }
