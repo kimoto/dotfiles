@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r \".tool_input.command\"); case \"$cmd\" in *\"git push\"*) printf \"%s\" \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PostToolUse\\\",\\\"additionalContext\\\":\\\"A git push just ran. If the pushed branch has an open pull request, update that PR description (via the GitHub PR update tool) to reflect what was just pushed: a short summary of the changes and current status.\\\"}}\";; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
