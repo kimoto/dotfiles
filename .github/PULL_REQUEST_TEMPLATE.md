@@ -13,21 +13,10 @@ Commit subjects must follow Conventional Commits (enforced by lefthook):
 <!-- Bullet list of the concrete changes. -->
 -
 
-## Type
-
-<!-- Check all that apply. Must match the commit type. -->
-- [ ] feat — new functionality
-- [ ] fix — bug fix
-- [ ] chore — tooling / maintenance
-- [ ] docs — documentation only
-- [ ] refactor — no behavior change
-- [ ] ci — CI / workflow
-
 ## Verification
 
-<!-- How was this checked? -->
+<!-- How was this checked? (CI passing is enforced by branch protection.) -->
 - [ ] `lefthook run pre-commit` passes locally (lint, config, secrets)
-- [ ] CI is green
 - [ ] Manually verified the affected dotfile(s) load
 
 ## Checklist

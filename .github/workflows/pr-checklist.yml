@@ -1,0 +1,31 @@
+---
+name: pr-checklist
+# Block merging until every checklist item in the PR description is ticked.
+# Runs on `edited` too, so ticking a box in the PR body re-evaluates the check.
+# The result attaches to the PR head SHA; make this job a *required* status
+# check in the branch protection / ruleset for `main` to actually gate merges
+# (that part is a repo admin setting, it cannot live in this file).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-checklist-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  require-checklist:
+    runs-on: ubuntu-latest
+    steps:
+      # requireChecklist: also fail if the body has no checklist at all, so a
+      # PR that drops the template can't slip through. Mutually-exclusive
+      # choices (e.g. the Type section) use `<!-- TaskRadio name -->` so only
+      # one box per group is required; strike through N/A items to skip them.
+      - name: Require PR checklist complete
+        uses: mheap/require-checklist-action@9c8100a52aa9726d4648e61aa92415f6c843c990 # v2.6.1
+        with:
+          requireChecklist: true

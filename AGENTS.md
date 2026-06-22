@@ -16,7 +16,7 @@
 ### Branch & PR workflow
 - Never commit or push directly to `main`. Always branch: `git switch -c <type>/<short-desc>` (type ∈ feat|fix|chore|docs|refactor|ci).
 - lefthook blocks direct commits/pushes to `main` (`protect-main` in pre-commit & pre-push); GitHub branch protection enforces it server-side too.
-- Every change lands via a PR using `.github/PULL_REQUEST_TEMPLATE.md` — fill in Summary, Changes, Type (matching the commit type), Verification, and the checklist.
+- Every change lands via a PR using `.github/PULL_REQUEST_TEMPLATE.md` — fill in Summary, Changes, Verification, and the checklist. The change type lives in the commit subject (Conventional Commits), not a template field.
 - Keep PRs small: prefer 1 commit per PR; commit subject must satisfy the Conventional Commits check.
 
 ### PR updates
