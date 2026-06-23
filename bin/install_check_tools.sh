@@ -22,11 +22,11 @@ as_root() {
   fi
 }
 
-# zsh (zsh-syntax check) + shellcheck (shell-lint) via apt.
+# zsh (zsh-syntax check) + shellcheck (shell-lint) + bats (unit tests) via apt.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
-  as_root apt-get install -y -qq zsh shellcheck >/dev/null
+  as_root apt-get install -y -qq zsh shellcheck bats >/dev/null
 fi
 
 # mikefarah yq (config-syntax: `yq -p toml|json|yaml`).

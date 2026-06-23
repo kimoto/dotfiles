@@ -49,8 +49,9 @@ script, config file, and workflow is linted, and the same checks run locally
   `lint_schema`, `lint_editorconfig`, `lint_actions`, `check_brewfile_sort`,
   `check_secret_files`, gitleaks. pre-push: `protect-main`, full gitleaks.
 - Commit messages must follow Conventional Commits: `type(scope): description`
-  — type ∈ {feat, fix, chore, docs, refactor, ci, revert}. Enforced by the
-  `commit-msg` hook.
+  — type ∈ {feat, fix, chore, docs, refactor, ci, revert, test}. Use `test`
+  for changes that only touch the test suite (e.g. `test/*.bats`). Enforced by
+  the `commit-msg` hook.
 - Bypass a hook intentionally with `--no-verify` (commit and push).
 - For CI failures: `gh run view <run_id> --log-failed`.
 - GitHub Actions `uses:` must be pinned to a full commit SHA (ratchet,
@@ -76,7 +77,7 @@ script, config file, and workflow is linted, and the same checks run locally
   (`lint_schema.sh`); keep that key accurate.
 
 ### Branch & PR workflow
-- Never commit or push directly to `main`. Always branch: `git switch -c <type>/<short-desc>` (type ∈ feat|fix|chore|docs|refactor|ci).
+- Never commit or push directly to `main`. Always branch: `git switch -c <type>/<short-desc>` (type ∈ feat|fix|chore|docs|refactor|ci|test).
 - lefthook blocks direct commits/pushes to `main` (`protect-main` in pre-commit & pre-push); GitHub branch protection enforces it server-side too.
 - Every change lands via a PR using `.github/PULL_REQUEST_TEMPLATE.md` — fill in Summary, Changes, Verification, and the checklist. The change type lives in the commit subject (Conventional Commits), not a template field.
 - The Verification section must list the actual steps taken in the session (e.g. reloaded config, visually confirmed X), not just restate the generic checklist items.

@@ -5,6 +5,8 @@ tap "b-ramsey/kali"
 tap "morantron/tmux-fingers"
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
+# Bash Automated Testing System (bin/run_tests.sh)
+brew "bats-core"
 # Searches a binary image for embedded files and executable code
 brew "binwalk"
 # Toolchain of the web; parses/validates JSON with comments (JSONC)
