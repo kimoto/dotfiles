@@ -56,10 +56,10 @@ if ! command -v biome >/dev/null 2>&1; then
 fi
 
 # editorconfig-checker (editorconfig: max line length, trailing ws, final newline).
-if ! command -v ec >/dev/null 2>&1; then
+if ! command -v editorconfig-checker >/dev/null 2>&1; then
   curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-amd64.tar.gz" \
     | as_root tar -xz -C /usr/local/bin --strip-components=1 bin/ec-linux-amd64
-  as_root mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/ec
+  as_root mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/editorconfig-checker
 fi
 
 # check-jsonschema (schema-validate: validates files declaring a "$schema").
