@@ -19,6 +19,8 @@ jobs:
         run: ./bin/install_check_tools.sh
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
+      - name: Run unit tests (bats)
+        run: ./bin/run_tests.sh
       - name: Lint zsh syntax
         run: ./bin/lint_zsh.sh
       - name: Validate config files

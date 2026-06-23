@@ -20,6 +20,11 @@ pre-commit:
     shell-lint:
       glob: "bin/*.sh"
       run: ./bin/lint_shell.sh
+    unit-tests:
+      glob:
+        - "bin/*.sh"
+        - "test/*.bats"
+      run: ./bin/run_tests.sh
     zsh-syntax:
       glob:
         - ".zshrc"
