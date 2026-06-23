@@ -90,11 +90,11 @@ commit-msg:
         case "$msg" in
           Merge*|Revert*|"fixup! "*|"squash! "*) exit 0 ;;
         esac
-        if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci|revert)(\([a-z0-9-]+\))?!?: .+'; then
+        if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci|test|revert)(\([a-z0-9-]+\))?!?: .+'; then
           exit 0
         fi
         echo "x Not a valid Conventional Commits message:"
         echo "    $msg"
         echo "  example: feat(ghostty): add opacity toggle keybind"
-        echo "  type: feat|fix|chore|docs|refactor|ci|revert"
+        echo "  type: feat|fix|chore|docs|refactor|ci|test|revert"
         exit 1
