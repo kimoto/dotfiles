@@ -22,11 +22,12 @@ as_root() {
   fi
 }
 
-# zsh (zsh-syntax check) + shellcheck (shell-lint) + bats (unit tests) via apt.
+# zsh (zsh-syntax) + shellcheck (shell-lint) + bats (unit tests) + luajit
+# (lua-syntax: parse nvim's Lua with its own runtime) via apt.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
-  as_root apt-get install -y -qq zsh shellcheck bats >/dev/null
+  as_root apt-get install -y -qq zsh shellcheck bats luajit >/dev/null
 fi
 
 # mikefarah yq (config-syntax: `yq -p toml|json|yaml`).
