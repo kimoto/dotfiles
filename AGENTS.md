@@ -87,6 +87,7 @@ script, config file, and workflow is linted, and the same checks run locally
 - Use `gh pr edit --body-file` to avoid newline/markdown issues.
 - Claude Code auto-appends `🤖 Generated with Claude Code` to PR bodies and `Co-Authored-By: Claude ...` to commits — do not remove these.
 - Prefer 1 commit per PR. Write commit messages in English.
+- A PR opened automatically (web/remote flow) starts with an empty body — the template is only injected by the GitHub UI. When you spot one, populate it from `.github/PULL_REQUEST_TEMPLATE.md` before doing anything else.
 
 ### Language
 - Public artifacts (commit messages, PR title/body, code comments, docs) are written in English — English is the de facto standard for published work.
