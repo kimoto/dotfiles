@@ -19,6 +19,8 @@ brew "cowsay"
 brew "ctags"
 # Power of curl, ease of use of httpie
 brew "curlie"
+# Structural diff that understands syntax (on-demand via `git dft`)
+brew "difftastic"
 # More intuitive version of du in rust
 brew "dust"
 # Enforce .editorconfig rules (line length, trailing whitespace, final newline)

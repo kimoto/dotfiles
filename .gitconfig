@@ -4,6 +4,9 @@
   co = checkout
   l = log --graph --color=always --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
   lp = log -p
+  # Structural (syntax-aware) diff via difftastic; default `git diff` stays delta.
+  dft = difftool
+  dftlog = -c diff.external=difft log -p --ext-diff
 
 [core]
   excludesfile = ~/.gitignore
@@ -18,6 +21,7 @@
 [diff]
   algorithm = histogram
   colorMoved = default
+  tool = difftastic
 
 [diff "exif"]
   textconv = exiftool
@@ -63,6 +67,16 @@
   hunk-header-style = omit
   syntax-theme = Solarized (dark)
   hyperlinks = true
+
+[difftool]
+  prompt = false
+
+[difftool "difftastic"]
+  cmd = difft "$LOCAL" "$REMOTE"
+
+# Let `git dft` page structural diffs through the pager, like normal diffs.
+[pager]
+  difftool = true
 
 [rerere]
   enabled = true
