@@ -20,7 +20,12 @@ truth, so the two never diverge.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
 - `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
-  section (`check_brewfile_sort.sh`).
+  section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
+  needs at load time (prompt, completion, plugin manager, eval-cache inlines,
+  startup aliases/`LS_COLORS`) — litmus test: if removing it breaks
+  `ci_zsh_loading_test.sh`/`ci_tmux_loading_test.sh`, it's `basic`; CI installs
+  only `basic`. `common` = full-workstation tooling not required to start the
+  shell. `macos`/`linux` = platform-specific additions.
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror.
 - `.claude/` (settings + web SessionStart hook), `.codex/skills/` (Codex skills).
 
