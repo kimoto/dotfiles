@@ -87,3 +87,6 @@ jobs:
 
       - name: Load to test .tmux.conf
         run: ./bin/ci_tmux_loading_test.sh
+
+      - name: Interactive e2e (drive a real terminal, assert on rendered screen)
+        run: ./bin/ci_tmux_interactive_test.sh
