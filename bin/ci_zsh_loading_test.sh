@@ -145,11 +145,11 @@ done
 require_grep "livegrep not bound to ^G" "$env_out" "livegrep"
 require_grep "navi snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
 
-# carapace completion (only when the binary is installed — absent in the first CI
-# pass, present after the dedicated install step). Confirms the eval-cache inline
-# actually registers a completer for `carapace`. Checked via zsh's _comps map
-# (command -> completion function) so the assertion doesn't depend on carapace's
-# internal function name.
+# carapace completion: carapace ships in Brewfile.basic, so it's present in CI.
+# Confirms the eval-cache inline actually registers a completer for `carapace`,
+# checked via zsh's _comps map (command -> completion function) so the assertion
+# doesn't depend on carapace's internal function name. Gated on presence so the
+# test still runs on machines without carapace installed.
 if command -v carapace >/dev/null 2>&1; then
   echo "== carapace completion =="
   carapace_probe="$(mktemp)"

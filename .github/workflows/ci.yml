@@ -77,17 +77,6 @@ jobs:
       - name: Load to test .zshrc
         run: ./bin/ci_zsh_loading_test.sh
 
-      - name: Install carapace (Homebrew, to exercise the installed completion path)
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install carapace
-          fi
-
-      - name: Re-load .zshrc with carapace installed
-        run: ./bin/ci_zsh_loading_test.sh
-
       - name: Install tmux (Homebrew, to exercise the 3.6+ path)
         run: |
           set -e

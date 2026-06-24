@@ -56,10 +56,8 @@ inline = '_evalcache kubectl completion zsh'
 
 # Multi-shell completion engine. Bridges to zsh's native completions
 # (CARAPACE_BRIDGES in .zshrc) for commands it doesn't ship a spec for.
-# Guarded on presence: unlike the inlines above, carapace isn't always
-# installed (absent in CI), and evalcache errors loudly on a missing binary.
 [plugins.carapace]
-inline = 'command -v carapace >/dev/null && _evalcache carapace _carapace zsh || true'
+inline = '_evalcache carapace _carapace zsh'
 
 [templates]
 defer = "{{ hooks?.pre | nl }}{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}{{ hooks?.post | nl }}"

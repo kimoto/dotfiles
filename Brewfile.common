@@ -11,8 +11,6 @@ brew "bats-core"
 brew "binwalk"
 # Toolchain of the web; parses/validates JSON with comments (JSONC)
 brew "biome"
-# Multi-shell completion engine with specs for 1000+ commands
-brew "carapace"
 # Validate JSON/TOML/YAML against the JSON Schema they declare ($schema)
 brew "check-jsonschema"
 # Apjanke's fork of the classic cowsay project
