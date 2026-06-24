@@ -45,6 +45,12 @@ truth, so the two never diverge.
   flag (e.g. `DOTFILES_NO_SYNC_CHECK`), not an early return.
 - If `git commit -S` hangs: `export GPG_TTY=$(tty)` and check pinentry-mac.
 
+### Interaction
+
+- When offering the user a choice between options (next step, approach, where to
+  put something), prefer the `AskUserQuestion` tool over free-text questions —
+  use it whenever the options are discrete enough to enumerate.
+
 ### Branch & PR workflow
 
 - Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.

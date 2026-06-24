@@ -32,6 +32,18 @@ pre-commit:
         - ".zprofile"
         - "*.zsh"
       run: ./bin/lint_zsh.sh {staged_files}
+    lua-syntax:
+      glob: "*.lua"
+      run: ./bin/lint_lua.sh {staged_files}
+    bash-syntax:
+      glob:
+        - ".bashrc"
+        - ".bash_profile"
+        - ".bash_login"
+        - ".bash_logout"
+        - ".bash_aliases"
+        - "*.bash"
+      run: ./bin/lint_bash.sh {staged_files}
     config-syntax:
       glob:
         - "*.toml"

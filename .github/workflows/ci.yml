@@ -23,6 +23,10 @@ jobs:
         run: ./bin/run_tests.sh
       - name: Lint zsh syntax
         run: ./bin/lint_zsh.sh
+      - name: Lint lua syntax
+        run: ./bin/lint_lua.sh
+      - name: Lint bash syntax
+        run: ./bin/lint_bash.sh
       - name: Validate config files
         run: ./bin/lint_config.sh
       - name: Validate config schemas
