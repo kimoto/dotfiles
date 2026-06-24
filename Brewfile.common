@@ -1,3 +1,7 @@
+# Brewfile.common — full-workstation tooling that the shell does NOT need to
+# start (editors, git / k8s / security utilities, etc.). Installed on real
+# machines; skipped in CI, which installs only Brewfile.basic. Anything the
+# shell depends on at load time belongs in Brewfile.basic — see its header.
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
 tap "b-ramsey/kali"

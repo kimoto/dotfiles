@@ -1,3 +1,9 @@
+# Brewfile.basic — the minimal bootstrap layer the shell itself depends on.
+# A package belongs here if .zshrc / .tmux.conf reference it at load time
+# (prompt, completion, plugin manager, eval-cache inlines, startup aliases /
+# LS_COLORS). Litmus test: if removing it would break bin/ci_zsh_loading_test.sh
+# or bin/ci_tmux_loading_test.sh, it goes here. CI installs ONLY this file
+# (Brewfile.common is skipped when CI=true). Everything else -> Brewfile.common.
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
 tap "rs/tap"
