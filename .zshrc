@@ -122,6 +122,8 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export LS_COLORS=$(vivid generate solarized-dark)
 export TERM=xterm-256color
 export GPG_TTY=$(tty)
+# carapace: fall back to zsh's native completions for commands it has no spec for
+export CARAPACE_BRIDGES='zsh,bash'
 
 # zstyles
 zstyle ':completion:*:default' menu select=1

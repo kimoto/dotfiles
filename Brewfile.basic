@@ -1,6 +1,8 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
 tap "rs/tap"
+# Multi-shell completion engine with specs for 1000+ commands
+brew "carapace"
 # GNU File, Shell, and Text utilities
 brew "coreutils"
 # Get a file from an HTTP, HTTPS or FTP server

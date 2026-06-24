@@ -54,6 +54,11 @@ inline = '_evalcache direnv hook zsh'
 [plugins.kubectl-completion]
 inline = '_evalcache kubectl completion zsh'
 
+# Multi-shell completion engine. Bridges to zsh's native completions
+# (CARAPACE_BRIDGES in .zshrc) for commands it doesn't ship a spec for.
+[plugins.carapace]
+inline = '_evalcache carapace _carapace zsh'
+
 [templates]
 defer = "{{ hooks?.pre | nl }}{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}{{ hooks?.post | nl }}"
 fzf-install = "{{ dir }}/install --bin > /dev/null \n[[ ! $PATH == *{{ dir }}* ]] && export PATH=\"$PATH:{{ dir }}/bin\"\n"

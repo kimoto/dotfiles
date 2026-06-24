@@ -144,3 +144,20 @@ done
 # zle widgets / keybindings
 require_grep "livegrep not bound to ^G" "$env_out" "livegrep"
 require_grep "navi snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
+
+# carapace completion: carapace ships in Brewfile.basic, so it's present in CI.
+# Confirms the eval-cache inline actually registers a completer for `carapace`,
+# checked via zsh's _comps map (command -> completion function) so the assertion
+# doesn't depend on carapace's internal function name. Gated on presence so the
+# test still runs on machines without carapace installed.
+if command -v carapace >/dev/null 2>&1; then
+  echo "== carapace completion =="
+  carapace_probe="$(mktemp)"
+  cat >"$carapace_probe" <<'PROBE'
+print "CARAPACE_COMP=${_comps[carapace]:-none}"
+PROBE
+  carapace_out="$(run_zsh "source '$carapace_probe'")"
+  rm -f "$carapace_probe"
+  printf '%s\n' "$carapace_out"
+  require_grep "carapace completion not registered (installed path)" "$carapace_out" "CARAPACE_COMP=_"
+fi
