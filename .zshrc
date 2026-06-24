@@ -94,6 +94,10 @@ alias reload="exec zsh"
 alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
+alias top='btop'
+alias ps='procs'
+alias ping='gping'
+alias dig='doggo'
 alias grep='grep --color=auto'
 alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'

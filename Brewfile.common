@@ -15,6 +15,8 @@ brew "bats-core"
 brew "binwalk"
 # Toolchain of the web; parses/validates JSON with comments (JSONC)
 brew "biome"
+# Resource monitor with a nice TUI (top/htop replacement)
+brew "btop"
 # Validate JSON/TOML/YAML against the JSON Schema they declare ($schema)
 brew "check-jsonschema"
 # Apjanke's fork of the classic cowsay project
@@ -25,6 +27,8 @@ brew "ctags"
 brew "curlie"
 # Structural diff that understands syntax (on-demand via `git dft`)
 brew "difftastic"
+# Command-line DNS client (dig replacement) with colored output
+brew "doggo"
 # More intuitive version of du in rust
 brew "dust"
 # Enforce .editorconfig rules (line length, trailing whitespace, final newline)
@@ -59,6 +63,8 @@ brew "glow"
 brew "gnu-sed"
 # GNU Privacy Guard (OpenPGP)
 brew "gnupg"
+# Ping, but with a graph (ping replacement)
+brew "gping"
 # Enhanced version of john, a UNIX password cracker
 brew "john-jumbo"
 # Lightweight and flexible command-line JSON processor
@@ -95,6 +101,8 @@ brew "netcat"
 brew "nmap"
 # SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
 brew "openvpn"
+# Modern replacement for ps written in Rust
+brew "procs"
 # Generic machine emulator and virtualizer
 brew "qemu"
 # Pin/lint GitHub Actions workflows to immutable commit SHAs
