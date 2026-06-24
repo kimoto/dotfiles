@@ -39,6 +39,11 @@ truth, so the two never diverge.
 - GitHub Actions `uses:` must be pinned to a full commit SHA, not a tag.
 - Config files with a top-level `$schema` are validated against it
   (`lint_schema.sh`) — keep the key accurate.
+- TDD: when adding or changing a test, prove it fails first (red), then make it
+  pass (green) — never ship a test you've only seen pass. Break the thing under
+  test (or the assertion) so the test actually fails for the expected reason,
+  then revert and confirm green. Especially for the `ci_*_test.sh` e2e checks,
+  where a typo'd assertion can silently pass forever.
 
 ### Conventions
 
