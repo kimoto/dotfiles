@@ -8,15 +8,7 @@ pre-commit:
     # GitHub branch protection is the server-side enforcement; this is the
     # fast local feedback. Bypass intentionally with: git commit --no-verify
     protect-main:
-      run: |
-        branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$branch" = "main" ]; then
-          echo "x Direct commits to 'main' are blocked."
-          echo "  Create a feature branch and open a PR:"
-          echo "    git switch -c <type>/<short-desc>"
-          echo "  Intentional bypass: git commit --no-verify"
-          exit 1
-        fi
+      run: ./bin/protect_main.sh commit
     shell-lint:
       glob: "bin/*.sh"
       run: ./bin/lint_shell.sh
@@ -81,32 +73,11 @@ pre-push:
     # pre-push stdin (each line: <local-ref> <local-sha> <remote-ref> <remote-sha>)
     # to the command, so we can inspect exactly what is being pushed.
     protect-main:
-      run: |
-        while read -r _ _ remote_ref _; do
-          case "$remote_ref" in
-            refs/heads/main)
-              echo "x Direct push to 'main' is blocked. Open a PR instead."
-              echo "  Intentional bypass: git push --no-verify"
-              exit 1
-              ;;
-          esac
-        done
+      run: ./bin/protect_main.sh push
     gitleaks-full:
       run: gitleaks git --no-banner --redact
 
 commit-msg:
   commands:
     conventional:
-      run: |
-        msg=$(head -1 "{1}")
-        case "$msg" in
-          Merge*|Revert*|"fixup! "*|"squash! "*) exit 0 ;;
-        esac
-        if echo "$msg" | grep -qE '^(feat|fix|chore|docs|refactor|ci|test|revert)(\([a-z0-9-]+\))?!?: .+'; then
-          exit 0
-        fi
-        echo "x Not a valid Conventional Commits message:"
-        echo "    $msg"
-        echo "  example: feat(ghostty): add opacity toggle keybind"
-        echo "  type: feat|fix|chore|docs|refactor|ci|test|revert"
-        exit 1
+      run: ./bin/check_commit_msg.sh {1}
