@@ -90,3 +90,14 @@ jobs:
 
       - name: Interactive e2e (drive a real terminal, assert on rendered screen)
         run: ./bin/ci_tmux_interactive_test.sh
+
+      - name: Install fzf (g pipes ghq list into fzf; not in Brewfile.basic)
+        run: |
+          set -e
+          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            brew install fzf
+          fi
+
+      - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
+        run: ./bin/ci_g_command_test.sh
