@@ -17,8 +17,6 @@ cask "google-japanese-ime"
 cask "hammerspoon"
 # Tool to control external monitor brightness & volume
 cask "monitorcontrol"
-# Orchestrates virtual Ubuntu instances
-cask "multipass"
 # Control your tools with a few keystrokes
 cask "raycast"
 # Move and resize windows using keyboard shortcuts or snap areas
