@@ -48,6 +48,19 @@ if [ -f "$stamp" ] && [ -f "$result" ]; then
     fi
 fi
 
+# Invalidate cache if any Brewfile or the Homebrew Cellar changed since last check.
+if [ "$need_check" -eq 0 ]; then
+    cellar=$(brew --cellar 2>/dev/null) || cellar=""
+    for check_path in "${files[@]/#/$REPO_DIR/}" ${cellar:+"$cellar"}; do
+        [ -e "$check_path" ] || continue
+        mtime=$(stat -f %m "$check_path" 2>/dev/null || echo 0)
+        if [ "$mtime" -gt "$last" ]; then
+            need_check=1
+            break
+        fi
+    done
+fi
+
 if [ "$need_check" -eq 1 ]; then
     missing=()
     for f in "${files[@]}"; do
