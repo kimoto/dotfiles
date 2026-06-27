@@ -347,6 +347,34 @@ update_tmux_window () {
 add-zsh-hook chpwd update_tmux_window
 add-zsh-hook precmd update_tmux_window
 
+# Emit OSC 133;A so tmux can track prompt positions (next-prompt/previous-prompt in copy mode).
+# Prepend to PROMPT (after Starship sets it) so the mark lands at the exact moment zsh draws
+# the prompt, avoiding cursor-position races with Starship's own terminal sequences.
+_tmux_prompt_mark() {
+  [[ -n "$TMUX" ]] || return
+  PROMPT=$'%{\e]133;A\a%}'"$PROMPT"
+}
+add-zsh-hook precmd _tmux_prompt_mark
+
+# Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
+# Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
+dotfiles-ship() {
+  local branch
+  branch=$(git rev-parse --abbrev-ref HEAD) || return 1
+  git push -u origin HEAD || return 1
+  gh pr create --fill || return 1
+  gh pr merge --auto --merge || return 1
+  echo "Waiting for CI..."
+  gh pr checks --watch
+  echo "Waiting for merge..."
+  until [[ $(gh pr view --json state -q '.state') == "MERGED" ]]; do
+    sleep 3
+  done
+  git switch main
+  git pull
+  git branch -d "$branch"
+}
+
 #=====================
 # load other settings
 #=====================
