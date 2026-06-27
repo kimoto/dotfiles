@@ -111,6 +111,12 @@ jobs:
       - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
         run: ./bin/ci_tmux_keybinding_test.sh
 
+      - name: Interactive e2e for tmux copy-mode (select + yank)
+        run: ./bin/ci_tmux_copymode_test.sh
+
+      - name: e2e for the status bar and dynamic window/pane formats
+        run: ./bin/ci_tmux_status_test.sh
+
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
         run: ./bin/ci_g_command_test.sh
 
