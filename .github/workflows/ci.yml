@@ -71,13 +71,12 @@ jobs:
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}
 
       - name: Prepare world (cache phase)
-        # One entry point owns the installs (Homebrew, symlinks, tmux/fzf, tpm
-        # plugins); the cache-hit flags let it skip the cache-populating work on
-        # a hit. The actions/cache restore/save around it stay in YAML.
+        # One entry point owns the installs (Homebrew, tmux/fzf, then mkworld for
+        # symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it skip the brew work
+        # on a hit; the actions/cache restore/save around it stay in YAML.
         run: ./bin/ci_prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
-          TMUX_PLUGINS_CACHE_HIT: ${{ steps.cache-tmux-plugins.outputs.cache-hit }}
 
       - name: Save Homebrew cache
         # Only save on a cache miss; saving on a hit re-uses the same key and
