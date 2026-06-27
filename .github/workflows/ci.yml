@@ -54,7 +54,7 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The -fzf-v2 suffix is part of the key on purpose: fzf is installed
+          # The -fzf-v3 suffix is part of the key on purpose: fzf is installed
           # into this cache below but is not in Brewfile.basic, so the suffix
           # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
           # or when the set of extra brew installs changes. (tmux IS in
