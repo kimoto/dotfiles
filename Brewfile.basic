@@ -29,6 +29,8 @@ brew "ripgrep"
 brew "sheldon"
 # Cross-shell prompt for astronauts
 brew "starship"
+# Terminal multiplexer (required by bin/ci_tmux_loading_test.sh)
+brew "tmux"
 # Generator for LS_COLORS with support for multiple color themes
 brew "vivid"
 # Shell extension to navigate your filesystem faster

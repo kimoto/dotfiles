@@ -7,10 +7,10 @@
 # A cache-hit signal comes from the workflow as an env var so the expensive,
 # cache-populating Homebrew work runs only on a miss:
 #   BREW_CACHE_HIT  - skip Homebrew + `brew bundle` when 'true'
-# tmux/fzf are gated on presence instead: they live in the brew cache but not in
-# Brewfile.basic, so a `command -v` check is the right idempotent guard. The tpm
-# plugins are installed by mkworld (idempotent), which also populates the
-# ~/.tmux/plugins cache on a miss and is a near no-op on a hit.
+# tmux is in Brewfile.basic (the tmux loading test needs it), so it comes in via
+# `brew bundle`. fzf is not (it backs the `g` command, not shell load), so it is
+# gated on presence instead. The tpm plugins are installed by mkworld
+# (idempotent), which also populates the ~/.tmux/plugins cache on a miss.
 set -euo pipefail
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
@@ -32,12 +32,10 @@ elif [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. tmux + fzf: not in Brewfile.basic (not needed to start the shell), so
-#    install on demand — before mkworld, which needs tmux to install the tpm
-#    plugins. They are baked into the brew cache (key suffix -tmux-fzf), so this
-#    touches the network at most once.
+# 2. fzf: not in Brewfile.basic (it backs the `g` command, not shell load), so
+#    install on demand. Baked into the brew cache (key suffix -fzf), so this
+#    touches the network at most once. tmux already came in via Brewfile.basic.
 if command -v brew >/dev/null 2>&1; then
-  command -v tmux >/dev/null 2>&1 || brew install tmux
   command -v fzf >/dev/null 2>&1 || brew install fzf
 fi
 

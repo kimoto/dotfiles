@@ -54,11 +54,11 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The -tmux-fzf suffix is part of the key on purpose: tmux and fzf are
-          # installed into this cache below (they are not in Brewfile.basic), so
-          # the suffix forces one rebuild that bakes them in. Bump it if the set
-          # of extra brew installs changes.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-tmux-fzf
+          # The -fzf suffix is part of the key on purpose: fzf is installed into
+          # this cache below but is not in Brewfile.basic, so the suffix forces
+          # one rebuild that bakes it in. Bump it if the set of extra brew
+          # installs changes. (tmux IS in Brewfile.basic, so the hash covers it.)
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -71,9 +71,9 @@ jobs:
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}
 
       - name: Prepare world (cache phase)
-        # One entry point owns the installs (Homebrew, tmux/fzf, then mkworld for
-        # symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it skip the brew work
-        # on a hit; the actions/cache restore/save around it stay in YAML.
+        # One entry point owns the installs (Homebrew + Brewfile.basic, then fzf,
+        # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
+        # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
         run: ./bin/ci_prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}

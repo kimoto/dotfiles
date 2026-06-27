@@ -121,8 +121,6 @@ brew "shellcheck"
 brew "silicon"
 # User interface to the TELNET protocol
 brew "telnet"
-# Terminal multiplexer
-brew "tmux"
 # Manage complex tmux sessions easily
 brew "tmuxinator"
 # Vi 'workalike' with many additional features
