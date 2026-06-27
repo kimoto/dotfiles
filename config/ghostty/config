@@ -31,6 +31,7 @@ keybind = alt+digit_5=unbind
 quit-after-last-window-closed = true
 shell-integration = zsh
 shell-integration-features = no-cursor,ssh-env,ssh-terminfo
+clipboard-write = allow
 cursor-opacity = 0.5
 cursor-style-blink = true
 background-opacity = 0.6
