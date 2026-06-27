@@ -107,7 +107,7 @@ for f in "${files[@]}"; do
     fi
 
     if [ "${f##*.}" = "jsonc" ]; then
-        tmp=$(mktemp --suffix=.json)
+        tmp=$(mktemp)
         jsonc_to_json <"$f" >"$tmp"
         validate "$f" "$schema" --force-filetype json "$tmp"
         rm -f "$tmp"

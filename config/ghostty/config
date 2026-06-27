@@ -1,5 +1,7 @@
 theme = Iterm2 Solarized Dark
 command = /bin/zsh -l -c "/opt/homebrew/bin/tmux new -A -s ghostty"
+font-family = JetBrainsMono Nerd Font
+font-family = Hiragino Sans W4
 font-feature = -calt, -liga, -dlig
 font-thicken = true
 font-thicken-strength = 10
