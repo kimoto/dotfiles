@@ -7,21 +7,53 @@
 # (__)________|_______/    |__|  |__| | _| `._____| \______|
 #
 # Author: kimoto
+#
+# Load order matters in a few places (kept intentionally):
+#   - compinit runs before `sheldon source` so plugin compdefs (e.g. carapace)
+#     can register against an initialized completion system.
+#   - LS_COLORS is exported before the completion list-colors zstyle reads it.
+#   - CI strict mode (err_exit) is enabled after plugins load, so a missing
+#     optional plugin doesn't abort the interactive load test.
 #===============================================================
 
 #=====================
-# base settings
+# base shell setup
 #=====================
 unlimit
 limit -s
 umask 022
 bindkey -e
-autoload -Uz compinit
-compinit
+
 OMITTED_DIR="%(3~,%-1~/.../%1~,%~)"
+# Fallback prompt; starship (loaded via sheldon) overrides this once active.
 PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red])%}%#%{$reset_color%} "
 
+#=====================
+# completion system
+#=====================
+# Initialized before plugins so plugin-provided compdefs register correctly.
+# Rebuild the dump only when missing or older than a day; otherwise trust the
+# cache (-C) to keep startup fast.
+autoload -Uz compinit
+_zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
+# Rebuild the dump when it's missing or out of date, otherwise load it with
+# `compinit -C` to skip the security/rebuild scan. "Out of date" = some fpath
+# directory is newer than the dump, i.e. a completion file was added or removed
+# (which bumps the directory's mtime). This only stats the fpath directories,
+# not every completion file, so it stays cheap. Bare-qualifier globs need no
+# extendedglob; the `e` qualifier runs the -nt test per directory, and the
+# array assignment forces the filename generation that [[ ]] would suppress.
+_zcompdump_stale=( ${^fpath}(N/e['[[ $REPLY -nt $_zcompdump ]]']) )
+if [[ ! -e "$_zcompdump" || $#_zcompdump_stale -gt 0 ]]; then
+  compinit -d "$_zcompdump"
+else
+  compinit -C -d "$_zcompdump"
+fi
+unset _zcompdump _zcompdump_stale
+
+#=====================
 # paths
+#=====================
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
@@ -39,7 +71,9 @@ sudo_path=(
   $sudo_path
 )
 
-# setup base commands
+#=====================
+# package managers / plugins
+#=====================
 if builtin command -v brew >/dev/null; then
   eval "$(brew shellenv)"
 fi
@@ -49,12 +83,15 @@ if builtin command -v sheldon >/dev/null; then
 fi
 
 # CI strict mode: fail on actual command errors during .zshrc load.
+# Enabled after plugins so an absent optional plugin doesn't abort the load.
 if [[ -n "$CI" ]]; then
   setopt err_exit
   setopt err_return
 fi
 
+#=====================
 # setopts
+#=====================
 setopt autocd # cd不要
 setopt autopushd # cdの履歴に残す
 setopt nocorrectall # correctallの無効化
@@ -81,7 +118,51 @@ setopt auto_param_keys # カッコの対応などを自動的に補完
 setopt print_eight_bit
 setopt globdots # dotも補完
 
+#=====================
+# history & shell vars
+#=====================
+HISTFILE=~/.zsh_history
+HISTSIZE=9999999
+SAVEHIST=9999999
+MAILCHECK=0
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+watch=notme # watch and notify, other login user
+zle_highlight+=(paste:none)
+
+#=====================
+# env
+#=====================
+export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
+export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
+export LESS='-M -i -M -f -Q'
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export EDITOR=nvim
+export VISUAL="$EDITOR"
+export GIT_EDITOR="$EDITOR"
+export LANG=ja_JP.UTF-8
+export CLICOLOR=1
+export XDG_CONFIG_HOME="$HOME/.config"
+export LS_COLORS=$(vivid generate solarized-dark)
+export TERM=xterm-256color
+export GPG_TTY=$(tty)
+# carapace: fall back to zsh's native completions for commands it has no spec for
+export CARAPACE_BRIDGES='zsh,bash'
+
+#=====================
+# completion zstyles
+#=====================
+zstyle ':completion:*:default' menu select=1
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
+zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
+zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
+zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zcompcache
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+
+#=====================
 # aliases
+#=====================
 alias ls='eza --hyperlink --icons auto'
 alias ll='ls --long --all --git-repos-no-status --time-style=relative --sort=modified'
 alias tree='ll -T'
@@ -103,51 +184,19 @@ alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 alias gist='gh gist create --web'
 
-# vars
-HISTFILE=~/.zsh_history
-HISTSIZE=9999999
-SAVEHIST=9999999
-MAILCHECK=0
-WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-watch=notme # watch and notify, other login user
-zle_highlight+=(paste:none)
-
-# env
-export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
-export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
-export LESS='-M -i -M -f -Q'
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-export EDITOR=nvim
-export VISUAL="$EDITOR"
-export GIT_EDITOR="$EDITOR"
-export LANG=ja_JP.UTF-8
-export CLICOLOR=1
-export XDG_CONFIG_HOME="$HOME/.config"
-export LS_COLORS=$(vivid generate solarized-dark)
-export TERM=xterm-256color
-export GPG_TTY=$(tty)
-# carapace: fall back to zsh's native completions for commands it has no spec for
-export CARAPACE_BRIDGES='zsh,bash'
-
-# zstyles
-zstyle ':completion:*:default' menu select=1
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
-zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
-zstyle ':completion:*' use-cache on
-zstyle ':completion:*' cache-path ~/.zcompcache
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-
-# bindkeys
+#=====================
+# keybindings
+#=====================
 bindkey "^\\" undo
 
+#=====================
 # utility functions
+#=====================
 temp(){
   cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
 }
 
-# lazygit
+# lazygit: chase into the directory it was left in (newdir file), if any.
 lg() {
   export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
   lazygit "$@"
@@ -157,16 +206,13 @@ lg() {
   fi
 }
 
-chpwd() {
-  [[ -o interactive ]] || return
-  ll
-}
-
+# ghq + fzf: jump to a cloned repo.
 g() {
   local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
+# git branch switch via fzf.
 b() {
   local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
@@ -180,13 +226,7 @@ c() {
   kubectx
 }
 
-search_snippet_and_replace_lbuffer() {
-  LBUFFER+=$(navi)
-  zle redisplay
-}
-zle -N search_snippet_and_replace_lbuffer
-bindkey '^X^N' search_snippet_and_replace_lbuffer
-
+# ls if no arg / directory arg, otherwise bat the file.
 l() {
   if [[ "$#" == 0 ]]; then
     ll
@@ -199,11 +239,31 @@ l() {
   fi
 }
 
-#=====================
-# extras
-#=====================
+# test: switch starship main / sub prompt
+starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
+starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
+px() {
+  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  elif [ "$STARSHIP_CONFIG" = "" ]; then
+    export STARSHIP_CONFIG="$starship_conf_sub"
+  else
+    export STARSHIP_CONFIG="$starship_conf_main"
+  fi
+}
 
-# ripgrep->fzf->vim [QUERY]
+#=====================
+# zle widgets
+#=====================
+# navi snippet picker -> insert into the command line.
+search_snippet_and_replace_lbuffer() {
+  LBUFFER+=$(navi)
+  zle redisplay
+}
+zle -N search_snippet_and_replace_lbuffer
+bindkey '^X^N' search_snippet_and_replace_lbuffer
+
+# ripgrep -> fzf -> nvim live grep [QUERY]
 RELOAD='reload:rg --column --color=always --smart-case {q} || :'
 OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
           nvim {1} +{2}     # No selection. Open the current line in Vim.
@@ -223,7 +283,9 @@ livegrep () (
 zle -N livegrep
 bindkey '^G' livegrep
 
-# setup fzf
+#=====================
+# fzf
+#=====================
 export FZF_DEFAULT_COMMAND='rg --files --hidden --color=auto --follow --glob "!**/.git/*"'
 export FZF_DEFAULT_OPTS=" \
   --height 20% --layout=reverse \
@@ -254,7 +316,6 @@ _fzf_compgen_dir() {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
 
-#============
 # This speeds up pasting w/ autosuggest
 # https://github.com/zsh-users/zsh-autosuggestions/issues/238
 pasteinit() {
@@ -266,27 +327,23 @@ pastefinish() {
 }
 zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
-#============
 
-# test: switch starship main / sub prompt
-starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
-starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
-px() {
-  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  elif [ "$STARSHIP_CONFIG" = "" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  else
-    export STARSHIP_CONFIG="$starship_conf_main"
-  fi
+#=====================
+# hooks
+#=====================
+autoload -Uz add-zsh-hook
+
+# List the directory after every cd.
+chpwd() {
+  [[ -o interactive ]] || return
+  ll
 }
 
-# tmux
+# Keep the tmux window name in sync with the current directory.
 update_tmux_window () {
   [[ -n "$TMUX" ]] || return
   tmux rename-window "$(basename "$PWD")"
 }
-autoload -Uz add-zsh-hook
 add-zsh-hook chpwd update_tmux_window
 add-zsh-hook precmd update_tmux_window
 
