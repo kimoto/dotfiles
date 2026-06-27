@@ -355,6 +355,34 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
+# After a PR is auto-merged, switch to main automatically on the next prompt.
+# Checks the current branch's PR state via gh (rate-limited to once per 60s per branch).
+_auto_main_sync() {
+  local branch
+  branch=$(git branch --show-current 2>/dev/null) || return
+  [[ -z "$branch" || "$branch" == "main" ]] && return
+
+  git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null || return
+
+  local cache="${TMPDIR:-/tmp}/auto-main-sync-${branch//\//_}.cache"
+  local now mtime
+  now=$(date +%s)
+  mtime=$(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache" 2>/dev/null || echo 0)
+  (( now - mtime < 60 )) && return
+
+  local state
+  state=$(command gh pr view "$branch" --json state --jq '.state' 2>/dev/null) || { touch "$cache"; return; }
+
+  if [[ "$state" == "MERGED" ]]; then
+    print "[auto-main-sync] PR for '$branch' merged — switching to main"
+    git switch main && git pull --ff-only && git branch -d "$branch" 2>/dev/null || true
+    rm -f "$cache"
+  else
+    touch "$cache"
+  fi
+}
+add-zsh-hook precmd _auto_main_sync
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
