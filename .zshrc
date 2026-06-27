@@ -176,7 +176,6 @@ alias cat='bat'
 alias less='bat --pager=less'
 alias curl='curlie' # for pretty-print
 alias top='btop'
-alias ps='procs'
 alias ping='gping'
 alias dig='doggo'
 alias grep='grep --color=auto'
