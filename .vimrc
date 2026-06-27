@@ -61,11 +61,26 @@ nnoremap <silent> <C-x>3 :vsp<CR>
 " 次のバッファに切り替え
 nmap <C-T> :bn<CR>
 
-" Neobundle bootstrap
+" Neobundle bootstrap: auto-install the plugin manager on a fresh machine, then
+" let NeoBundleCheck (bottom of file) install the plugins. If neobundle is still
+" unavailable afterwards (offline, no git, or $VIM_NO_BOOTSTRAP set) the whole
+" plugin block below is skipped so Vim starts clean instead of erroring on every
+" NeoBundle command / blocking on a "Press ENTER" prompt.
+let s:neobundle_dir = expand('~/.vim/bundle/neobundle.vim')
+let s:has_neobundle = filereadable(s:neobundle_dir . '/autoload/neobundle.vim')
 if has('vim_starting')
 	set nocompatible               " Be iMproved
-	set runtimepath+=~/.vim/bundle/neobundle.vim/
+	if !s:has_neobundle && executable('git') && empty($VIM_NO_BOOTSTRAP)
+		call delete(s:neobundle_dir, 'd')
+		call system('git clone https://github.com/Shougo/neobundle.vim ' . shellescape(s:neobundle_dir))
+		let s:has_neobundle = filereadable(s:neobundle_dir . '/autoload/neobundle.vim')
+	endif
+	if s:has_neobundle
+		let &runtimepath .= ',' . s:neobundle_dir
+	endif
 endif
+
+if s:has_neobundle
 call neobundle#begin(expand('~/.vim/bundle/'))
 NeoBundleFetch 'Shougo/neobundle.vim'
 
@@ -255,10 +270,13 @@ augroup HighlightTrailingSpaces
 augroup END
 
 call neobundle#end()
+endif
 
 syntax enable
 set background=dark
 filetype plugin indent on " Required!
-colorscheme solarized
+silent! colorscheme solarized
 
-NeoBundleCheck
+if s:has_neobundle
+	NeoBundleCheck
+endif
