@@ -54,11 +54,12 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The -fzf suffix is part of the key on purpose: fzf is installed into
-          # this cache below but is not in Brewfile.basic, so the suffix forces
-          # one rebuild that bakes it in. Bump it if the set of extra brew
-          # installs changes. (tmux IS in Brewfile.basic, so the hash covers it.)
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf
+          # The -fzf-v2 suffix is part of the key on purpose: fzf is installed
+          # into this cache below but is not in Brewfile.basic, so the suffix
+          # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
+          # or when the set of extra brew installs changes. (tmux IS in
+          # Brewfile.basic, so the hash already covers it.)
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v2
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -79,9 +80,10 @@ jobs:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
       - name: Save Homebrew cache
-        # Only save on a cache miss; saving on a hit re-uses the same key and
-        # fails with "Cache already exists" (harmless warning).
-        if: always() && steps.cache-brew.outputs.cache-hit != 'true'
+        # Save only on a cache miss (saving on a hit re-uses the same key and
+        # fails with "Cache already exists"). No always(): if the prepare step
+        # failed, skip the save so a half-installed tree never poisons the cache.
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
@@ -90,7 +92,7 @@ jobs:
           key: ${{ steps.cache-brew.outputs.cache-primary-key }}
 
       - name: Save tmux plugins cache
-        if: always() && steps.cache-tmux-plugins.outputs.cache-hit != 'true'
+        if: steps.cache-tmux-plugins.outputs.cache-hit != 'true'
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.tmux/plugins
