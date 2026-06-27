@@ -54,7 +54,21 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}
+          # The -tmux-fzf suffix is part of the key on purpose: tmux and fzf are
+          # installed into this cache below (they are not in Brewfile.basic), so
+          # the suffix forces one rebuild that bakes them in. Bump it if the set
+          # of extra brew installs changes.
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-tmux-fzf
+
+      - name: Restore tmux plugins cache
+        id: cache-tmux-plugins
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          # tpm clones every @tpm_plugins entry into here; cache them so later
+          # runs skip the clones. Keyed on .tmux.conf since that is where the
+          # plugin list lives — editing it re-resolves the plugin set.
+          path: ~/.tmux/plugins
+          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}
 
       - name: Install homebrew if cache miss
         if: steps.cache-brew.outputs.cache-hit != 'true'
@@ -62,6 +76,23 @@ jobs:
 
       - name: Make world
         run: SKIP_BREW=1 ./bin/mkworld.sh
+
+      - name: Install tmux and fzf (Homebrew; baked into the brew cache below)
+        # tmux exercises the 3.6+ config path; fzf backs the `g` repo-jump
+        # command. Neither belongs in Brewfile.basic (not needed to start the
+        # shell), so install them here — before the cache save and only when
+        # missing, so a cache hit costs no network.
+        run: |
+          set -e
+          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            command -v tmux >/dev/null 2>&1 || brew install tmux
+            command -v fzf >/dev/null 2>&1 || brew install fzf
+          fi
+
+      - name: Install tmux plugins if cache miss
+        if: steps.cache-tmux-plugins.outputs.cache-hit != 'true'
+        run: ./bin/install_tmux_plugins.sh
 
       - name: Save Homebrew cache
         # Only save on a cache miss; saving on a hit re-uses the same key and
@@ -74,16 +105,15 @@ jobs:
             /home/linuxbrew/.linuxbrew
           key: ${{ steps.cache-brew.outputs.cache-primary-key }}
 
+      - name: Save tmux plugins cache
+        if: always() && steps.cache-tmux-plugins.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.tmux/plugins
+          key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
+
       - name: Load to test .zshrc
         run: ./bin/ci_zsh_loading_test.sh
-
-      - name: Install tmux (Homebrew, to exercise the 3.6+ path)
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install tmux
-          fi
 
       - name: Load to test .tmux.conf
         run: ./bin/ci_tmux_loading_test.sh
@@ -91,13 +121,8 @@ jobs:
       - name: Interactive e2e (drive a real terminal, assert on rendered screen)
         run: ./bin/ci_tmux_interactive_test.sh
 
-      - name: Install fzf (g pipes ghq list into fzf; not in Brewfile.basic)
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install fzf
-          fi
+      - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
+        run: ./bin/ci_tmux_keybinding_test.sh
 
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
         run: ./bin/ci_g_command_test.sh
