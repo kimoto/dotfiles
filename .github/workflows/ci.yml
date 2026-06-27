@@ -54,19 +54,37 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}
+          # The -fzf-v2 suffix is part of the key on purpose: fzf is installed
+          # into this cache below but is not in Brewfile.basic, so the suffix
+          # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
+          # or when the set of extra brew installs changes. (tmux IS in
+          # Brewfile.basic, so the hash already covers it.)
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v3
 
-      - name: Install homebrew if cache miss
-        if: steps.cache-brew.outputs.cache-hit != 'true'
-        run: ./bin/setup_homebrew.sh
+      - name: Restore tmux plugins cache
+        id: cache-tmux-plugins
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          # tpm clones every @tpm_plugins entry into here; cache them so later
+          # runs skip the clones. Keyed on .tmux.conf since that is where the
+          # plugin list lives — editing it re-resolves the plugin set. Bump the
+          # vN to evict a bad cache (same manual lever as the brew key).
+          path: ~/.tmux/plugins
+          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
-      - name: Make world
-        run: SKIP_BREW=1 ./bin/mkworld.sh
+      - name: Prepare world (cache phase)
+        # One entry point owns the installs (Homebrew + Brewfile.basic, then fzf,
+        # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
+        # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
+        run: ./bin/ci_prepare.sh
+        env:
+          BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
       - name: Save Homebrew cache
-        # Only save on a cache miss; saving on a hit re-uses the same key and
-        # fails with "Cache already exists" (harmless warning).
-        if: always() && steps.cache-brew.outputs.cache-hit != 'true'
+        # Save only on a cache miss (saving on a hit re-uses the same key and
+        # fails with "Cache already exists"). No always(): if the prepare step
+        # failed, skip the save so a half-installed tree never poisons the cache.
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
@@ -74,16 +92,15 @@ jobs:
             /home/linuxbrew/.linuxbrew
           key: ${{ steps.cache-brew.outputs.cache-primary-key }}
 
+      - name: Save tmux plugins cache
+        if: steps.cache-tmux-plugins.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.tmux/plugins
+          key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
+
       - name: Load to test .zshrc
         run: ./bin/ci_zsh_loading_test.sh
-
-      - name: Install tmux (Homebrew, to exercise the 3.6+ path)
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install tmux
-          fi
 
       - name: Load to test .tmux.conf
         run: ./bin/ci_tmux_loading_test.sh
@@ -91,13 +108,14 @@ jobs:
       - name: Interactive e2e (drive a real terminal, assert on rendered screen)
         run: ./bin/ci_tmux_interactive_test.sh
 
-      - name: Install fzf (g pipes ghq list into fzf; not in Brewfile.basic)
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install fzf
-          fi
+      - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
+        run: ./bin/ci_tmux_keybinding_test.sh
+
+      - name: Interactive e2e for tmux copy-mode (select + yank)
+        run: ./bin/ci_tmux_copymode_test.sh
+
+      - name: e2e for the status bar and dynamic window/pane formats
+        run: ./bin/ci_tmux_status_test.sh
 
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
         run: ./bin/ci_g_command_test.sh
