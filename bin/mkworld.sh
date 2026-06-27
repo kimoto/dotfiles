@@ -18,6 +18,13 @@ if [ ! -d ~/.tmux ]; then
     git clone "https://github.com/tmux-plugins/tpm" ~/.tmux/plugins/tpm
 fi
 
+# Vim (legacy .vimrc): fetch the NeoBundle plugin manager, tracked as a
+# submodule under .vim/bundle/. With it present, the first `vim` launch runs
+# NeoBundleCheck to install the remaining plugins instead of erroring on every
+# NeoBundle command. (.vimrc also self-bootstraps neobundle at launch; this just
+# makes it available up front, at install time.)
+git -C "$BASE_DIR" submodule update --init --recursive
+
 # Make brew-installed tools (e.g. lefthook) available on PATH
 if [ -x "/opt/homebrew/bin/brew" ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
