@@ -74,4 +74,5 @@ truth, so the two never diverge.
 
 ### Language
 
-English for public artifacts (commits, PRs, comments, docs); Japanese in chat.
+"Respond in Japanese" applies to chat replies, not artifact content. Commits,
+PRs, comments, and docs are file content — always English; chat stays Japanese.
