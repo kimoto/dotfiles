@@ -7,6 +7,9 @@ export COLORTERM="truecolor"
 # Don't run the dotfiles sync reminder during the load test: it would touch the
 # network (background fetch) and print reminder noise unrelated to this check.
 export DOTFILES_NO_SYNC_CHECK=1
+# Likewise skip the Brewfile drift reminder: CI installs only Brewfile.basic, so
+# a check would always report common/* missing, and `brew bundle check` is slow.
+export DOTFILES_NO_BREW_CHECK=1
 
 die() {
   echo "CI error: $*" >&2
