@@ -110,3 +110,17 @@ jobs:
 
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
         run: ./bin/ci_g_command_test.sh
+
+  vim_guard_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Ensure vim + tmux are present
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends vim tmux
+
+      - name: Legacy .vimrc guard (no-plugin startup must be clean)
+        run: ./bin/ci_vim_guard_test.sh
