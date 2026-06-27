@@ -70,29 +70,14 @@ jobs:
           path: ~/.tmux/plugins
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}
 
-      - name: Install homebrew if cache miss
-        if: steps.cache-brew.outputs.cache-hit != 'true'
-        run: ./bin/setup_homebrew.sh
-
-      - name: Make world
-        run: SKIP_BREW=1 ./bin/mkworld.sh
-
-      - name: Install tmux and fzf (Homebrew; baked into the brew cache below)
-        # tmux exercises the 3.6+ config path; fzf backs the `g` repo-jump
-        # command. Neither belongs in Brewfile.basic (not needed to start the
-        # shell), so install them here — before the cache save and only when
-        # missing, so a cache hit costs no network.
-        run: |
-          set -e
-          if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            command -v tmux >/dev/null 2>&1 || brew install tmux
-            command -v fzf >/dev/null 2>&1 || brew install fzf
-          fi
-
-      - name: Install tmux plugins if cache miss
-        if: steps.cache-tmux-plugins.outputs.cache-hit != 'true'
-        run: ./bin/install_tmux_plugins.sh
+      - name: Prepare world (cache phase)
+        # One entry point owns the installs (Homebrew, symlinks, tmux/fzf, tpm
+        # plugins); the cache-hit flags let it skip the cache-populating work on
+        # a hit. The actions/cache restore/save around it stay in YAML.
+        run: ./bin/ci_prepare.sh
+        env:
+          BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
+          TMUX_PLUGINS_CACHE_HIT: ${{ steps.cache-tmux-plugins.outputs.cache-hit }}
 
       - name: Save Homebrew cache
         # Only save on a cache miss; saving on a hit re-uses the same key and
