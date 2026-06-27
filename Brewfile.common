@@ -101,8 +101,6 @@ brew "netcat"
 brew "nmap"
 # SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
 brew "openvpn"
-# Modern replacement for ps written in Rust
-brew "procs"
 # Generic machine emulator and virtualizer
 brew "qemu"
 # Pin/lint GitHub Actions workflows to immutable commit SHAs
