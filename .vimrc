@@ -276,6 +276,7 @@ syntax enable
 set background=dark
 filetype plugin indent on " Required!
 silent! colorscheme solarized
+highlight Normal ctermbg=NONE guibg=NONE
 
 if s:has_neobundle
 	NeoBundleCheck
