@@ -5,6 +5,19 @@ if vim.fn.filereadable(jetpackfile) == 0 then
   vim.fn.system(string.format('curl -fsSLo %s --create-dirs %s', jetpackfile, jetpackurl))
 end
 
+-- Neovim 0.12+ defines vim.list as a table module; the upstream jetpack.vim
+-- uses `local list = vim.list or function...` which picks up the table and
+-- then fails when cast() tries to call it. Patch the assignment to guard with
+-- type() so the fallback identity function is used instead.
+local lines = vim.fn.readfile(jetpackfile)
+for i, line in ipairs(lines) do
+  lines[i] = line:gsub(
+    'local list = vim%.list or function',
+    'local list = type(vim.list) == "function" and vim.list or function'
+  )
+end
+vim.fn.writefile(lines, jetpackfile)
+
 vim.cmd('packadd vim-jetpack')
 
 require('jetpack.paq') {
@@ -37,7 +50,7 @@ require('jetpack.paq') {
 
   {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
 
-  'norcalli/nvim-colorizer.lua', -- カーソル下と同じ単語を強調
+  'NvChad/nvim-colorizer.lua', -- カーソル下と同じ単語を強調
 
   'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
