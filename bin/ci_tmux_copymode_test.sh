@@ -10,45 +10,26 @@
 # works headless on Linux too (pbcopy simply isn't there and is ignored).
 set -euo pipefail
 
-die() { echo "CI error: $*" >&2; exit 1; }
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$DIR/tmux_e2e_helpers.sh"
 
-# Prefer a Homebrew tmux (newer) when the shellenv is available.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-command -v tmux >/dev/null 2>&1 || die "tmux not installed"
+need tmux
 echo "== $(tmux -V) =="
 
-CONF="${TMUX_CONF:-$HOME/.tmux.conf}"
-[ -f "$CONF" ] || CONF="$PWD/.tmux.conf"
-[ -f "$CONF" ] || die "no .tmux.conf found"
+CONF="$(tmux_conf_path)"
 echo "== copy-mode bindings from: $CONF =="
 
 SOCK="ci_tmux_copy_$$"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
 
-# Poll capture-pane until $1 (a grep -E pattern) appears, or time out.
-wait_for() {
-  local pattern="$1" tries="${2:-50}" i=0
-  while [ "$i" -lt "$tries" ]; do
-    tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE "$pattern" && return 0
-    i=$((i + 1)); sleep 0.1
-  done
-  echo "---- pane at timeout ----" >&2
-  tmux -L "$SOCK" capture-pane -p >&2 2>/dev/null || true
-  die "timed out waiting for: $pattern"
-}
-
 tmux -L "$SOCK" -f "$CONF" new-session -d -x 120 -y 30 || die "failed to start tmux"
 
 # Put a known line on screen, then wait until it has actually rendered so the
 # copy-mode search below can find it.
 tmux -L "$SOCK" send-keys 'printf "ALPHA BRAVO CHARLIE\\n"' Enter
-wait_for 'ALPHA BRAVO CHARLIE'
+wait_for_pane "$SOCK" 'ALPHA BRAVO CHARLIE'
 echo "== marker line rendered =="
 
 # Enter copy-mode, jump to the middle word, then drive the real bindings:

@@ -8,20 +8,14 @@
 # panes/title conditional, both branches), and pane-border-format.
 set -euo pipefail
 
-die() { echo "CI error: $*" >&2; exit 1; }
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$DIR/tmux_e2e_helpers.sh"
 
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-command -v tmux >/dev/null 2>&1 || die "tmux not installed"
+need tmux
 echo "== $(tmux -V) =="
 
-CONF="${TMUX_CONF:-$HOME/.tmux.conf}"
-[ -f "$CONF" ] || CONF="$PWD/.tmux.conf"
-[ -f "$CONF" ] || die "no .tmux.conf found"
+CONF="$(tmux_conf_path)"
 echo "== formats from: $CONF =="
 
 SOCK="ci_tmux_status_$$"
