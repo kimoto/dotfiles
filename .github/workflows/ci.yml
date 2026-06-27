@@ -59,7 +59,7 @@ jobs:
           # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
           # or when the set of extra brew installs changes. (tmux IS in
           # Brewfile.basic, so the hash already covers it.)
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v2
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v3
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -67,9 +67,10 @@ jobs:
         with:
           # tpm clones every @tpm_plugins entry into here; cache them so later
           # runs skip the clones. Keyed on .tmux.conf since that is where the
-          # plugin list lives — editing it re-resolves the plugin set.
+          # plugin list lives — editing it re-resolves the plugin set. Bump the
+          # vN to evict a bad cache (same manual lever as the brew key).
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}
+          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
       - name: Prepare world (cache phase)
         # One entry point owns the installs (Homebrew + Brewfile.basic, then fzf,
