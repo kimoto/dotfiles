@@ -4,7 +4,8 @@
 # Requires SSH key auth to tk2-237-28023.vs.sakura.ne.jp.
 set -euo pipefail
 
-VPS="kimoto@tk2-237-28023.vs.sakura.ne.jp"
+# Set VPS_HOST in your environment, or add a Host alias "vps-sakura" in ~/.ssh/config
+VPS="${VPS_HOST:-vps-sakura}"
 DEST="$HOME/Backups/vps"
 
 rsync_or_warn() {
