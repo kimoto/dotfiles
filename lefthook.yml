@@ -10,8 +10,8 @@ pre-commit:
     protect-main:
       run: ./bin/protect_main.sh commit
     shell-lint:
-      glob: "bin/*.sh"
-      run: ./bin/lint_shell.sh
+      glob: "*.sh"
+      run: ./bin/lint_shell.sh {staged_files}
     unit-tests:
       glob:
         - "bin/*.sh"
