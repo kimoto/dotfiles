@@ -13,7 +13,6 @@
   pager = delta
   editor = nvim
   autoCRLF = false
-  syntax-theme = Solarized (dark)
 
 [commit]
   gpgsign = true
@@ -52,6 +51,12 @@
 
 [pull]
   ff = only
+
+[fetch]
+  prune = true
+
+[branch]
+  sort = -committerdate
 
 [url "git@github.com:"]
   pushinsteadof = "git://github.com/"
