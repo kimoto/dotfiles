@@ -3,10 +3,10 @@ config-version = 2
 
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
-after-startup-command = []
+after-startup-command = ['workspace 1']
 
 # Start AeroSpace at login
-start-at-login = true
+start-at-login = false
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
@@ -138,16 +138,7 @@ automatically-unhide-macos-hidden-apps = false
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'
 
-[workspace-to-monitor-force-assignment]
-    1 = 'main'
-    2 = 'main'
-    3 = 'main'
-    4 = 'main'
-    5 = ['secondary', 'main']
-    6 = ['secondary', 'main']
-    7 = ['secondary', 'main']
-    8 = ['secondary', 'main']
-    9 = ['secondary', 'main']
+# No forced workspace-to-monitor assignment: Rectangle handles cross-monitor moves
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
