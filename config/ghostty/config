@@ -19,6 +19,9 @@ keybind = super+digit_6=text:\x1b6
 keybind = super+digit_7=text:\x1b7
 keybind = super+digit_8=text:\x1b8
 keybind = super+digit_9=text:\x1b9
+# command+option+←/→でtmux window移動 (デフォルトのgoto_splitはtmux常駐のため未使用)
+keybind = super+alt+arrow_left=text:\x1b[1;3D
+keybind = super+alt+arrow_right=text:\x1b[1;3C
 keybind = super+shift+o=toggle_background_opacity
 
 # Alt+数字はAeroSpaceのワークスペース切り替えに使うため素通しさせる
