@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -eu
 set -x
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)

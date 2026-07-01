@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 set -x
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
@@ -45,4 +45,10 @@ fi
 # Non-fatal so a hiccup here never aborts the bootstrap.
 if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ]; then
     sh "$BASE_DIR/bin/setup_brew_autoupdate.sh" || true
+fi
+
+# macOS: apply system preferences (Finder, key repeat, startup mute — needs
+# sudo for nvram). Non-fatal so a denied sudo never aborts the bootstrap.
+if [ "$(uname)" = "Darwin" ]; then
+    sh "$BASE_DIR/bin/setup_macosx.sh" || true
 fi

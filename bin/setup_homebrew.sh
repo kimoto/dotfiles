@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1;
 

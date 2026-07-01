@@ -5,7 +5,7 @@
 # mklink.sh と対になっているので、リンク対象を増減したら両方を更新すること。
 # Keep this list in sync with bin/mklink.sh.
 
-set -u
+set -eu
 
 cd "$HOME" || exit 1
 
