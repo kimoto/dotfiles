@@ -12,6 +12,15 @@ YQ_VERSION="${YQ_VERSION:-4.53.2}"
 BIOME_VERSION="${BIOME_VERSION:-2.5.0}"
 EC_VERSION="${EC_VERSION:-3.4.0}"
 CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.37.3}"
+LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.1.9}"
+
+# Map uname -m onto each project's release-asset arch suffix (projects differ:
+# amd64/arm64 vs x64/arm64 vs x86_64/arm64).
+case "$(uname -m)" in
+  x86_64)        ARCH_AMD64=amd64; ARCH_X64=x64; ARCH_X86_64=x86_64 ;;
+  aarch64|arm64) ARCH_AMD64=arm64; ARCH_X64=arm64; ARCH_X86_64=arm64 ;;
+  *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+esac
 
 # Run a command as root, using sudo only when we are not already root.
 as_root() {
@@ -33,34 +42,43 @@ fi
 # mikefarah yq (config-syntax: `yq -p toml|json|yaml`).
 if ! { command -v yq >/dev/null 2>&1 && yq --version 2>/dev/null | grep -qi mikefarah; }; then
   as_root curl -sSfL -o /usr/local/bin/yq \
-    "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
+    "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH_AMD64}"
   as_root chmod +x /usr/local/bin/yq
 fi
 
 # gitleaks (secret scanning).
 if ! command -v gitleaks >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+  curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH_X64}.tar.gz" \
     | as_root tar -xz -C /usr/local/bin gitleaks
 fi
 
 # ratchet (GitHub Actions pinning check).
 if ! command -v ratchet >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_amd64.tar.gz" \
+  curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
     | as_root tar -xz -C /usr/local/bin ratchet
 fi
 
 # biome (config-syntax: validates .jsonc, e.g. config/fastfetch/config.jsonc).
 if ! command -v biome >/dev/null 2>&1; then
   as_root curl -sSfL -o /usr/local/bin/biome \
-    "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-x64"
+    "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-${ARCH_X64}"
   as_root chmod +x /usr/local/bin/biome
 fi
 
 # editorconfig-checker (editorconfig: max line length, trailing ws, final newline).
 if ! command -v editorconfig-checker >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-amd64.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin --strip-components=1 bin/ec-linux-amd64
-  as_root mv /usr/local/bin/ec-linux-amd64 /usr/local/bin/editorconfig-checker
+  curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH_AMD64}.tar.gz" \
+    | as_root tar -xz -C /usr/local/bin --strip-components=1 "bin/ec-linux-${ARCH_AMD64}"
+  as_root mv "/usr/local/bin/ec-linux-${ARCH_AMD64}" /usr/local/bin/editorconfig-checker
+fi
+
+# lefthook (git hook runner: pre-commit/pre-push run the bin/ checks locally).
+if ! command -v lefthook >/dev/null 2>&1; then
+  tmp="$(mktemp)"
+  curl -sSfL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_${ARCH_X86_64}.gz" \
+    | gunzip > "$tmp"
+  as_root install -m 0755 "$tmp" /usr/local/bin/lefthook
+  rm -f "$tmp"
 fi
 
 # check-jsonschema (schema-validate: validates files declaring a "$schema").
