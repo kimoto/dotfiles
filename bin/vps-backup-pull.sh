@@ -19,33 +19,33 @@ rsync_or_warn() {
 
 echo "=== vps-backup-pull started at $(date '+%Y-%m-%d %H:%M:%S') ==="
 
-echo "--- [1/5] Running dump on VPS ---"
+echo "--- [1/19] Running dump on VPS ---"
 ssh "$VPS" "bash ~/bin/vps-backup-dump.sh"
 
 mkdir -p "$DEST"
 
-echo "--- [2/7] Pulling backup-staging (MariaDB, systemd, cron.d, sshd) ---"
+echo "--- [2/19] Pulling backup-staging (MariaDB, systemd, cron.d, sshd) ---"
 rsync_or_warn -az --delete "$VPS:~/backup-staging/" "$DEST/staging/"
 
-echo "--- [3/7] Pulling /srv/kymt.me ---"
+echo "--- [3/19] Pulling /srv/kymt.me ---"
 rsync_or_warn -az --delete --rsync-path="sudo rsync" "$VPS:/srv/kymt.me/" "$DEST/srv/"
 
-echo "--- [4/7] Pulling ~/docs (e2e, plans) ---"
+echo "--- [4/19] Pulling ~/docs (e2e, plans) ---"
 rsync_or_warn -az --delete "$VPS:~/docs/" "$DEST/docs/"
 
-echo "--- [5/7] Pulling /usr/local/nginx/conf ---"
+echo "--- [5/19] Pulling /usr/local/nginx/conf ---"
 rsync_or_warn -az --delete "$VPS:/usr/local/nginx/conf/" "$DEST/nginx-conf/"
 
-echo "--- [6/10] Pulling ~/.ssh ---"
+echo "--- [6/19] Pulling ~/.ssh ---"
 rsync_or_warn -az --delete "$VPS:~/.ssh/" "$DEST/ssh/"
 
-echo "--- [7/10] Pulling ~/projects ---"
+echo "--- [7/19] Pulling ~/projects ---"
 rsync_or_warn -az --delete "$VPS:~/projects/" "$DEST/projects/"
 
-echo "--- [8/10] Pulling ~/.gnupg ---"
+echo "--- [8/19] Pulling ~/.gnupg ---"
 rsync_or_warn -az --delete "$VPS:~/.gnupg/" "$DEST/gnupg/"
 
-echo "--- [9/10] Pulling ~/.aws ---"
+echo "--- [9/19] Pulling ~/.aws ---"
 rsync_or_warn -az --delete "$VPS:~/.aws/" "$DEST/aws/"
 
 echo "--- [10/19] Pulling ~/ (all home files, excl cache) ---"
@@ -55,10 +55,10 @@ rsync_or_warn -az --delete \
   --exclude='.zsh-evalcache/' \
   "$VPS:~/" "$DEST/home-all/"
 
-echo "--- [11/13] Pulling /etc/hosts ---"
+echo "--- [11/19] Pulling /etc/hosts ---"
 rsync_or_warn -az "$VPS:/etc/hosts" "$DEST/staging/etc/"
 
-echo "--- [12/13] Pulling /usr/local/nginx/html ---"
+echo "--- [12/19] Pulling /usr/local/nginx/html ---"
 rsync_or_warn -az --delete --rsync-path="sudo rsync" "$VPS:/usr/local/nginx/html/" "$DEST/nginx-html/"
 
 echo "--- [13/19] Pulling ~/.claude ---"
