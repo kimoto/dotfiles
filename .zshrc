@@ -134,7 +134,7 @@ zle_highlight+=(paste:none)
 #=====================
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
-export LESS='-M -i -M -f -Q'
+export LESS='-M -i -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export EDITOR=nvim
 export VISUAL="$EDITOR"
@@ -142,8 +142,17 @@ export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-export LS_COLORS=$(vivid generate solarized-dark)
-export TERM=xterm-256color
+# LS_COLORS via vivid, cached to a file — the one startup subprocess _evalcache
+# doesn't cover (its output isn't eval-able). Regenerated when vivid updates.
+if (( $+commands[vivid] )); then
+  _vivid_cache="${XDG_CACHE_HOME:-$HOME/.cache}/vivid-ls-colors"
+  if [[ ! -s "$_vivid_cache" || "$_vivid_cache" -ot "$commands[vivid]" ]]; then
+    mkdir -p "${_vivid_cache:h}"
+    vivid generate solarized-dark >| "$_vivid_cache"
+  fi
+  export LS_COLORS="$(<"$_vivid_cache")"
+  unset _vivid_cache
+fi
 export GPG_TTY=$(tty)
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
