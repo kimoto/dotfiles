@@ -32,10 +32,13 @@ trap cleanup EXIT
 
 # Launch an *interactive* zsh inside a real (tmux) terminal. ZDOTDIR points at
 # the repo (same convention as the loading test); CI is cleared so .zshrc does
-# not enable err_exit and abort on the first non-zero command; the sync-check is
-# silenced so it neither touches the network nor adds noise to the pane.
+# not enable err_exit and abort on the first non-zero command; the sync-check
+# and the brew bundle check are silenced (like ci_zsh_loading_test.sh does) so
+# startup neither touches the network nor burns seconds of the pane's render
+# budget on `brew bundle check`.
 tmux -L "$SOCK" new-session -d -x 200 -y 50 \
-  "env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 TERM=xterm-256color '$ZSH_BIN' -i" ||
+  "env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 \
+TERM=xterm-256color '$ZSH_BIN' -i" ||
   die "failed to start tmux session"
 
 # 1) The interactive shell is live and rendering. Typing a command and seeing
