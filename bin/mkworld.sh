@@ -36,6 +36,11 @@ else
     echo "tmux not found on PATH; skipping tmux plugin install" >&2
 fi
 
+# Claude Code: register the tmux state-indicator hooks (pane/window colors for
+# waiting-for-input / finished states) in ~/.claude/settings.json. Idempotent;
+# warns and skips instead of failing when jq is missing.
+sh "$BASE_DIR/bin/install_claude_tmux_hooks.sh"
+
 # Install git hooks (lefthook) and the commit message template
 if command -v lefthook >/dev/null 2>&1; then
     (cd "$BASE_DIR" && lefthook install && git config --local commit.template .gitmessage)
