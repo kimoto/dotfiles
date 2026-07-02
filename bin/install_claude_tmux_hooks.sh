@@ -1,47 +1,88 @@
 #!/bin/sh
-# Register the Claude Code → tmux state-indicator hooks in
-# ~/.claude/settings.json (user level, so every project gets them). jq-merges
-# into the existing file: unrelated settings and hooks are preserved, and
-# reruns are no-ops (idempotent). Called by bin/mkworld.sh; safe to rerun by
-# hand. Never fails the bootstrap — missing jq or a hand-broken settings.json
-# only warns and exits 0.
+# Register (default) or remove (--uninstall) the Claude Code → tmux indicator
+# hooks in ~/.claude/settings.json. jq-merge: unrelated settings survive,
+# reruns are no-ops, and anything unexpected only warns — never fails the
+# mkworld bootstrap. rmworld.sh runs --uninstall.
 set -eu
 
 SETTINGS_DIR="$HOME/.claude"
 SETTINGS="$SETTINGS_DIR/settings.json"
-# Kept unexpanded on purpose: the hook command is run through a shell, so
-# $HOME resolves per machine and settings.json stays portable. ~/bin is the
-# symlink mklink.sh creates.
+MODE="${1:-install}"
+
+# Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
+# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
 # shellcheck disable=SC2016
-INDICATOR='$HOME/bin/claude_tmux_indicator.sh'
+GUARDED='[ ! -x "$HOME/bin/claude_tmux_indicator.sh" ] || "$HOME/bin/claude_tmux_indicator.sh"'
+
+warn() { echo "install_claude_tmux_hooks: $*" >&2; }
 
 if ! command -v jq >/dev/null 2>&1; then
-  echo "install_claude_tmux_hooks: jq not found; skipping" >&2
+  warn "jq not found; skipping"
   exit 0
 fi
+
+case "$MODE" in
+  install) ;;
+  --uninstall)
+    [ -f "$SETTINGS" ] || exit 0 ;;
+  *) echo "usage: $0 [--uninstall]" >&2; exit 2 ;;
+esac
 
 mkdir -p "$SETTINGS_DIR"
 [ -f "$SETTINGS" ] || printf '{}\n' >"$SETTINGS"
 
 if ! jq empty "$SETTINGS" 2>/dev/null; then
-  echo "install_claude_tmux_hooks: $SETTINGS is invalid JSON; leaving it untouched" >&2
+  warn "$SETTINGS is invalid JSON; leaving it untouched"
+  exit 0
+fi
+# Only touch the shape Claude Code documents: hooks = object of arrays of objects.
+if ! jq -e '(.hooks // {}) | type == "object" and all(.[]; type == "array" and all(.[]; type == "object"))' \
+    "$SETTINGS" >/dev/null 2>&1; then
+  warn "$SETTINGS has an unexpected .hooks shape; leaving it untouched"
   exit 0
 fi
 
-tmp="$(mktemp)"
-jq --arg ind "$INDICATOR" '
-  # Append {type: command, command: $cmd} under .hooks[$event] unless an entry
-  # already runs exactly that command.
-  def ensure($event; $cmd):
-    .hooks[$event] = ((.hooks[$event] // [])
-      | if any(.[]; any(.hooks[]?; .command == $cmd)) then .
-        else . + [{hooks: [{type: "command", command: $cmd}]}] end);
-  ensure("Notification";       $ind + " waiting")  # permission prompt / idle
-  | ensure("Stop";             $ind + " done")     # finished responding
-  | ensure("UserPromptSubmit"; $ind + " clear")
-  | ensure("PreToolUse";       $ind + " clear")    # resumed after a permission grant
-  | ensure("SessionStart";     $ind + " clear")
-  | ensure("SessionEnd";       $ind + " clear")
-' "$SETTINGS" >"$tmp"
-mv "$tmp" "$SETTINGS"
-echo "install_claude_tmux_hooks: indicator hooks present in $SETTINGS"
+tmp="$(mktemp "$SETTINGS_DIR/.settings.json.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+# Drop every entry that runs the indicator (any command-string version), so
+# install below is migration-safe strip-then-add.
+STRIP='
+  def strip_indicator:
+    if .hooks == null then .
+    else .hooks |= (with_entries(
+        .value |= map(select(
+          ([.hooks[]? | .command? // empty | strings]
+           | any(contains("claude_tmux_indicator.sh"))) | not))
+      ) | with_entries(select(.value != [])))
+    end;
+'
+
+if [ "$MODE" = "--uninstall" ]; then
+  jq "$STRIP strip_indicator" "$SETTINGS" >"$tmp"
+else
+  jq --arg cmd "$GUARDED" "$STRIP"'
+    def ensure($event; $arg):
+      .hooks[$event] = ((.hooks[$event] // [])
+        + [{hooks: [{type: "command", command: ($cmd + " " + $arg)}]}]);
+    strip_indicator
+    | ensure("Notification";     "waiting")  # permission prompt / idle
+    | ensure("Stop";             "done")     # finished responding
+    | ensure("UserPromptSubmit"; "clear")
+    | ensure("PreToolUse";       "clear")    # fires before any permission prompt
+    | ensure("PostToolUse";      "clear")    # clears the red an approved prompt left
+    | ensure("SessionStart";     "clear")
+    | ensure("SessionEnd";       "clear")
+  ' "$SETTINGS" >"$tmp"
+fi
+
+if cmp -s "$tmp" "$SETTINGS"; then
+  exit 0
+fi
+# cat, not mv: keeps a symlinked settings.json, its permissions and inode.
+cat "$tmp" >"$SETTINGS"
+if [ "$MODE" = "--uninstall" ]; then
+  warn "indicator hooks removed from $SETTINGS"
+else
+  warn "indicator hooks registered in $SETTINGS"
+fi
