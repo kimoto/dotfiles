@@ -413,8 +413,9 @@ fi
 #=====================
 # Remind at startup when a Brewfile bundle has packages that aren't installed
 # yet (after adding a formula, or on a freshly bootstrapped machine). Notify
-# only and throttled to once per 24h; see bin/brew_bundle_check.sh. Skipped in
-# CI via DOTFILES_NO_BREW_CHECK.
+# only: prints the cached result and refreshes it in a background job (at most
+# once per 24h), so startup never blocks on brew; see bin/brew_bundle_check.sh.
+# Skipped in CI via DOTFILES_NO_BREW_CHECK.
 if [[ -z "${DOTFILES_NO_BREW_CHECK:-}" ]]; then
   _dotfiles_dir="${${(%):-%x}:A:h}"
   [[ -x "$_dotfiles_dir/bin/brew_bundle_check.sh" ]] && "$_dotfiles_dir/bin/brew_bundle_check.sh"
