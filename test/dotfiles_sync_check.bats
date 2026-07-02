@@ -3,6 +3,11 @@
 # Behavioural tests for bin/dotfiles_sync_check.sh, the shell-startup reminder
 # that nags when the dotfiles repo is out of sync between machines.
 #
+# The script only prints the cached result of the *previous* run and recomputes
+# the state in a detached background job (same design as brew_bundle_check.sh),
+# so most tests assert in two steps: run once, wait_for the background refresh,
+# then run again to observe the nag.
+#
 # The script always inspects its OWN repo (dirname "$0"/..), so each test runs
 # a *copy* of the script placed inside a throwaway git repo. That repo is wired
 # to a local bare "remote" to exercise the ahead/behind branches without any
@@ -16,6 +21,7 @@ setup() {
   SRC="$REPO_ROOT/bin/dotfiles_sync_check.sh"
   TMP="$(mktemp -d)"
   export XDG_CACHE_HOME="$TMP/cache"
+  CACHE="$XDG_CACHE_HOME/dotfiles"
 
   REPO="$TMP/repo"
   mkdir -p "$REPO/bin"
@@ -36,6 +42,13 @@ setup() {
 }
 
 teardown() {
+  # A detached background refresh may still be recreating git lock files under
+  # $TMP while we delete it; retry until the tree stays gone.
+  for _ in $(seq 1 20); do
+    rm -rf "$TMP" 2>/dev/null
+    [ ! -e "$TMP" ] && return 0
+    sleep 0.1
+  done
   rm -rf "$TMP"
 }
 
@@ -46,14 +59,42 @@ add_upstream() {
   git -C "$REPO" push -q -u origin main
 }
 
+# Poll until the condition holds (~5s timeout) — the detached background
+# refresh leaves no process handle to wait on.
+wait_for() {
+  for _ in $(seq 1 50); do
+    eval "$1" && return 0
+    sleep 0.1
+  done
+  echo "timed out waiting for: $1" >&2
+  return 1
+}
+
 @test "DOTFILES_NO_SYNC_CHECK short-circuits with no output" {
   echo dirty >>"$REPO/seed.txt"          # would otherwise warn
   DOTFILES_NO_SYNC_CHECK=1 run "$SCRIPT"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+  # And no background job was spawned either.
+  sleep 1
+  [ ! -f "$CACHE/sync_status" ]
 }
 
-@test "clean repo with no upstream is silent" {
+@test "first run is silent and populates the cache in the background" {
+  echo dirty >>"$REPO/seed.txt"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  wait_for '[ -s "$CACHE/sync_status" ]'
+}
+
+@test "clean repo with no upstream stays silent across runs" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  # The result cache exists but is empty.
+  wait_for '[ -f "$CACHE/sync_status" ]'
+  [ ! -s "$CACHE/sync_status" ]
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -62,12 +103,16 @@ add_upstream() {
 @test "warns about uncommitted changes" {
   echo dirty >>"$REPO/seed.txt"
   run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"uncommitted changes"* ]]
 }
 
 @test "warns about untracked files too" {
   echo new >"$REPO/untracked.txt"
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
   run "$SCRIPT"
   [[ "$output" == *"uncommitted changes"* ]]
 }
@@ -76,6 +121,8 @@ add_upstream() {
   add_upstream
   echo more >>"$REPO/seed.txt"
   git -C "$REPO" commit -qam "feat: ahead"
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"unpushed commit"* ]]
@@ -95,7 +142,36 @@ add_upstream() {
   git -C "$REPO" fetch -q origin
 
   run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"behind upstream"* ]]
   [[ "$output" != *"unpushed commit"* ]]
+}
+
+@test "stale warning clears one run after the repo becomes clean" {
+  echo dirty >>"$REPO/seed.txt"
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  # Repo becomes clean; this run still shows the (stale) cached warning.
+  git -C "$REPO" checkout -q -- seed.txt
+  run "$SCRIPT"
+  [[ "$output" == *"uncommitted changes"* ]]
+  wait_for '[ ! -s "$CACHE/sync_status" ]'
+  run "$SCRIPT"
+  [ -z "$output" ]
+}
+
+@test "startup does not block on a slow git" {
+  # Stub git: any invocation sleeps 3s. The foreground must return before even
+  # a single git call could have finished.
+  STUB="$TMP/stubbin"
+  mkdir -p "$STUB"
+  printf '#!/bin/bash\nsleep 3\nexit 0\n' >"$STUB/git"
+  chmod +x "$STUB/git"
+
+  start=$(date +%s)
+  PATH="$STUB:$PATH" "$SCRIPT" >/dev/null 2>&1
+  elapsed=$(( $(date +%s) - start ))
+  [ "$elapsed" -lt 3 ]
 }
