@@ -7,7 +7,13 @@
 
 set -eu
 
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
+
 cd "$HOME" || exit 1
+
+# Claude Code のフック登録も外す (mkworld.sh の install と対)。
+# Unregister the Claude Code tmux-indicator hooks (pairs with mkworld.sh).
+sh "$BASE_DIR/bin/install_claude_tmux_hooks.sh" --uninstall || true
 
 # このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。
 # Only remove the entry if it is a symlink (never touch real files).

@@ -32,11 +32,12 @@ as_root() {
 }
 
 # zsh (zsh-syntax) + shellcheck (shell-lint) + bats (unit tests) + luajit
-# (lua-syntax: parse nvim's Lua with its own runtime) via apt.
+# (lua-syntax: parse nvim's Lua with its own runtime) + jq (unit tests:
+# install_claude_tmux_hooks.sh and its bats suite) via apt.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
-  as_root apt-get install -y -qq zsh shellcheck bats luajit >/dev/null
+  as_root apt-get install -y -qq zsh shellcheck bats luajit jq >/dev/null
 fi
 
 # mikefarah yq (config-syntax: `yq -p toml|json|yaml`).
