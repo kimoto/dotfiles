@@ -24,6 +24,13 @@ STUBEOF
   cat >"$STUB/brew" <<'STUBEOF'
 #!/bin/bash
 echo "brew $*" >>"$BREW_LOG"
+if [ "$1" = "tap" ] && [ "$#" -eq 1 ]; then
+  if [ "${STUB_DOMT4_TAPPED:-0}" = "1" ]; then
+    echo "domt4/autoupdate"
+  fi
+  echo "homebrew/autoupdate"
+  exit 0
+fi
 if [ "$1" = "autoupdate" ] && [ "$2" = "status" ]; then
   if [ "${STUB_RUNNING:-0}" = "1" ]; then
     echo "Autoupdate is installed and running."
@@ -55,6 +62,19 @@ teardown() {
   run cat "$BREW_LOG"
   [[ "$output" == *"brew tap homebrew/autoupdate"* ]]
   [[ "$output" == *"brew autoupdate start 604800 --upgrade --cleanup"* ]]
+}
+
+@test "untaps a leftover untrusted domt4/autoupdate tap before tapping the official one" {
+  STUB_UNAME=Darwin STUB_RUNNING=0 STUB_DOMT4_TAPPED=1 run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  run cat "$BREW_LOG"
+  [[ "$output" == *"brew untap domt4/autoupdate"* ]]
+}
+
+@test "does not untap anything when domt4/autoupdate is not present" {
+  STUB_UNAME=Darwin STUB_RUNNING=0 run "$SCRIPT"
+  run cat "$BREW_LOG"
+  [[ "$output" != *"untap"* ]]
 }
 
 @test "does not pass --sudo (casks needing a password stay manual)" {

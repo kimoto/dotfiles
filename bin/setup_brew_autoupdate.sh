@@ -39,6 +39,14 @@ if [ -z "$BREW_BIN" ]; then
     exit 0
 fi
 
+# A leftover tap of the pre-official domt4/autoupdate (this command's origin
+# before Homebrew adopted it) provides the same `autoupdate` command name and,
+# being untrusted, makes Homebrew refuse to load either tap's version. Drop it
+# so the official, trusted homebrew/autoupdate tap is unambiguous.
+if "$BREW_BIN" tap 2>/dev/null | grep -qx 'domt4/autoupdate'; then
+    "$BREW_BIN" untap domt4/autoupdate >/dev/null 2>&1 || true
+fi
+
 # Make sure the tap providing the `autoupdate` subcommand is present.
 "$BREW_BIN" tap homebrew/autoupdate >/dev/null 2>&1 || true
 
