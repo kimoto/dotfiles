@@ -71,6 +71,9 @@ truth, so the two never diverge.
 - An auto-created PR (web/remote) starts with an empty body — the template is
   only injected by the GitHub UI; backfill it from the template before anything.
 - Claude Code auto-appends its PR-body / commit trailers — don't remove them.
+- After creating a PR from a session that can receive PR events, subscribe to
+  its activity (`subscribe_pr_activity`) right away without asking — watch CI
+  and review comments and act on them until the PR is merged or closed.
 
 ### Language
 
