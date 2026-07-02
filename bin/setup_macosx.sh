@@ -18,5 +18,7 @@ defaults write -g AppleShowAllExtensions -bool true
 defaults write -g KeyRepeat -int 1
 defaults write -g InitialKeyRepeat -int 10
 
-# 起動音をミュート
-sudo nvram StartupMute=%01
+# 起動音をミュート（sudoが要るのはここだけなので、既に設定済みならスキップする）
+if [ "$(nvram StartupMute 2>/dev/null | awk '{print $2}')" != "%01" ]; then
+    sudo nvram StartupMute=%01
+fi
