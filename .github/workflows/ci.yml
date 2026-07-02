@@ -142,6 +142,9 @@ jobs:
       - name: e2e for the status bar and dynamic window/pane formats
         run: ./bin/ci_tmux_status_test.sh
 
+      - name: e2e for the Claude Code tmux state indicator (hook script + formats)
+        run: ./bin/ci_claude_tmux_indicator_test.sh
+
       - name: Starship prompt e2e (render in a real terminal, assert segments)
         run: ./bin/ci_starship_test.sh
 
