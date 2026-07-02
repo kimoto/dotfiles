@@ -26,3 +26,6 @@ ln -sf "$BASE_DIR/.zshrc" ./
 ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
 ln -sf "$BASE_DIR/.aerospace.toml" ./
+
+mkdir -p "$HOME/.claude"
+ln -sf "$BASE_DIR/claude-user-settings.json" "$HOME/.claude/settings.json"
