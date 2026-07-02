@@ -82,13 +82,18 @@ inline = 'if (( $+commands[kubectl] )); then zsh-defer _evalcache kubectl comple
 # LS_COLORS palette. vivid prints a raw value (not shell code), so
 # bin/vivid_ls_colors.sh (on PATH via ~/bin) wraps it in an export statement.
 # Guarded so a vivid-less box stays silent instead of re-caching every startup.
+# Only affects `ls`/`eza` colors, not the prompt, so defer it past the first
+# prompt like kubectl's completion (~20ms measured via zprof).
 [plugins.vivid-ls-colors]
-inline = 'if (( $+commands[vivid] )); then _evalcache vivid_ls_colors.sh; fi'
+inline = 'if (( $+commands[vivid] )); then zsh-defer _evalcache vivid_ls_colors.sh; fi'
 
 # Multi-shell completion engine. Bridges to zsh's native completions
 # (CARAPACE_BRIDGES in .zshrc) for commands it doesn't ship a spec for.
+# Even the cached copy's compdef registrations are the single biggest
+# _evalcache cost measured (~65ms via zprof) - defer past the first prompt,
+# same reasoning as kubectl's completion above.
 [plugins.carapace]
-inline = '_evalcache carapace _carapace zsh'
+inline = 'zsh-defer _evalcache carapace _carapace zsh'
 
 [templates]
 defer = "{{ hooks?.pre | nl }}{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}{{ hooks?.post | nl }}"
