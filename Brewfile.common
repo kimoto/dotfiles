@@ -21,8 +21,6 @@ brew "btop"
 brew "check-jsonschema"
 # Apjanke's fork of the classic cowsay project
 brew "cowsay"
-# Reimplementation of ctags(1)
-brew "ctags"
 # Power of curl, ease of use of httpie
 brew "curlie"
 # Structural diff that understands syntax (on-demand via `git dft`)
@@ -121,6 +119,8 @@ brew "silicon"
 brew "telnet"
 # Manage complex tmux sessions easily
 brew "tmuxinator"
+# Maintained, actively developed ctags implementation
+brew "universal-ctags"
 # Vi 'workalike' with many additional features
 brew "vim"
 # Executes a program periodically, showing output fullscreen
