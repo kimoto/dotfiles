@@ -54,6 +54,12 @@ inline = '_evalcache direnv hook zsh'
 [plugins.kubectl-completion]
 inline = '_evalcache kubectl completion zsh'
 
+# LS_COLORS palette. vivid prints a raw value (not shell code), so
+# bin/vivid_ls_colors.sh (on PATH via ~/bin) wraps it in an export statement.
+# Guarded so a vivid-less box stays silent instead of re-caching every startup.
+[plugins.vivid-ls-colors]
+inline = 'if (( $+commands[vivid] )); then _evalcache vivid_ls_colors.sh; fi'
+
 # Multi-shell completion engine. Bridges to zsh's native completions
 # (CARAPACE_BRIDGES in .zshrc) for commands it doesn't ship a spec for.
 [plugins.carapace]
