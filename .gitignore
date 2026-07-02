@@ -38,6 +38,7 @@ config/*
 !config/mise/
 !config/nvim/
 !config/sheldon/
+!config/zsh/
 !config/zsh-abbr/
 !config/starship.toml
 !config/starship_sub.toml

@@ -12,6 +12,11 @@ apply = ['fzf-install', 'fzf-source']
 github = 'mroth/evalcache'
 apply = ['source']
 
+# Replace _evalcache with a no-fork variant (upstream forks md5 per call just
+# to name the cache file). Must load before the _evalcache inlines below.
+[plugins.evalcache.hooks]
+post = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/evalcache-no-fork.zsh"'
+
 #================
 # defer loading
 #================
