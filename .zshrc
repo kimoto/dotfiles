@@ -82,8 +82,23 @@ sudo_path=(
 # brew shellenv is not eval'd here: its output is static per machine, so it is
 # cached via the brew-shellenv _evalcache inline in config/sheldon/plugins.toml.
 # The path=() block above already puts brew itself on PATH.
+# `sheldon source` output is cached; regenerated when plugins.toml or the
+# lock file changes, kept on failure. Delete the cache to force a rebuild.
 if builtin command -v sheldon >/dev/null; then
-  eval "$(sheldon source)"
+  _sheldon_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/sheldon.zsh"
+  _sheldon_toml="${XDG_CONFIG_HOME:-$HOME/.config}/sheldon/plugins.toml"
+  _sheldon_lock="${XDG_DATA_HOME:-$HOME/.local/share}/sheldon/plugins.lock"
+  if [[ ! -s "$_sheldon_cache" || "$_sheldon_toml" -nt "$_sheldon_cache" \
+        || "$_sheldon_lock" -nt "$_sheldon_cache" ]]; then
+    mkdir -p "${_sheldon_cache:h}"
+    if sheldon source >| "$_sheldon_cache.new"; then
+      mv -f "$_sheldon_cache.new" "$_sheldon_cache"
+    else
+      rm -f "$_sheldon_cache.new"
+    fi
+  fi
+  [[ -s "$_sheldon_cache" ]] && source "$_sheldon_cache"
+  unset _sheldon_cache _sheldon_toml _sheldon_lock
 fi
 
 # CI strict mode: fail on actual command errors during .zshrc load.
@@ -105,6 +120,7 @@ setopt pushdignoredups # 重複を記録しない
 setopt interactivecomments # コメントを有効化
 setopt share_history # historyを共有
 setopt incappendhistory # incrementalに追加
+setopt hist_fcntl_lock # fcntl histfile locking: cheaper than the default per-command lockfile dance
 setopt multios # 複数のリダイレクトやパイプに対応
 setopt extended_history # ヒストリに時刻を追加
 setopt noclobber # リダイレクトで上書き禁止
@@ -126,8 +142,10 @@ setopt globdots # dotも補完
 # history & shell vars
 #=====================
 HISTFILE=~/.zsh_history
-HISTSIZE=9999999
-SAVEHIST=9999999
+# Capped: an untrimmed histfile is parsed whole at every startup and gets
+# slower forever (~1.5s at 2M entries vs ~50ms at 100k).
+HISTSIZE=100000
+SAVEHIST=100000
 MAILCHECK=0
 WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 watch=notme # watch and notify, other login user
