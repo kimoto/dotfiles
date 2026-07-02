@@ -1,7 +1,8 @@
 <!--
 Keep this PR small and focused. Prefer 1 commit per PR.
-Commit subjects must follow Conventional Commits (enforced by lefthook):
-  type(scope): description   type ∈ {feat, fix, chore, docs, refactor, ci}
+Commit subjects must follow Conventional Commits (enforced by lefthook + CI):
+  type(scope): description
+  type ∈ {feat, fix, chore, docs, refactor, ci, test, revert}
 -->
 
 ## Summary
