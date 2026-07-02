@@ -188,6 +188,10 @@ alias top='btop'
 alias ping='gping'
 alias dig='doggo'
 alias grep='grep --color=auto'
+# egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
+# route through the grep alias above, so they get color and skip the warning.
+alias egrep='grep -E'
+alias fgrep='grep -F'
 alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 alias gist='gh gist create --web'

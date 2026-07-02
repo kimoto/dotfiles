@@ -55,6 +55,10 @@ if [[ "$PS1" ]]; then
   export LESS="-gieRmX"
   export PATH=$HOME/bin:$HOME/local/bin:$PATH
   alias grep='grep --binary-files=without-match --color=auto'
+  # egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
+  # route through the grep alias above, so they get color and skip the warning.
+  alias egrep='grep -E'
+  alias fgrep='grep -F'
 
   # history grep
   function hgrep {
