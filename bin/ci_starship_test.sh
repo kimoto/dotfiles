@@ -69,13 +69,9 @@ wait_for() {
   die "timed out waiting for: $pattern"
 }
 
-# Launch an interactive zsh in a real terminal, started inside the marker dir.
-# Same conventions as ci_tmux_interactive_test.sh: ZDOTDIR points at the repo, CI
-# is cleared so .zshrc does not enable err_exit, the sync-check and the brew
-# bundle check are silenced.
-tmux -L "$SOCK" new-session -d -x 200 -y 50 -c "$WORK" \
-  "env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 \
-TERM=xterm-256color '$ZSH_BIN' -i" ||
+# Launch an interactive zsh in a real terminal, started inside the marker dir,
+# under the shared CI pane conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh).
+tmux -L "$SOCK" new-session -d -x 200 -y 50 -c "$WORK" "$(zsh_pane_cmd)" ||
   die "failed to start tmux session"
 
 # 1) Starship is the live prompt (not the fallback): its [time] module renders a

@@ -120,13 +120,10 @@ wait_absent() {
   die "expected to disappear but still on screen: $pattern"
 }
 
-# Launch an interactive zsh in a real terminal. The stub bin is prepended to
-# PATH so `ghq`/`bat` resolve to the fixtures; CI is cleared so .zshrc does not
-# enable err_exit and abort on a missing tool; the sync check and the brew
-# bundle check are silenced.
-tmux -L "$SOCK" new-session -d -x 200 -y 50 \
-  "env CI= PATH='$STUB_BIN:$PATH' ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 \
-TERM=xterm-256color '$ZSH_BIN' -i" ||
+# Launch an interactive zsh in a real terminal, under the shared CI pane
+# conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh). The stub bin is
+# prepended to PATH so `ghq`/`bat` resolve to the fixtures.
+tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd "PATH='$STUB_BIN:$PATH'")" ||
   die "failed to start tmux session"
 
 # 0) Shell is live and our fixtures are the ones on PATH (proves the env took).

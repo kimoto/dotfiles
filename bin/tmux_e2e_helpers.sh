@@ -20,6 +20,27 @@ die() { echo "CI error: $*" >&2; exit 1; }
 # need <cmd>: abort unless <cmd> is on PATH.
 need() { command -v "$1" >/dev/null 2>&1 || die "$1 not installed"; }
 
+# zsh_pane_cmd [VAR=value ...]: build the new-session command string that
+# launches an interactive zsh pane under the shared CI conventions:
+#   - CI is cleared so .zshrc does not enable err_exit and abort on the first
+#     non-zero command;
+#   - the startup sync-check and brew bundle check are silenced so the pane
+#     neither touches the network nor burns seconds of its first-render budget;
+#   - TERM is pinned for reproducible rendering.
+# Extra VAR=value assignments (e.g. a stubbed PATH) land before zsh. Requires
+# $REPO (the ZDOTDIR under test) and $ZSH_BIN, set by every caller.
+zsh_pane_cmd() {
+  if [ -z "${REPO:-}" ] || [ -z "${ZSH_BIN:-}" ]; then
+    die "zsh_pane_cmd needs REPO and ZSH_BIN"
+  fi
+  local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 TERM=xterm-256color"
+  local a
+  for a in "$@"; do
+    cmd="$cmd $a"
+  done
+  printf '%s' "$cmd '$ZSH_BIN' -i"
+}
+
 # tmux_conf_path: echo the .tmux.conf under test — TMUX_CONF override, else
 # $HOME/.tmux.conf, else the repo copy in $PWD.
 tmux_conf_path() {
