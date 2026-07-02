@@ -41,6 +41,31 @@ jobs:
         run: ./bin/check_secret_files.sh
       - name: Scan for secrets (gitleaks)
         run: gitleaks git --no-banner --redact
+      - name: Check commit messages (Conventional Commits)
+        # Same rule as the lefthook commit-msg hook, applied to every commit on
+        # this branch — catches --no-verify and web-UI commits that bypass the
+        # local hook. Needs the fetch-depth: 0 checkout above for origin/main.
+        run: ./bin/check_commit_msgs_range.sh
+
+  # bin/install_check_tools.sh maps uname -m onto each project's release-asset
+  # naming, and the Claude Code web sandbox that runs it via the SessionStart
+  # hook can be arm64. Every other job covers x86_64 only; this one downloads
+  # the arm64 assets and exercises each installed binary for real via the lint
+  # scripts that depend on it.
+  toolchain_arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - name: Install check tools (arm64 release assets)
+        run: ./bin/install_check_tools.sh
+      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec)
+        run: |
+          ./bin/lint_config.sh
+          ./bin/lint_schema.sh
+          ./bin/lint_actions.sh
+          ./bin/lint_editorconfig.sh
+          gitleaks version
+          lefthook version
 
   zsh_loading_test:
     runs-on: ubuntu-latest

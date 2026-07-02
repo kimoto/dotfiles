@@ -16,7 +16,6 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 REPO="${CLAUDE_PROJECT_DIR:-$PWD}"
-LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.1.9}"
 
 as_root() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -26,16 +25,11 @@ as_root() {
   fi
 }
 
-# 1. Shared lint toolchain (zsh, shellcheck, yq, gitleaks, ratchet).
+# 1. Shared lint toolchain (zsh, shellcheck, yq, gitleaks, ratchet, lefthook —
+#    versions pinned in bin/install_check_tools.sh, the single source of truth).
 "$REPO/bin/install_check_tools.sh"
 
-# 2. lefthook — git hook runner; install hooks so commits run CI's checks.
-if ! command -v lefthook >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_x86_64.gz" \
-    | gunzip > /tmp/lefthook
-  as_root install -m 0755 /tmp/lefthook /usr/local/bin/lefthook
-  rm -f /tmp/lefthook
-fi
+# 2. Install the git hooks so commits run CI's checks.
 if cd "$REPO"; then
   lefthook install >/dev/null 2>&1 || true
 fi

@@ -46,8 +46,12 @@
 [mergetool "nvimdiff"]
   layout = "LOCAL,BASE,REMOTE / MERGED"
 
+[init]
+  defaultBranch = main
+
 [push]
   default = current
+  autoSetupRemote = true
 
 [pull]
   ff = only

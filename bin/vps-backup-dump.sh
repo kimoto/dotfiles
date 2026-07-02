@@ -3,6 +3,8 @@
 set -euo pipefail
 
 STAGING="$HOME/backup-staging"
+# Root-staged files get chowned to this user so the rsync pull can read them.
+OWNER="${BACKUP_OWNER:-$(id -un):$(id -gn)}"
 
 echo "[dump] Preparing $STAGING"
 mkdir -p "$STAGING/systemd" "$STAGING/cron.d" "$STAGING/etc/ssh" \
@@ -22,31 +24,31 @@ fi
 echo "[dump] systemd custom units..."
 sudo cp /etc/systemd/system/*.service "$STAGING/systemd/" 2>/dev/null || true
 sudo cp /etc/systemd/system/*.timer   "$STAGING/systemd/" 2>/dev/null || true
-sudo chown kimoto:users "$STAGING/systemd/"* 2>/dev/null || true
+sudo chown "$OWNER" "$STAGING/systemd/"* 2>/dev/null || true
 
 echo "[dump] cron.d..."
 sudo cp -r /etc/cron.d/. "$STAGING/cron.d/" 2>/dev/null || true
-sudo chown -R kimoto:users "$STAGING/cron.d"
+sudo chown -R "$OWNER" "$STAGING/cron.d"
 
 echo "[dump] sshd_config..."
 sudo cp /etc/ssh/sshd_config "$STAGING/etc/ssh/"
-sudo chown kimoto:users "$STAGING/etc/ssh/sshd_config"
+sudo chown "$OWNER" "$STAGING/etc/ssh/sshd_config"
 
 echo "[dump] MariaDB config..."
 sudo cp /etc/my.cnf.d/server.cnf "$STAGING/etc/my.cnf.d/" 2>/dev/null || true
-sudo chown kimoto:users "$STAGING/etc/my.cnf.d/"* 2>/dev/null || true
+sudo chown "$OWNER" "$STAGING/etc/my.cnf.d/"* 2>/dev/null || true
 
 echo "[dump] sysctl security config..."
 sudo cp /etc/sysctl.d/99-security.conf "$STAGING/etc/sysctl.d/" 2>/dev/null || true
-sudo chown kimoto:users "$STAGING/etc/sysctl.d/"* 2>/dev/null || true
+sudo chown "$OWNER" "$STAGING/etc/sysctl.d/"* 2>/dev/null || true
 
 echo "[dump] sudoers.d..."
 sudo cp -r /etc/sudoers.d/. "$STAGING/etc/sudoers.d/" 2>/dev/null || true
-sudo chown -R kimoto:users "$STAGING/etc/sudoers.d"
+sudo chown -R "$OWNER" "$STAGING/etc/sudoers.d"
 
 echo "[dump] profile.d (custom)..."
 sudo cp /etc/profile.d/mise-system.sh /etc/profile.d/mise.sh "$STAGING/etc/profile.d/" 2>/dev/null || true
-sudo chown kimoto:users "$STAGING/etc/profile.d/"* 2>/dev/null || true
+sudo chown "$OWNER" "$STAGING/etc/profile.d/"* 2>/dev/null || true
 
 echo "[dump] firewalld rules..."
 sudo firewall-cmd --list-all 2>/dev/null | tee "$STAGING/firewalld-rules.txt" > /dev/null || true
@@ -56,15 +58,15 @@ sudo sshd -T 2>/dev/null | tee "$STAGING/sshd-T.txt" > /dev/null || true
 
 echo "[dump] letsencrypt certs..."
 sudo cp -r /etc/letsencrypt/. "$STAGING/letsencrypt/" 2>/dev/null || true
-sudo chown -R kimoto:users "$STAGING/letsencrypt"
+sudo chown -R "$OWNER" "$STAGING/letsencrypt"
 
 echo "[dump] nginx disabled vhosts..."
 sudo cp -r /root/nginx-disabled-vhosts/. "$STAGING/nginx-disabled-vhosts/" 2>/dev/null || true
-sudo chown -R kimoto:users "$STAGING/nginx-disabled-vhosts"
+sudo chown -R "$OWNER" "$STAGING/nginx-disabled-vhosts"
 
 echo "[dump] /etc full tarball..."
 sudo tar -czf "$STAGING/etc-all.tar.gz" /etc 2>/dev/null || true
-sudo chown kimoto:users "$STAGING/etc-all.tar.gz" 2>/dev/null || true
+sudo chown "$OWNER" "$STAGING/etc-all.tar.gz" 2>/dev/null || true
 echo "[dump] /etc: $(du -sh "$STAGING/etc-all.tar.gz" | cut -f1)"
 
 echo "[dump] crontabs..."
@@ -79,6 +81,6 @@ dnf repolist > "$STAGING/dnf-repolist.txt" 2>/dev/null || true
 
 echo "[dump] nginx logs..."
 sudo cp -r /usr/local/nginx/logs/. "$STAGING/nginx-logs/" 2>/dev/null || true
-sudo chown -R kimoto:users "$STAGING/nginx-logs" 2>/dev/null || true
+sudo chown -R "$OWNER" "$STAGING/nginx-logs" 2>/dev/null || true
 
 echo "[dump] Done. $(du -sh "$STAGING" | cut -f1) in $STAGING"

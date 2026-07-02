@@ -25,7 +25,7 @@ if [[ "$PS1" ]]; then
   alias s='screen -xRR'
   alias h='history 25'
   alias total='sort | uniq -c | sort -nr'
-  alias ipaddr="egrep -o '[0-9]+(\.[0-9]+){3}'"
+  alias ipaddr="grep -Eo '[0-9]+(\.[0-9]+){3}'"
   alias irb='pry'
 
   set -o emacs
@@ -53,18 +53,21 @@ if [[ "$PS1" ]]; then
   export SVN_EDITOR=vim
   export LANG=ja_JP.UTF-8
   export LESS="-gieRmX"
-  export LESSCHARSET=latin1	# output binary
   export PATH=$HOME/bin:$HOME/local/bin:$PATH
-  export GREP_OPTIONS="--binary-files=without-match --color=auto"
+  alias grep='grep --binary-files=without-match --color=auto'
+  # egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
+  # route through the grep alias above, so they get color and skip the warning.
+  alias egrep='grep -E'
+  alias fgrep='grep -F'
 
   # history grep
   function hgrep {
-    history | egrep -i "$*" | tail;
+    history | grep -Ei "$*" | tail;
   }
 
   # command grep
   function cmdgrep {
-    echo $PATH | tr '\n:' '\0' | sort -uz | xargs -0 ls 2>/dev/null | egrep -i "$*"
+    echo $PATH | tr '\n:' '\0' | sort -uz | xargs -0 ls 2>/dev/null | grep -Ei "$*"
   }
 
   # change prompt (short prompt <-> long prompt)

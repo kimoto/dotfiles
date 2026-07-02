@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pull a backup from the Sakura VPS to ~/Backups/vps/ on this Mac.
 # Run manually: vps-backup-pull.sh
-# Requires SSH key auth to tk2-237-28023.vs.sakura.ne.jp.
+# Requires SSH key auth to the VPS ($VPS_HOST or the vps-sakura ssh alias).
 set -euo pipefail
 
 # Set VPS_HOST in your environment, or add a Host alias "vps-sakura" in ~/.ssh/config

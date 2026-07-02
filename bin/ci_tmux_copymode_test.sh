@@ -4,10 +4,10 @@
 # key table (not the program in the pane), so a sent `v`/`y` exercise the real
 # bindings from .tmux.conf:
 #   bind-key -T copy-mode-vi v send-keys -X begin-selection
-#   bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
-# `y` pipes to pbcopy (macOS only), but copy-pipe ALSO stores the selection in a
-# tmux paste buffer regardless of the pipe command, so asserting on `show-buffer`
-# works headless on Linux too (pbcopy simply isn't there and is ignored).
+#   bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy ... || wl-copy ... || xclip ..."
+# `y` pipes to the first clipboard tool present, but copy-pipe ALSO stores the
+# selection in a tmux paste buffer regardless of the pipe command, so asserting
+# on `show-buffer` works headless too (no clipboard tool needed).
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"

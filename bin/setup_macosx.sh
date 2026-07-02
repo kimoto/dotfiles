@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 # 音量アイコンをMenuBarに表示
 defaults write com.apple.systemuiserver "NSStatusItem Visible com.apple.menuextra.volume" 1
 

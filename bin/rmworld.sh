@@ -5,7 +5,7 @@
 # mklink.sh と対になっているので、リンク対象を増減したら両方を更新すること。
 # Keep this list in sync with bin/mklink.sh.
 
-set -u
+set -eu
 
 cd "$HOME" || exit 1
 
@@ -33,7 +33,6 @@ unlink_if_symlink "./.gitconfig.default_user"
 unlink_if_symlink "./.gitignore"
 unlink_if_symlink "./.tmux.conf"
 unlink_if_symlink "./.zshrc"
-unlink_if_symlink "./.zlogin"
 unlink_if_symlink "./.irbrc"
 unlink_if_symlink "./.vimrc"
 unlink_if_symlink "./.aerospace.toml"

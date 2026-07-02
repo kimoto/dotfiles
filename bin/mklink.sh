@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -eu
 set -x
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
@@ -23,7 +23,6 @@ ln -sf "$BASE_DIR/.gitconfig.default_user" ./
 ln -sf "$BASE_DIR/.gitignore" ./
 ln -sf "$BASE_DIR/.tmux.conf" ./
 ln -sf "$BASE_DIR/.zshrc" ./
-ln -sf "$BASE_DIR/.zlogin" ./
 ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
 ln -sf "$BASE_DIR/.aerospace.toml" ./

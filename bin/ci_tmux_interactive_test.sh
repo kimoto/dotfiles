@@ -30,12 +30,9 @@ SOCK="ci_tmux_e2e_$$"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
 
-# Launch an *interactive* zsh inside a real (tmux) terminal. ZDOTDIR points at
-# the repo (same convention as the loading test); CI is cleared so .zshrc does
-# not enable err_exit and abort on the first non-zero command; the sync-check is
-# silenced so it neither touches the network nor adds noise to the pane.
-tmux -L "$SOCK" new-session -d -x 200 -y 50 \
-  "env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 TERM=xterm-256color '$ZSH_BIN' -i" ||
+# Launch an *interactive* zsh inside a real (tmux) terminal, under the shared
+# CI pane conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh).
+tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd)" ||
   die "failed to start tmux session"
 
 # 1) The interactive shell is live and rendering. Typing a command and seeing

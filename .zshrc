@@ -134,7 +134,7 @@ zle_highlight+=(paste:none)
 #=====================
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
-export LESS='-M -i -M -f -Q'
+export LESS='-M -i -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export EDITOR=nvim
 export VISUAL="$EDITOR"
@@ -142,8 +142,8 @@ export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-export LS_COLORS=$(vivid generate solarized-dark)
-export TERM=xterm-256color
+# LS_COLORS is exported during `sheldon source` via _evalcache — see the
+# vivid-ls-colors inline plugin in config/sheldon/plugins.toml.
 export GPG_TTY=$(tty)
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
@@ -179,6 +179,10 @@ alias top='btop'
 alias ping='gping'
 alias dig='doggo'
 alias grep='grep --color=auto'
+# egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
+# route through the grep alias above, so they get color and skip the warning.
+alias egrep='grep -E'
+alias fgrep='grep -F'
 alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 alias gist='gh gist create --web'
