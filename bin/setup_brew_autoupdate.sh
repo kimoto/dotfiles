@@ -49,6 +49,7 @@ if "$BREW_BIN" autoupdate status 2>/dev/null | grep -Eqi 'and running|are enable
 fi
 
 # Start it: update + upgrade (formulae, plus non-greedy casks) + cleanup, weekly,
-# with a macOS notification. No --sudo on purpose (see header).
-"$BREW_BIN" autoupdate start "$INTERVAL" --upgrade --cleanup --enable-notification
+# with a macOS notification (notifications are on by default). No --sudo on
+# purpose (see header).
+"$BREW_BIN" autoupdate start "$INTERVAL" --upgrade --cleanup
 echo "brew autoupdate started: every $INTERVAL s, background upgrade + cleanup."

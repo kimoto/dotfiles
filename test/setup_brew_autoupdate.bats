@@ -54,7 +54,7 @@ teardown() {
   [ "$status" -eq 0 ]
   run cat "$BREW_LOG"
   [[ "$output" == *"brew tap homebrew/autoupdate"* ]]
-  [[ "$output" == *"brew autoupdate start 604800 --upgrade --cleanup --enable-notification"* ]]
+  [[ "$output" == *"brew autoupdate start 604800 --upgrade --cleanup"* ]]
 }
 
 @test "does not pass --sudo (casks needing a password stay manual)" {
