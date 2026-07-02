@@ -58,8 +58,12 @@ inline = '_evalcache mise activate zsh'
 [plugins.direnv]
 inline = '_evalcache direnv hook zsh'
 
+# kubectl's completion script is big enough that even the cached copy takes
+# time to parse every startup: defer the parse past the first prompt. Guarded
+# on kubectl so machines without it (kubectl ships in Brewfile.common, not
+# basic) skip it silently.
 [plugins.kubectl-completion]
-inline = '_evalcache kubectl completion zsh'
+inline = 'if (( $+commands[kubectl] )); then zsh-defer _evalcache kubectl completion zsh; fi'
 
 # LS_COLORS palette. vivid prints a raw value (not shell code), so
 # bin/vivid_ls_colors.sh (on PATH via ~/bin) wraps it in an export statement.
