@@ -49,6 +49,11 @@ if [[ ! -e "$_zcompdump" || $#_zcompdump_stale -gt 0 ]]; then
 else
   compinit -C -d "$_zcompdump"
 fi
+# Compile the dump to wordcode; zsh sources the .zwc automatically when it is
+# at least as new as the dump. Recompile only right after a dump rebuild.
+if [[ -s "$_zcompdump" && ( ! -s "$_zcompdump.zwc" || "$_zcompdump" -nt "$_zcompdump.zwc" ) ]]; then
+  zcompile "$_zcompdump"
+fi
 unset _zcompdump _zcompdump_stale
 
 #=====================
@@ -74,10 +79,9 @@ sudo_path=(
 #=====================
 # package managers / plugins
 #=====================
-if builtin command -v brew >/dev/null; then
-  eval "$(brew shellenv)"
-fi
-
+# brew shellenv is not eval'd here: its output is static per machine, so it is
+# cached via the brew-shellenv _evalcache inline in config/sheldon/plugins.toml.
+# The path=() block above already puts brew itself on PATH.
 if builtin command -v sheldon >/dev/null; then
   eval "$(sheldon source)"
 fi
@@ -144,7 +148,7 @@ export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
 # LS_COLORS is exported during `sheldon source` via _evalcache — see the
 # vivid-ls-colors inline plugin in config/sheldon/plugins.toml.
-export GPG_TTY=$(tty)
+export GPG_TTY=$TTY # zsh sets $TTY itself; saves a tty(1) fork per shell
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
 
@@ -342,10 +346,20 @@ chpwd() {
   ll
 }
 
-# Keep the tmux window name in sync with the current directory.
+# Keep the tmux window name in sync with the current directory. Renames only
+# when the name actually changed, so the common case (precmd on every prompt)
+# forks nothing; the trade-off is that an external rename sticks until the
+# next cd.
 update_tmux_window () {
   [[ -n "$TMUX" ]] || return
-  tmux rename-window "$(basename "$PWD")"
+  # '.' and ':' are target separators that tmux (>= 3.7) rejects in window
+  # names ("invalid window name"), so map them to '_'.
+  local name="${${PWD:t}//[.:]/_}"
+  [[ "$name" == "${_tmux_window_name:-}" ]] && return
+  # Cache only after a successful rename, so a transient failure (tmux briefly
+  # off PATH mid-hook, server hiccup) is retried at the next prompt instead of
+  # silently sticking the wrong name forever.
+  tmux rename-window "$name" && _tmux_window_name="$name"
 }
 add-zsh-hook chpwd update_tmux_window
 add-zsh-hook precmd update_tmux_window

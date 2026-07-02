@@ -35,6 +35,12 @@ trap cleanup EXIT
 tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd)" ||
   die "failed to start tmux session"
 
+# Isolate the window-rename assertion (step 4) from tmux itself: with the
+# repo's .tmux.conf loaded, automatic-rename would follow pane_current_path
+# and could rename the window even if the zsh hook under test never ran.
+WIN_ID="$(tmux -L "$SOCK" display-message -p '#{window_id}')"
+tmux -L "$SOCK" set-option -w -t "$WIN_ID" automatic-rename off
+
 # 1) The interactive shell is live and rendering. Typing a command and seeing
 #    its *computed* output ($((6 * 7)) -> 42) on screen proves the full
 #    keystroke -> eval -> render path through a genuine terminal.
@@ -64,5 +70,44 @@ tmux -L "$SOCK" send-keys Up
 wait_for_pane "$SOCK" 'echo __E2E_HIST_MARK__'
 tmux -L "$SOCK" send-keys C-c
 echo "== zle Up-arrow recalled previous command =="
+
+# 4) update_tmux_window: after a cd, the chpwd hook must rename the tmux window
+#    to the directory tail. `builtin cd` bypasses the interactive cd->z alias so
+#    the assertion does not depend on zoxide being installed. mktemp's basename
+#    contains a '.' on purpose: tmux >= 3.7 rejects '.'/':' in window names
+#    (target separators), so the hook must sanitize them — pin that here.
+e2e_dir="$(mktemp -d)"
+e2e_base="$(basename "$e2e_dir")"
+e2e_name="$(printf '%s' "$e2e_base" | tr '.:' '__')"
+tmux -L "$SOCK" send-keys "builtin cd '$e2e_dir'" Enter
+i=0
+while [ "$i" -lt 50 ]; do
+  [ "$(tmux -L "$SOCK" display-message -p '#W' 2>/dev/null)" = "$e2e_name" ] && break
+  i=$((i + 1)); sleep 0.1
+done
+window_name="$(tmux -L "$SOCK" display-message -p '#W')"
+rmdir "$e2e_dir" 2>/dev/null || true
+if [ "$window_name" != "$e2e_name" ]; then
+  # Dump enough state to diagnose from the CI log alone: what's on screen
+  # (command-not-found noise, plugin errors), the window list, whether a
+  # manual rename disabled automatic-rename, and the hook state in the pane.
+  {
+    echo "---- diagnostics: windows ----"
+    tmux -L "$SOCK" list-windows -a \
+      -F '#{window_id} name=#{window_name} active=#{window_active} panes=#{window_panes} path=#{pane_current_path}'
+    echo "---- diagnostics: automatic-rename ----"
+    tmux -L "$SOCK" show-options -w automatic-rename || true
+    echo "---- diagnostics: pane hook state ----"
+    # shellcheck disable=SC2016  # single-quoted on purpose: the pane's zsh
+    # must expand these, not this shell.
+    tmux -L "$SOCK" send-keys \
+      'print "TMUX=$TMUX cache=${_tmux_window_name:-}"; whence -w update_tmux_window; print -l $chpwd_functions' Enter
+    sleep 1
+    echo "---- diagnostics: pane contents ----"
+    tmux -L "$SOCK" capture-pane -p
+  } >&2 || true
+  die "tmux window was not renamed to $e2e_name (got: $window_name)"
+fi
+echo "== tmux window renamed to the cd target ($e2e_name) =="
 
 echo "PASS"
