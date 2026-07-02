@@ -385,8 +385,12 @@ add-zsh-hook precmd update_tmux_window
 # Emit OSC 133;A so tmux can track prompt positions (next-prompt/previous-prompt in copy mode).
 # Prepend to PROMPT (after Starship sets it) so the mark lands at the exact moment zsh draws
 # the prompt, avoiding cursor-position races with Starship's own terminal sequences.
+# $PROMPT persists across precmd calls (Starship sets it once to a string containing a
+# `$(...)` substitution zsh re-evaluates at render time), so the prepend must be guarded —
+# otherwise every prompt in a long-lived tmux session stacks another marker onto it forever.
 _tmux_prompt_mark() {
   [[ -n "$TMUX" ]] || return
+  [[ "$PROMPT" == $'%{\e]133;A\a%}'* ]] && return
   PROMPT=$'%{\e]133;A\a%}'"$PROMPT"
 }
 add-zsh-hook precmd _tmux_prompt_mark
