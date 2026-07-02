@@ -110,6 +110,8 @@ alias reload
 print "EDITOR=$EDITOR"
 print "VISUAL=$VISUAL"
 print "PAGER=$PAGER"
+print "HOMEBREW_PREFIX=${HOMEBREW_PREFIX:-unset}"
+print "ZCOMPDUMP_ZWC=$([[ -s ${ZDOTDIR:-$HOME}/.zcompdump.zwc ]] && echo yes || echo no)"
 for o in autocd autopushd share_history interactivecomments noclobber; do
   [[ -o $o ]] && print "OPT_ON:$o"
 done
@@ -133,6 +135,15 @@ require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
 require_grep "EDITOR is not nvim"   "$env_out" "EDITOR=nvim"
 require_grep "VISUAL is not nvim"   "$env_out" "VISUAL=nvim"
 require_grep "PAGER does not use less" "$env_out" "PAGER=less"
+
+# brew shellenv: exported via the _evalcache inline in sheldon's plugins.toml,
+# not a direct eval in .zshrc. Gated on brew so brew-less boxes still pass.
+if command -v brew >/dev/null 2>&1; then
+  require_grep "HOMEBREW_PREFIX not exported (brew-shellenv evalcache inline)" "$env_out" "HOMEBREW_PREFIX=/"
+fi
+
+# compinit dump is compiled to wordcode so later startups parse it faster.
+require_grep ".zcompdump.zwc missing (zcompile after compinit)" "$env_out" "ZCOMPDUMP_ZWC=yes"
 
 # shell options (setopt)
 for opt in autocd autopushd share_history interactivecomments noclobber; do

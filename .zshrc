@@ -49,6 +49,11 @@ if [[ ! -e "$_zcompdump" || $#_zcompdump_stale -gt 0 ]]; then
 else
   compinit -C -d "$_zcompdump"
 fi
+# Compile the dump to wordcode; zsh sources the .zwc automatically when it is
+# at least as new as the dump. Recompile only right after a dump rebuild.
+if [[ -s "$_zcompdump" && ( ! -s "$_zcompdump.zwc" || "$_zcompdump" -nt "$_zcompdump.zwc" ) ]]; then
+  zcompile "$_zcompdump"
+fi
 unset _zcompdump _zcompdump_stale
 
 #=====================
@@ -74,10 +79,9 @@ sudo_path=(
 #=====================
 # package managers / plugins
 #=====================
-if builtin command -v brew >/dev/null; then
-  eval "$(brew shellenv)"
-fi
-
+# brew shellenv is not eval'd here: its output is static per machine, so it is
+# cached via the brew-shellenv _evalcache inline in config/sheldon/plugins.toml.
+# The path=() block above already puts brew itself on PATH.
 if builtin command -v sheldon >/dev/null; then
   eval "$(sheldon source)"
 fi
