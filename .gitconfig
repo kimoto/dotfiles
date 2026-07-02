@@ -53,6 +53,10 @@
   default = current
   autoSetupRemote = true
 
+[rebase]
+  autosquash = true
+  autostash = true
+
 [pull]
   ff = only
 
