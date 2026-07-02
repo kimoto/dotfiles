@@ -26,17 +26,13 @@
 # every `$PWD`/`$(...)` must be evaluated by the zsh inside the pane, not here.
 set -euo pipefail
 
-die() { echo "CI error: $*" >&2; exit 1; }
+# Shared e2e plumbing: die/need, the brew shellenv, and zsh_pane_cmd.
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$DIR/tmux_e2e_helpers.sh"
 
-# Prefer a Homebrew zsh/tmux/fzf (newer) when the shellenv is available.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-command -v tmux >/dev/null 2>&1 || die "tmux not installed"
-command -v zsh  >/dev/null 2>&1 || die "zsh not installed"
+need tmux
+need zsh
 command -v fzf  >/dev/null 2>&1 || die "fzf not installed (g pipes ghq list into fzf)"
 ZSH_BIN="$(command -v zsh)"
 REPO="$PWD"
