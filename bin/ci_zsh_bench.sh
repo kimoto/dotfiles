@@ -1,13 +1,26 @@
 #!/bin/bash
-# Benchmark interactive zsh startup with zsh-bench (romkatv/zsh-bench) and keep
-# the numbers around instead of letting them scroll away in the job log:
+# Benchmark interactive zsh startup in CI and keep the numbers around instead
+# of letting them scroll away in the job log:
 #   - appended to $GITHUB_STEP_SUMMARY as a table (the run's Summary page)
-#   - written to $RUNNER_TEMP/zsh-bench.txt for the workflow's artifact upload
-# Measures the login shell of the current user, i.e. the dotfiles that
-# bin/mkworld.sh symlinked into $HOME during the CI prepare phase. Record-only:
-# it never fails the build over a slow number.
+#   - written to $RUNNER_TEMP/zsh-startup-bench.txt for the artifact upload
+#
+# The metric is deliberately simple: wall-clock time of `zsh -lic exit` (parse
+# the config, run compinit/sheldon/evalcache, become ready for a command),
+# repeated N times, reported as min/mean/max. An earlier version drove
+# romkatv/zsh-bench here, but its zle-level protocol deadlocks against this
+# config (`setopt ignore_eof` blocks its stdin-EOF exit on a completion-list
+# prompt, and its instrumented typing never completed against the custom
+# space/enter widgets) - see PR #107. A plain timing loop cannot hang and is
+# what a startup-time budget check would threshold anyway. Measures the
+# dotfiles that bin/mkworld.sh symlinked into $HOME during the CI prepare
+# phase. Record-only: it never fails the build over a slow number.
 
 set -euo pipefail
+
+die() {
+  echo "CI error: $*" >&2
+  exit 1
+}
 
 # Same startup toggles as ci_zsh_loading_test.sh: keep the sync/brew reminders
 # (network + noise) out of the measured startup.
@@ -15,31 +28,58 @@ export DOTFILES_NO_SYNC_CHECK=1
 export DOTFILES_NO_BREW_CHECK=1
 export TERM="xterm-256color"
 
-# zsh-bench needs zsh >= 5.8 on PATH to run itself; in CI that's the brew zsh
-# from Brewfile.basic - the same binary the loading test exercises.
+# In CI the shell under test is the brew zsh from Brewfile.basic - the same
+# binary the loading test exercises.
 if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 fi
+command -v zsh >/dev/null || die "zsh not found"
 
-# Pinned like GitHub Actions `uses:`: a full commit SHA, not a branch.
-ZSH_BENCH_REPO="https://github.com/romkatv/zsh-bench"
-ZSH_BENCH_REV="28b1b1bc888159f0a2cf50f9d29381758341aba1"
+# One timed startup. CI= (empty) for the same reason ci_zsh_loading_test.sh
+# runs every probe with it: CI=true switches .zshrc into strict mode
+# (err_exit), which is not how an interactive shell runs for real. The
+# per-run timeout turns any regression into a hang into a fast, attributable
+# step failure instead of a job stuck until the runner's 6h limit.
+run_once() {
+  local t0 t1
+  t0=$(date +%s%N)
+  timeout 60 env CI= zsh -lic exit </dev/null >/dev/null 2>&1 \
+    || die "interactive zsh startup failed or timed out (rc=$?)"
+  t1=$(date +%s%N)
+  echo $(((t1 - t0) / 1000000))
+}
 
-bench_dir="$(mktemp -d)"
-trap 'rm -rf "$bench_dir"' EXIT
-git init --quiet "$bench_dir"
-git -C "$bench_dir" fetch --quiet --depth 1 "$ZSH_BENCH_REPO" "$ZSH_BENCH_REV"
-git -C "$bench_dir" checkout --quiet FETCH_HEAD
+iters="${ZSH_BENCH_ITERS:-10}"
+run_once >/dev/null # warm-up: compdump/eval caches, page cache
 
-out_file="${RUNNER_TEMP:-$(mktemp -d)}/zsh-bench.txt"
-"$bench_dir/zsh-bench" --iters "${ZSH_BENCH_ITERS:-16}" | tee "$out_file"
+samples=()
+for _ in $(seq "$iters"); do
+  samples+=("$(run_once)")
+done
 
-# The key=value lines are the machine-readable half of the output; render them
-# as a table on the run's Summary page so results are visible without digging
-# through logs.
+out_file="${RUNNER_TEMP:-$(mktemp -d)}/zsh-startup-bench.txt"
+{
+  echo "zsh_version=$(zsh --version | awk '{print $2}')"
+  echo "iters=$iters"
+  printf '%s\n' "${samples[@]}" | sort -n | awk '
+    { v[NR] = $1; sum += $1 }
+    END {
+      printf "startup_min_ms=%d\n", v[1]
+      printf "startup_mean_ms=%d\n", sum / NR
+      printf "startup_max_ms=%d\n", v[NR]
+    }'
+  echo "samples_ms=$(
+    IFS=,
+    echo "${samples[*]}"
+  )"
+} | tee "$out_file"
+
+# The key=value lines are the machine-readable output; render them as a table
+# on the run's Summary page so results are visible without digging through
+# logs.
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
-    echo "## zsh-bench (login shell startup)"
+    echo "## zsh startup bench (zsh -lic exit)"
     echo ""
     echo "| metric | value |"
     echo "| --- | --- |"
