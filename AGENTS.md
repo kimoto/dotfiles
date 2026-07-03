@@ -20,9 +20,9 @@ truth, so the two never diverge.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
-  tmux → zsh; upper layers intercept first). When you add, remove, or rebind a
-  key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh), update it in
-  the same PR.
+  tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
+  rebind a key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh,
+  `config/nvim`), update it in the same PR.
 - `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
   needs at load time (prompt, completion, plugin manager, eval-cache inlines,

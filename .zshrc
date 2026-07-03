@@ -251,6 +251,8 @@ alias gist='gh gist create --web'
 #=====================
 # keybindings
 #=====================
+# NOTE: keybindings in this file (also ^G / ^X^N defined near their widgets)
+# are documented in KEYBINDINGS.md (repo root) — update it when they change.
 bindkey "^\\" undo
 
 #=====================

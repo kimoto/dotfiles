@@ -2,6 +2,10 @@
 
 Hierarchical keybinding reference. Upper layers intercept keys first.
 
+Sources: AeroSpace (managed outside this repo), `config/ghostty/config`,
+`.tmux.conf`, `.zshrc`, `config/nvim/` — each carries a pointer comment back to
+this file; update this file whenever a binding changes there.
+
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
 ---
@@ -52,6 +56,7 @@ Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 |-----|--------|
 | F12 | Toggle quick terminal (global) |
 | ⌘+1~9 | → sends ESC+1~9 to tmux (window switching) |
+| ⌘⌥+←/→/↑/↓ | → sends ⌥+arrows to tmux (window / session switching) |
 | ⌘+⇧+O | Toggle background opacity |
 | ¥ | Insert `\` (backslash) |
 
@@ -62,19 +67,14 @@ Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
 ## tmux (prefix: C-t)
 
-### Windows (no prefix)
+### Windows / sessions (no prefix)
 
 | Key | Action |
 |-----|--------|
 | ⌘+1~9 | Switch to window 1~9 |
-| ⌘+T (M-t) | New window |
-| ⌥⌘+Left / Right | Previous / next window |
-
-### Sessions (no prefix)
-
-| Key | Action |
-|-----|--------|
-| ⌥⌘+Up / Down | Switch to previous / next session |
+| ⌥+T (M-t) | New window |
+| ⌥+←/→ (or ⌥⌘+←/→) | Previous / next window |
+| ⌥+↑/↓ (or ⌥⌘+↑/↓) | Switch to previous / next session |
 
 ### Panes (no prefix)
 
@@ -119,9 +119,75 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | Key | Action |
 |-----|--------|
 | ⌃+R | History search |
+| ⌃+G | livegrep (interactive ripgrep → open in editor) |
+| ⌃+X ⌃+N | navi snippet search → insert into command line |
+| ⌃+\ | Undo |
 | ⌃+A / E | Beginning / end of line |
 | ⌃+W | Delete word backward |
 | ⌃+U | Clear line |
 | ⌃+L | Clear screen |
 | ⌥+B / F | Move word backward / forward |
 | ⌥+D | Delete word forward |
+
+---
+
+## Neovim (leader: Space)
+
+Defined in `config/nvim/init.lua` and `config/nvim/lua/kimoto/plugins/*.lua`.
+
+### Windows / buffers / tools
+
+| Key | Action |
+|-----|--------|
+| ⌃+h/j/k/l | Move between windows |
+| Space+1~6 | Go to buffer 1~6 |
+| Space+n / p | Next / previous buffer |
+| Tab / ⇧+Tab | Cycle buffers (bufferline) |
+| Space+e | Toggle file tree (nvim-tree) |
+| Space+t | Toggle terminal (toggleterm) |
+| ⌃+Space | Normal mode: toggle terminal / insert mode: trigger completion |
+
+### Telescope
+
+| Key | Action |
+|-----|--------|
+| Space+ff | Find files |
+| Space+fg | Live grep |
+| Space+fb | Buffers |
+| Space+fh | Help tags |
+| Space+fr | Frecency (recent files) |
+
+### LSP / completion
+
+| Key | Action |
+|-----|--------|
+| gd / gy / gi | Definition / type definition / implementation |
+| grn / gra / grr | Rename / code action / references (nvim builtin) |
+| K | Hover (nvim builtin) |
+| Enter (insert) | Confirm completion (nvim-cmp) |
+
+### Yank ring (yanky)
+
+| Key | Action |
+|-----|--------|
+| p / P / gp / gP | Put (ring-aware) |
+| ⌃+p / ⌃+n | Cycle older / newer yank after a put |
+
+### Debug (nvim-dap)
+
+| Key | Action |
+|-----|--------|
+| F5 | Continue |
+| F9 | Toggle breakpoint |
+| F10 / F11 / ⇧+F11 | Step over / into / out |
+| Space+d | Toggle dap-ui |
+| Space+dr / Space+dl | Open REPL / run last |
+| Space+lp | Set log point |
+
+### Plugin defaults worth knowing
+
+| Key | Action |
+|-----|--------|
+| gcc / gc{motion} | Toggle comment (Comment.nvim) |
+| ys / cs / ds | Add / change / delete surround (vim-surround) |
+| Space+j | Jump to definition (any-jump) |

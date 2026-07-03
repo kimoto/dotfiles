@@ -1,3 +1,6 @@
+-- NOTE: keybindings defined in this config (and lua/kimoto/plugins/*.lua) are
+-- documented in KEYBINDINGS.md at the repo root — update it when adding or
+-- changing a map.
 require('kimoto/basic_config')
 require('kimoto/setup_plugin')
 require('kimoto/plugins/lualine')
