@@ -62,11 +62,23 @@ unset _zcompdump _zcompdump_stale
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
+# /home/linuxbrew is added on Linux only: on macOS /home is an autofs mount,
+# so even stat()ing /home/* (which the (N-/) glob does) can fire a Directory
+# Services lookup — with corporate AD binding that is a network round trip per
+# shell. Same reason the inherited $path is scrubbed of it off-Linux (a tmux
+# server started before this fix may still inject it).
+_brew_bins=(/opt/homebrew/bin)
+if [[ $OSTYPE == linux* ]]; then
+  _brew_bins+=(/home/linuxbrew/.linuxbrew/bin)
+else
+  path=( ${path:#/home/linuxbrew/*} )
+fi
 path=(
   $HOME{,/.local,/.cargo,/.docker}/bin(N-/)
-  {/opt/homebrew,/home/linuxbrew/.linuxbrew}/bin(N-/)
+  ${^_brew_bins}(N-/)
   $path
 )
+unset _brew_bins
 manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
   $manpath
