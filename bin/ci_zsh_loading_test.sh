@@ -81,10 +81,12 @@ if ! printf '%s\n' "$moved_out" | grep -F "$tmp_base" >/dev/null; then
   die "prompt did not reflect directory change ($tmp_base)"
 fi
 
-echo "== alias ls =="
-alias_out="$(run_zsh 'alias ls')"
-printf '%s\n' "$alias_out"
-require_grep "ls is not aliased to eza" "$alias_out" "ls=.*eza"
+echo "== ls function =="
+# ls is a function, not a plain alias (see .zshrc: --hyperlink is TTY-gated),
+# so check its body instead of `alias ls`.
+ls_fn_out="$(run_zsh 'whence -f ls')"
+printf '%s\n' "$ls_fn_out"
+require_grep "ls function does not use eza" "$ls_fn_out" "eza"
 
 echo "== ls -l bin/mkworld.sh =="
 ls_out="$(run_zsh 'ls -l bin/mkworld.sh')"
