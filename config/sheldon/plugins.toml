@@ -17,16 +17,19 @@ apply = ['source']
 [plugins.evalcache.hooks]
 post = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/evalcache-no-fork.zsh"'
 
+# Static word -> command expansion (space/enter), replacing zsh-abbr. See
+# config/zsh/abbr.zsh for why. Loaded eagerly (not deferred) so the space/
+# enter widgets exist from the very first keystroke; must load before
+# zsh-autosuggestions below, same widget-ordering constraint as that
+# plugin's own comment describes.
+[plugins.abbr]
+inline = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/abbr.zsh"'
+
 #================
 # defer loading
 #================
 [plugins.zsh-completions]
 github = 'zsh-users/zsh-completions'
-apply = ['defer']
-
-# Slow init; nothing needs `abbr` before the first prompt.
-[plugins.zsh-abbr]
-github = 'olets/zsh-abbr'
 apply = ['defer']
 
 [plugins.fast-syntax-highlighting]
@@ -56,9 +59,19 @@ export ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=500
 # Homebrew env (HOMEBREW_PREFIX, MANPATH, ...). The output is static per
 # machine, so cache it instead of launching `brew` on every shell. Finding
 # brew itself doesn't depend on this: .zshrc's path=() block already puts the
-# Homebrew bin dirs on PATH.
+# Homebrew bin dirs on PATH. `brew shellenv`'s own output still forks
+# /usr/bin/env + /usr/libexec/path_helper on every source of the evalcache
+# file (~10ms, measured), to rebuild PATH/MANPATH from /etc/paths(.d) — but
+# /etc/zprofile already runs path_helper once for every login shell, so this
+# is a straight rerun on an unchanged input. Drop that line before caching;
+# the remaining exports (HOMEBREW_*, FPATH, MANPATH, INFOPATH) are untouched.
 [plugins.brew-shellenv]
-inline = 'if (( $+commands[brew] )); then _evalcache brew shellenv; fi'
+inline = '''
+if (( $+commands[brew] )); then
+  _brew_shellenv_fast() { brew shellenv | command grep -v /usr/libexec/path_helper }
+  _evalcache _brew_shellenv_fast
+fi
+'''
 
 [plugins.starship]
 inline = '_evalcache starship init zsh'
