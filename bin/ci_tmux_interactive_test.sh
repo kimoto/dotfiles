@@ -46,8 +46,12 @@ tmux -L "$SOCK" set-option -w -t "$WIN_ID" automatic-rename off
 #    keystroke -> eval -> render path through a genuine terminal.
 # shellcheck disable=SC2016  # single-quoted on purpose: zsh in the pane must
 # evaluate $((6 * 7)), not this shell.
+# This first wait absorbs the whole interactive startup (compinit, evalcache
+# population on a cold runner), which can blow past the default 5s budget —
+# give it 30s. Later waits keep the default: once the prompt is up, each step
+# is a single keystroke round-trip.
 tmux -L "$SOCK" send-keys 'echo __E2E_READY__$((6 * 7))' Enter
-wait_for_pane "$SOCK" '__E2E_READY__42'
+wait_for_pane "$SOCK" '__E2E_READY__42' 300
 echo "== shell is live (echo rendered in pane) =="
 
 # 2) .zshrc actually took effect in a real tty (not just under `script`): an
