@@ -10,80 +10,51 @@ local function keyCode(key, modifiers)
    end
 end
 
--- remapKey: mods, key, action, [opts]
--- opts:
---   onlyFor = {"AppName1", "AppName2"}  ← 指定アプリのみ有効
---   exceptFor = {"AppName1"}            ← 指定アプリ以外で有効
-local function remapKey(modifiers, key, action, opts)
-   hs.hotkey.bind(modifiers, key,
-      function()
-         local app = hs.application.frontmostApplication()
-         local name = app and app:name() or ""
+-- Own registry of created hotkeys, so enable/disable doesn't rely on the
+-- undocumented internals of hs.hotkey.getHotkeys().
+local hotkeys = {}
 
-         if opts and opts.onlyFor then
-            -- 指定アプリ限定
-            for _, target in ipairs(opts.onlyFor) do
-               if name == target then action(); return end
-            end
-            hs.eventtap.keyStroke(modifiers, key)
-            return
-         elseif opts and opts.exceptFor then
-            -- 指定アプリを除外
-            for _, ex in ipairs(opts.exceptFor) do
-               if name == ex then return end
-            end
-         end
-
-         -- デフォルト動作
-         action()
-      end,
-      nil,
-      function() -- repeat時
-         local app = hs.application.frontmostApplication()
-         local name = app and app:name() or ""
-
-         if opts and opts.onlyFor then
-            for _, target in ipairs(opts.onlyFor) do
-               if name == target then action(); return end
-            end
-            hs.eventtap.keyStroke(modifiers, key)
-            return
-         elseif opts and opts.exceptFor then
-            for _, ex in ipairs(opts.exceptFor) do
-               if name == ex then return end
-            end
-         end
-
-         action()
-      end
-   )
+local function remapKey(modifiers, key, action)
+   table.insert(hotkeys, hs.hotkey.bind(modifiers, key, action, nil, action))
 end
 
-local function disableAllHotkeys()
-   for _, v in pairs(hs.hotkey.getHotkeys()) do
-      v["_hk"]:disable()
+local function setHotkeysEnabled(enabled)
+   for _, hk in ipairs(hotkeys) do
+      if enabled then hk:enable() else hk:disable() end
    end
 end
 
-local function enableAllHotkeys()
-   for _, v in pairs(hs.hotkey.getHotkeys()) do
-      v["_hk"]:enable()
-   end
-end
-
--- ===== App watcher =====
-local function handleGlobalAppEvent(name, event, app)
-   if event == hs.application.watcher.activated then
-      if name ~= "Ghostty" then
-         enableAllHotkeys()
-      else
-         disableAllHotkeys()
-      end
-   end
+local function isRemapTarget(appName)
+   -- The terminal gets the real keys: Emacs-style bindings are handled by
+   -- zsh/nvim themselves, and remapping there would break them.
+   return appName ~= "Ghostty"
 end
 
 -- ===== Global Emacs-style remaps =====
 remapKey({"alt"}, "b", keyCode("left", {"alt"}))
 remapKey({"alt"}, "f", keyCode("right", {"alt"}))
 remapKey({"ctrl"}, "w", keyCode("delete", {"alt"}))
-remapKey({'ctrl'}, "/", keyCode("z", {"cmd"}))
+remapKey({"ctrl"}, "/", keyCode("z", {"cmd"}))
+
+-- ===== App watcher =====
+local function handleGlobalAppEvent(name, event, _)
+   if event == hs.application.watcher.activated then
+      setHotkeysEnabled(isRemapTarget(name))
+   end
+end
+
+-- Watchers must live in globals: a local would be garbage-collected and the
+-- watcher would silently stop firing.
+appWatcher = hs.application.watcher.new(handleGlobalAppEvent)
+appWatcher:start()
+
+-- Apply the right state for whichever app is frontmost right now — the watcher
+-- only fires on the next activation, and a config reload can happen while the
+-- terminal is already focused.
+local frontmost = hs.application.frontmostApplication()
+setHotkeysEnabled(not frontmost or isRemapTarget(frontmost:name()))
+
+-- Auto-reload this config whenever a file in ~/.hammerspoon changes.
+configWatcher = hs.pathwatcher.new(hs.configdir, hs.reload)
+configWatcher:start()
+hs.alert.show("Hammerspoon config loaded")
