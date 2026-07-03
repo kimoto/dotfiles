@@ -100,11 +100,18 @@ vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', {})
 
-require('nvim-treesitter').setup {
-  indent = {
-    enable = true,
-  },
-}
+-- nvim-treesitter (main branch): highlight/indent are opted into per buffer,
+-- not via setup() — start treesitter whenever the filetype has a parser, and
+-- only then hand indentation to the plugin's (experimental) indentexpr.
+vim.api.nvim_create_autocmd('FileType', {
+  callback = function(ev)
+    if pcall(vim.treesitter.start, ev.buf) then
+      vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    end
+  end,
+})
+
+require('nvim-ts-autotag').setup()
 
 require('git').setup()
 
@@ -115,17 +122,10 @@ require('onedark').setup {
 }
 require('onedark').load()
 
-require('lualine').setup {
-  options = {
-    theme = 'onedark',
-    globalstatus = true, -- 画面分割時にstatuslineを統合
-  }
-}
-
 require('colorizer').setup()
 
 -- coc
-vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-json', 'coc-git', 'coc-sql', 'coc-eslint', 'coc-prettier', 'coc-yank', 'coc-python', 'coc-css'}
+vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-sql', 'coc-eslint', 'coc-yank', 'coc-python', 'coc-css'}
 
 -- related nvim-dap (debug adapter protocol)
 vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
@@ -163,7 +163,6 @@ end
 --   -- log_file_level = false -- Logging level for output to file. Set to false to disable file logging.
 --   -- log_console_level = vim.log.levels.ERROR -- Logging level for output to console. Set to false to disable console output.
 -- })
-local dap = require("dap")
 
 -- dap.adapters['pwa-node'] = {
 --   type = 'server',

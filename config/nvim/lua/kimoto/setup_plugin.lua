@@ -56,7 +56,7 @@ require('jetpack.paq') {
   'lewis6991/gitsigns.nvim', -- git statusを表示
   {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
 
-  'windwp/nvim-ts-autotag', -- tagsの自動生成
+  'windwp/nvim-ts-autotag', -- auto close/rename HTML tags (treesitter-based)
   'pocco81/auto-save.nvim', -- 自動保存
 
   'akinsho/bufferline.nvim',
@@ -90,7 +90,6 @@ require('jetpack.paq') {
   -- python
   'https://github.com/mfussenegger/nvim-dap-python',
   -- ruby
-  'mfussenegger/nvim-dap',
   'suketa/nvim-dap-ruby',
 
   -- javascript/typescript
