@@ -63,6 +63,11 @@ only_detached = false
 
 [git_status]
 disabled = true
+# Also read by git_metrics above (shared GitStatusConfig): forces it onto the
+# `git diff --shortstat` subprocess path instead of gitoxide's in-process one,
+# which reuses git_status's full working-tree scan. ~500ms -> ~30ms in repos
+# with 10k+ tracked/ignored files (measured via `starship timings`).
+use_git_executable = true
 #ahead = ">"
 #behind = "<"
 #diverged = "<>"
