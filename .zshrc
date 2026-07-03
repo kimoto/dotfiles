@@ -198,7 +198,16 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 #=====================
 # aliases
 #=====================
-alias ls='eza --hyperlink --icons auto'
+# --hyperlinkはeza側にauto相当の指定がなく常時有効になるため、パイプ/リダイレクト時に
+# OSC8エスケープシーケンスがterminal/tmux側で正しく解釈されず表示が乱れることがある。
+# TTY出力時のみ有効化する。
+ls() {
+  if [[ -t 1 ]]; then
+    eza --hyperlink --icons auto "$@"
+  else
+    eza --icons auto "$@"
+  fi
+}
 alias ll='ls --long --all --git-repos-no-status --time-style=relative --sort=modified'
 alias tree='ll -T'
 alias mv='nocorrect mv'
