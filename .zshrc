@@ -62,11 +62,24 @@ unset _zcompdump _zcompdump_stale
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
 typeset -xT SUDO_PATH sudo_path
+# HomebrewのインストールパスはOSで異なる(macOS: /opt/homebrew, Linux: /home/linuxbrew/.linuxbrew)。
+# macOSで/home/linuxbrewを候補にすると、実在しなくてもmacOSのautomountが
+# /home配下への参照をディレクトリサービス解決の対象にするため数十ms単位で重くなる。
+# OSごとに候補を出し分けて、macOS側ではこの文字列自体を評価しない。
+if [[ "$OSTYPE" == darwin* ]]; then
+  brew_prefix=/opt/homebrew
+else
+  brew_prefix=/home/linuxbrew/.linuxbrew
+fi
 path=(
   $HOME{,/.local,/.cargo,/.docker}/bin(N-/)
-  {/opt/homebrew,/home/linuxbrew/.linuxbrew}/bin(N-/)
+  $brew_prefix/bin(N-/)
   $path
 )
+unset brew_prefix
+# tmuxの長寿命セッション等で継承されたPATHに、上記分岐が無かった頃の
+# /home/linuxbrewが既に紛れ込んでいる場合に備えた後始末(新規シェルでは通常ヒットしない)
+[[ "$OSTYPE" == darwin* ]] && path=(${path:#/home/linuxbrew/.linuxbrew/bin})
 manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
   $manpath
