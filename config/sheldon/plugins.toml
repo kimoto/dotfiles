@@ -67,7 +67,7 @@ inline = '_evalcache starship init zsh'
 inline = '_evalcache zoxide init zsh'
 
 [plugins.mise]
-inline = '_evalcache mise activate zsh'
+inline = '_evalcache mise activate zsh --shims'
 
 [plugins.direnv]
 inline = '_evalcache direnv hook zsh'
