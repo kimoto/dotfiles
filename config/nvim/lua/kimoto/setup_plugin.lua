@@ -26,14 +26,12 @@ require('jetpack.paq') {
   {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate'},
 
   'nvim-tree/nvim-web-devicons',
-  {'nvim-tree/nvim-tree.lua', -- treesitter
+  {'nvim-tree/nvim-tree.lua', -- file explorer
     requires = {
       'nvim-tree/nvim-web-devicons',
     },
   },
 
-  -- なんかうまく動かないので一時的に外す
-  -- 'vim-scripts/YankRing.vim',
   {"gbprod/yanky.nvim"},
 
   -- telescope
@@ -50,7 +48,7 @@ require('jetpack.paq') {
 
   {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
 
-  'NvChad/nvim-colorizer.lua', -- カーソル下と同じ単語を強調
+  'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
 
   'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
@@ -63,9 +61,6 @@ require('jetpack.paq') {
   'akinsho/toggleterm.nvim',
 
   -- color themes
-  'Tsuzat/NeoSolarized.nvim',
-  'ishan9299/nvim-solarized-lua',
-  'folke/tokyonight.nvim',
   'navarasu/onedark.nvim',
 
   -- dev
@@ -73,8 +68,6 @@ require('jetpack.paq') {
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
 
   'tpope/vim-surround', -- text objectの拡張
-  -- 'soramugi/auto-ctags.vim',
-  -- 'hiphish/rainbow-delimiters.nvim' -- rainbow brackets
 
   -- lang
   'tpope/vim-endwise', -- Rubyのendなどの自動補完
@@ -91,10 +84,4 @@ require('jetpack.paq') {
   'https://github.com/mfussenegger/nvim-dap-python',
   -- ruby
   'suketa/nvim-dap-ruby',
-
-  -- javascript/typescript
-  'mxsdev/nvim-dap-vscode-js',
-  -- {"microsoft/vscode-js-debug", opt = 1, run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"},
-
-  'editorconfig/editorconfig-vim',
 }
