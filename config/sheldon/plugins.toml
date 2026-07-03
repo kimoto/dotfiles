@@ -17,16 +17,19 @@ apply = ['source']
 [plugins.evalcache.hooks]
 post = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/evalcache-no-fork.zsh"'
 
+# Static word -> command expansion (space/enter), replacing zsh-abbr. See
+# config/zsh/abbr.zsh for why. Loaded eagerly (not deferred) so the space/
+# enter widgets exist from the very first keystroke; must load before
+# zsh-autosuggestions below, same widget-ordering constraint as that
+# plugin's own comment describes.
+[plugins.abbr]
+inline = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/abbr.zsh"'
+
 #================
 # defer loading
 #================
 [plugins.zsh-completions]
 github = 'zsh-users/zsh-completions'
-apply = ['defer']
-
-# Slow init; nothing needs `abbr` before the first prompt.
-[plugins.zsh-abbr]
-github = 'olets/zsh-abbr'
 apply = ['defer']
 
 [plugins.fast-syntax-highlighting]
