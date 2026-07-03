@@ -7,9 +7,9 @@
 # Scope note: init.lua's second line, require('kimoto/setup_plugin'), curls
 # vim-jetpack from GitHub and pulls dozens of plugins on first start, and the
 # per-plugin requires that follow it (lualine, gitsigns, telescope, ...) all need
-# those plugins present. None of that is hermetic, so a full init.lua startup
-# can't run on every push (that is the job of a monthly full-install test, the
-# nvim analogue of ci_vim_loading_test.sh). What we CAN guard cheaply is the
+# those plugins present. None of that is hermetic, so the full init.lua startup
+# is covered by ci_nvim_loading_test.sh (its own CI job, with the plugin tree
+# cached), not here. What this guards cheaply is the
 # pure-config layer we actually hand-edit: basic_config.lua is plain
 # vim.opt/keymap Lua with no plugin dependency. This loads exactly that module
 # (via a minimal init that only adds config/nvim to the runtimepath) and asserts
