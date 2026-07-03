@@ -5,12 +5,11 @@
 -- coc-eslint. Builtin LSP maps (0.11+): grn=rename, gra=code action,
 -- grr=references, K=hover; gd/gy/gi are added below.
 
-require('mason').setup()
-require('mason-lspconfig').setup()
-
--- Servers mirroring the old coc extensions. Install with :Mason (or
--- :LspInstall in a matching buffer); enabling a server that is not installed
--- yet is harmless — nvim warns once when a matching filetype is opened.
+-- Servers mirroring the old coc extensions. mason-lspconfig auto-installs
+-- missing ones on startup (first-run bootstrap); enabling a server that is
+-- not installed yet is harmless — nvim warns once when a matching filetype
+-- is opened. CI/e2e sets DOTFILES_NO_NVIM_AUTO_INSTALL to keep startups
+-- deterministic (no background downloads while assertions run).
 local servers = {
   'ts_ls',         -- coc-tsserver
   'eslint',        -- coc-eslint
@@ -23,6 +22,11 @@ local servers = {
   'perlnavigator', -- coc-perl
   'sqls',          -- coc-sql
 }
+
+require('mason').setup()
+require('mason-lspconfig').setup({
+  ensure_installed = vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and servers or {},
+})
 
 -- Completion: LSP/buffer/path sources, snippets via the builtin vim.snippet.
 local cmp = require('cmp')

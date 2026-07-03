@@ -32,7 +32,9 @@ vim.cmd('packadd vim-jetpack')
 require('jetpack.paq') {
   {'tani/vim-jetpack', opt = 1}, -- bootstrap
 
-  {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate'},
+  -- main branch: parsers are managed via require('nvim-treesitter').install()
+  -- (see init.lua), so no :TSUpdate run-hook.
+  'nvim-treesitter/nvim-treesitter',
 
   'nvim-tree/nvim-web-devicons',
   {'nvim-tree/nvim-tree.lua', -- file explorer
@@ -101,3 +103,20 @@ require('jetpack.paq') {
   -- ruby
   'suketa/nvim-dap-ruby',
 }
+
+-- First-run bootstrap: if any declared plugin is missing, install everything
+-- now (JetpackSync blocks until done) instead of erroring on every require
+-- until someone runs it manually. jetpack#tap() is false for a plugin that
+-- is declared but not installed yet.
+for _, name in ipairs(vim.fn['jetpack#names']()) do
+  if vim.fn['jetpack#tap'](name) == 0 then
+    vim.notify('[dotfiles] installing missing plugins (JetpackSync) ...')
+    local ok, err = pcall(vim.cmd, 'JetpackSync')
+    if ok then
+      vim.notify('[dotfiles] plugin install finished — restart nvim if anything looks off')
+    else
+      vim.notify('[dotfiles] JetpackSync failed: ' .. tostring(err), vim.log.levels.ERROR)
+    end
+    break
+  end
+end
