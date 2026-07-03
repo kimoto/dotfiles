@@ -27,7 +27,6 @@ vim.keymap.set('n', '<leader>6', ':b 6<CR>')
 vim.keymap.set('n', '<leader>n', ':bn<CR>')
 vim.keymap.set('n', '<leader>p', ':bp<CR>')
 vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
-vim.keymap.set('n', '<D-l>', ':Telescope frecency<CR>')
 
 vim.keymap.set({"n","x"}, "p", "<Plug>(YankyPutAfter)")
 vim.keymap.set({"n","x"}, "P", "<Plug>(YankyPutBefore)")
@@ -107,8 +106,6 @@ vim.api.nvim_create_autocmd('FileType', {
 
 require('nvim-ts-autotag').setup()
 
-require('git').setup()
-
 -- color themes
 require('onedark').setup {
     style = 'deep'
@@ -118,7 +115,7 @@ require('onedark').load()
 require('colorizer').setup()
 
 -- coc
-vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-volar', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-sql', 'coc-eslint', 'coc-yank', 'coc-pyright', 'coc-css'}
+vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-prettier', 'coc-volar', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-sql', 'coc-eslint', 'coc-yank', 'coc-pyright', 'coc-css'}
 
 -- related nvim-dap (debug adapter protocol)
 vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
@@ -147,6 +144,5 @@ dap.listeners.before.event_exited.dapui_config = function()
   dapui.close()
 end
 
--- Vimを終了してもUndo
+-- Vimを終了してもUndo (default undodir: stdpath('state')/undo, auto-created)
 vim.opt.undofile = true
-vim.opt.undodir = os.getenv("HOME") .. "/.cache/nvim/undodir"

@@ -8,24 +8,7 @@ require'bufferline'.setup({
     show_close_icon = true,
     color_icons = true,
   },
-  highlights = {
-    separator = {
-      fg = '#073642',
-      bg = '#000000',
-    },
-    background = {
-      fg = '#657b83',
-      bg = '#444444'
-    },
-    buffer_selected = {
-      fg = '#ffffff',
-      bg = '#000000',
-      bold = true,
-    },
-    fill = {
-      bg = '#073642'
-    }
-  },
+  -- no custom highlights: derive colors from the active colorscheme (onedark)
 })
 
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferLineCycleNext<CR>', {})

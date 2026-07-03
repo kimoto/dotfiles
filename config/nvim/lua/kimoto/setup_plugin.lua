@@ -10,13 +10,22 @@ end
 -- then fails when cast() tries to call it. Patch the assignment to guard with
 -- type() so the fallback identity function is used instead.
 local lines = vim.fn.readfile(jetpackfile)
+local patched = false
 for i, line in ipairs(lines) do
-  lines[i] = line:gsub(
+  local new_line, n = line:gsub(
     'local list = vim%.list or function',
     'local list = type(vim.list) == "function" and vim.list or function'
   )
+  if n > 0 then
+    lines[i] = new_line
+    patched = true
+  end
 end
-vim.fn.writefile(lines, jetpackfile)
+-- Write back only when the patch actually applied, so an already-patched file
+-- isn't rewritten on every startup.
+if patched then
+  vim.fn.writefile(lines, jetpackfile)
+end
 
 vim.cmd('packadd vim-jetpack')
 
@@ -50,7 +59,6 @@ require('jetpack.paq') {
 
   'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
 
-  'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
   {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
 
