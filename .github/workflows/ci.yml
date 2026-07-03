@@ -167,3 +167,52 @@ jobs:
 
       - name: Neovim config guard (pure-Lua config loads clean, no plugins)
         run: ./bin/ci_nvim_guard_test.sh
+
+  nvim_loading_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Ensure tmux is present
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tmux
+
+      - name: Install Neovim (upstream stable tarball)
+        # apt ships 0.9.x, but the real environment runs the latest brew nvim
+        # and the config carries 0.10+/0.12+ API usage (vim.uv plugins, the
+        # vim.list jetpack patch in setup_plugin.lua), so test against
+        # upstream's stable channel — the same thing brew tracks.
+        run: |
+          set -e
+          curl -fsSL -o /tmp/nvim.tar.gz \
+            https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+          sudo tar -C /opt -xzf /tmp/nvim.tar.gz
+          sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+          nvim --version | head -1
+
+      - name: Restore nvim plugins cache
+        id: cache-nvim-plugins
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          # ci_nvim_loading_test.sh points XDG_DATA_HOME here (via
+          # NVIM_E2E_DATA_DIR), so this holds the jetpack clones of every
+          # plugin. Keyed on setup_plugin.lua since that is where the plugin
+          # list lives — editing it re-resolves the plugin set. Bump the vN to
+          # evict a bad cache (same manual lever as the brew/tmux keys).
+          path: ~/.nvim-e2e-data
+          key: ${{ runner.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua') }}-v1
+
+      - name: Neovim e2e (install all plugins, assert clean startup)
+        run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./bin/ci_nvim_loading_test.sh
+
+      - name: Save nvim plugins cache
+        # Runs only when the e2e passed (a failed step stops the job), so a
+        # half-installed tree never poisons the cache; skip on hit because
+        # saving over the same key fails with "Cache already exists".
+        if: steps.cache-nvim-plugins.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nvim-e2e-data
+          key: ${{ steps.cache-nvim-plugins.outputs.cache-primary-key }}
