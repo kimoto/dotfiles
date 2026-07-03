@@ -23,10 +23,11 @@ trap cleanup EXIT
 # Bare server first, then load the real config so parse errors surface.
 tmux -L "$SOCK" new-session -d -x 200 -y 50 2>/dev/null || die "failed to start tmux server"
 
-# Load-time budget. Generous vs the ~100ms it actually takes, so only a real
-# regression (e.g. a load-time #()/run-shell sneaking in) trips it, not runner
-# noise. Overridable for tuning/testing via TMUX_LOAD_BUDGET_MS.
-LOAD_BUDGET_MS="${TMUX_LOAD_BUDGET_MS:-300}"
+# Load-time budget. Observed: ~100ms on a local Linux box, ~510ms on a shared
+# GitHub runner (slower CPU + tpm/plugin sourcing), so 1000ms only trips on a
+# real regression (e.g. a load-time #()/run-shell or network call sneaking in,
+# which costs seconds). Overridable for tuning/testing via TMUX_LOAD_BUDGET_MS.
+LOAD_BUDGET_MS="${TMUX_LOAD_BUDGET_MS:-1000}"
 # macOS `date` lacks %N, so use perl for portable millisecond timestamps.
 need perl
 now_ms() { perl -MTime::HiRes=time -e 'printf "%d", time()*1000'; }
