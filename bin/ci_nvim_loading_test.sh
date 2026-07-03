@@ -74,7 +74,7 @@ tail -n 20 "$sync_log"
 # under the jetpack pack dir (layout-agnostic: src clone or copied pack tree).
 PACK_DIR="$XDG_DATA_HOME/nvim/site/pack/jetpack"
 [ -d "$PACK_DIR" ] || die "jetpack pack dir missing after sync ($PACK_DIR)"
-for p in telescope.nvim nvim-tree.lua coc.nvim onedark.nvim nvim-treesitter; do
+for p in telescope.nvim nvim-tree.lua mason.nvim nvim-cmp onedark.nvim nvim-treesitter; do
   find "$PACK_DIR" -maxdepth 6 -type d -name "$p" 2>/dev/null | grep -q . ||
     die "plugin $p not installed under $PACK_DIR (JetpackSync incomplete / clone failed?)"
 done
@@ -101,7 +101,10 @@ silent echo "TELESCOPE=".(exists(":Telescope")?"loaded":"missing")
 silent echo "NVIMTREE=".(exists(":NvimTreeToggle")?"loaded":"missing")
 silent echo "TOGGLETERM=".(exists(":ToggleTerm")?"loaded":"missing")
 silent echo "TREESITTER=".(exists(":TSUpdate")?"loaded":"missing")
-silent echo "COC=".(exists(":CocInfo")?"loaded":"missing")
+silent echo "MASON=".(exists(":Mason")?"loaded":"missing")
+silent echo "CMP=".(luaeval("package.loaded['cmp'] ~= nil")?"loaded":"missing")
+silent echo "CONFORM=".(luaeval("package.loaded['conform'] ~= nil")?"loaded":"missing")
+silent echo "LSP_TS=".(luaeval("vim.lsp.config['ts_ls'] ~= nil")?"configured":"missing")
 silent echo "COLORSCHEME=".(exists("g:colors_name")?g:colors_name:"none")
 silent echo "LUALINE=".(luaeval("package.loaded['lualine'] ~= nil")?"loaded":"missing")
 silent echo "YANKY_P=".(maparg("p","n")=~#"Yanky"?"mapped":"missing")
@@ -120,7 +123,10 @@ grep -q "TELESCOPE=loaded"    "$msgs" || die "telescope did not load"
 grep -q "NVIMTREE=loaded"     "$msgs" || die "nvim-tree did not load"
 grep -q "TOGGLETERM=loaded"   "$msgs" || die "toggleterm did not load"
 grep -q "TREESITTER=loaded"   "$msgs" || die "nvim-treesitter did not load"
-grep -q "COC=loaded"          "$msgs" || die "coc.nvim did not load"
+grep -q "MASON=loaded"        "$msgs" || die "mason did not load"
+grep -q "CMP=loaded"          "$msgs" || die "nvim-cmp did not load"
+grep -q "CONFORM=loaded"      "$msgs" || die "conform did not load"
+grep -q "LSP_TS=configured"   "$msgs" || die "ts_ls lsp config not resolved"
 grep -q "COLORSCHEME=onedark" "$msgs" || die "onedark colorscheme not applied"
 grep -q "LUALINE=loaded"      "$msgs" || die "lualine did not load"
 grep -q "YANKY_P=mapped"      "$msgs" || die "yanky put mapping not active"

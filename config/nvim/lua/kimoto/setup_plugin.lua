@@ -71,8 +71,16 @@ require('jetpack.paq') {
   -- color themes
   'navarasu/onedark.nvim',
 
-  -- dev
-  {'neoclide/coc.nvim', branch = 'release'},
+  -- dev: native LSP stack (replaces coc.nvim)
+  'neovim/nvim-lspconfig',        -- per-server configs for vim.lsp.config
+  'mason-org/mason.nvim',         -- language server installer (:Mason)
+  'mason-org/mason-lspconfig.nvim',
+  'hrsh7th/nvim-cmp',             -- completion
+  'hrsh7th/cmp-nvim-lsp',
+  'hrsh7th/cmp-buffer',
+  'hrsh7th/cmp-path',
+  'stevearc/conform.nvim',        -- format on save (prettier etc.)
+
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
 
   'tpope/vim-surround', -- text objectの拡張

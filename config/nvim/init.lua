@@ -114,8 +114,7 @@ require('onedark').load()
 
 require('colorizer').setup()
 
--- coc
-vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-prettier', 'coc-volar', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-sql', 'coc-eslint', 'coc-yank', 'coc-pyright', 'coc-css'}
+require('kimoto/plugins/lsp')
 
 -- related nvim-dap (debug adapter protocol)
 vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
