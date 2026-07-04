@@ -177,3 +177,19 @@ PROBE
   printf '%s\n' "$carapace_out"
   require_grep "carapace completion not registered (installed path)" "$carapace_out" "CARAPACE_COMP=_"
 fi
+
+# Startup time gate: prevent regressions from the startup-perf pass.
+# Measures a bare interactive-exit (loads .zshrc then quits) using GNU date
+# +%s%N, which is available on ubuntu-latest.  5s is generous enough to absorb
+# Linuxbrew/CI overhead while still catching a serious regression — re-enabling
+# hook-env or loading a heavy plugin synchronously typically adds 30-200ms on a
+# developer machine and compounds to 500ms+ on CI.
+echo "== zsh startup time budget =="
+_t0=$(date +%s%N)
+env CI= "$ZSH_BIN" -ic exit >/dev/null 2>&1 || true
+_t1=$(date +%s%N)
+startup_ms=$(( (_t1 - _t0) / 1000000 ))
+printf 'Startup time: %dms (budget: 5000ms)\n' "$startup_ms"
+if [ "$startup_ms" -gt 5000 ]; then
+  die "zsh startup too slow: ${startup_ms}ms exceeds 5000ms budget"
+fi
