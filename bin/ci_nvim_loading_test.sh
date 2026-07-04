@@ -53,28 +53,34 @@ export XDG_CACHE_HOME="$HOME_DIR/.cache"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 ln -s "$REPO/config/nvim" "$XDG_CONFIG_HOME/nvim"
 
+# Keep startups deterministic: the config's first-run auto-installers (mason
+# servers, treesitter parsers) must not kick off background downloads while
+# the assertions below read :messages / the rendered screen. The jetpack
+# plugin bootstrap itself is NOT gated by this — phase 1 relies on it.
+export DOTFILES_NO_NVIM_AUTO_INSTALL=1
+
 run_nvim() { HOME="$HOME_DIR" nvim --headless "$@" </dev/null; }
 
 # ---------------------------------------------------------------------------
-# Install: the first startup bootstraps jetpack (setup_plugin.lua curls it),
-# then :JetpackSync clones every declared plugin and runs the post-install
-# hooks (:TSUpdate). Errors from init.lua itself are expected on this run —
-# the per-plugin requires fire before anything is installed — so this phase
-# only has to leave a complete plugin tree behind; correctness of the config
-# is asserted by the startup checks below.
+# Install: a plain first startup must bootstrap everything on its own —
+# setup_plugin.lua curls jetpack and, on missing plugins, runs :JetpackSync
+# itself (no manual sync). Errors from init.lua are tolerated on this run —
+# the per-plugin requires can fire before the install finishes — so this
+# phase only has to leave a complete plugin tree behind; correctness of the
+# config is asserted by the startup checks below.
 # ---------------------------------------------------------------------------
-echo "== JetpackSync (bootstrap + install all plugins) =="
+echo "== first-run bootstrap (plain startup must auto-install plugins) =="
 sync_log="$HOME_DIR/sync.log"
-run_nvim -c 'JetpackSync' -c 'qall!' >"$sync_log" 2>&1 || {
-  cat "$sync_log"; die "JetpackSync run exited non-zero"; }
+run_nvim -c 'qall!' >"$sync_log" 2>&1 || {
+  cat "$sync_log"; die "first-run bootstrap exited non-zero"; }
 tail -n 20 "$sync_log"
 
-# JetpackSync reports per-plugin failures only in its progress buffer, so
+# The auto-sync reports per-plugin failures only in its progress buffer, so
 # verify the end state directly: representative plugins must exist somewhere
 # under the jetpack pack dir (layout-agnostic: src clone or copied pack tree).
 PACK_DIR="$XDG_DATA_HOME/nvim/site/pack/jetpack"
 [ -d "$PACK_DIR" ] || die "jetpack pack dir missing after sync ($PACK_DIR)"
-for p in telescope.nvim nvim-tree.lua coc.nvim onedark.nvim nvim-treesitter; do
+for p in telescope.nvim nvim-tree.lua mason.nvim nvim-cmp onedark.nvim nvim-treesitter; do
   find "$PACK_DIR" -maxdepth 6 -type d -name "$p" 2>/dev/null | grep -q . ||
     die "plugin $p not installed under $PACK_DIR (JetpackSync incomplete / clone failed?)"
 done
@@ -101,7 +107,10 @@ silent echo "TELESCOPE=".(exists(":Telescope")?"loaded":"missing")
 silent echo "NVIMTREE=".(exists(":NvimTreeToggle")?"loaded":"missing")
 silent echo "TOGGLETERM=".(exists(":ToggleTerm")?"loaded":"missing")
 silent echo "TREESITTER=".(exists(":TSUpdate")?"loaded":"missing")
-silent echo "COC=".(exists(":CocInfo")?"loaded":"missing")
+silent echo "MASON=".(exists(":Mason")?"loaded":"missing")
+silent echo "CMP=".(luaeval("package.loaded['cmp'] ~= nil")?"loaded":"missing")
+silent echo "CONFORM=".(luaeval("package.loaded['conform'] ~= nil")?"loaded":"missing")
+silent echo "LSP_TS=".(luaeval("vim.lsp.config['ts_ls'] ~= nil")?"configured":"missing")
 silent echo "COLORSCHEME=".(exists("g:colors_name")?g:colors_name:"none")
 silent echo "LUALINE=".(luaeval("package.loaded['lualine'] ~= nil")?"loaded":"missing")
 silent echo "YANKY_P=".(maparg("p","n")=~#"Yanky"?"mapped":"missing")
@@ -120,7 +129,10 @@ grep -q "TELESCOPE=loaded"    "$msgs" || die "telescope did not load"
 grep -q "NVIMTREE=loaded"     "$msgs" || die "nvim-tree did not load"
 grep -q "TOGGLETERM=loaded"   "$msgs" || die "toggleterm did not load"
 grep -q "TREESITTER=loaded"   "$msgs" || die "nvim-treesitter did not load"
-grep -q "COC=loaded"          "$msgs" || die "coc.nvim did not load"
+grep -q "MASON=loaded"        "$msgs" || die "mason did not load"
+grep -q "CMP=loaded"          "$msgs" || die "nvim-cmp did not load"
+grep -q "CONFORM=loaded"      "$msgs" || die "conform did not load"
+grep -q "LSP_TS=configured"   "$msgs" || die "ts_ls lsp config not resolved"
 grep -q "COLORSCHEME=onedark" "$msgs" || die "onedark colorscheme not applied"
 grep -q "LUALINE=loaded"      "$msgs" || die "lualine did not load"
 grep -q "YANKY_P=mapped"      "$msgs" || die "yanky put mapping not active"

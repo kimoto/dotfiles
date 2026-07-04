@@ -27,7 +27,6 @@ vim.keymap.set('n', '<leader>6', ':b 6<CR>')
 vim.keymap.set('n', '<leader>n', ':bn<CR>')
 vim.keymap.set('n', '<leader>p', ':bp<CR>')
 vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
-vim.keymap.set('n', '<D-l>', ':Telescope frecency<CR>')
 
 vim.keymap.set({"n","x"}, "p", "<Plug>(YankyPutAfter)")
 vim.keymap.set({"n","x"}, "P", "<Plug>(YankyPutBefore)")
@@ -51,12 +50,6 @@ require("yanky").setup({
   },
 })
 
---vim.api.nvim_set_keymap(
---  "n",
---  "<space>ff",
---  ":Telescope file_browser<CR>",
---  { noremap = true }
---)
 require('telescope').setup{
   defaults = {
     -- Default configuration for telescope goes here:
@@ -100,32 +93,39 @@ vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', {})
 
-require('nvim-treesitter').setup {
-  indent = {
-    enable = true,
-  },
-}
+-- nvim-treesitter (main branch): highlight/indent are opted into per buffer,
+-- not via setup() — start treesitter whenever the filetype has a parser, and
+-- only then hand indentation to the plugin's (experimental) indentexpr.
+-- First-run bootstrap: install the everyday parsers in the background when
+-- the tree-sitter CLI is present (brew: tree-sitter, required by the main
+-- branch); already-installed parsers are skipped. CI/e2e opts out via
+-- DOTFILES_NO_NVIM_AUTO_INSTALL.
+if vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and vim.fn.executable('tree-sitter') == 1 then
+  require('nvim-treesitter').install({
+    'bash', 'css', 'html', 'javascript', 'json', 'lua', 'markdown', 'perl',
+    'python', 'ruby', 'rust', 'sql', 'toml', 'tsx', 'typescript', 'vim',
+    'vimdoc', 'vue', 'yaml',
+  })
+end
+vim.api.nvim_create_autocmd('FileType', {
+  callback = function(ev)
+    if pcall(vim.treesitter.start, ev.buf) then
+      vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    end
+  end,
+})
 
-require('git').setup()
+require('nvim-ts-autotag').setup()
 
 -- color themes
--- vim.cmd('colorscheme solarized')
 require('onedark').setup {
     style = 'deep'
 }
 require('onedark').load()
 
-require('lualine').setup {
-  options = {
-    theme = 'onedark',
-    globalstatus = true, -- 画面分割時にstatuslineを統合
-  }
-}
-
 require('colorizer').setup()
 
--- coc
-vim.g.coc_global_extensions = {'coc-toml', 'coc-json', 'coc-git', 'coc-prettier', 'coc-vetur', 'coc-tsserver', 'coc-solargraph', 'coc-perl', 'coc-json', 'coc-git', 'coc-sql', 'coc-eslint', 'coc-prettier', 'coc-yank', 'coc-python', 'coc-css'}
+require('kimoto/plugins/lsp')
 
 -- related nvim-dap (debug adapter protocol)
 vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
@@ -133,8 +133,6 @@ vim.api.nvim_set_keymap('n', '<F9>', ':DapToggleBreakpoint<CR>', { silent = true
 vim.api.nvim_set_keymap('n', '<F10>', ':DapStepOver<CR>', { silent = true })
 vim.api.nvim_set_keymap('n', '<F11>', ':DapStepInto<CR>', { silent = true })
 vim.api.nvim_set_keymap('n', '<S-F11>', ':DapStepOut<CR>', { silent = true })
--- vim.api.nvim_set_keymap('n', '<leader>b', ':DapToggleBreakpoint<CR>', { silent = true })
--- vim.api.nvim_set_keymap('n', '<leader>B', ':lua require("dap").set_breakpoint(nil, nil, vim.fn.input("Breakpoint condition: "))<CR>', { silent = true })
 vim.api.nvim_set_keymap('n', '<leader>lp', ':lua require("dap").set_breakpoint(nil, nil, vim.fn.input("Log point message: "))<CR>', { silent = true })
 vim.api.nvim_set_keymap('n', '<leader>dr', ':lua require("dap").repl.open()<CR>', { silent = true })
 vim.api.nvim_set_keymap('n', '<leader>dl', ':lua require("dap").run_last()<CR>', { silent = true })
@@ -155,45 +153,6 @@ end
 dap.listeners.before.event_exited.dapui_config = function()
   dapui.close()
 end
--- require("dap-vscode-js").setup({
---   debugger_path = vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug", -- Path to vscode-js-debug installation.
---   -- debugger_cmd = { "js-debug-adapter" }, -- Command to use to launch the debug server. Takes precedence over `node_path` and `debugger_path`.
---   adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' }, -- which adapters to register in nvim-dap
---   -- log_file_path = "(stdpath cache)/dap_vscode_js.log" -- Path for file logging
---   -- log_file_level = false -- Logging level for output to file. Set to false to disable file logging.
---   -- log_console_level = vim.log.levels.ERROR -- Logging level for output to console. Set to false to disable console output.
--- })
-local dap = require("dap")
 
--- dap.adapters['pwa-node'] = {
---   type = 'server',
---   host = 'localhost',
---   port = '${port}',
---   executable = {
---     command = 'tsx',
---     args = {vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug/src/dapDebugServer.ts", "${port}"},
---   },
--- }
---
--- for _, language in ipairs({ "typescript", "javascript" }) do
---   dap.configurations[language] = {
---     {
---       type = "pwa-node",
---       request = "launch",
---       name = "Launch file",
---       program = "${file}",
---       cwd = "${workspaceFolder}",
---       executable = {
---         command = "tsx",
---         -- 💀 Make sure to update this path to point to your installation
---         args = {vim.fn.stdpath("data") .. "/site/pack/jetpack/opt/vscode-js-debug/src/dapDebugServer.ts", "${port}"},
---       },
---     },
---   }
--- end
---
--- -- vim.g.auto_ctags = 1 -- tagsの自動更新
---
--- Vimを終了してもUndo
+-- Vimを終了してもUndo (default undodir: stdpath('state')/undo, auto-created)
 vim.opt.undofile = true
-vim.opt.undodir = os.getenv("HOME") .. "/.cache/nvim/undodir"

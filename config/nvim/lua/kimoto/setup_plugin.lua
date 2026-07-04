@@ -10,30 +10,39 @@ end
 -- then fails when cast() tries to call it. Patch the assignment to guard with
 -- type() so the fallback identity function is used instead.
 local lines = vim.fn.readfile(jetpackfile)
+local patched = false
 for i, line in ipairs(lines) do
-  lines[i] = line:gsub(
+  local new_line, n = line:gsub(
     'local list = vim%.list or function',
     'local list = type(vim.list) == "function" and vim.list or function'
   )
+  if n > 0 then
+    lines[i] = new_line
+    patched = true
+  end
 end
-vim.fn.writefile(lines, jetpackfile)
+-- Write back only when the patch actually applied, so an already-patched file
+-- isn't rewritten on every startup.
+if patched then
+  vim.fn.writefile(lines, jetpackfile)
+end
 
 vim.cmd('packadd vim-jetpack')
 
 require('jetpack.paq') {
   {'tani/vim-jetpack', opt = 1}, -- bootstrap
 
-  {'nvim-treesitter/nvim-treesitter', run = ':TSUpdate'},
+  -- main branch: parsers are managed via require('nvim-treesitter').install()
+  -- (see init.lua), so no :TSUpdate run-hook.
+  'nvim-treesitter/nvim-treesitter',
 
   'nvim-tree/nvim-web-devicons',
-  {'nvim-tree/nvim-tree.lua', -- treesitter
+  {'nvim-tree/nvim-tree.lua', -- file explorer
     requires = {
       'nvim-tree/nvim-web-devicons',
     },
   },
 
-  -- なんかうまく動かないので一時的に外す
-  -- 'vim-scripts/YankRing.vim',
   {"gbprod/yanky.nvim"},
 
   -- telescope
@@ -50,31 +59,33 @@ require('jetpack.paq') {
 
   {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
 
-  'NvChad/nvim-colorizer.lua', -- カーソル下と同じ単語を強調
+  'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
 
-  'dinhhuy258/git.nvim', -- like fugitive.vim
   'lewis6991/gitsigns.nvim', -- git statusを表示
   {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
 
-  'windwp/nvim-ts-autotag', -- tagsの自動生成
+  'windwp/nvim-ts-autotag', -- auto close/rename HTML tags (treesitter-based)
   'pocco81/auto-save.nvim', -- 自動保存
 
   'akinsho/bufferline.nvim',
   'akinsho/toggleterm.nvim',
 
   -- color themes
-  'Tsuzat/NeoSolarized.nvim',
-  'ishan9299/nvim-solarized-lua',
-  'folke/tokyonight.nvim',
   'navarasu/onedark.nvim',
 
-  -- dev
-  {'neoclide/coc.nvim', branch = 'release'},
+  -- dev: native LSP stack (replaces coc.nvim)
+  'neovim/nvim-lspconfig',        -- per-server configs for vim.lsp.config
+  'mason-org/mason.nvim',         -- language server installer (:Mason)
+  'mason-org/mason-lspconfig.nvim',
+  'hrsh7th/nvim-cmp',             -- completion
+  'hrsh7th/cmp-nvim-lsp',
+  'hrsh7th/cmp-buffer',
+  'hrsh7th/cmp-path',
+  'stevearc/conform.nvim',        -- format on save (prettier etc.)
+
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
 
   'tpope/vim-surround', -- text objectの拡張
-  -- 'soramugi/auto-ctags.vim',
-  -- 'hiphish/rainbow-delimiters.nvim' -- rainbow brackets
 
   -- lang
   'tpope/vim-endwise', -- Rubyのendなどの自動補完
@@ -90,12 +101,22 @@ require('jetpack.paq') {
   -- python
   'https://github.com/mfussenegger/nvim-dap-python',
   -- ruby
-  'mfussenegger/nvim-dap',
   'suketa/nvim-dap-ruby',
-
-  -- javascript/typescript
-  'mxsdev/nvim-dap-vscode-js',
-  -- {"microsoft/vscode-js-debug", opt = 1, run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"},
-
-  'editorconfig/editorconfig-vim',
 }
+
+-- First-run bootstrap: if any declared plugin is missing, install everything
+-- now (JetpackSync blocks until done) instead of erroring on every require
+-- until someone runs it manually. jetpack#tap() is false for a plugin that
+-- is declared but not installed yet.
+for _, name in ipairs(vim.fn['jetpack#names']()) do
+  if vim.fn['jetpack#tap'](name) == 0 then
+    vim.notify('[dotfiles] installing missing plugins (JetpackSync) ...')
+    local ok, err = pcall(vim.cmd, 'JetpackSync')
+    if ok then
+      vim.notify('[dotfiles] plugin install finished — restart nvim if anything looks off')
+    else
+      vim.notify('[dotfiles] JetpackSync failed: ' .. tostring(err), vim.log.levels.ERROR)
+    end
+    break
+  end
+end

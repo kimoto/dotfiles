@@ -119,6 +119,8 @@ brew "silicon"
 brew "telnet"
 # Manage complex tmux sessions easily
 brew "tmuxinator"
+# Parser generator tool and incremental parsing library (nvim-treesitter CLI)
+brew "tree-sitter"
 # Maintained, actively developed ctags implementation
 brew "universal-ctags"
 # Vi 'workalike' with many additional features
