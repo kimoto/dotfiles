@@ -52,6 +52,7 @@ mysqlsh/*
 .zcompdump*
 
 # local-only (machine-specific / editor state)
+.vim/.netrwhist
 .vim/undodir/
 .zshrc.local
 

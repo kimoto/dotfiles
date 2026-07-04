@@ -9,10 +9,12 @@
 #
 # `brew bundle check` is comparatively slow, so startup never waits for it: the
 # foreground only prints the cached result of the previous check, then a
-# detached background job refreshes the cache (at most once per 24h, or sooner
-# when a Brewfile or the Homebrew Cellar changed). The warning can therefore be
-# one shell stale — the same trade-off dotfiles_sync_check.sh makes for its
-# background `git fetch`.
+# detached background job refreshes the cache. An "all satisfied" result is
+# trusted for 24h (or until a Brewfile, the Cellar, or the Caskroom changes),
+# but a pending warning is re-checked every startup, so installing the missing
+# packages clears the nag on the next shell instead of when the 24h throttle
+# expires. The warning can therefore be one shell stale — the same trade-off
+# dotfiles_sync_check.sh makes for its background `git fetch`.
 #
 # Skipped entirely when DOTFILES_NO_BREW_CHECK is set (used by CI so the load
 # test neither slows down nor prints reminder noise).
@@ -60,9 +62,11 @@ fi
 # All fds are detached so neither the terminal nor the caller (zsh startup, or
 # bats' fd 3) ever waits on this job.
 (
-    # Re-run the (slow) check at most once per 24h.
+    # Re-run the (slow) check at most once per 24h — but only trust a cached
+    # "all satisfied" result. A pending warning is re-checked every startup so
+    # acting on it clears the nag on the next shell.
     need_check=1
-    if [ -f "$stamp" ] && [ -f "$result" ]; then
+    if [ -f "$stamp" ] && [ -f "$result" ] && [ ! -s "$result" ]; then
         last=$(cat "$stamp" 2>/dev/null || echo 0)
         case "$last" in
             '' | *[!0-9]*) last=0 ;;
@@ -72,11 +76,12 @@ fi
         fi
     fi
 
-    # Invalidate the cache if any Brewfile or the Homebrew Cellar changed since
-    # the last check.
+    # Invalidate the cache if any Brewfile, the Homebrew Cellar, or the
+    # Caskroom changed since the last check.
     if [ "$need_check" -eq 0 ]; then
         cellar=$(brew --cellar 2>/dev/null) || cellar=""
-        for check_path in "${files[@]/#/$REPO_DIR/}" ${cellar:+"$cellar"}; do
+        caskroom=$(brew --caskroom 2>/dev/null) || caskroom=""
+        for check_path in "${files[@]/#/$REPO_DIR/}" ${cellar:+"$cellar"} ${caskroom:+"$caskroom"}; do
             [ -e "$check_path" ] || continue
             mtime=$(stat -c %Y "$check_path" 2>/dev/null || stat -f %m "$check_path" 2>/dev/null || echo 0)
             if [ "$mtime" -gt "$last" ]; then
