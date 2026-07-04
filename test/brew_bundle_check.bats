@@ -103,15 +103,29 @@ wait_for() {
   [[ "$output" == *"brew bundle install --file="* ]]
 }
 
-@test "reuses the cached nag within 24h without re-checking" {
-  BREW_CHECK_RC=1 run "$SCRIPT"
+@test "a pending nag is re-checked every startup and clears once satisfied" {
+  BREW_CHECK_RC=1 run "$SCRIPT" # seed a "missing" cache
   wait_for '[ -s "$CACHE/brew_missing" ]'
-  # Within 24h the stub flipping to "satisfied" must NOT change the cached nag.
+
+  # Bundles are satisfied now: this shell still shows the cached nag, but the
+  # background re-check runs despite the fresh 24h stamp and clears it.
   BREW_CHECK_RC=0 run "$SCRIPT"
   [[ "$output" == *"Brewfile.basic"* ]]
-  # Give a rogue background re-check time to clear the cache; it must not have.
+  wait_for '[ ! -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=0 run "$SCRIPT"
+  [ -z "$output" ]
+}
+
+@test "trusts a satisfied cache for 24h without re-checking" {
+  BREW_CHECK_RC=0 run "$SCRIPT"
+  wait_for '[ -f "$CACHE/brew_missing" ]'
+  [ ! -s "$CACHE/brew_missing" ]
+  # Within 24h the stub flipping to "missing" must NOT repopulate the cache.
+  BREW_CHECK_RC=1 run "$SCRIPT"
+  [ -z "$output" ]
+  # Give a rogue background re-check time to write the cache; it must not have.
   sleep 1
-  [ -s "$CACHE/brew_missing" ]
+  [ ! -s "$CACHE/brew_missing" ]
 }
 
 @test "re-checks in the background once the stamp is older than 24h" {

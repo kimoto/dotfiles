@@ -32,6 +32,9 @@ set backup
 set backupdir=~/tmp
 set directory=~/tmp
 
+" netrwの閲覧履歴(~/.vim/.netrwhist)を書き出さない
+let g:netrw_dirhistmax = 0
+
 " 日本語設定
 set termencoding=utf8
 set encoding=utf8
