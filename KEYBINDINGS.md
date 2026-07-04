@@ -100,7 +100,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
-| prefix + f | fzf switcher across all sessions/windows with live preview (replaces find-window) |
+| prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
