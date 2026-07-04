@@ -27,7 +27,12 @@ typeset -gA ABBR_MAP=(
 
 _abbr_expand() {
   local word=${LBUFFER##*[[:space:]]}
-  [[ -n $word && -n ${ABBR_MAP[$word]} ]] && LBUFFER[-${#word},-1]=${ABBR_MAP[$word]}
+  [[ -n $word && -n ${ABBR_MAP[$word]} ]] || return 0
+  local prefix=${LBUFFER%"$word"}
+  # command position only, like zsh-abbr: line start or right after ; & | ( `
+  # (so `git co` keeps its literal `co` instead of expanding mid-line)
+  [[ $prefix =~ '(^|[;&|(`])[[:space:]]*$' ]] || return 0
+  LBUFFER=${prefix}${ABBR_MAP[$word]}
 }
 
 _abbr_expand_space() {
