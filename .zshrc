@@ -199,6 +199,21 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export GPG_TTY=$TTY # zsh sets $TTY itself; saves a tty(1) fork per shell
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
+# mise (and other rustls-based tools) probe every file in the system CA cert
+# dirs individually rather than reading one bundle; a root-only leaf cert
+# dropped in there (e.g. this host's Passenger localhost.crt) trips a
+# permission-denied WARN on every mise hook. Pointing SSL_CERT_FILE at the
+# actual bundle skips that per-file directory scan.
+if [[ $OSTYPE == linux* ]]; then
+  for _ca_bundle in /etc/ssl/certs/ca-bundle.crt /etc/pki/tls/certs/ca-bundle.crt \
+      /etc/ssl/certs/ca-certificates.crt; do
+    if [[ -r "$_ca_bundle" ]]; then
+      export SSL_CERT_FILE="$_ca_bundle"
+      break
+    fi
+  done
+  unset _ca_bundle
+fi
 
 #=====================
 # completion zstyles
