@@ -68,12 +68,20 @@ Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 |-----|--------|
 | ⌘+1~9 | Switch to window 1~9 |
 | ⌘+T (M-t) | New window |
+| ⌥⌘+Left / Right | Previous / next window |
+
+### Sessions (no prefix)
+
+| Key | Action |
+|-----|--------|
+| ⌥⌘+Up / Down | Switch to previous / next session |
 
 ### Panes (no prefix)
 
 | Key | Action |
 |-----|--------|
 | ⌥⌘+h/j/k/l | Select pane left / down / up / right |
+| ⌥+Z (M-z) | Toggle pane zoom (🔍 in window status while zoomed) |
 
 ⌥⌘+hjkl works because Ghostty sends ESC+hjkl (M-hjkl) even with ⌘ held,
 while AeroSpace only intercepts plain ⌥+hjkl.
@@ -87,6 +95,13 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | prefix + m | Mark pane |
 | prefix + M | Move marked pane here (join-pane) |
 | prefix + Space | Cycle layout |
+| prefix + r | Reload ~/.tmux.conf |
+| prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
+| prefix + b | Toggle status bar (screen sharing) |
+| prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
+| prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
+| prefix + f | fzf switcher across all sessions/windows with live preview (replaces find-window) |
+| prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
 
