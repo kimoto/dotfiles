@@ -8,6 +8,8 @@ font-thicken-strength = 10
 macos-option-as-alt = true
 macos-titlebar-style = hidden
 quick-terminal-animation-duration = 1000
+# NOTE: keybindings in this file are documented in KEYBINDINGS.md (repo
+# root) — update it when adding or changing a binding.
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
 keybind = super+digit_1=text:\x1b1

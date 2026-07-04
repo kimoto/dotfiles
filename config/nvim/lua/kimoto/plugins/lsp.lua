@@ -4,6 +4,8 @@
 -- coc-prettier used to own, and the eslint language server replaces
 -- coc-eslint. Builtin LSP maps (0.11+): grn=rename, gra=code action,
 -- grr=references, K=hover; gd/gy/gi are added below.
+-- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
+-- update it when adding or changing a map.
 
 -- Servers mirroring the old coc extensions. mason-lspconfig auto-installs
 -- missing ones on startup (first-run bootstrap); enabling a server that is

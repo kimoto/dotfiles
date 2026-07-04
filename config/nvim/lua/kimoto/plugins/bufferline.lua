@@ -11,5 +11,7 @@ require'bufferline'.setup({
   -- no custom highlights: derive colors from the active colorscheme (onedark)
 })
 
+-- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
+-- update it when adding or changing a map.
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferLineCycleNext<CR>', {})
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferLineCyclePrev<CR>', {})
