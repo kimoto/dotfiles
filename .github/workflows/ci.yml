@@ -37,6 +37,8 @@ jobs:
         run: ./bin/lint_actions.sh
       - name: Check Brewfile sort
         run: ./bin/check_brewfile_sort.sh
+      - name: Check tools catalog (TOOLS.md) is in sync with the Brewfiles
+        run: ./bin/gen_tools_list.sh --check
       - name: Check for sensitive filenames
         run: ./bin/check_secret_files.sh
       - name: Scan for secrets (gitleaks)
