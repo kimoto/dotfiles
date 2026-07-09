@@ -16,6 +16,7 @@ truth, so the two never diverge.
   lefthook). Key scripts: `mkworld.sh` (full bootstrap), `mklink.sh` (symlinks,
   `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
   here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
+  `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
@@ -30,6 +31,10 @@ truth, so the two never diverge.
   `ci_zsh_loading_test.sh`/`ci_tmux_loading_test.sh`, it's `basic`; CI installs
   only `basic`. `common` = full-workstation tooling not required to start the
   shell. `macos`/`linux` = platform-specific additions.
+- `TOOLS.md` — generated catalog of every installed tool, built from the
+  `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
+  Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
+  (CI + lefthook run `--check` to enforce it stays in sync).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror.
 - `.claude/` (settings + web SessionStart hook), `.codex/skills/` (Codex skills).
 

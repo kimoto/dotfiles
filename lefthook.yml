@@ -62,6 +62,12 @@ pre-commit:
     brewfile-sort:
       glob: "Brewfile.*"
       run: ./bin/check_brewfile_sort.sh
+    tools-list:
+      glob:
+        - "Brewfile.*"
+        - "TOOLS.md"
+        - "bin/gen_tools_list.sh"
+      run: ./bin/gen_tools_list.sh --check
     secret-files:
       run: ./bin/check_secret_files.sh {staged_files}
     gitleaks:
