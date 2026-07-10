@@ -168,6 +168,9 @@ jobs:
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
         run: ./bin/ci_g_command_test.sh
 
+      - name: Interactive e2e for the w worktree-jump command (git worktree -> fzf -> cd)
+        run: ./bin/ci_w_command_test.sh
+
   vim_guard_test:
     runs-on: ubuntu-latest
     steps:

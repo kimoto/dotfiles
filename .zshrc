@@ -288,6 +288,12 @@ B() {
   gh branch
 }
 
+# git worktree jump via fzf (in the style of b/g): cd into a chosen worktree.
+w() {
+  local dir=$(git worktree list | fzf --preview '' --query="$*" | awk '{print $1}')
+  test -z "$dir" || cd "$dir"
+}
+
 c() {
   kubectx
 }
