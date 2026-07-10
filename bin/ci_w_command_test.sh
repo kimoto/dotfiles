@@ -52,7 +52,10 @@ WT_BETA="$TMP/wt-wtbeta"
 git -c init.defaultBranch=main init -q "$MAIN"
 (
   cd "$MAIN"
-  git -c user.email=ci@example.com -c user.name=ci commit -q --allow-empty -m init
+  # -c commit.gpgsign=false: the repo's own ~/.gitconfig sets commit.gpgsign=true,
+  # but CI runners have no secret key, so an unqualified commit dies with exit 128.
+  git -c user.email=ci@example.com -c user.name=ci -c commit.gpgsign=false \
+    commit -q --allow-empty -m init
   git worktree add -q -b wtalpha "$WT_ALPHA"
   git worktree add -q -b wtbeta "$WT_BETA"
 )
