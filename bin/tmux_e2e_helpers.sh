@@ -51,11 +51,19 @@ tmux_conf_path() {
 }
 
 # wait_for_pane <socket> <pattern> [tries]: poll `capture-pane -p` until the
-# grep -E <pattern> appears, or time out (default 50 tries * 0.1s). Polling
-# beats a fixed sleep — as fast as the shell on a quick runner, as forgiving as
-# needed on a slow one.
+# grep -E <pattern> appears, or time out (default 150 tries * 0.1s = 15s).
+# Polling beats a fixed sleep — as fast as the shell on a quick runner, as
+# forgiving as needed on a slow one; since it returns the instant the pattern
+# appears, a larger ceiling never slows a passing assertion, it only widens the
+# margin before a genuine failure. The default is deliberately generous: these
+# panes run the real .zshrc, whose zsh-defer keeps draining the deferred plugin
+# init (fast-syntax-highlighting, autosuggestions, carapace) AFTER the first
+# prompt renders, so the shell can be busy for several seconds past the point it
+# first looks live — a 5s budget flaked on loaded runners (see the vi-alias step
+# in ci_tmux_interactive_test.sh). A step that needs longer still passes an
+# explicit larger value.
 wait_for_pane() {
-  local sock="$1" pattern="$2" tries="${3:-50}" i=0
+  local sock="$1" pattern="$2" tries="${3:-150}" i=0
   while [ "$i" -lt "$tries" ]; do
     tmux -L "$sock" capture-pane -p 2>/dev/null | grep -qE "$pattern" && return 0
     i=$((i + 1)); sleep 0.1
@@ -67,8 +75,9 @@ wait_for_pane() {
 
 # wait_absent_pane <socket> <pattern> [tries]: poll until <pattern> is no longer
 # on screen (e.g. to confirm a clear-screen landed before asserting a redraw).
+# Same 15s default and rationale as wait_for_pane above.
 wait_absent_pane() {
-  local sock="$1" pattern="$2" tries="${3:-50}" i=0
+  local sock="$1" pattern="$2" tries="${3:-150}" i=0
   while [ "$i" -lt "$tries" ]; do
     tmux -L "$sock" capture-pane -p 2>/dev/null | grep -qE "$pattern" || return 0
     i=$((i + 1)); sleep 0.1

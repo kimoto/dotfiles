@@ -86,9 +86,13 @@ SOCK="ci_g_e2e_$$"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; rm -rf "$TMP" 2>/dev/null || true; }
 trap cleanup EXIT
 
-# Poll capture-pane until $1 (a grep -E pattern) appears, or time out.
+# Poll capture-pane until $1 (a grep -E pattern) appears, or time out. Default
+# 150 tries * 0.1s = 15s: the first assertion absorbs the whole interactive
+# startup, and zsh-defer keeps draining deferred plugin init after the prompt
+# first renders, so a 5s budget can flake on a loaded runner (see the 15s
+# default and rationale in tmux_e2e_helpers.sh's wait_for_pane).
 wait_for() {
-  local pattern="$1" tries="${2:-50}" i=0
+  local pattern="$1" tries="${2:-150}" i=0
   while [ "$i" -lt "$tries" ]; do
     if tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE "$pattern"; then
       return 0
@@ -105,7 +109,7 @@ wait_for() {
 # has fully torn down before typing the next command: sending keys immediately
 # after Esc risks the terminal merging ESC + the next char into an Alt-sequence.
 wait_absent() {
-  local pattern="$1" tries="${2:-50}" i=0
+  local pattern="$1" tries="${2:-150}" i=0
   while [ "$i" -lt "$tries" ]; do
     if ! tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE "$pattern"; then
       return 0
