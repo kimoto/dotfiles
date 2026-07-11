@@ -280,7 +280,8 @@ g() {
 
 # git branch switch via fzf.
 b() {
-  local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
+  local preview='git log --color=always --oneline -15 {}'
+  local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview "$preview" --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 
