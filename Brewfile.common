@@ -87,6 +87,8 @@ brew "lolcat"
 brew "morantron/tmux-fingers/tmux-fingers"
 # Open source relational database management system
 brew "mysql-client"
+# MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client
+brew "mysql-shell"
 # Interactive cheatsheet tool for the command-line
 brew "navi"
 # Text-based UI library
