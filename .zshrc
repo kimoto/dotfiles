@@ -244,7 +244,6 @@ alias grep='grep --color=auto'
 # route through the grep alias above, so they get color and skip the warning.
 alias egrep='grep -E'
 alias fgrep='grep -F'
-alias navi='navi --print --prevent-interpolation'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 alias gist='gh gist create --web'
 
@@ -258,6 +257,10 @@ bindkey "^\\" undo
 #=====================
 # utility functions
 #=====================
+# Absolute repo root (resolves the ~/.zshrc symlink); used by helpers that
+# read files shipped in the repo (e.g. `keys` -> KEYBINDINGS.md).
+DOTFILES_ROOT="${${(%):-%x}:A:h}"
+
 temp(){
   cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
 }
@@ -299,6 +302,37 @@ c() {
   kubectx
 }
 
+# Command snippets for the ^X^N picker: `snip add [note]` registers the
+# previous command (optionally annotated), `snip` opens the file in $EDITOR.
+snip() {
+  local file="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/snippets"
+  if [[ "$1" == "add" ]]; then
+    shift
+    local last
+    last=$(fc -ln -1 | sed 's/^[[:space:]]*//')
+    [[ -n "$last" ]] || { echo "snip: no previous command" >&2; return 1 }
+    [[ -n "$*" ]] && last+=" # $*"
+    print -r -- "$last" >> "$file"
+    echo "snip: added: $last"
+  else
+    "${EDITOR:-vi}" "$file"
+  fi
+}
+
+# KEYBINDINGS.md lookup: fzf across every layer's binding/helper tables,
+# each row prefixed with its section heading. Answers "what was that key?"
+# without leaving the prompt.
+keys() {
+  awk '
+    /^#/ { section = $0; sub(/^#+[[:space:]]*/, "", section) }
+    /^\|/ {
+      if ($0 ~ /^[| :-]+$/) next
+      if ($0 ~ /^\| *(Key|Command) *\|/) next
+      printf "[%s] %s\n", section, $0
+    }
+  ' "$DOTFILES_ROOT/KEYBINDINGS.md" | fzf --query="$*"
+}
+
 # ls if no arg / directory arg, otherwise bat the file.
 l() {
   if [[ "$#" == 0 ]]; then
@@ -328,9 +362,14 @@ px() {
 #=====================
 # zle widgets
 #=====================
-# navi snippet picker -> insert into the command line.
+# fzf snippet picker -> insert into the command line. Snippets live in
+# $XDG_CONFIG_HOME/zsh/snippets (one per line; register with `snip add`).
+# The current LBUFFER seeds the query and the selection replaces it.
 search_snippet_and_replace_lbuffer() {
-  LBUFFER+=$(navi)
+  local snippets="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/snippets"
+  local snippet
+  snippet=$(grep -vE '^[[:space:]]*(#|$)' "$snippets" 2>/dev/null | fzf --query="$LBUFFER")
+  [[ -n "$snippet" ]] && LBUFFER="$snippet"
   zle redisplay
 }
 zle -N search_snippet_and_replace_lbuffer

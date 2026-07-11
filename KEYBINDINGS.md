@@ -121,7 +121,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | ⌃+R | History search (fzf; wrapped full-command preview) |
 | ⌃+T | File picker (fzf; bat preview; ⌃+O opens in editor) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
-| ⌃+X ⌃+N | navi snippet search → insert into command line |
+| ⌃+X ⌃+N | Snippet search (fzf over `config/zsh/snippets`) → insert into command line |
 | ⌃+\ | Undo |
 | ⌃+A / E | Beginning / end of line |
 | ⌃+W | Delete word backward |
@@ -132,7 +132,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 
 ### Shell helpers
 
-One-letter interactive commands defined in `.zshrc` for frequent workflows:
+Short interactive commands defined in `.zshrc` for frequent workflows:
 
 | Command | Action |
 |---------|--------|
@@ -142,6 +142,8 @@ One-letter interactive commands defined in `.zshrc` for frequent workflows:
 | `w [query]` | Jump to a git worktree (fzf) |
 | `c` | Switch Kubernetes context (`kubectx`) |
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
+| `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
+| `keys [query]` | Search this file's keybinding/helper tables (fzf) |
 
 ---
 

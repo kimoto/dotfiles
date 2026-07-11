@@ -117,7 +117,7 @@ print "ZCOMPDUMP_ZWC=$([[ -s ${ZDOTDIR:-$HOME}/.zcompdump.zwc ]] && echo yes || 
 for o in autocd autopushd share_history interactivecomments noclobber; do
   [[ -o $o ]] && print "OPT_ON:$o"
 done
-for fn in temp lg g l px livegrep source-if-exist; do
+for fn in temp lg g l px livegrep snip keys source-if-exist; do
   whence -w "$fn"
 done
 bindkey "^G"
@@ -153,13 +153,13 @@ for opt in autocd autopushd share_history interactivecomments noclobber; do
 done
 
 # utility functions defined in .zshrc
-for fn in temp lg g l px livegrep source-if-exist; do
+for fn in temp lg g l px livegrep snip keys source-if-exist; do
   require_grep "function not defined: $fn" "$env_out" "$fn: function"
 done
 
 # zle widgets / keybindings
 require_grep "livegrep not bound to ^G" "$env_out" "livegrep"
-require_grep "navi snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
+require_grep "snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
 
 # carapace completion: carapace ships in Brewfile.basic, so it's present in CI.
 # Confirms the eval-cache inline actually registers a completer for `carapace`,

@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 64 tools._
+_`Brewfile.common` — 63 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -80,7 +80,6 @@ _`Brewfile.common` — 64 tools._
 | `morantron/tmux-fingers/tmux-fingers` | Homebrew formula |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [mysql-shell](https://formulae.brew.sh/formula/mysql-shell) | MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client |
-| [navi](https://formulae.brew.sh/formula/navi) | Interactive cheatsheet tool for the command-line |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
 | [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
@@ -128,4 +127,4 @@ _`Brewfile.macos` — 13 tools._
 
 ---
 
-_92 tools across 3 bundles._
+_91 tools across 3 bundles._
