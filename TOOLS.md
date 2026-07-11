@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 63 tools._
+_`Brewfile.common` — 64 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -79,6 +79,7 @@ _`Brewfile.common` — 63 tools._
 | [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
 | `morantron/tmux-fingers/tmux-fingers` | Homebrew formula |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
+| [mysql-shell](https://formulae.brew.sh/formula/mysql-shell) | MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client |
 | [navi](https://formulae.brew.sh/formula/navi) | Interactive cheatsheet tool for the command-line |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
 | [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
@@ -107,7 +108,7 @@ _`Brewfile.common` — 63 tools._
 
 Platform-specific desktop apps (Homebrew casks).
 
-_`Brewfile.macos` — 12 tools._
+_`Brewfile.macos` — 13 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -120,10 +121,11 @@ _`Brewfile.macos` — 12 tools._
 | [google-japanese-ime](https://formulae.brew.sh/cask/google-japanese-ime) | Japanese input software |
 | [hammerspoon](https://formulae.brew.sh/cask/hammerspoon) | Desktop automation application |
 | [monitorcontrol](https://formulae.brew.sh/cask/monitorcontrol) | Tool to control external monitor brightness & volume |
+| `nikitabobko/tap/aerospace` | AeroSpace is an i3-like tiling window manager for macOS |
 | [raycast](https://formulae.brew.sh/cask/raycast) | Control your tools with a few keystrokes |
 | [rectangle](https://formulae.brew.sh/cask/rectangle) | Move and resize windows using keyboard shortcuts or snap areas |
 | [stats](https://formulae.brew.sh/cask/stats) | System monitor for the menu bar |
 
 ---
 
-_90 tools across 3 bundles._
+_92 tools across 3 bundles._

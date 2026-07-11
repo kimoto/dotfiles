@@ -1,4 +1,6 @@
 # NOTE: Keep entries sorted A-Z within this file.
+# Tap for AeroSpace
+tap "nikitabobko/tap"
 # Screen capturing tool
 cask "cleanshot"
 # AI-powered translator
@@ -17,6 +19,8 @@ cask "google-japanese-ime"
 cask "hammerspoon"
 # Tool to control external monitor brightness & volume
 cask "monitorcontrol"
+# AeroSpace is an i3-like tiling window manager for macOS
+cask "nikitabobko/tap/aerospace"
 # Control your tools with a few keystrokes
 cask "raycast"
 # Move and resize windows using keyboard shortcuts or snap areas

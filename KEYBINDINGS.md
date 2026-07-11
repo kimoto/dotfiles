@@ -2,7 +2,7 @@
 
 Hierarchical keybinding reference. Upper layers intercept keys first.
 
-Sources: AeroSpace (managed outside this repo), `config/ghostty/config`,
+Sources: AeroSpace (`.aerospace.toml`), `config/ghostty/config`,
 `.tmux.conf`, `.zshrc`, `config/nvim/` — each carries a pointer comment back to
 this file; update this file whenever a binding changes there.
 

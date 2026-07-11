@@ -45,6 +45,14 @@ STUBEOF
 }
 
 teardown() {
+  # The detached background refresh may still be creating the lock dir / cache
+  # tmp files inside $TMP while rm -rf walks it, which makes rm fail with
+  # "Directory not empty" (seen in CI). Retry until the writer has exited.
+  for _ in $(seq 1 50); do
+    rm -rf "$TMP" 2>/dev/null || true
+    [ ! -e "$TMP" ] && return 0
+    sleep 0.1
+  done
   rm -rf "$TMP"
 }
 
