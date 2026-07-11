@@ -50,9 +50,12 @@ trap cleanup EXIT
 
 # Poll capture-pane until $1 (a grep -E pattern) appears, or time out. Sampling
 # in a loop keeps the test as fast as the shell on a quick runner and as
-# forgiving as needed on a slow one.
+# forgiving as needed on a slow one. Default 150 tries * 0.1s = 15s: the first
+# assertion waits for starship's prompt, which only renders once the deferred
+# starship init has run, and zsh-defer can keep draining past the first prompt
+# on a loaded runner (see the 15s default in tmux_e2e_helpers.sh's wait_for_pane).
 wait_for() {
-  local pattern="$1" tries="${2:-80}" i=0
+  local pattern="$1" tries="${2:-150}" i=0
   while [ "$i" -lt "$tries" ]; do
     if tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE "$pattern"; then
       return 0
