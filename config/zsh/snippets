@@ -1,0 +1,12 @@
+# Command snippets for the ^X^N picker (see .zshrc: search_snippet_and_replace_lbuffer).
+# One snippet per line, inserted verbatim into the command line.
+# A trailing "# note" is searchable and safe to execute (interactivecomments is on).
+# Register the previous command with `snip add [note]`; edit this file with `snip`.
+git rebase -i HEAD~5 # interactive rebase of the last N commits
+git log --oneline --graph --all # full history graph
+gh run view --log-failed # failing CI logs for a run
+gh pr checks --watch # watch CI on the current PR
+command curl -sI https://example.com # real curl (curl is aliased to curlie)
+lsof -iTCP -sTCP:LISTEN -n -P # what is listening on which port
+tar czf out.tar.gz dir/ # create a tar.gz archive
+du -sh * | sort -rh | head -20 # biggest entries in the current directory

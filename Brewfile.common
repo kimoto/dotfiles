@@ -89,8 +89,6 @@ brew "morantron/tmux-fingers/tmux-fingers"
 brew "mysql-client"
 # MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client
 brew "mysql-shell"
-# Interactive cheatsheet tool for the command-line
-brew "navi"
 # Text-based UI library
 brew "ncurses"
 # Ambitious Vim-fork focused on extensibility and agility
