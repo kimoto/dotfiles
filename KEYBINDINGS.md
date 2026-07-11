@@ -118,7 +118,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 
 | Key | Action |
 |-----|--------|
-| ⌃+R | History search |
+| ⌃+R | History search (fzf; wrapped full-command preview) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
 | ⌃+X ⌃+N | navi snippet search → insert into command line |
 | ⌃+\ | Undo |
