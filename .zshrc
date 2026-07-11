@@ -376,6 +376,16 @@ export FZF_DEFAULT_OPTS=" \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
+# Ctrl-R history search: the one-line list truncates long/multi-line commands,
+# so show the full selected entry in a wrapped preview and give the widget more
+# height than the default 20% (appended after DEFAULT_OPTS, so --height wins here
+# only). {} is the whole history line; `printf %s` renders it verbatim (no glob).
+export FZF_CTRL_R_OPTS="$FZF_DEFAULT_OPTS \
+  --height 40% \
+  --preview 'printf %s {}' \
+  --preview-window 'down:3:wrap' \
+  --color 'header:italic' \
+  --header 'fuzzy history search'"
 export FZF_COMPLETION_OPTS="--border --info=inline"
 # Use fd (https://github.com/sharkdp/fd) for listing path candidates.
 # - The first argument to the function ($1) is the base path to start traversal
