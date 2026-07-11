@@ -119,6 +119,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | Key | Action |
 |-----|--------|
 | ⌃+R | History search (fzf; wrapped full-command preview) |
+| ⌃+T | File picker (fzf; bat preview; ⌃+O opens in editor) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
 | ⌃+X ⌃+N | navi snippet search → insert into command line |
 | ⌃+\ | Undo |
@@ -128,6 +129,19 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | ⌃+L | Clear screen |
 | ⌥+B / F | Move word backward / forward |
 | ⌥+D | Delete word forward |
+
+### Shell helpers
+
+One-letter interactive commands defined in `.zshrc` for frequent workflows:
+
+| Command | Action |
+|---------|--------|
+| `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
+| `b [query]` | Switch git branch (fzf; last-15-commits preview) |
+| `B` | GitHub branch browser (`gh branch`) |
+| `w [query]` | Jump to a git worktree (fzf) |
+| `c` | Switch Kubernetes context (`kubectx`) |
+| `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
 
 ---
 
