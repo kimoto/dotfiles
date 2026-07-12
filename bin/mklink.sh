@@ -18,6 +18,8 @@ ln -nsf "$BASE_DIR/.vim" ./.vim
 
 ln -sf "$BASE_DIR/.inputrc" ./
 ln -sf "$BASE_DIR/.editrc" ./
+ln -sf "$BASE_DIR/.bashrc" ./
+ln -sf "$BASE_DIR/.gdbinit" ./
 ln -sf "$BASE_DIR/.gitconfig" ./
 ln -sf "$BASE_DIR/.gitconfig.default_user" ./
 ln -sf "$BASE_DIR/.gitignore" ./
