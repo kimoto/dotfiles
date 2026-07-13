@@ -34,6 +34,8 @@ unlink_if_symlink "./.vim"
 # ファイルリンク (mklink.sh と同じ並び)
 unlink_if_symlink "./.inputrc"
 unlink_if_symlink "./.editrc"
+unlink_if_symlink "./.bashrc"
+unlink_if_symlink "./.gdbinit"
 unlink_if_symlink "./.gitconfig"
 unlink_if_symlink "./.gitconfig.default_user"
 unlink_if_symlink "./.gitignore"
