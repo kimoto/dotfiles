@@ -4,6 +4,8 @@
 # LS_COLORS value into an eval-able export so _evalcache can cache it
 # (config/sheldon/plugins.toml, vivid-ls-colors inline plugin).
 
+bats_require_minimum_version 1.5.0
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/vivid_ls_colors.sh"
