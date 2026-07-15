@@ -262,7 +262,7 @@ bindkey "^\\" undo
 DOTFILES_ROOT="${${(%):-%x}:A:h}"
 
 temp(){
-  cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
+  cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX)"
 }
 
 # lazygit: chase into the directory it was left in (newdir file), if any.
