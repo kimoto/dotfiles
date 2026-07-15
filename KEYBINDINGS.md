@@ -137,11 +137,14 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | Command | Action |
 |---------|--------|
 | `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
+| `lg [args]` | Launch lazygit (args passed through); chase into the directory it was left in |
 | `b [query]` | Switch git branch (fzf; last-15-commits preview) |
 | `B` | GitHub branch browser (`gh branch`) |
 | `w [query]` | Jump to a git worktree (fzf) |
 | `c` | Switch Kubernetes context (`kubectx`) |
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
+| `px` | Toggle between main and sub starship prompt config |
+| `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
 | `keys [query]` | Search this file's keybinding/helper tables (fzf) |
 
