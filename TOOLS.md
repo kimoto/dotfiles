@@ -35,10 +35,11 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 63 tools._
+_`Brewfile.common` — 64 tools._
 
 | Tool | Description |
 | --- | --- |
+| [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
 | [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
@@ -127,4 +128,4 @@ _`Brewfile.macos` — 13 tools._
 
 ---
 
-_91 tools across 3 bundles._
+_92 tools across 3 bundles._
