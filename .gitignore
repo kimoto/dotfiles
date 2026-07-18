@@ -39,7 +39,6 @@ config/*
 !config/nvim/
 !config/sheldon/
 !config/zsh/
-!config/zsh-abbr/
 !config/starship.toml
 !config/starship_sub.toml
 # Inner ignores within allowed directories (preserve previous behavior)
