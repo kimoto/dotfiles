@@ -7,6 +7,8 @@
 tap "b-ramsey/kali"
 # Additional Homebrew tap
 tap "morantron/tmux-fingers"
+# Code searching, linting, rewriting tool that understands syntax (AST-based grep)
+brew "ast-grep"
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
 # Bash Automated Testing System (bin/run_tests.sh)
