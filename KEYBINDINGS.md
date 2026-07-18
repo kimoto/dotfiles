@@ -48,6 +48,20 @@ Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 | ⌥+0 | Reset layout (flatten workspace tree) |
 | ⌥+⇧+; | Enter service mode |
 
+### Service mode (⌥+⇧+;, then...)
+
+| Key | Action |
+|-----|--------|
+| Esc | Reload config, back to main mode |
+| R | Reset layout (flatten workspace tree), back to main mode |
+| F | Toggle floating/tiling layout, back to main mode |
+| Backspace | Close all windows but current, back to main mode |
+| ⌥+⇧+T | Tile all windows in focused workspace (`bin/tile-focused-workspace.sh tiling`), back to main mode |
+| ⌥+⇧+F | Float all windows in focused workspace (`bin/tile-focused-workspace.sh floating`), back to main mode |
+| ⌥+⇧+h/j/k/l | Join with window left / down / up / right, back to main mode |
+| Down / Up | Volume down / up |
+| ⇧+Down | Mute (volume set 0), back to main mode |
+
 ---
 
 ## Ghostty (intercepts before tmux)
