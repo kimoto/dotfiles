@@ -109,6 +109,8 @@ wait_for() {
   [[ "$output" == *"[brew]"* ]]
   [[ "$output" == *"Brewfile.basic"* ]]
   [[ "$output" == *"brew bundle install --file="* ]]
+  # Also points at the interactive one-shot installer.
+  [[ "$output" == *"brew_bundle_install.sh"* ]]
 }
 
 @test "a pending nag is re-checked every startup and clears once satisfied" {

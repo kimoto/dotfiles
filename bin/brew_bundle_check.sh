@@ -54,6 +54,9 @@ if [ -s "$result" ]; then
         printf '%s[brew]%s %s has uninstalled packages -> %sbrew bundle install --file=%s/%s%s\n' \
             "$yellow" "$reset" "$f" "$cyan" "$REPO_DIR" "$f" "$reset" >&2
     done <"$result"
+    # One-shot alternative that installs everything and batches the prompts.
+    printf '%s[brew]%s or install all at once -> %s%s/bin/brew_bundle_install.sh%s\n' \
+        "$yellow" "$reset" "$cyan" "$REPO_DIR" "$reset" >&2
 fi
 
 #---------------------------------------------------------------
