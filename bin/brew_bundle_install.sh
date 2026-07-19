@@ -8,7 +8,7 @@
 # stdin and stdout, so CI, hooks, or an AI agent invoking it is a no-op.
 #
 # Flow: one y/N confirmation, then a fully unattended pass — sudo is disabled
-# via HOMEBREW_SUDO_ASKPASS so a cask that needs a password fails fast instead
+# via a failing SUDO_ASKPASS so a cask that needs a password fails fast instead
 # of blocking on a prompt, letting you walk away. Everything that needs a human
 # is batched into a final interactive phase: trusting third-party taps,
 # force-upgrading casks whose app self-updated out from under Homebrew, and
@@ -55,6 +55,14 @@ parse_failed_deps() {
   sed -E -n 's/^(Installing|Upgrading) (.+) has failed!$/\2/p' "$1" | sort -u
 }
 
+# Absolute path to an always-failing askpass helper. sudo exec()s this, so it
+# must be a real file: `type -P` forces a PATH lookup, whereas `command -v`
+# would return the bash builtin's bare name "false", which sudo cannot run —
+# silently re-enabling tty password prompts mid-unattended-pass.
+failing_askpass() {
+  type -P false
+}
+
 # Sourced by test/brew_bundle_install.bats to unit-test the parsers.
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
@@ -99,14 +107,15 @@ trap 'rm -f "$log"' EXIT
 
 # A sudo askpass helper that always fails: any cask needing a password errors
 # out immediately instead of prompting, and gets retried interactively below.
-askpass=$(command -v false)
+# Plain SUDO_ASKPASS (no HOMEBREW_ prefix) is what makes brew pass sudo -A.
+askpass=$(failing_askpass)
 
 failed_files=()
 for f in "${files[@]}"; do
   [ -f "$REPO_DIR/$f" ] || continue
   echo
   echo "==> $f (unattended pass)"
-  if ! HOMEBREW_SUDO_ASKPASS="$askpass" brew bundle install --file="$REPO_DIR/$f" </dev/null 2>&1 | tee -a "$log"; then
+  if ! SUDO_ASKPASS="$askpass" brew bundle install --file="$REPO_DIR/$f" </dev/null 2>&1 | tee -a "$log"; then
     failed_files+=("$f")
   fi
 done

@@ -85,6 +85,23 @@ teardown() {
   [ "${lines[1]}" = "rectangle" ]
 }
 
+@test "failing_askpass resolves to an absolute executable path" {
+  # sudo exec()s the askpass helper, so a bare builtin name like "false"
+  # (what `command -v false` returns in bash) silently disables the guard
+  # and sudo falls back to prompting on the tty mid-unattended-pass.
+  run bash -c "source '$SCRIPT'; failing_askpass"
+  [ "$status" -eq 0 ]
+  [[ "$output" == /* ]]
+  [ -x "$output" ]
+}
+
+@test "unattended pass sets SUDO_ASKPASS, the variable brew honours" {
+  # Homebrew's env_config recognises plain SUDO_ASKPASS (not HOMEBREW_-prefixed)
+  # and only passes sudo -A when that exact key is present.
+  grep -q 'SUDO_ASKPASS=' "$SCRIPT"
+  ! grep -q 'HOMEBREW_SUDO_ASKPASS' "$SCRIPT"
+}
+
 @test "parse helpers return nothing on a clean log" {
   local clean="$TMP/clean.log"
   echo "Using cleanshot" >"$clean"
