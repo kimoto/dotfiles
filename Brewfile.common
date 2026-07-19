@@ -89,8 +89,6 @@ brew "lolcat"
 brew "morantron/tmux-fingers/tmux-fingers"
 # Open source relational database management system
 brew "mysql-client"
-# MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client
-brew "mysql-shell"
 # Text-based UI library
 brew "ncurses"
 # Ambitious Vim-fork focused on extensibility and agility
