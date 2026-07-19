@@ -19,6 +19,8 @@ cask "google-japanese-ime"
 cask "hammerspoon"
 # Tool to control external monitor brightness & volume
 cask "monitorcontrol"
+# MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client
+cask "mysql-shell"
 # AeroSpace is an i3-like tiling window manager for macOS
 cask "nikitabobko/tap/aerospace"
 # Control your tools with a few keystrokes
