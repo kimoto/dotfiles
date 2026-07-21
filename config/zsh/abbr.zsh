@@ -16,9 +16,9 @@ typeset -gA ABBR_MAP=(
   di    'git diff'
   ga    'git add'
   gau   'git add -u'
-  gr    'git grep'
-  l     "git log --graph --color=always \
+  glg   "git log --graph --color=always \
 --pretty='%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'"
+  gr    'git grep'
   lo    'git log -p'
   mysql 'mysqlsh'
   pu    'git pull'
