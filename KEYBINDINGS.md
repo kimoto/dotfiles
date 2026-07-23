@@ -2,9 +2,10 @@
 
 Hierarchical keybinding reference. Upper layers intercept keys first.
 
-Sources: AeroSpace (`.aerospace.toml`), `config/ghostty/config`,
-`.tmux.conf`, `.zshrc`, `config/nvim/` — each carries a pointer comment back to
-this file; update this file whenever a binding changes there.
+Sources: `hammerspoon/init.lua`, AeroSpace (`.aerospace.toml`),
+`config/ghostty/config`, `.tmux.conf`, `.zshrc`, `config/nvim/` — each carries a
+pointer comment back to this file; update this file whenever a binding changes
+there.
 
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
@@ -27,6 +28,19 @@ Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 | ⌘+⇧+3 | Screenshot (full) |
 | ⌘+⇧+4 | Screenshot (selection) |
 | ⌘+⇧+5 | Screenshot menu |
+
+---
+
+## Hammerspoon (global remaps, every app except Ghostty)
+
+| Key | Action |
+|-----|--------|
+| ⌥+B / F | Move word backward / forward (emacs-style) |
+| ⌃+W | Delete word backward |
+| ⌃+/ | Undo (⌘+Z) |
+
+Ghostty is excluded — the terminal gets these natively via zsh/nvim readline
+bindings, so remapping there would double-apply or break them.
 
 ---
 
