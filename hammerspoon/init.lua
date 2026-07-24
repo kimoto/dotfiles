@@ -31,6 +31,8 @@ local function isRemapTarget(appName)
 end
 
 -- ===== Global Emacs-style remaps =====
+-- NOTE: keybindings below are documented in KEYBINDINGS.md (repo root) —
+-- update it when they change.
 remapKey({"alt"}, "b", keyCode("left", {"alt"}))
 remapKey({"alt"}, "f", keyCode("right", {"alt"}))
 remapKey({"ctrl"}, "w", keyCode("delete", {"alt"}))
