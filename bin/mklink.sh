@@ -23,6 +23,7 @@ ln -sf "$BASE_DIR/.gdbinit" ./
 ln -sf "$BASE_DIR/.gitconfig" ./
 ln -sf "$BASE_DIR/.gitconfig.default_user" ./
 ln -sf "$BASE_DIR/.gitignore" ./
+ln -sf "$BASE_DIR/.gitmessage" ./
 ln -sf "$BASE_DIR/.tmux.conf" ./
 ln -sf "$BASE_DIR/.zshrc" ./
 ln -sf "$BASE_DIR/.irbrc" ./
