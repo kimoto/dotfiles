@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 63 tools._
+_`Brewfile.common` — 64 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -96,6 +96,7 @@ _`Brewfile.common` — 63 tools._
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
+| [trivy](https://formulae.brew.sh/formula/trivy) | Vulnerability scanner for container images, file systems, and Git repos |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
@@ -128,4 +129,4 @@ _`Brewfile.macos` — 14 tools._
 
 ---
 
-_92 tools across 3 bundles._
+_93 tools across 3 bundles._

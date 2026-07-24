@@ -121,6 +121,8 @@ brew "telnet"
 brew "tmuxinator"
 # Parser generator tool and incremental parsing library (nvim-treesitter CLI)
 brew "tree-sitter"
+# Vulnerability scanner for container images, file systems, and Git repos
+brew "trivy"
 # Maintained, actively developed ctags implementation
 brew "universal-ctags"
 # Vi 'workalike' with many additional features
