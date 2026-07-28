@@ -175,6 +175,7 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
 | `keys [query]` | Search this file's keybinding/helper tables (fzf) |
+| `dotfiles-ship` | Push, open a PR, auto-merge, wait for merge, then switch back to `main` |
 
 ---
 
