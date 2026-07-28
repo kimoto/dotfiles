@@ -4,8 +4,6 @@
 # shell depends on at load time belongs in Brewfile.basic — see its header.
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
-tap "b-ramsey/kali"
-# Additional Homebrew tap
 tap "morantron/tmux-fingers"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
 brew "ast-grep"
