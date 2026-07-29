@@ -129,6 +129,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
 | prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window) |
+| prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
