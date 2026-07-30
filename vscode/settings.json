@@ -13,5 +13,6 @@
   "editor.experimental.pasteActions.enabled": true,
   "diffEditor.ignoreTrimWhitespace": true,
   "diffEditor.renderSideBySide": true,
-  "git.autofetch": true
+  "git.autofetch": true,
+  "files.autoGuessEncoding": true
 }
