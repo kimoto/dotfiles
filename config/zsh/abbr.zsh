@@ -1,3 +1,6 @@
+# NOTE: keybindings in this file are documented in KEYBINDINGS.md (repo
+# root) — update it when adding or changing a binding.
+#
 # Minimal replacement for zsh-abbr: expands a fixed set of static
 # word -> command abbreviations on space/enter. zsh-abbr wraps every
 # operation - including plain startup loading, not just `abbr add`/`abbr

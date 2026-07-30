@@ -3,9 +3,9 @@
 Hierarchical keybinding reference. Upper layers intercept keys first.
 
 Sources: `hammerspoon/init.lua`, AeroSpace (`.aerospace.toml`),
-`config/ghostty/config`, `.tmux.conf`, `.zshrc`, `config/nvim/` — each carries a
-pointer comment back to this file; update this file whenever a binding changes
-there.
+`config/ghostty/config`, `.tmux.conf`, `.zshrc`, `config/zsh/abbr.zsh`,
+`config/nvim/` — each carries a pointer comment back to this file; update this
+file whenever a binding changes there.
 
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
@@ -58,9 +58,12 @@ bindings, so remapping there would double-apply or break them.
 | ⌥+, | Layout: accordion (horizontal/vertical) |
 | ⌥+- | Resize -50 |
 | ⌥+= | Resize +50 |
-| ⌥+F | Fullscreen |
+| ⌥+F / ⌥+⇧+F | Fullscreen |
 | ⌥+0 | Reset layout (flatten workspace tree) |
 | ⌥+⇧+; | Enter service mode |
+
+⌥+⇧+F means something different once you're in service mode below — it floats
+all windows in the workspace instead of toggling fullscreen.
 
 ### Service mode (⌥+⇧+;, then...)
 
@@ -158,6 +161,30 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | ⌃+L | Clear screen |
 | ⌥+B / F | Move word backward / forward |
 | ⌥+D | Delete word forward |
+
+### Abbreviations (Space / Enter, command position only)
+
+Static word → command expansion defined in `config/zsh/abbr.zsh` (a minimal
+zsh-abbr replacement). Typing one of these words where a command starts, then
+pressing Space or Enter, expands it in place:
+
+| Word | Expands to |
+|------|------------|
+| `ag` | `rg` |
+| `aic` | `aicommits` |
+| `aica` | `aicommits -a` |
+| `aicap` | `aicommits -a && git push` |
+| `ci` | `git commit -a -v` |
+| `co` | `git checkout` |
+| `di` | `git diff` |
+| `ga` | `git add` |
+| `gau` | `git add -u` |
+| `glg` | `git log --graph` (with color/format) |
+| `gr` | `git grep` |
+| `lo` | `git log -p` |
+| `mysql` | `mysqlsh` |
+| `pu` | `git pull` |
+| `st` | `git status` |
 
 ### Shell helpers
 
