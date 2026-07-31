@@ -5,6 +5,8 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
 tap "morantron/tmux-fingers"
+# Static checker for GitHub Actions workflow files
+brew "actionlint"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
 brew "ast-grep"
 # Clone of cat(1) with syntax highlighting and Git integration
