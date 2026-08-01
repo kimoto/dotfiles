@@ -71,7 +71,7 @@ brew "john-jumbo"
 brew "jq"
 # Kubernetes CLI To Manage Your Clusters In Style!
 brew "k9s"
-# Homebrew formula
+# Kubernetes command-line tool
 brew "kubectl"
 # Tool that can switch between kubectl contexts easily and create aliases
 brew "kubectx"
@@ -85,7 +85,7 @@ brew "less"
 brew "lima"
 # Rainbows and unicorns in your console!
 brew "lolcat"
-# Homebrew formula
+# tmux plugin for quick copying of on-screen text via hint labels
 brew "morantron/tmux-fingers/tmux-fingers"
 # Open source relational database management system
 brew "mysql-client"
