@@ -72,14 +72,14 @@ _`Brewfile.common` — 64 tools._
 | [john-jumbo](https://formulae.brew.sh/formula/john-jumbo) | Enhanced version of john, a UNIX password cracker |
 | [jq](https://formulae.brew.sh/formula/jq) | Lightweight and flexible command-line JSON processor |
 | [k9s](https://formulae.brew.sh/formula/k9s) | Kubernetes CLI To Manage Your Clusters In Style! |
-| [kubectl](https://formulae.brew.sh/formula/kubectl) | Homebrew formula |
+| [kubectl](https://formulae.brew.sh/formula/kubectl) | Kubernetes command-line tool |
 | [kubectx](https://formulae.brew.sh/formula/kubectx) | Tool that can switch between kubectl contexts easily and create aliases |
 | [lazygit](https://formulae.brew.sh/formula/lazygit) | Simple terminal UI for git commands |
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
 | [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
 | [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
-| `morantron/tmux-fingers/tmux-fingers` | Homebrew formula |
+| `morantron/tmux-fingers/tmux-fingers` | tmux plugin for quick copying of on-screen text via hint labels |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
 | [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
@@ -114,8 +114,8 @@ _`Brewfile.macos` — 14 tools._
 | --- | --- |
 | [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
 | [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |
-| [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Homebrew cask |
-| [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | Homebrew cask |
+| [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
+| [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | JetBrains Mono patched with Nerd Font icons |
 | [ghostty](https://formulae.brew.sh/cask/ghostty) | Terminal emulator that uses platform-native UI and GPU acceleration |
 | [gitify](https://formulae.brew.sh/cask/gitify) | GitHub notifications on your menu bar |
 | [google-japanese-ime](https://formulae.brew.sh/cask/google-japanese-ime) | Japanese input software |
