@@ -14,7 +14,7 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
 ### 0) Preflight
 
 - 作業前に `git status -sb` を確認し、既存の変更や未追跡が多い場合は**別worktree**で作業を分離する。
-- ブランチ名は `fix/yyyymm` / `vk/<slug>` / `chore/<slug>` のいずれかにする。迷う場合はユーザーに確認する。
+- ブランチ名は AGENTS.md の規約 `<type>/<short-desc>`（type ∈ feat/fix/chore/docs/refactor/ci/revert/test）に従う。迷う場合はユーザーに確認する。
 
 ### 1) Scope and inputs
 

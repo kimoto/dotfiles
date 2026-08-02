@@ -19,7 +19,7 @@ dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更�
 ### 2) Create a branch if missing
 
 - ブランチが無ければ作成する。
-- 命名は `fix/yyyymm` / `vk/<slug>` / `chore/<slug>` を使う。迷う場合はユーザーに確認する。
+- 命名は AGENTS.md の規約 `<type>/<short-desc>`（type ∈ feat/fix/chore/docs/refactor/ci/revert/test）に従う。迷う場合はユーザーに確認する。
 - 既存の作業ツリーが汚れていて分離が必要なら、別worktreeで作業する。
 
 ### 3) Make changes
