@@ -21,6 +21,10 @@ truth, so the two never diverge.
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
+- `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
+  `keybindings.json` to this repo (replacing any existing file) and
+  installs/overwrites the `extensions` list. Manual, human-only setup step —
+  not called from `mkworld.sh`, CI, or lefthook; never invoke it from an agent.
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
   tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
