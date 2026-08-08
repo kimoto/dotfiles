@@ -42,7 +42,12 @@ truth, so the two never diverge.
   Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
   (CI + lefthook run `--check` to enforce it stays in sync).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror.
-- `.claude/` (settings + web SessionStart hook), `.codex/skills/` (Codex skills).
+- `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
+  prepares the web sandbox), `SessionEnd` (`auto-main-sync.sh` — after a PR
+  merges, switches back to `main`, pulls, and deletes the merged branch; a
+  dirty tree or still-open PR just prints a reminder instead), and
+  `PostToolUse` on `git push` (reminds to update the PR description to match
+  what was just pushed). `.codex/skills/` — Codex skills.
 
 ### Hooks & CI
 
