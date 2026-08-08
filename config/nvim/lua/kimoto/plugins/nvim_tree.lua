@@ -9,12 +9,4 @@ require('nvim-tree').setup({
   filters = {
     dotfiles = false
   },
---  actions = {
---    open_file = {
---      quit_on_open = true,
---    },
---  },
 })
-
--- start neovim with open nvim-tree
--- require("nvim-tree.api").tree.toggle(false, true)
