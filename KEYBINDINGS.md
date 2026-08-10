@@ -198,7 +198,7 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
 | `lg [args]` | Launch lazygit (args passed through); chase into the directory it was left in |
 | `b [query]` | Switch git branch (fzf; last-15-commits preview) |
-| `B` | GitHub branch browser (`gh branch`) |
+| `B` | GitHub branch browser (`gh branch`; needs a manually installed gh extension, e.g. `mislav/gh-branch` — not part of `mkworld.sh`) |
 | `w [query]` | Jump to a git worktree (fzf) |
 | `c` | Switch Kubernetes context (`kubectx`) |
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
