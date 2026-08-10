@@ -288,6 +288,8 @@ b() {
   test -z "$branch" || git switch "$branch"
 }
 
+# Requires a gh CLI extension providing `branch` (e.g. `gh extension install
+# mislav/gh-branch`) — not installed by bin/mkworld.sh; install it manually.
 B() {
   gh branch
 }
