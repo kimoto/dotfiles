@@ -11,6 +11,8 @@
 # (uuidgen, ls, tail, rm); this is a handful of zsh builtins.
 typeset -gA ABBR_MAP=(
   ag    'rg'
+  # aicommits: no Brewfile/npm entry in this repo — not installed by
+  # bin/mkworld.sh; install manually, e.g. `npm install -g aicommits`.
   aic   'aicommits'
   aica  'aicommits -a'
   aicap 'aicommits -a && git push'

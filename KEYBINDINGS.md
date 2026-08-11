@@ -174,9 +174,9 @@ pressing Space or Enter, expands it in place:
 | Word | Expands to |
 |------|------------|
 | `ag` | `rg` |
-| `aic` | `aicommits` |
-| `aica` | `aicommits -a` |
-| `aicap` | `aicommits -a && git push` |
+| `aic` | `aicommits` (not installed by `mkworld.sh` — no Brewfile/npm entry; install manually) |
+| `aica` | `aicommits -a` (same manual-install caveat) |
+| `aicap` | `aicommits -a && git push` (same manual-install caveat) |
 | `ci` | `git commit -a -v` |
 | `co` | `git checkout` |
 | `di` | `git diff` |
