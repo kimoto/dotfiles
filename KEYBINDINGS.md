@@ -176,9 +176,6 @@ pressing Space or Enter, expands it in place:
 | Word | Expands to |
 |------|------------|
 | `ag` | `rg` |
-| `aic` | `aicommits` |
-| `aica` | `aicommits -a` |
-| `aicap` | `aicommits -a && git push` |
 | `ci` | `git commit -a -v` |
 | `co` | `git checkout` |
 | `di` | `git diff` |

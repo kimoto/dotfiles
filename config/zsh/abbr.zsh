@@ -11,9 +11,6 @@
 # (uuidgen, ls, tail, rm); this is a handful of zsh builtins.
 typeset -gA ABBR_MAP=(
   ag    'rg'
-  aic   'aicommits'
-  aica  'aicommits -a'
-  aicap 'aicommits -a && git push'
   ci    'git commit -a -v'
   co    'git checkout'
   di    'git diff'
