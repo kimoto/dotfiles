@@ -129,6 +129,8 @@ brew "vim"
 brew "watch"
 # Internet file retriever
 brew "wget"
+# Linter for YAML files
+brew "yamllint"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
 # Additional completion definitions for zsh

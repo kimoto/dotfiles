@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 64 tools._
+_`Brewfile.common` — 65 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -101,6 +101,7 @@ _`Brewfile.common` — 64 tools._
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
+| [yamllint](https://formulae.brew.sh/formula/yamllint) | Linter for YAML files |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
 | [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
@@ -129,4 +130,4 @@ _`Brewfile.macos` — 14 tools._
 
 ---
 
-_93 tools across 3 bundles._
+_94 tools across 3 bundles._
