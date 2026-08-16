@@ -30,11 +30,10 @@ ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
 ln -sf "$BASE_DIR/.aerospace.toml" ./
 
-# Claude Code のユーザールール。~/.claude/rules/ は conf.d で、配下の .md が
-# 全セッションに読み込まれる。各リポジトリが自分の分だけを張るので、会社用の
-# 非公開リポジトリが rules/company を並べても衝突しない。
+# Claude Code user rules. ~/.claude/rules/ is a conf.d: every .md under it
+# loads into every session. Each source repo links its own subdirectory, so
+# another repo can keep its rules there too — only our own entry is linked.
 # ~/.claude itself is never linked: it also holds runtime state (transcripts,
-# sessions, plugin caches). Only our own entry is linked, so a private work
-# repo can drop its rules alongside without this public repo ever seeing them.
+# sessions, plugin caches).
 mkdir -p ./.claude/rules
 ln -nsf "$BASE_DIR/claudecode/rules" ./.claude/rules/dotfiles
