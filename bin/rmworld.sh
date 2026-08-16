@@ -4,6 +4,11 @@
 #
 # mklink.sh と対になっているので、リンク対象を増減したら両方を更新すること。
 # Keep this list in sync with bin/mklink.sh.
+#
+# ~/.claude/rules/ 配下は自分が張った dotfiles だけを外す。会社用リポジトリが
+# 並べたリンクには触れない。
+# Under ~/.claude/rules/ only our own entry is removed; links another repo put
+# there are left alone.
 
 set -eu
 
@@ -45,3 +50,4 @@ unlink_if_symlink "./.zshrc"
 unlink_if_symlink "./.irbrc"
 unlink_if_symlink "./.vimrc"
 unlink_if_symlink "./.aerospace.toml"
+unlink_if_symlink "./.claude/rules/dotfiles"
