@@ -21,6 +21,17 @@ truth, so the two never diverge.
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
+- `claudecode/rules/` — Claude Code user rules, linked in as
+  `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
+  every session on the machine; no frontmatter needed (add `paths:` only to
+  scope a rule to matching files). It is a conf.d: each source repo links its
+  own subdirectory, so a private work repo can add `rules/company` that this
+  public repo never sees — which is why mklink/rmworld touch only our own
+  entry. `~/.claude` itself is never symlinked: it also holds runtime state
+  (transcripts, sessions, plugin caches). The directory name avoids `claude/`,
+  which is both too close to this repo's own `.claude/` and, via
+  `core.excludesfile = ~/.gitignore`, would make `claude/*` ignore rules apply
+  in every repo on the machine.
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
   `keybindings.json` to this repo (replacing any existing file) and
   installs/overwrites the `extensions` list. Manual, human-only setup step —

@@ -89,3 +89,47 @@ teardown() {
   [ ! -L "$HOME_SANDBOX/.config" ]
   [ "$(cat "$HOME_SANDBOX/.config/sentinel")" = keep ]
 }
+
+# ~/.claude/rules/ is a conf.d: every .md under it loads into every session on
+# this machine. Each source repo links its own subdirectory in, so a work
+# machine can add rules from a private repo without this public one ever seeing
+# them. That only holds if mklink/rmworld touch nothing but our own entry —
+# hence the "other sources" tests below. ~/.claude itself is never linked: it
+# also holds runtime state (transcripts, sessions, plugin caches).
+
+@test "mklink.sh links ~/.claude/rules/dotfiles to the repo's shared rules" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/rules/dotfiles" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/rules/dotfiles")" = "$REPO_ROOT/claudecode/rules" ]
+}
+
+@test "mklink.sh leaves rules linked in by another repo alone" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  ln -s /nonexistent-company-rules "$HOME_SANDBOX/.claude/rules/company"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"   # re-running must not disturb it
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/rules/company" ]
+  [ "$(readlink "$HOME_SANDBOX/.claude/rules/company")" = /nonexistent-company-rules ]
+}
+
+@test "mklink.sh never touches a real ~/.claude/CLAUDE.md" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo "my own global instructions" >"$HOME_SANDBOX/.claude/CLAUDE.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/CLAUDE.md" ]
+  [ "$(cat "$HOME_SANDBOX/.claude/CLAUDE.md")" = "my own global instructions" ]
+}
+
+@test "rmworld.sh unlinks our rules but leaves another repo's rules in place" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  ln -s /nonexistent-company-rules "$HOME_SANDBOX/.claude/rules/company"
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles" ]
+  [ -L "$HOME_SANDBOX/.claude/rules/company" ]
+}
