@@ -1,34 +1,22 @@
-# 環境メモ
+# Environment
 
-この dotfiles を入れたマシン全部に効く環境の癖を書く場所。置き場所の使い分け:
+Quirks these dotfiles create on every machine. Machine-specific rules belong in another repo's `~/.claude/rules/` entry; project rules in that project's `CLAUDE.md`.
 
-| 内容 | 置き場所 |
-|---|---|
-| この dotfiles 由来で全マシンに効く癖 | このファイル (`claudecode/rules/`) |
-| そのマシンにだけ効くもの | `~/.claude/rules/` に別リポジトリからリンクを並べる |
-| そのプロジェクトだけの規約 | 各リポジトリの `CLAUDE.md` |
+## Shadowed commands
 
-## 標準コマンドが別実装に置き換わっている
+`.zshrc` replaces these and the Bash tool inherits them. Use `command <cmd>`, which bypasses aliases *and* functions, or an absolute path.
 
-`.zshrc` で以下が差し替えられている。Claude Code の Bash ツールもこれを踏むため、素のコマンドのつもりで書くと引数の解釈が変わって落ちる:
-
-| 見た目 | 実体 | 踏みやすい失敗 |
+| Typed | Actually | Symptom |
 |---|---|---|
-| `curl` | curlie (alias) | フラグの値（`--connect-to` の引数など）をデータ項目と誤解釈して **GET が POST になる**。`-sI` などの出力が空になる |
-| `cat` | bat (alias) | `cat -v` が `unexpected argument '-v'` で落ちる |
-| `ls` | eza (**関数**。`alias ls` では見えない) | `ls -t <file>` が eza の `--time` と解釈されて落ちる |
-| `top` | btop (alias) | |
+| `curl` | curlie | flag values parsed as data — GET turns into POST; `-sI` prints nothing |
+| `cat` | bat | `cat -v` → `unexpected argument` |
+| `ls` | eza — a **function**, so `alias ls` shows nothing | `ls -t f` → `invalid value for --time` |
+| `top` | btop | |
 
-**素のコマンドが必要なときは `command <cmd> ...` か絶対パス（`/bin/ls`、`/bin/cat`、`/usr/bin/curl`）を使うこと。** `command` は alias も関数もバイパスするので `ls` にも効く。
+## `setopt noclobber`
 
-## `setopt noclobber` で `>` が上書きに失敗する
+`>` onto an existing file fails with `file exists:`. It fails quietly mid-pipeline and the old content survives, so a later check reads the unchanged file as "the edit wasn't needed" rather than "the edit was lost". Use `>|`, or write a temp file and `cp`.
 
-`.zshrc` で `noclobber` が有効なため、**既存ファイルへの `>` は `zsh: file exists:` で失敗する**。
+## zsh expands unquoted option values
 
-これは黙って通り過ぎやすい。`jq ... > file` のようにコマンド置換やパイプの一部で書くと、失敗しても直前の内容がそのまま残るので、**書き換えたつもりで元のまま**になり、後続の検証が「変更が効いていない」ではなく「変更前の状態が正しく動いている」という誤った結論につながる。
-
-上書きするときは `>|` を使うか、一時ファイルに書いて `cp` する（`rm -f` してから `>` でもよい）。
-
-## グロブは zsh が先に展開する
-
-`grep -rn "..." dir --include='*.ts'` のようなオプション値は**クォートしないと zsh がグロブ展開しようとして** `no matches found` で失敗し、grep 自体が実行されない。パターンを渡すオプションは必ずクォートする。
+`--include=*.ts` dies with `no matches found` before the command runs. Quote glob patterns passed as option values.
