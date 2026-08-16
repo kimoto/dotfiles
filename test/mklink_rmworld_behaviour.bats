@@ -91,11 +91,11 @@ teardown() {
 }
 
 # ~/.claude/rules/ is a conf.d: every .md under it loads into every session on
-# this machine. Each source repo links its own subdirectory in, so a work
-# machine can add rules from a private repo without this public one ever seeing
-# them. That only holds if mklink/rmworld touch nothing but our own entry —
-# hence the "other sources" tests below. ~/.claude itself is never linked: it
-# also holds runtime state (transcripts, sessions, plugin caches).
+# this machine. Each source repo links its own subdirectory in, so rules from
+# another repo can sit alongside ours. That only holds if mklink/rmworld touch
+# nothing but our own entry — hence the "other sources" tests below. ~/.claude
+# itself is never linked: it also holds runtime state (transcripts, sessions,
+# plugin caches).
 
 @test "mklink.sh links ~/.claude/rules/dotfiles to the repo's shared rules" {
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
@@ -106,12 +106,12 @@ teardown() {
 
 @test "mklink.sh leaves rules linked in by another repo alone" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
-  ln -s /nonexistent-company-rules "$HOME_SANDBOX/.claude/rules/company"
+  ln -s /nonexistent-other-rules "$HOME_SANDBOX/.claude/rules/other"
 
   HOME="$HOME_SANDBOX" run sh "$MKLINK"   # re-running must not disturb it
   [ "$status" -eq 0 ]
-  [ -L "$HOME_SANDBOX/.claude/rules/company" ]
-  [ "$(readlink "$HOME_SANDBOX/.claude/rules/company")" = /nonexistent-company-rules ]
+  [ -L "$HOME_SANDBOX/.claude/rules/other" ]
+  [ "$(readlink "$HOME_SANDBOX/.claude/rules/other")" = /nonexistent-other-rules ]
 }
 
 @test "mklink.sh never touches a real ~/.claude/CLAUDE.md" {
@@ -126,10 +126,10 @@ teardown() {
 
 @test "rmworld.sh unlinks our rules but leaves another repo's rules in place" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
-  ln -s /nonexistent-company-rules "$HOME_SANDBOX/.claude/rules/company"
+  ln -s /nonexistent-other-rules "$HOME_SANDBOX/.claude/rules/other"
 
   HOME="$HOME_SANDBOX" run sh "$RMWORLD"
   [ "$status" -eq 0 ]
   [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles" ]
-  [ -L "$HOME_SANDBOX/.claude/rules/company" ]
+  [ -L "$HOME_SANDBOX/.claude/rules/other" ]
 }

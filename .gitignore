@@ -44,6 +44,14 @@ config/*
 # Inner ignores within allowed directories (preserve previous behavior)
 config/gh/hosts.yml
 
+# claudecode/rules/: whitelist model, same reason as config/ above. Everything
+# under ~/.claude/rules/ loads into every Claude Code session, and other repos
+# link their own rules in there, so a file that belongs to another repo must
+# never be committed here by accident. Track a new rule explicitly:
+#   !claudecode/rules/<name>.md
+claudecode/rules/*
+!claudecode/rules/environment.md
+
 # mysqlsh
 mysqlsh/*
 !mysqlsh/options.json

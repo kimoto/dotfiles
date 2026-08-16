@@ -25,9 +25,10 @@ truth, so the two never diverge.
   `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
   every session on the machine; no frontmatter needed (add `paths:` only to
   scope a rule to matching files). It is a conf.d: each source repo links its
-  own subdirectory, so a private work repo can add `rules/company` that this
-  public repo never sees — which is why mklink/rmworld touch only our own
-  entry. `~/.claude` itself is never symlinked: it also holds runtime state
+  own subdirectory into `~/.claude/rules/`, so another repo can keep its rules
+  there without this one ever seeing them — which is why mklink/rmworld touch
+  only our own entry, and why `claudecode/rules/` is an allow-list in
+  `.gitignore`. `~/.claude` itself is never symlinked: it also holds runtime state
   (transcripts, sessions, plugin caches). The directory name avoids `claude/`,
   which is both too close to this repo's own `.claude/` and, via
   `core.excludesfile = ~/.gitignore`, would make `claude/*` ignore rules apply
