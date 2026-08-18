@@ -33,7 +33,6 @@ fi
 
 "$BREW_BIN" bundle install --file=Brewfile.basic
 if [ "${CI:-}" != "true" ]; then
-    "$BREW_BIN" trust morantron/tmux-fingers 2>/dev/null || true
     "$BREW_BIN" bundle install --file=Brewfile.common
 fi
 
