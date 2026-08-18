@@ -18,6 +18,9 @@
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  # shellcheck source=/dev/null
+  . "$REPO_ROOT/bin/git_fixture_helpers.sh"
+  isolate_git_env
   SRC="$REPO_ROOT/bin/dotfiles_sync_check.sh"
   TMP="$(mktemp -d)"
   export XDG_CACHE_HOME="$TMP/cache"
