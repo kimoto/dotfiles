@@ -85,6 +85,8 @@ brew "less"
 brew "lima"
 # Rainbows and unicorns in your console!
 brew "lolcat"
+# Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
+brew "luajit"
 # tmux plugin for quick copying of on-screen text via hint labels
 brew "morantron/tmux-fingers/tmux-fingers"
 # Open source relational database management system
