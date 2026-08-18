@@ -66,4 +66,44 @@ expand "$(opt pane-border-format)" | grep -q "MYTITLE" \
   || die "pane-border-format did not render the pane title"
 echo "== pane-border-format renders the pane title =="
 
+# 7) Solarized theme options actually land. The load test only proves the file
+#    parses: a stray quote inside one of the version-guarded blocks drops every
+#    option after it without any error, so read the values back. Options behind
+#    a guard are asserted only on a tmux new enough to have them.
+tmux_at_least() {
+  local want_major="$1" want_minor="$2" v major minor
+  v="$(tmux -V | sed -En 's/^tmux ([0-9]+)\.([0-9]+).*/\1 \2/p')"
+  [ -n "$v" ] || return 1
+  major="${v% *}"; minor="${v#* }"
+  [ "$major" -gt "$want_major" ] ||
+    { [ "$major" -eq "$want_major" ] && [ "$minor" -ge "$want_minor" ]; }
+}
+theme_is() {
+  local got; got="$(opt "$1")"
+  [ "$got" = "$2" ] || die "$1 expected '$2', got '${got:-<unset>}'"
+}
+theme_is popup-style "bg=#073642,fg=#839496"
+theme_is popup-border-style "fg=#2aa198"
+theme_is copy-mode-match-style "bg=#b58900,fg=#002b36"
+theme_is copy-mode-current-match-style "bg=#cb4b16,fg=#002b36,bold"
+theme_is copy-mode-mark-style "bg=#d33682,fg=#002b36"
+echo "== popup and copy-mode search styles are Solarized =="
+
+if tmux_at_least 3 6; then
+  theme_is menu-selected-style "bg=#2aa198,fg=#002b36,bold"
+  theme_is copy-mode-position-style "bg=#073642,fg=#2aa198"
+  theme_is copy-mode-selection-style "bg=#2aa198,fg=#002b36"
+  echo "== 3.6+ guarded block applied (menu selection, copy-mode position) =="
+else
+  echo "== 3.6+ guarded block skipped on $(tmux -V) =="
+fi
+
+if tmux_at_least 3 7; then
+  theme_is copy-mode-line-number-style "fg=#586e75"
+  theme_is copy-mode-current-line-number-style "fg=#b58900,bold"
+  echo "== 3.7+ guarded block applied (copy-mode line numbers) =="
+else
+  echo "== 3.7+ guarded block skipped on $(tmux -V) =="
+fi
+
 echo "PASS"
