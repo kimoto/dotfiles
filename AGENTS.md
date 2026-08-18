@@ -63,7 +63,11 @@ truth, so the two never diverge.
   merges, switches back to `main`, pulls, and deletes the merged branch; a
   dirty tree or still-open PR just prints a reminder instead), and
   `PostToolUse` on `git push` (reminds to update the PR description to match
-  what was just pushed). `.codex/skills/` — Codex skills.
+  what was just pushed). It also allow-lists the repo's own read-only check
+  toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`, `bats
+  test/…`) so running a check the way CI runs it needs no prompt; anything that
+  writes (`gen_tools_list.sh` without `--check`, `mklink.sh`, `brew bundle`)
+  stays out. `.codex/skills/` — Codex skills.
 
 ### Hooks & CI
 

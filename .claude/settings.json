@@ -1,4 +1,23 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(./bin/lint_shell.sh:*)",
+      "Bash(./bin/lint_bash.sh:*)",
+      "Bash(./bin/lint_zsh.sh:*)",
+      "Bash(./bin/lint_lua.sh:*)",
+      "Bash(./bin/lint_config.sh:*)",
+      "Bash(./bin/lint_schema.sh:*)",
+      "Bash(./bin/lint_actions.sh:*)",
+      "Bash(./bin/lint_editorconfig.sh:*)",
+      "Bash(./bin/check_brewfile_sort.sh:*)",
+      "Bash(./bin/check_secret_files.sh:*)",
+      "Bash(./bin/gen_tools_list.sh --check)",
+      "Bash(./bin/run_tests.sh:*)",
+      "Bash(bats test/:*)",
+      "Bash(./bin/ci_zsh_loading_test.sh:*)",
+      "Bash(./bin/ci_tmux_loading_test.sh:*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
