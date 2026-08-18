@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 65 tools._
+_`Brewfile.common` — 66 tools._
 
 | Tool | Description |
 | --- | --- |
@@ -131,4 +131,4 @@ _`Brewfile.macos` — 14 tools._
 
 ---
 
-_94 tools across 3 bundles._
+_95 tools across 3 bundles._
