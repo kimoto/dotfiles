@@ -1,3 +1,5 @@
+-- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
+-- update it when adding or changing a map.
 require('nvim-tree').setup({
   sort_by = 'case_sensitive',
   view = {
@@ -7,6 +9,8 @@ require('nvim-tree').setup({
     group_empty = true,
   },
   filters = {
-    dotfiles = false
+    dotfiles = false,
   },
 })
+
+vim.keymap.set('n', '<leader>e', ':NvimTreeToggle<CR>', { silent = true })

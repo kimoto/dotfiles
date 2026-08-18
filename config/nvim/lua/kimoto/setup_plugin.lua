@@ -32,48 +32,42 @@ vim.cmd('packadd vim-jetpack')
 require('jetpack.paq') {
   {'tani/vim-jetpack', opt = 1}, -- bootstrap
 
-  -- main branch: parsers are managed via require('nvim-treesitter').install()
-  -- (see init.lua), so no :TSUpdate run-hook.
-  'nvim-treesitter/nvim-treesitter',
-
-  'nvim-tree/nvim-web-devicons',
-  {'nvim-tree/nvim-tree.lua', -- file explorer
-    requires = {
-      'nvim-tree/nvim-web-devicons',
-    },
-  },
-
-  {"gbprod/yanky.nvim"},
-
-  -- telescope
+  -- shared dependencies, declared before the plugins that pull them in
   'nvim-lua/plenary.nvim',
-  {'nvim-telescope/telescope.nvim', tag = '0.1.8'},
-  {'nvim-telescope/telescope-file-browser.nvim'},
-  {"nvim-telescope/telescope-frecency.nvim", config = function() require("telescope").load_extension "frecency" end},
+  'nvim-tree/nvim-web-devicons',
 
-  -- lualine
-  {'nvim-lualine/lualine.nvim', requires = 'nvim-tree/nvim-web-devicons'},
-
-  'yamatsum/nvim-cursorline',
-  'pechorin/any-jump.vim',
-
-  {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
-
-  'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
-
-  'lewis6991/gitsigns.nvim', -- git statusを表示
-  {'kdheepak/lazygit.nvim', requires = 'nvim-lua/plenary.nvim'},
-
+  -- main branch: parsers are managed via require('nvim-treesitter').install()
+  -- (see plugins/treesitter.lua), so no :TSUpdate run-hook.
+  'nvim-treesitter/nvim-treesitter',
   'windwp/nvim-ts-autotag', -- auto close/rename HTML tags (treesitter-based)
-  'pocco81/auto-save.nvim', -- 自動保存
 
+  -- ui
+  'nvim-tree/nvim-tree.lua', -- file explorer
+  'nvim-lualine/lualine.nvim',
   'akinsho/bufferline.nvim',
   'akinsho/toggleterm.nvim',
+  'yamatsum/nvim-cursorline',
+  'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
+  'navarasu/onedark.nvim', -- color theme
 
-  -- color themes
-  'navarasu/onedark.nvim',
+  -- telescope
+  {'nvim-telescope/telescope.nvim', tag = '0.1.8'},
+  {'nvim-telescope/telescope-frecency.nvim',
+    config = function() require('telescope').load_extension 'frecency' end,
+  },
 
-  -- dev: native LSP stack (replaces coc.nvim)
+  -- editing
+  'gbprod/yanky.nvim', -- yank ring
+  {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
+  'pocco81/auto-save.nvim', -- 自動保存
+  'tpope/vim-surround', -- text objectの拡張
+  'tpope/vim-endwise', -- Rubyのendなどの自動補完
+  'farmergreg/vim-lastplace', -- 最後の編集地点に移動
+  'pechorin/any-jump.vim', -- grep-based jump to definition
+
+  'lewis6991/gitsigns.nvim', -- git statusを表示
+
+  -- lsp / completion / formatting
   'neovim/nvim-lspconfig',        -- per-server configs for vim.lsp.config
   'mason-org/mason.nvim',         -- language server installer (:Mason)
   'mason-org/mason-lspconfig.nvim',
@@ -83,40 +77,53 @@ require('jetpack.paq') {
   'hrsh7th/cmp-path',
   'stevearc/conform.nvim',        -- format on save (prettier etc.)
 
-  'farmergreg/vim-lastplace', -- 最後の編集地点に移動
-
-  'tpope/vim-surround', -- text objectの拡張
-
-  -- lang
-  'tpope/vim-endwise', -- Rubyのendなどの自動補完
-  'rust-lang/rust.vim', -- Rust
-
-  'sindrets/diffview.nvim', -- for git mergetool
-
-  -- debugger
-  ---- base
+  -- debugger (nvim-dap)
   'mfussenegger/nvim-dap',
   'nvim-neotest/nvim-nio',
   'rcarriga/nvim-dap-ui',
-  -- python
-  'https://github.com/mfussenegger/nvim-dap-python',
-  -- ruby
+  'mfussenegger/nvim-dap-python',
   'suketa/nvim-dap-ruby',
 }
 
--- First-run bootstrap: if any declared plugin is missing, install everything
--- now (JetpackSync blocks until done) instead of erroring on every require
--- until someone runs it manually. jetpack#tap() is false for a plugin that
--- is declared but not installed yet.
-for _, name in ipairs(vim.fn['jetpack#names']()) do
-  if vim.fn['jetpack#tap'](name) == 0 then
-    vim.notify('[dotfiles] installing missing plugins (JetpackSync) ...')
-    local ok, err = pcall(vim.cmd, 'JetpackSync')
-    if ok then
-      vim.notify('[dotfiles] plugin install finished — restart nvim if anything looks off')
-    else
-      vim.notify('[dotfiles] JetpackSync failed: ' .. tostring(err), vim.log.levels.ERROR)
+-- Bootstrap: run JetpackSync (blocking) whenever what is on disk no longer
+-- matches the list above, instead of leaving every require erroring — or
+-- jetpack's "Some packages are not synchronized" nag on every startup — until
+-- someone runs it by hand.
+local function out_of_sync()
+  -- Declared but not installed: jetpack#tap() is false for those.
+  local declared = vim.fn['jetpack#names']()
+  for _, name in ipairs(declared) do
+    if vim.fn['jetpack#tap'](name) == 0 then
+      return true
     end
-    break
+  end
+  -- Installed but no longer declared: jetpack records what it installed in
+  -- available_packages.json next to the package tree.
+  local manifest = vim.fn.stdpath('data') .. '/site/pack/jetpack/opt/available_packages.json'
+  local ok, available = pcall(function()
+    return vim.json.decode(table.concat(vim.fn.readfile(manifest), '\n'))
+  end)
+  if not ok or type(available) ~= 'table' then
+    return false
+  end
+  local is_declared = {}
+  for _, name in ipairs(declared) do
+    is_declared[name] = true
+  end
+  for name in pairs(available) do
+    if not is_declared[name] then
+      return true
+    end
+  end
+  return false
+end
+
+if out_of_sync() then
+  vim.notify('[dotfiles] syncing plugins (JetpackSync) ...')
+  local ok, err = pcall(vim.cmd, 'JetpackSync')
+  if ok then
+    vim.notify('[dotfiles] plugin sync finished — restart nvim if anything looks off')
+  else
+    vim.notify('[dotfiles] JetpackSync failed: ' .. tostring(err), vim.log.levels.ERROR)
   end
 end

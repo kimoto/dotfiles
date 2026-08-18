@@ -21,3 +21,5 @@ opt.ignorecase = true
 opt.scrolloff = 10 -- 上下から、指定した行数に達したら自動スクロール
 opt.signcolumn = 'yes' --行数表示の横に余白を追加
 opt.wrap = true
+
+opt.undofile = true -- Vimを終了してもUndo (undodir: stdpath('state')/undo, auto-created)
