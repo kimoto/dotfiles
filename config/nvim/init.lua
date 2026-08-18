@@ -1,8 +1,14 @@
--- NOTE: keybindings defined in this config (and lua/kimoto/plugins/*.lua) are
--- documented in KEYBINDINGS.md at the repo root — update it when adding or
--- changing a map.
+-- NOTE: keybindings defined under lua/kimoto/ are documented in KEYBINDINGS.md
+-- at the repo root — update it when adding or changing a map.
+
+-- Set before anything defines a <leader> mapping, so every map below resolves
+-- against Space.
+vim.g.mapleader = ' '
+
 require('kimoto/basic_config')
 require('kimoto/setup_plugin')
+require('kimoto/keymaps')
+
 require('kimoto/plugins/lualine')
 require('kimoto/plugins/nvim_cursorline')
 require('kimoto/plugins/gitsigns')
@@ -10,152 +16,9 @@ require('kimoto/plugins/auto_save')
 require('kimoto/plugins/bufferline')
 require('kimoto/plugins/nvim_tree')
 require('kimoto/plugins/toggleterm')
-require("telescope").load_extension "file_browser"
-
-vim.g.mapleader = ' '
-
-vim.api.nvim_set_keymap('n', '<leader>e', ':NvimTreeToggle<CR>', {silent=true})
-
--- ウィンドウを移動する
-vim.keymap.set('n', '<C-l>', '<C-w>l')
-vim.keymap.set('n', '<C-h>', '<C-w>h')
-vim.keymap.set('n', '<C-j>', '<C-w>j')
-vim.keymap.set('n', '<C-k>', '<C-w>k')
-vim.keymap.set('n', '<leader>1', ':b 1<CR>')
-vim.keymap.set('n', '<leader>2', ':b 2<CR>')
-vim.keymap.set('n', '<leader>3', ':b 3<CR>')
-vim.keymap.set('n', '<leader>4', ':b 4<CR>')
-vim.keymap.set('n', '<leader>5', ':b 5<CR>')
-vim.keymap.set('n', '<leader>6', ':b 6<CR>')
-vim.keymap.set('n', '<leader>n', ':bn<CR>')
-vim.keymap.set('n', '<leader>p', ':bp<CR>')
-vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
-
-vim.keymap.set({"n","x"}, "p", "<Plug>(YankyPutAfter)")
-vim.keymap.set({"n","x"}, "P", "<Plug>(YankyPutBefore)")
-vim.keymap.set({"n","x"}, "gp", "<Plug>(YankyGPutAfter)")
-vim.keymap.set({"n","x"}, "gP", "<Plug>(YankyGPutBefore)")
-vim.keymap.set("n", "<c-p>", "<Plug>(YankyPreviousEntry)")
-vim.keymap.set("n", "<c-n>", "<Plug>(YankyNextEntry)")
-
-require("yanky").setup({
-  ring = {
-    history_length = 100,
-    storage = "shada",
-    sync_with_numbered_registers = true,
-    cancel_event = "update",
-    ignore_registers = { "_" },
-    update_register_on_cycle = false,
-    permanent_wrapper = nil,
-  },
-  system_clipboard = {
-    sync_with_ring = true,
-  },
-})
-
-require('telescope').setup{
-  defaults = {
-    -- Default configuration for telescope goes here:
-    -- config_key = value,
-    mappings = {
-      i = {
-        -- map actions.which_key to <C-h> (default: <C-/>)
-        -- actions.which_key shows the mappings for your picker,
-        -- e.g. git_{create, delete, ...}_branch for the git_branches picker
-        -- ["<C-h>"] = "which_key"
-      }
-    }
-  },
-  pickers = {
-    -- Default configuration for builtin pickers goes here:
-    -- picker_name = {
-    --   picker_config_key = value,
-    --   ...
-    -- }
-    find_files = {
-      find_command = { "rg", "--files", "--hidden", "-g", "!.git", '-L' },
-    }
-    -- Now the picker_config_key will be applied every time you call this
-    -- builtin picker
-  },
-  extensions = {
-    -- Your extension configuration goes here:
-    -- extension_name = {
-    --   extension_config_key = value,
-    -- }
-    -- please take a look at the readme of the extension you want to configure
-    frecency = {
-      db_safe_mode = false, -- 古いエントリの自動削除時に確認を求めない
-    }
-  }
-}
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
-vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
-vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
-vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', {})
-
--- nvim-treesitter (main branch): highlight/indent are opted into per buffer,
--- not via setup() — start treesitter whenever the filetype has a parser, and
--- only then hand indentation to the plugin's (experimental) indentexpr.
--- First-run bootstrap: install the everyday parsers in the background when
--- the tree-sitter CLI is present (brew: tree-sitter, required by the main
--- branch); already-installed parsers are skipped. CI/e2e opts out via
--- DOTFILES_NO_NVIM_AUTO_INSTALL.
-if vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and vim.fn.executable('tree-sitter') == 1 then
-  require('nvim-treesitter').install({
-    'bash', 'css', 'html', 'javascript', 'json', 'lua', 'markdown', 'perl',
-    'python', 'ruby', 'rust', 'sql', 'toml', 'tsx', 'typescript', 'vim',
-    'vimdoc', 'vue', 'yaml',
-  })
-end
-vim.api.nvim_create_autocmd('FileType', {
-  callback = function(ev)
-    if pcall(vim.treesitter.start, ev.buf) then
-      vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-    end
-  end,
-})
-
-require('nvim-ts-autotag').setup()
-
--- color themes
-require('onedark').setup {
-    style = 'deep'
-}
-require('onedark').load()
-
-require('colorizer').setup()
-
+require('kimoto/plugins/yanky')
+require('kimoto/plugins/telescope')
+require('kimoto/plugins/treesitter')
+require('kimoto/plugins/colorscheme')
 require('kimoto/plugins/lsp')
-
--- related nvim-dap (debug adapter protocol)
-vim.api.nvim_set_keymap('n', '<F5>', ':DapContinue<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<F9>', ':DapToggleBreakpoint<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<F10>', ':DapStepOver<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<F11>', ':DapStepInto<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<S-F11>', ':DapStepOut<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<leader>lp', ':lua require("dap").set_breakpoint(nil, nil, vim.fn.input("Log point message: "))<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<leader>dr', ':lua require("dap").repl.open()<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<leader>dl', ':lua require("dap").run_last()<CR>', { silent = true })
-vim.api.nvim_set_keymap('n', '<leader>d', ':lua require("dapui").toggle()<CR>', {})
-require('dap-python').setup('python')
-require('dap-ruby').setup()
-require("dapui").setup()
-local dap, dapui = require("dap"), require("dapui")
-dap.listeners.before.attach.dapui_config = function()
-  dapui.open()
-end
-dap.listeners.before.launch.dapui_config = function()
-  dapui.open()
-end
-dap.listeners.before.event_terminated.dapui_config = function()
-  dapui.close()
-end
-dap.listeners.before.event_exited.dapui_config = function()
-  dapui.close()
-end
-
--- Vimを終了してもUndo (default undodir: stdpath('state')/undo, auto-created)
-vim.opt.undofile = true
+require('kimoto/plugins/dap')

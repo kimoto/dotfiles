@@ -211,7 +211,8 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 
 ## Neovim (leader: Space)
 
-Defined in `config/nvim/init.lua` and `config/nvim/lua/kimoto/plugins/*.lua`.
+Defined in `config/nvim/lua/kimoto/keymaps.lua` and
+`config/nvim/lua/kimoto/plugins/*.lua`.
 
 ### Windows / buffers / tools
 

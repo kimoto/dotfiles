@@ -1,28 +1,26 @@
--- Native LSP stack replacing coc.nvim: mason manages server installs,
--- nvim-lspconfig supplies the per-server configs consumed by vim.lsp.config
--- (nvim 0.11+), nvim-cmp provides completion, conform runs the formatters
--- coc-prettier used to own, and the eslint language server replaces
--- coc-eslint. Builtin LSP maps (0.11+): grn=rename, gra=code action,
--- grr=references, K=hover; gd/gy/gi are added below.
+-- Native LSP stack: mason manages server installs, nvim-lspconfig supplies the
+-- per-server configs consumed by vim.lsp.config (nvim 0.11+), nvim-cmp provides
+-- completion, and conform runs the formatters. Builtin LSP maps (0.11+):
+-- grn=rename, gra=code action, grr=references, K=hover; gd/gy/gi are added below.
 -- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
 -- update it when adding or changing a map.
 
--- Servers mirroring the old coc extensions. mason-lspconfig auto-installs
--- missing ones on startup (first-run bootstrap); enabling a server that is
--- not installed yet is harmless — nvim warns once when a matching filetype
--- is opened. CI/e2e sets DOTFILES_NO_NVIM_AUTO_INSTALL to keep startups
--- deterministic (no background downloads while assertions run).
+-- mason-lspconfig auto-installs missing servers on startup (first-run
+-- bootstrap); enabling a server that is not installed yet is harmless — nvim
+-- warns once when a matching filetype is opened. CI/e2e sets
+-- DOTFILES_NO_NVIM_AUTO_INSTALL to keep startups deterministic (no background
+-- downloads while assertions run).
 local servers = {
-  'ts_ls',         -- coc-tsserver
-  'eslint',        -- coc-eslint
-  'pyright',       -- coc-pyright
-  'solargraph',    -- coc-solargraph
-  'jsonls',        -- coc-json
-  'cssls',         -- coc-css
-  'taplo',         -- coc-toml
-  'vue_ls',        -- coc-volar
-  'perlnavigator', -- coc-perl
-  'sqls',          -- coc-sql
+  'ts_ls',         -- typescript / javascript
+  'eslint',
+  'pyright',       -- python
+  'solargraph',    -- ruby
+  'jsonls',
+  'cssls',
+  'taplo',         -- toml
+  'vue_ls',
+  'perlnavigator', -- perl
+  'sqls',          -- sql
 }
 
 require('mason').setup()
@@ -51,13 +49,13 @@ cmp.setup({
 vim.lsp.config('*', {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
 })
--- solargraph ships diagnostics disabled; coc-settings.json had them on.
+-- solargraph ships with diagnostics off; turn them on.
 vim.lsp.config('solargraph', {
   settings = { solargraph = { diagnostics = true } },
 })
 vim.lsp.enable(servers)
 
--- coc-settings.json parity: diagnostics as virtual text (0.11+ default: off).
+-- Diagnostics as virtual text (0.11+ default: off).
 vim.diagnostic.config({ virtual_text = true })
 
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -69,9 +67,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- Format on save with prettier for the filetypes the old
--- coc.preferences.formatOnSaveFiletypes listed, falling back to the attached
--- LSP formatter for everything else conform knows nothing about.
+-- Format on save with prettier for the filetypes it handles, falling back to
+-- the attached LSP formatter for everything else.
 require('conform').setup({
   formatters_by_ft = {
     javascript = { 'prettier' },
@@ -91,8 +88,9 @@ require('conform').setup({
   format_on_save = { timeout_ms = 1000, lsp_format = 'fallback' },
 })
 
--- eslint.autoFixOnSave parity: the eslint server registers LspEslintFixAll
--- per buffer on attach.
+-- Auto-fix eslint findings on write. The eslint server registers
+-- LspEslintFixAll per buffer on attach, so the command only exists where it
+-- has actually attached.
 vim.api.nvim_create_autocmd('BufWritePre', {
   pattern = { '*.js', '*.jsx', '*.ts', '*.tsx', '*.vue' },
   callback = function()
