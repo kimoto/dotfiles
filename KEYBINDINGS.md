@@ -122,6 +122,8 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 
 | Key | Action |
 |-----|--------|
+| prefix + C-t | Jump back to the last window (double-tap the prefix) |
+| prefix + C-b | Send the prefix through to a nested tmux |
 | prefix + Right | Join pane to next window |
 | prefix + Left | Join pane to previous window |
 | prefix + m | Mark pane |
@@ -132,12 +134,12 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
-| prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window) |
+| prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
 | prefix + Ctrl-s | Save tmux session state (tmux-resurrect; tmux-continuum also auto-saves every 15 min and auto-restores it on tmux start; tmux-assistant-resurrect also saves AI coding assistant sessions, e.g. Claude Code) |
 | prefix + Ctrl-r | Restore last saved tmux session state (tmux-resurrect; tmux-assistant-resurrect also resumes saved AI coding assistant sessions) |
-| prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane) |
+| prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane); opens in a floating pane over the bottom of the window on tmux 3.7+ |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
