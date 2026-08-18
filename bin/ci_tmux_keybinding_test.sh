@@ -170,4 +170,53 @@ if switcher_list | grep -qx "$cur_pane"; then
 fi
 echo "== prefix+f ranks the last-used pane first and drops the current one =="
 
+# 9) prefix+Tab (extrakto) opens a floating pane on whichever half of the
+#    window the cursor is NOT in, so the picker never covers the lines whose
+#    text it is completing. Drive it from both halves of a split window and
+#    check where the float actually lands. Needs the plugin, like case 7.
+keys M-t
+wait_count 5
+tmux -L "$INNER" split-window -v
+sleep 0.3
+win_h="$(tmux -L "$INNER" display-message -p '#{window_height}')"
+float_id() { tmux -L "$INNER" list-panes -a -F '#{pane_floating_flag} #{pane_id}' | awk '$1 == 1 { print $2; exit }'; }
+# Press prefix+Tab and print the row the float opened at.
+open_float_top() {
+  local i=0 fid
+  keys C-t Tab
+  while [ "$i" -lt 80 ]; do
+    fid="$(float_id)"
+    if [ -n "$fid" ]; then
+      tmux -L "$INNER" display-message -t "$fid" -p '#{pane_top}'
+      return 0
+    fi
+    i=$((i + 1)); sleep 0.1
+  done
+  die "prefix+Tab created no floating pane"
+}
+# Kill the float and wait for it to actually go: polling for "a float" while
+# the previous one is still dying reads the old position and passes by luck.
+close_float() {
+  local i=0
+  tmux -L "$INNER" kill-pane -t "$(float_id)" 2>/dev/null || true
+  while [ "$i" -lt 50 ]; do
+    [ -z "$(float_id)" ] && return 0
+    i=$((i + 1)); sleep 0.1
+  done
+  die "the floating pane never closed"
+}
+
+# split-window leaves the lower pane active: the float must go up top.
+from_bottom="$(open_float_top)"
+[ "$from_bottom" -lt $((win_h / 2)) ] ||
+  die "float opened at row $from_bottom from the bottom pane; expected the top half of $win_h"
+close_float
+
+keys M-k; sleep 0.3   # move to the upper pane
+from_top="$(open_float_top)"
+[ "$from_top" -ge $((win_h / 2)) ] ||
+  die "float opened at row $from_top from the top pane; expected the bottom half of $win_h"
+close_float
+echo "== extrakto's float opens away from the cursor (top:$from_top bottom:$from_bottom) =="
+
 echo "PASS"
