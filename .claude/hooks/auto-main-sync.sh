@@ -4,11 +4,26 @@
 # work lands in the local checkout. Fires once when the session ends, never
 # mid-turn. A dirty tree (or a still-open PR) only prints a reminder; the
 # checkout is left untouched so nothing is switched out from under unsaved work.
+#
+# A linked worktree is its own case: it exists to hold one branch, and checking
+# main out in it would block the primary checkout from ever switching to main.
+# There the merged branch is only reported, together with the removal command.
 set -uo pipefail
 
 cd "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
 command -v git >/dev/null 2>&1 || exit 0
+
+# A linked worktree keeps its own gitdir under the shared .git/worktrees/; the
+# primary checkout has the two paths equal.
+# Both paths go through `pwd -P` so a symlinked TMPDIR can't make the primary
+# checkout look like a worktree.
+in_linked_worktree() {
+  local git_dir common_dir
+  git_dir=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd -P) || return 1
+  common_dir=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd -P) || return 1
+  [[ "$git_dir" != "$common_dir" ]]
+}
 
 current_branch=$(git branch --show-current 2>/dev/null) || exit 0
 [[ -z "$current_branch" || "$current_branch" == "main" ]] && exit 0
@@ -19,6 +34,10 @@ case "$pr_info" in
   *MERGED*)
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
       echo "[reminder] PR $pr_info for '$current_branch' merged, but the working tree is dirty — commit/stash, then: git switch main && git pull"
+      exit 0
+    fi
+    if in_linked_worktree; then
+      echo "[reminder] PR $pr_info for '$current_branch' merged — this is a worktree; from the main checkout: git worktree remove $PWD && git branch -d $current_branch"
       exit 0
     fi
     if git switch main >/dev/null 2>&1 && git pull --ff-only >/dev/null 2>&1; then

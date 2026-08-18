@@ -97,3 +97,18 @@ on_merged_feature_branch() {
   [ -z "$output" ]
   [ "$(git -C "$REPO" branch --show-current)" = "feature" ]
 }
+
+@test "merged PR in a linked worktree: reminds, never switches or deletes" {
+  on_merged_feature_branch
+  # Sessions often run in a linked worktree; switching it to main would pin main
+  # there and block the primary checkout from ever checking main out.
+  WT="$TMP/wt"
+  git -C "$REPO" switch -q -c other
+  git -C "$REPO" worktree add -q "$WT" feature
+  CLAUDE_PROJECT_DIR="$WT" FAKE_PR_OUTPUT="#1 MERGED" run "$HOOK"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"worktree"* ]]
+  [ "$(git -C "$WT" branch --show-current)" = "feature" ]
+  git -C "$REPO" rev-parse --verify feature   # branch survives
+  git -C "$REPO" switch -q main               # main still free for the primary checkout
+}
