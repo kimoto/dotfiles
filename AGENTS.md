@@ -61,13 +61,20 @@ truth, so the two never diverge.
 - `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
   prepares the web sandbox), `SessionEnd` (`auto-main-sync.sh` — after a PR
   merges, switches back to `main`, pulls, and deletes the merged branch; a
-  dirty tree or still-open PR just prints a reminder instead), and
+  dirty tree, a still-open PR, or a linked worktree just prints a reminder
+  instead — a worktree is told to remove itself, never switched to `main`), and
   `PostToolUse` on `git push` (reminds to update the PR description to match
   what was just pushed). It also allow-lists the repo's own read-only check
   toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`, `bats
   test/…`) so running a check the way CI runs it needs no prompt; anything that
   writes (`gen_tools_list.sh` without `--check`, `mklink.sh`, `brew bundle`)
-  stays out. `.codex/skills/` — Codex skills.
+  stays out.
+- `.codex/skills/` — the skills, and the single source for both agents:
+  `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
+  is written once. A real directory holding a symlinked `SKILL.md` (not a
+  symlinked directory) keeps discovery working regardless of how each agent
+  walks the tree. `dotfiles-pr-flow` is deliberately Codex-only — it restates
+  the PR rules Claude already reads from this file.
 
 ### Hooks & CI
 

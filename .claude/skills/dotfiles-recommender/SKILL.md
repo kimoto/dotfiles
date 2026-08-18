@@ -1,0 +1,1 @@
+../../../.codex/skills/dotfiles-recommender/SKILL.md
