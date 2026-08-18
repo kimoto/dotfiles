@@ -85,3 +85,12 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"out of sync"* ]]
 }
+
+@test "renders no tool counts, so adding one tool is a one-line diff" {
+  run "$SCRIPT" --stdout "$TMP/Brewfile.basic"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'_Source: `Brewfile.basic`._'* ]]
+  [[ "$output" != *" tools._"* ]]
+  [[ "$output" != *" tool._"* ]]
+  [[ "$output" != *"across"* ]]
+}
