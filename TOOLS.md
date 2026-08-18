@@ -11,7 +11,7 @@ so this page never drifts from what actually gets installed. Grouped by bundle l
 
 The minimal layer the shell depends on at load time; CI installs only this bundle.
 
-_`Brewfile.basic` — 15 tools._
+_Source: `Brewfile.basic`._
 
 | Tool | Description |
 | --- | --- |
@@ -35,7 +35,7 @@ _`Brewfile.basic` — 15 tools._
 
 Full-workstation tooling not required to start the shell.
 
-_`Brewfile.common` — 66 tools._
+_Source: `Brewfile.common`._
 
 | Tool | Description |
 | --- | --- |
@@ -110,7 +110,7 @@ _`Brewfile.common` — 66 tools._
 
 Platform-specific desktop apps (Homebrew casks).
 
-_`Brewfile.macos` — 14 tools._
+_Source: `Brewfile.macos`._
 
 | Tool | Description |
 | --- | --- |
@@ -128,7 +128,3 @@ _`Brewfile.macos` — 14 tools._
 | [raycast](https://formulae.brew.sh/cask/raycast) | Control your tools with a few keystrokes |
 | [rectangle](https://formulae.brew.sh/cask/rectangle) | Move and resize windows using keyboard shortcuts or snap areas |
 | [stats](https://formulae.brew.sh/cask/stats) | System monitor for the menu bar |
-
----
-
-_95 tools across 3 bundles._
