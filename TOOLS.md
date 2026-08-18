@@ -80,7 +80,6 @@ _Source: `Brewfile.common`._
 | [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
 | [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
-| `morantron/tmux-fingers/tmux-fingers` | tmux plugin for quick copying of on-screen text via hint labels |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
 | [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |

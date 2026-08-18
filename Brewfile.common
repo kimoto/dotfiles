@@ -3,8 +3,6 @@
 # machines; skipped in CI, which installs only Brewfile.basic. Anything the
 # shell depends on at load time belongs in Brewfile.basic — see its header.
 # NOTE: Keep entries sorted A-Z within this file.
-# Additional Homebrew tap
-tap "morantron/tmux-fingers"
 # Static checker for GitHub Actions workflow files
 brew "actionlint"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
@@ -87,8 +85,6 @@ brew "lima"
 brew "lolcat"
 # Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
 brew "luajit"
-# tmux plugin for quick copying of on-screen text via hint labels
-brew "morantron/tmux-fingers/tmux-fingers"
 # Open source relational database management system
 brew "mysql-client"
 # Text-based UI library
