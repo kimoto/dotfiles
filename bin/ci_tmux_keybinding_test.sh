@@ -219,4 +219,30 @@ from_top="$(open_float_top)"
 close_float
 echo "== extrakto's float opens away from the cursor (top:$from_top bottom:$from_bottom) =="
 
+# 10) prefix+? opens tmux-which-key's menu tree. The plugin binds its menu to
+#     prefix+Space, which .tmux.conf takes back for next-layout, so both halves
+#     are asserted: Space still cycles layouts and ? opens the menu. The menu
+#     itself is client-side and not queryable, so drive it to an item with an
+#     observable effect -- the root menu's Time entry (key T) puts the pane in
+#     clock-mode. Needs the plugin, like cases 7 and 9.
+case "$(inner_binding 'Space')" in
+  *next-layout*) ;;
+  *) die "prefix Space is not next-layout (which-key took it?)" ;;
+esac
+wait_mode() {
+  local want="$1" tries="${2:-50}" i=0 got
+  while [ "$i" -lt "$tries" ]; do
+    got="$(tmux -L "$INNER" display-message -p '#{pane_mode}' 2>/dev/null || true)"
+    [ "$got" = "$want" ] && return 0
+    i=$((i + 1)); sleep 0.1
+  done
+  die "expected pane mode $want, saw ${got:-none}"
+}
+keys C-t '?'
+sleep 0.5
+keys T
+wait_mode clock-mode
+keys q   # leave clock-mode so the pane is usable again
+echo "== prefix+? opens the which-key menu (Time -> clock-mode) =="
+
 echo "PASS"

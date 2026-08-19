@@ -28,18 +28,36 @@ require('mason-lspconfig').setup({
   ensure_installed = vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and servers or {},
 })
 
--- Completion: LSP/buffer/path sources, snippets via the builtin vim.snippet.
+-- Completion: LSP/buffer/path sources plus snippets.
+--
+-- LuaSnip rather than the builtin vim.snippet: the builtin only expands
+-- snippets a language server sends back, so there were no standalone snippets
+-- at all. friendly-snippets supplies the bodies (lazy_load reads only the
+-- packs for filetypes actually opened) and cmp_luasnip surfaces them as a
+-- completion source.
 local cmp = require('cmp')
+local luasnip = require('luasnip')
+require('luasnip.loaders.from_vscode').lazy_load()
+
 cmp.setup({
   snippet = {
-    expand = function(args) vim.snippet.expand(args.body) end,
+    expand = function(args) luasnip.lsp_expand(args.body) end,
   },
   mapping = cmp.mapping.preset.insert({
     ['<C-Space>'] = cmp.mapping.complete(),
     ['<CR>'] = cmp.mapping.confirm({ select = false }),
+    -- Tab moves between a snippet's placeholders and is a plain Tab
+    -- everywhere else, so nothing is taken away when no snippet is active.
+    ['<Tab>'] = cmp.mapping(function(fallback)
+      if luasnip.locally_jumpable(1) then luasnip.jump(1) else fallback() end
+    end, { 'i', 's' }),
+    ['<S-Tab>'] = cmp.mapping(function(fallback)
+      if luasnip.locally_jumpable(-1) then luasnip.jump(-1) else fallback() end
+    end, { 'i', 's' }),
   }),
   sources = cmp.config.sources({
     { name = 'nvim_lsp' },
+    { name = 'luasnip' },
   }, {
     { name = 'buffer' },
     { name = 'path' },

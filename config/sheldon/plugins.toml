@@ -95,8 +95,11 @@ inline = 'if (( $+commands[kubectl] )); then zsh-defer _evalcache kubectl comple
 # LS_COLORS palette. vivid prints a raw value (not shell code), so
 # bin/vivid_ls_colors.sh (on PATH via ~/bin) wraps it in an export statement.
 # Guarded so a vivid-less box stays silent instead of re-caching every startup.
-# Only affects `ls`/`eza` colors, not the prompt, so defer it past the first
-# prompt like kubectl's completion (~20ms measured via zprof).
+# Only affects `ls`/`eza` colors and the completion candidate list, not the
+# prompt, so defer it past the first prompt like kubectl's completion (~20ms
+# measured via zprof). The completion side tolerates arriving late because
+# .zshrc registers list-colors with `zstyle -e`, which re-reads LS_COLORS at
+# every lookup instead of capturing it at load time.
 [plugins.vivid-ls-colors]
 inline = 'if (( $+commands[vivid] )); then zsh-defer _evalcache vivid_ls_colors.sh; fi'
 
