@@ -14,3 +14,6 @@ for i = 1, 6 do
 end
 vim.keymap.set('n', '<leader>n', ':bn<CR>')
 vim.keymap.set('n', '<leader>p', ':bp<CR>')
+
+-- 検索のハイライトを消す。:nohlsearch を打つより Esc のほうが手が先に動く
+vim.keymap.set('n', '<Esc>', '<Cmd>nohlsearch<CR>', { desc = 'Clear search highlight' })
