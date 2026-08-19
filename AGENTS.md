@@ -63,8 +63,9 @@ truth, so the two never diverge.
   merges, switches back to `main`, pulls, and deletes the merged branch; a
   dirty tree, a still-open PR, or a linked worktree just prints a reminder
   instead — a worktree is told to remove itself, never switched to `main`), and
-  `PostToolUse` on `git push` (reminds to update the PR description to match
-  what was just pushed). It also allow-lists the repo's own read-only check
+  `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
+  reminds to update the PR description to match what was just pushed; a command
+  that only quotes a push stays silent). It also allow-lists the repo's own read-only check
   toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`, `bats
   test/…`) so running a check the way CI runs it needs no prompt; anything that
   writes (`gen_tools_list.sh` without `--check`, `mklink.sh`, `brew bundle`)
