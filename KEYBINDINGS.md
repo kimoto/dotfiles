@@ -264,6 +264,16 @@ you when you have forgotten a binding exists.
 | grn / gra / grr | Rename / code action / references (nvim builtin) |
 | K | Hover (nvim builtin) |
 | Enter (insert) | Confirm completion (nvim-cmp) |
+| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip); a plain Tab when no snippet is active |
+
+### Diagnostics (trouble)
+
+| Key | Action |
+|-----|--------|
+| Space+xx | Diagnostics, whole workspace |
+| Space+xb | Diagnostics, this buffer |
+| Space+xq | Quickfix list |
+| Space+xl | Location list |
 
 ### Yank ring (yanky)
 
@@ -289,4 +299,5 @@ you when you have forgotten a binding exists.
 |-----|--------|
 | gcc / gc{motion} | Toggle comment (Comment.nvim) |
 | ys / cs / ds | Add / change / delete surround (vim-surround) |
+| ( [ { " ' | Auto-closed (nvim-autopairs); Enter stays with vim-endwise so `end` still gets added |
 | Space+j | Jump to definition (any-jump) |

@@ -17,4 +17,5 @@ wk.setup({
 wk.add({
   { '<leader>f', group = 'find (telescope)' },
   { '<leader>d', group = 'debug (dap)' },
+  { '<leader>x', group = 'diagnostics (trouble)' },
 })

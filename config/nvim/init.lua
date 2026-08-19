@@ -20,6 +20,7 @@ require('kimoto/plugins/yanky')
 require('kimoto/plugins/telescope')
 require('kimoto/plugins/treesitter')
 require('kimoto/plugins/colorscheme')
+require('kimoto/plugins/trouble')
 -- last: reads the `desc` of every map registered above
 require('kimoto/plugins/which_key')
 
@@ -46,6 +47,8 @@ vim.api.nvim_create_autocmd('VimEnter', {
     vim.schedule(function()
       require('kimoto/plugins/lsp')
       require('kimoto/plugins/dap')
+      -- after lsp: its cmp hookup requires cmp, which lsp.lua has set up by now
+      require('kimoto/plugins/autopairs')
     end)
   end,
 })
