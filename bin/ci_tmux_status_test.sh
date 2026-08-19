@@ -106,4 +106,27 @@ else
   echo "== 3.7+ guarded block skipped on $(tmux -V) =="
 fi
 
+# 8) The status bar draws without spawning a process per redraw. status-left
+#    shows one dot per session, which used to mean running `tmux list-sessions`
+#    on every redraw; #{S:...} loops over the sessions as a format instead.
+case "$(opt status-left)" in
+  *'#('*) die "status-left runs a shell job again; #{S:...} needs no process per redraw" ;;
+esac
+tmux -L "$SOCK" new-session -d -s "${SESS}2"
+tmux -L "$SOCK" new-session -d -s "${SESS}3"
+dots="$(expand "$(opt status-left)" | grep -o '[●•]' | grep -c .)"
+[ "$dots" = "3" ] || die "status-left expected one dot per session (3), rendered ${dots:-0}"
+tmux -L "$SOCK" kill-session -t "${SESS}3"
+dots="$(expand "$(opt status-left)" | grep -o '[●•]' | grep -c .)"
+[ "$dots" = "2" ] || die "status-left did not follow a session going away (expected 2, got ${dots:-0})"
+echo "== status-left renders a dot per session with no shell job =="
+
+# 9) The kube context is read by a job that sleeps between prints. A bare
+#    `kubectl config current-context` here is a ~35ms process on every redraw.
+case "$(opt status-right)" in
+  *sleep*) ;;
+  *) die "status-right's kube job no longer throttles itself; it will run kubectl every status-interval" ;;
+esac
+echo "== the kube context job throttles itself =="
+
 echo "PASS"
