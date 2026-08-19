@@ -66,3 +66,8 @@ mysqlsh/*
 **/.claude/settings.local.json
 
 **/.claude/.cc-writes/
+
+# Claude Code stores its git worktrees here. They are checkouts of this repo,
+# so leaving them untracked makes `git status` dirty in the primary checkout,
+# which the startup sync reminder then nags about and `git add -A` sweeps in.
+**/.claude/worktrees/
