@@ -266,10 +266,43 @@ grep -q 'yanked-through-the-provider' "$HOME_DIR/tmux_clipboard.txt" 2>/dev/null
     die "a plain yy never reached the clipboard provider (clipboard=unnamedplus not in effect)"; }
 echo "== yank reaches the system clipboard provider =="
 
+# ---------------------------------------------------------------------------
+# Assert 5 (real terminal): nvim-autopairs closes a bracket AND vim-endwise
+# still adds `end`. autopairs maps <CR> by default, which silently overrides
+# endwise's — measured before map_cr=false went in, `def foo` + Enter in a .rb
+# buffer produced no `end` at all. Nothing errors when that regresses, the
+# `end` just stops appearing, so it needs a test.
+# ---------------------------------------------------------------------------
+echo "== autopairs / endwise check =="
+rb_file="$HOME_DIR/endwise_probe.rb"
+: >"$rb_file"
+tmux -L "$SOCK" send-keys ":edit! $rb_file" Enter
+sleep 0.5
+tmux -L "$SOCK" send-keys 'i'
+sleep 0.3
+tmux -L "$SOCK" send-keys 'def foo'
+sleep 0.5
+tmux -L "$SOCK" send-keys Enter
+sleep 0.8
+tmux -L "$SOCK" send-keys 'bar('
+sleep 0.5
+tmux -L "$SOCK" send-keys Escape
+sleep 0.8
+rb_out="$HOME_DIR/endwise_probe.txt"
+tmux -L "$SOCK" send-keys \
+  ":lua vim.fn.writefile(vim.api.nvim_buf_get_lines(0,0,-1,false), '$rb_out')" Enter
+sleep 0.8
+echo "---- ruby buffer ----"; cat "$rb_out" 2>/dev/null; echo "---------------------"
+grep -q 'bar()' "$rb_out" 2>/dev/null ||
+  die "nvim-autopairs did not close the bracket"
+grep -qx 'end' "$rb_out" 2>/dev/null ||
+  die "vim-endwise did not add 'end' — autopairs has taken over <CR> (map_cr)"
+echo "== autopairs closes brackets, endwise still adds end =="
+
 tmux -L "$SOCK" send-keys ':qa!' Enter
 
 # ---------------------------------------------------------------------------
-# Assert 5: opening a real .ts file attaches an LSP client. This is what the
+# Assert 6: opening a real .ts file attaches an LSP client. This is what the
 # deferred load in init.lua could silently break — vim.lsp.enable() only
 # re-runs its FileType autocmd over already-open buffers when it is called
 # after VimEnter, and a miss produces no error, just no LSP.
