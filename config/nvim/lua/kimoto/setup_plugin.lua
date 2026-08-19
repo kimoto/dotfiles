@@ -48,6 +48,7 @@ require('jetpack.paq') {
   'akinsho/toggleterm.nvim',
   'yamatsum/nvim-cursorline',
   'folke/which-key.nvim', -- popup listing the keys behind a prefix
+  'folke/trouble.nvim', -- list every diagnostic instead of one line at a time
   'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
   'navarasu/onedark.nvim', -- color theme
 
@@ -61,6 +62,7 @@ require('jetpack.paq') {
   'gbprod/yanky.nvim', -- yank ring
   {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
   'pocco81/auto-save.nvim', -- 自動保存
+  'windwp/nvim-autopairs', -- 括弧・クォートの自動閉じ
   'tpope/vim-surround', -- text objectの拡張
   'tpope/vim-endwise', -- Rubyのendなどの自動補完
   'farmergreg/vim-lastplace', -- 最後の編集地点に移動
@@ -77,6 +79,9 @@ require('jetpack.paq') {
   'hrsh7th/cmp-buffer',
   'hrsh7th/cmp-path',
   'stevearc/conform.nvim',        -- format on save (prettier etc.)
+  'L3MON4D3/LuaSnip',             -- snippet engine
+  'saadparwaiz1/cmp_luasnip',     -- its cmp source
+  'rafamadriz/friendly-snippets', -- the snippet bodies themselves (vscode format)
 
   -- debugger (nvim-dap)
   'mfussenegger/nvim-dap',
