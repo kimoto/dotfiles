@@ -11,7 +11,8 @@
 # Load order matters in a few places (kept intentionally):
 #   - compinit runs before `sheldon source` so plugin compdefs (e.g. carapace)
 #     can register against an initialized completion system.
-#   - LS_COLORS is exported before the completion list-colors zstyle reads it.
+#   - the completion list-colors style is registered with `zstyle -e`, because
+#     LS_COLORS only arrives later (deferred vivid plugin) - see below.
 #   - CI strict mode (err_exit) is enabled after plugins load, so a missing
 #     optional plugin doesn't abort the interactive load test.
 #===============================================================
@@ -198,8 +199,9 @@ export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-# LS_COLORS is exported during `sheldon source` via _evalcache — see the
-# vivid-ls-colors inline plugin in config/sheldon/plugins.toml.
+# LS_COLORS is exported by the vivid-ls-colors inline plugin in
+# config/sheldon/plugins.toml, which zsh-defer runs after the first prompt —
+# so nothing in this file may read it eagerly (see the list-colors zstyle).
 export GPG_TTY=$TTY # zsh sets $TTY itself; saves a tty(1) fork per shell
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
@@ -214,7 +216,14 @@ zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、�
 zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zcompcache
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+# `-e` (evaluate on lookup), not a plain value: LS_COLORS is not set yet when
+# this line runs. It is exported by the vivid-ls-colors plugin, which
+# config/sheldon/plugins.toml loads through zsh-defer, i.e. after the first
+# prompt - so a plain `list-colors ${(s.:.)LS_COLORS}` captured an empty value
+# and completion candidates were listed uncoloured on every machine. With -e
+# the style body is evaluated each time the completion system looks the style
+# up, so it picks up whatever LS_COLORS holds by then.
+zstyle -e ':completion:*' list-colors 'reply=( ${(s.:.)LS_COLORS} )'
 
 #=====================
 # aliases
