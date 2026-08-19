@@ -1,0 +1,23 @@
+---
+# yamllint rules for this repo (bin/lint_yaml.sh). Only the four defaults that
+# disagree with conventions already in force here are relaxed; everything else
+# yamllint checks by default stays on.
+extends: default
+
+rules:
+  # .editorconfig sets the repo-wide limit at 120 columns, and exempts the file
+  # `gh` generates for itself — mirror both.
+  line-length:
+    max: 120
+    ignore: |
+      config/gh/config.yml
+  # ratchet writes its version marker as `uses: action@<sha> # v5`, one space
+  # before the comment, and rewrites it that way on every pin.
+  comments:
+    min-spaces-from-content: 1
+  # No file here opens with a `---` marker; requiring one would touch them all.
+  document-start: disable
+  # A workflow's `on:` key is YAML-truthy but is not a boolean, and renaming it
+  # is not an option — check values only.
+  truthy:
+    check-keys: false
