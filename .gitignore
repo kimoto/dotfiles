@@ -57,6 +57,11 @@ mysqlsh/*
 !mysqlsh/options.json
 !mysqlsh/prompt.json
 .zcompdump*
+# Wordcode caches built at shell startup (.zshrc compiles itself; see the tail
+# of .zshrc). Land next to $ZDOTDIR, which is $HOME normally but the repo root
+# in CI and in the zsh loading test.
+.zshrc.zwc
+.zshrc.new.zwc
 
 # local-only (machine-specific / editor state)
 .vim/.netrwhist

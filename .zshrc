@@ -105,6 +105,10 @@ if builtin command -v sheldon >/dev/null; then
     mkdir -p "${_sheldon_cache:h}"
     if sheldon source >| "$_sheldon_cache.new"; then
       mv -f "$_sheldon_cache.new" "$_sheldon_cache"
+      # Wordcode, like the compdump and the _evalcache files: `source` picks up
+      # <file>.zwc automatically while it is newer, so the generated plugin
+      # loader is parsed once per regeneration instead of once per shell.
+      zcompile "$_sheldon_cache"
     else
       rm -f "$_sheldon_cache.new"
     fi
@@ -558,3 +562,32 @@ if [[ -z "${DOTFILES_NO_BREW_CHECK:-}" ]]; then
   [[ -x "$_dotfiles_dir/bin/brew_bundle_check.sh" ]] && "$_dotfiles_dir/bin/brew_bundle_check.sh"
   unset _dotfiles_dir
 fi
+
+#=====================
+# wordcode cache for this file
+#=====================
+# zsh maps <startup-file>.zwc instead of parsing the file itself whenever the
+# .zwc is newer, so compiling this file once takes its parse off every later
+# startup: 18.7ms -> 17.6ms best-of-40, reproduced across three interleaved A/B
+# rounds on zsh 5.9 (this file is 21KB). Same trick already used for
+# .zcompdump, the _evalcache files and sheldon's cache above.
+#
+# Cheap to keep honest: `zcompile ~/.zshrc` writes ~/.zshrc.zwc next to the
+# *symlink*, never into the repo, and zsh falls straight back to the source the
+# moment the source is newer - so a `git pull` invalidates it on its own and
+# this block just rebuilds it in the next shell.
+#
+# Compiled under a temp name and renamed: zcompile writes in place, so a shell
+# killed mid-write would leave a truncated .zwc, which zsh then reports as
+# "invalid zwc file" on stderr at *every* startup until something regenerates
+# it. The rename makes the swap atomic, so a reader sees either the old file or
+# the new one.
+() {
+  local src="${ZDOTDIR:-$HOME}/.zshrc"
+  if [[ -f "$src" && ! "$src.zwc" -nt "$src" ]]; then
+    if zcompile -U "$src.new.zwc" "$src" 2>/dev/null; then
+      mv -f "$src.new.zwc" "$src.zwc" 2>/dev/null || rm -f "$src.new.zwc" 2>/dev/null
+    fi
+  fi
+  return 0
+}

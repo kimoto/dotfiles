@@ -133,3 +133,18 @@ teardown() {
   [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles" ]
   [ -L "$HOME_SANDBOX/.claude/rules/other" ]
 }
+
+@test "rmworld.sh removes the .zshrc wordcode cache, not just the symlink" {
+  # .zshrc compiles itself to ~/.zshrc.zwc, and zsh loads that wordcode as the
+  # startup file even when ~/.zshrc no longer exists — so leaving it behind
+  # would keep the "removed" config loading in every new shell.
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  printf 'compiled\n' >"$HOME_SANDBOX/.zshrc.zwc"
+  printf 'partial\n' >"$HOME_SANDBOX/.zshrc.new.zwc"
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME_SANDBOX/.zshrc" ]
+  [ ! -e "$HOME_SANDBOX/.zshrc.zwc" ]
+  [ ! -e "$HOME_SANDBOX/.zshrc.new.zwc" ]
+}

@@ -45,6 +45,11 @@ unlink_if_symlink "./.gitignore"
 unlink_if_symlink "./.gitmessage"
 unlink_if_symlink "./.tmux.conf"
 unlink_if_symlink "./.zshrc"
+# .zshrc compiles itself to wordcode (~/.zshrc.zwc; see the tail of .zshrc).
+# zsh reads that wordcode as the startup file even after ~/.zshrc is gone, so
+# unlinking only the symlink would leave the removed config still loading.
+# Generated artefacts, never a real file the user wrote: rm outright.
+rm -f "./.zshrc.zwc" "./.zshrc.new.zwc"
 unlink_if_symlink "./.irbrc"
 unlink_if_symlink "./.vimrc"
 unlink_if_symlink "./.aerospace.toml"

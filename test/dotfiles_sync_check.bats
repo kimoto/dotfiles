@@ -178,3 +178,22 @@ wait_for() {
   elapsed=$(( $(date +%s) - start ))
   [ "$elapsed" -lt 3 ]
 }
+
+@test "foreground spawns no helper processes (all forks are in the background job)" {
+  # Every process an interactive shell starts before it can draw a prompt is
+  # paid at startup, so resolving the repo root and creating the cache dir must
+  # happen inside the detached job, not in the foreground. Stub the helpers this
+  # script uses to sleep 3s each: if any of them is still on the foreground
+  # path, the run cannot return in under 3 seconds.
+  STUB="$TMP/stubbin"
+  mkdir -p "$STUB"
+  for c in readlink dirname mkdir; do
+    printf '#!/bin/bash\nsleep 3\nexit 0\n' >"$STUB/$c"
+    chmod +x "$STUB/$c"
+  done
+
+  start=$(date +%s)
+  PATH="$STUB:$PATH" "$SCRIPT" >/dev/null 2>&1
+  elapsed=$(( $(date +%s) - start ))
+  [ "$elapsed" -lt 3 ]
+}
