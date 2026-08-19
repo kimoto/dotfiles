@@ -132,6 +132,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | prefix + r | Reload ~/.tmux.conf |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
+| prefix + ? | This file in a popup, with keys added in the last 14 days marked 🆕 (replaces tmux's `list-keys -N`; `prefix + /` still describes a single key) |
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
 | prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |

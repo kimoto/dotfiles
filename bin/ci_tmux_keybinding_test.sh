@@ -219,4 +219,28 @@ from_top="$(open_float_top)"
 close_float
 echo "== extrakto's float opens away from the cursor (top:$from_top bottom:$from_bottom) =="
 
+# 9) `bind-key ?`: the keybinding reference opens in a popup. The popup is drawn
+#    on the INNER client's terminal, which is the OUTER pane, so capturing the
+#    OUTER pane is what proves it actually rendered — a popup is not a pane and
+#    never shows up in the INNER server's list-panes.
+keys C-t '?'
+found=0
+i=0
+while [ "$i" -lt 100 ]; do
+  # A phrase from the top of KEYBINDINGS.md — tmux's own `list-keys -N`, the
+  # binding this replaces, would also mention keybindings, so match the document.
+  if tmux -L "$OUTER" capture-pane -p | grep -qi "Hierarchical keybinding"; then found=1; break; fi
+  i=$((i + 1)); sleep 0.1
+done
+if [ "$found" -ne 1 ]; then
+  echo "---- OUTER pane at timeout ----" >&2
+  tmux -L "$OUTER" capture-pane -p >&2
+  die "prefix ? did not render the keybinding reference"
+fi
+# What the pager shows first is the top of the document, so which rows carry the
+# 🆕 marker is asserted in test/keybindings_new.bats, against a fixture with a
+# controlled history, rather than from a screenshot of page one.
+keys q   # leave the pager so the popup closes with the test
+echo "== prefix ? renders the keybinding reference in a popup =="
+
 echo "PASS"
