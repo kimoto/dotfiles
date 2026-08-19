@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Verify every GitHub Actions `uses:` in our workflows is pinned to a full
-# commit SHA (not a mutable tag). Single source of truth shared by CI and the
-# lefthook pre-commit hook. ratchet only applies to .github/workflows, so all
+# Lint the GitHub Actions workflows two ways: ratchet checks that every `uses:`
+# is pinned to a full commit SHA (not a mutable tag), actionlint checks the
+# workflow itself — expression syntax, context properties, runner labels, plus
+# a shellcheck pass over every `run:` block. Single source of truth shared by
+# CI and the lefthook pre-commit hook. Both only look at .github/workflows, so
 # workflow files are checked regardless of arguments.
 
 set -euo pipefail
@@ -15,6 +17,11 @@ if ! command -v ratchet >/dev/null 2>&1; then
     exit 1
 fi
 
+if ! command -v actionlint >/dev/null 2>&1; then
+    echo "x actionlint not found; install it (brew install actionlint)" >&2
+    exit 1
+fi
+
 files=()
 while IFS= read -r f; do
     files+=("$f")
@@ -23,3 +30,4 @@ done < <(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml')
 [ "${#files[@]}" -eq 0 ] && exit 0
 
 ratchet lint "${files[@]}"
+actionlint "${files[@]}"

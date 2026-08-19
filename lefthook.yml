@@ -54,7 +54,7 @@ pre-commit:
       run: ./bin/lint_schema.sh {staged_files}
     editorconfig:
       run: ./bin/lint_editorconfig.sh {staged_files}
-    action-pinning:
+    workflow-lint:
       glob:
         - ".github/workflows/*.yml"
         - ".github/workflows/*.yaml"
