@@ -148,6 +148,7 @@ it the hint.
 | prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
+| prefix + ? | tmux-which-key: menu tree of tmux commands (windows, panes, buffers, sessions, client); its +Keys entry is where `list-keys -N` lives |
 | prefix + Ctrl-s | Save tmux session state (tmux-resurrect; tmux-continuum also auto-saves every 15 min and auto-restores it on tmux start; tmux-assistant-resurrect also saves AI coding assistant sessions, e.g. Claude Code) |
 | prefix + Ctrl-r | Restore last saved tmux session state (tmux-resurrect; tmux-assistant-resurrect also resumes saved AI coding assistant sessions) |
 | prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane); opens in a floating pane on tmux 3.7+, taking the half of the window the cursor is not in so it never covers the lines you are picking from |
