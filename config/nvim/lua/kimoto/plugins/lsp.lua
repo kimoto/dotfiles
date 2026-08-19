@@ -60,10 +60,12 @@ vim.diagnostic.config({ virtual_text = true })
 
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(ev)
-    local opts = { buffer = ev.buf }
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    vim.keymap.set('n', 'gy', vim.lsp.buf.type_definition, opts)
-    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+    local function map(lhs, fn, desc)
+      vim.keymap.set('n', lhs, fn, { buffer = ev.buf, desc = desc })
+    end
+    map('gd', vim.lsp.buf.definition, 'LSP: definition')
+    map('gy', vim.lsp.buf.type_definition, 'LSP: type definition')
+    map('gi', vim.lsp.buf.implementation, 'LSP: implementation')
   end,
 })
 

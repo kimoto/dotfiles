@@ -16,9 +16,9 @@ require('yanky').setup({
   },
 })
 
-vim.keymap.set({ 'n', 'x' }, 'p', '<Plug>(YankyPutAfter)')
-vim.keymap.set({ 'n', 'x' }, 'P', '<Plug>(YankyPutBefore)')
-vim.keymap.set({ 'n', 'x' }, 'gp', '<Plug>(YankyGPutAfter)')
-vim.keymap.set({ 'n', 'x' }, 'gP', '<Plug>(YankyGPutBefore)')
-vim.keymap.set('n', '<C-p>', '<Plug>(YankyPreviousEntry)')
-vim.keymap.set('n', '<C-n>', '<Plug>(YankyNextEntry)')
+vim.keymap.set({ 'n', 'x' }, 'p', '<Plug>(YankyPutAfter)', { desc = 'Put after (yank ring)' })
+vim.keymap.set({ 'n', 'x' }, 'P', '<Plug>(YankyPutBefore)', { desc = 'Put before (yank ring)' })
+vim.keymap.set({ 'n', 'x' }, 'gp', '<Plug>(YankyGPutAfter)', { desc = 'Put after, cursor at end' })
+vim.keymap.set({ 'n', 'x' }, 'gP', '<Plug>(YankyGPutBefore)', { desc = 'Put before, cursor at end' })
+vim.keymap.set('n', '<C-p>', '<Plug>(YankyPreviousEntry)', { desc = 'Yank ring: older entry' })
+vim.keymap.set('n', '<C-n>', '<Plug>(YankyNextEntry)', { desc = 'Yank ring: newer entry' })
