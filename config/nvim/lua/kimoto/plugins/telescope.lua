@@ -20,3 +20,10 @@ vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Live grep' })
 vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
 vim.keymap.set('n', '<leader>fr', ':Telescope frecency<CR>', { desc = 'Recent files (frecency)' })
+
+-- Pickers that were already installed but had no key on them. <leader>ff/fg
+-- only find things by name or content; these three are the ones you reach for
+-- when you know *when* you touched a file, not what it was called.
+vim.keymap.set('n', '<leader>fo', builtin.oldfiles, { desc = 'Previously opened files' })
+vim.keymap.set('n', '<leader>fs', builtin.git_status, { desc = 'Changed files (git status)' })
+vim.keymap.set('n', '<leader>fl', builtin.resume, { desc = 'Reopen the last picker' })
