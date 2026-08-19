@@ -33,7 +33,7 @@ jobs:
         run: ./bin/lint_schema.sh
       - name: Check editorconfig (line length, whitespace, final newline)
         run: ./bin/lint_editorconfig.sh
-      - name: Check action pinning (ratchet)
+      - name: Lint workflows (ratchet pinning + actionlint)
         run: ./bin/lint_actions.sh
       - name: Check Brewfile sort
         run: ./bin/check_brewfile_sort.sh

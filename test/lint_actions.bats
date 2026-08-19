@@ -57,7 +57,39 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-@test "the real repo's workflows are all SHA-pinned" {
+# Same shape, but the workflow is correctly SHA-pinned and instead carries a
+# mistake only actionlint sees — so a failure here cannot come from ratchet.
+make_actionlint_fixture_repo() {
+  local runner="$1"
+  mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
+  cp "$SCRIPT" "$TMP/repo/bin/"
+  cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
+on: push
+jobs:
+  build:
+    runs-on: ${runner}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - run: echo hi
+EOF
+  git -C "$TMP/repo" init -q
+  git -C "$TMP/repo" add -A
+}
+
+@test "rejects a workflow with an unknown runner label (actionlint, not ratchet)" {
+  make_actionlint_fixture_repo "ubunt-latest"
+  run "$TMP/repo/bin/lint_actions.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"ubunt-latest"* ]]
+}
+
+@test "accepts the same workflow once the runner label is valid" {
+  make_actionlint_fixture_repo "ubuntu-latest"
+  run "$TMP/repo/bin/lint_actions.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "the real repo's workflows are all SHA-pinned and actionlint-clean" {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }

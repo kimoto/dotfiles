@@ -8,6 +8,7 @@ set -euo pipefail
 # The one place to bump versions (override via env if needed).
 GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
 RATCHET_VERSION="${RATCHET_VERSION:-0.12.0}"
+ACTIONLINT_VERSION="${ACTIONLINT_VERSION:-1.7.12}"
 YQ_VERSION="${YQ_VERSION:-4.53.3}"
 BIOME_VERSION="${BIOME_VERSION:-2.5.7}"
 EC_VERSION="${EC_VERSION:-3.11.1}"
@@ -57,6 +58,13 @@ fi
 if ! command -v ratchet >/dev/null 2>&1; then
   curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
     | as_root tar -xz -C /usr/local/bin ratchet
+fi
+
+# actionlint (GitHub Actions workflow checker: expressions, contexts, runner
+# labels, and shellcheck over `run:` blocks).
+if ! command -v actionlint >/dev/null 2>&1; then
+  curl -sSfL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
+    | as_root tar -xz -C /usr/local/bin actionlint
 fi
 
 # biome (config-syntax: validates .jsonc, e.g. config/fastfetch/config.jsonc).
