@@ -127,6 +127,8 @@ silent echo "TREESITTER=".(exists(":TSUpdate")?"loaded":"missing")
 silent echo "MASON=".(exists(":Mason")?"loaded":"missing")
 silent echo "CMP=".(luaeval("package.loaded['cmp'] ~= nil")?"loaded":"missing")
 silent echo "CONFORM=".(luaeval("package.loaded['conform'] ~= nil")?"loaded":"missing")
+silent echo "CONFORM_PRE=".luaeval("#vim.api.nvim_get_autocmds({group='Conform',event='BufWritePre'})")
+silent echo "CONFORM_POST=".luaeval("#vim.api.nvim_get_autocmds({group='Conform',event='BufWritePost'})")
 silent echo "LSP_TS=".(luaeval("vim.lsp.config['ts_ls'] ~= nil")?"configured":"missing")
 silent echo "LSP_TS_ENABLED=".(luaeval("vim.lsp.is_enabled('ts_ls')")?"yes":"no")
 silent echo "COLORSCHEME=".(exists("g:colors_name")?g:colors_name:"none")
@@ -158,6 +160,14 @@ grep -q "TREESITTER=loaded"   "$msgs" || die "nvim-treesitter did not load"
 grep -q "MASON=loaded"        "$msgs" || die "mason did not load"
 grep -q "CMP=loaded"          "$msgs" || die "nvim-cmp did not load"
 grep -q "CONFORM=loaded"      "$msgs" || die "conform did not load"
+# conform hooks BufWritePre when it formats synchronously and BufWritePost
+# when it formats after the write. auto-save writes on every InsertLeave, so
+# the sync variant froze the editor for a node startup (~260ms measured)
+# every time you left insert mode in a prettier filetype.
+grep -q "CONFORM_POST=1" "$msgs" ||
+  die "conform is not formatting after the write (format_after_save gone)"
+grep -q "CONFORM_PRE=0"  "$msgs" ||
+  die "conform formats before the write again — every auto-save now blocks on prettier"
 grep -q "LSP_TS=configured"   "$msgs" || die "ts_ls lsp config not resolved"
 # lspconfig resolves vim.lsp.config[...] on its own, so the line above passes
 # even if plugins/lsp.lua never ran. is_enabled() is true only because that
@@ -266,10 +276,57 @@ grep -q 'yanked-through-the-provider' "$HOME_DIR/tmux_clipboard.txt" 2>/dev/null
     die "a plain yy never reached the clipboard provider (clipboard=unnamedplus not in effect)"; }
 echo "== yank reaches the system clipboard provider =="
 
+# ---------------------------------------------------------------------------
+# Assert 5 (real terminal): <Tab> cycles buffers without eating <C-i>, the
+# jumplist's forward motion. Without the kitty keyboard protocol the two are
+# the same byte (0x09), so bufferline's <Tab> map silently made <C-o> a
+# one-way trip. keymaps.lua maps <C-i> back; this pins both halves:
+#   - 0x09 (what a legacy terminal sends for either key) must still cycle
+#   - CSI 105;5u (what a kitty-protocol terminal sends for Ctrl+I) must jump
+# Bytes are injected raw because tmux's own `send-keys C-i` emits 0x09.
+# ---------------------------------------------------------------------------
+echo "== <C-i> vs <Tab> check =="
+jump_file="$HOME_DIR/jumplist_probe.txt"
+seq 1 200 >"$jump_file"
+# edit! — the clipboard step above left the scratch buffer modified, and
+# 'confirm' would pop a dialog instead of switching.
+tmux -L "$SOCK" send-keys ":edit! $jump_file" Enter
+sleep 0.5
+# G then gg leaves the jumplist as [line 1, line 200] with the cursor on 1,
+# so <C-o> goes to 200 and a working <C-i> comes back to 1.
+tmux -L "$SOCK" send-keys 'G'
+sleep 0.3
+tmux -L "$SOCK" send-keys 'gg'
+sleep 0.3
+tmux -L "$SOCK" send-keys C-o
+sleep 0.5
+jump_out="$HOME_DIR/jump_probe.txt"
+report_pos() {
+  tmux -L "$SOCK" send-keys ":call writefile(['$1=' . line('.') . ':' . expand('%:t')], '$jump_out')" Enter
+  sleep 0.5
+}
+report_pos AFTER_CTRL_O
+grep -q "AFTER_CTRL_O=200:jumplist_probe.txt" "$jump_out" ||
+  { cat "$jump_out"; die "<C-o> did not reach line 200 (test setup broke, not the config)"; }
+
+tmux -L "$SOCK" send-keys -H 1b 5b 31 30 35 3b 35 75   # CSI 105;5u = Ctrl+I
+sleep 0.5
+report_pos AFTER_CTRL_I
+grep -q "AFTER_CTRL_I=1:jumplist_probe.txt" "$jump_out" ||
+  { cat "$jump_out"
+    die "<C-i> did not jump forward — the <Tab> map is eating it again"; }
+
+tmux -L "$SOCK" send-keys -H 09                        # plain Tab byte
+sleep 0.5
+report_pos AFTER_TAB
+grep -q "AFTER_TAB=.*jumplist_probe.txt" "$jump_out" &&
+  { cat "$jump_out"; die "<Tab> stopped cycling buffers"; }
+echo "== <C-i> jumps forward, <Tab> still cycles buffers =="
+
 tmux -L "$SOCK" send-keys ':qa!' Enter
 
 # ---------------------------------------------------------------------------
-# Assert 5: opening a real .ts file attaches an LSP client. This is what the
+# Assert 6: opening a real .ts file attaches an LSP client. This is what the
 # deferred load in init.lua could silently break — vim.lsp.enable() only
 # re-runs its FileType autocmd over already-open buffers when it is called
 # after VimEnter, and a miss produces no error, just no LSP.

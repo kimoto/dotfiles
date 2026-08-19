@@ -241,6 +241,7 @@ you when you have forgotten a binding exists.
 | Space+1~6 | Go to buffer 1~6 |
 | Space+n / p | Next / previous buffer |
 | Tab / ⇧+Tab | Cycle buffers (bufferline) |
+| ⌃+o / ⌃+i | Jump back / forward (jumplist) — ⌃+i is mapped explicitly so Tab's buffer cycling does not swallow it |
 | Space+e | Toggle file tree (nvim-tree) |
 | Space+t | Toggle terminal (toggleterm) |
 | ⌃+Space | Normal mode: toggle terminal / insert mode: trigger completion |
