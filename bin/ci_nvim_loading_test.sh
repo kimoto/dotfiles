@@ -111,6 +111,7 @@ silent echo "MASON=".(exists(":Mason")?"loaded":"missing")
 silent echo "CMP=".(luaeval("package.loaded['cmp'] ~= nil")?"loaded":"missing")
 silent echo "CONFORM=".(luaeval("package.loaded['conform'] ~= nil")?"loaded":"missing")
 silent echo "LSP_TS=".(luaeval("vim.lsp.config['ts_ls'] ~= nil")?"configured":"missing")
+silent echo "LSP_TS_ENABLED=".(luaeval("vim.lsp.is_enabled('ts_ls')")?"yes":"no")
 silent echo "COLORSCHEME=".(exists("g:colors_name")?g:colors_name:"none")
 silent echo "LUALINE=".(luaeval("package.loaded['lualine'] ~= nil")?"loaded":"missing")
 silent echo "YANKY_P=".(maparg("p","n")=~#"Yanky"?"mapped":"missing")
@@ -137,6 +138,10 @@ grep -q "MASON=loaded"        "$msgs" || die "mason did not load"
 grep -q "CMP=loaded"          "$msgs" || die "nvim-cmp did not load"
 grep -q "CONFORM=loaded"      "$msgs" || die "conform did not load"
 grep -q "LSP_TS=configured"   "$msgs" || die "ts_ls lsp config not resolved"
+# lspconfig resolves vim.lsp.config[...] on its own, so the line above passes
+# even if plugins/lsp.lua never ran. is_enabled() is true only because that
+# module called vim.lsp.enable() — the part that startup deferral could break.
+grep -q "LSP_TS_ENABLED=yes" "$msgs" || die "vim.lsp.enable() never ran (plugins/lsp.lua did not load)"
 grep -q "COLORSCHEME=onedark" "$msgs" || die "onedark colorscheme not applied"
 grep -q "LUALINE=loaded"      "$msgs" || die "lualine did not load"
 grep -q "YANKY_P=mapped"      "$msgs" || die "yanky put mapping not active"
