@@ -2,10 +2,11 @@
 
 # Brewfile drift reminder.
 #
-# Warns at shell startup when a Brewfile bundle lists packages that aren't
-# installed yet — e.g. after adding a formula, or on a freshly bootstrapped
-# machine — so the tools you expect are actually present. Notify-only: it never
-# installs anything, it just prints the exact `brew bundle install` to run.
+# Warns at shell startup when a Brewfile bundle is not satisfied — a package it
+# lists is missing, or an installed one is out of date — so the tools you expect
+# are present and current. `brew bundle check` does not distinguish the two and
+# `brew bundle install` fixes either, which is what the printed command does.
+# Notify-only: this script never installs anything.
 #
 # `brew bundle check` is comparatively slow, so startup never waits for it: the
 # foreground only prints the cached result of the previous check, then a
@@ -51,7 +52,7 @@ if [ -s "$result" ]; then
     # One line per unsatisfied Brewfile, with a ready-to-run install command.
     while IFS= read -r f; do
         [ -n "$f" ] || continue
-        printf '%s[brew]%s %s has uninstalled packages -> %sbrew bundle install --file=%s/%s%s\n' \
+        printf '%s[brew]%s %s has missing or outdated packages -> %sbrew bundle install --file=%s/%s%s\n' \
             "$yellow" "$reset" "$f" "$cyan" "$REPO_DIR" "$f" "$reset" >&2
     done <"$result"
     # One-shot alternative that installs everything and batches the prompts.

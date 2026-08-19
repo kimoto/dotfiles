@@ -216,6 +216,11 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 Defined in `config/nvim/lua/kimoto/keymaps.lua` and
 `config/nvim/lua/kimoto/plugins/*.lua`.
 
+Every map is registered with a `desc`, and which-key.nvim renders them: hold a
+prefix (Space, `g`, `z`, …) for ~300ms and the follow-ups appear in a popup.
+This table is the copy you read on purpose; the popup is the one that reaches
+you when you have forgotten a binding exists.
+
 ### Windows / buffers / tools
 
 | Key | Action |
@@ -261,7 +266,7 @@ Defined in `config/nvim/lua/kimoto/keymaps.lua` and
 | F5 | Continue |
 | F9 | Toggle breakpoint |
 | F10 / F11 / ⇧+F11 | Step over / into / out |
-| Space+d | Toggle dap-ui |
+| Space+du | Toggle dap-ui |
 | Space+dr / Space+dl | Open REPL / run last |
 | Space+lp | Set log point |
 

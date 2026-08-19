@@ -18,14 +18,16 @@ dap.listeners.before.launch.dapui_config = open_ui
 dap.listeners.before.event_terminated.dapui_config = close_ui
 dap.listeners.before.event_exited.dapui_config = close_ui
 
-vim.keymap.set('n', '<F5>', dap.continue)
-vim.keymap.set('n', '<F9>', dap.toggle_breakpoint)
-vim.keymap.set('n', '<F10>', dap.step_over)
-vim.keymap.set('n', '<F11>', dap.step_into)
-vim.keymap.set('n', '<S-F11>', dap.step_out)
+vim.keymap.set('n', '<F5>', dap.continue, { desc = 'Debug: continue' })
+vim.keymap.set('n', '<F9>', dap.toggle_breakpoint, { desc = 'Debug: toggle breakpoint' })
+vim.keymap.set('n', '<F10>', dap.step_over, { desc = 'Debug: step over' })
+vim.keymap.set('n', '<F11>', dap.step_into, { desc = 'Debug: step into' })
+vim.keymap.set('n', '<S-F11>', dap.step_out, { desc = 'Debug: step out' })
 vim.keymap.set('n', '<leader>lp', function()
   dap.set_breakpoint(nil, nil, vim.fn.input('Log point message: '))
-end)
-vim.keymap.set('n', '<leader>dr', dap.repl.open)
-vim.keymap.set('n', '<leader>dl', dap.run_last)
-vim.keymap.set('n', '<leader>d', dapui.toggle)
+end, { desc = 'Debug: set log point' })
+vim.keymap.set('n', '<leader>dr', dap.repl.open, { desc = 'Debug: open REPL' })
+vim.keymap.set('n', '<leader>dl', dap.run_last, { desc = 'Debug: run last' })
+-- <leader>du, not <leader>d: as a bare <leader>d it is a prefix of <leader>dr
+-- and <leader>dl, so every toggle first waited out 'timeoutlen'.
+vim.keymap.set('n', '<leader>du', dapui.toggle, { desc = 'Debug: toggle dap-ui' })

@@ -54,6 +54,11 @@ pre-commit:
       run: ./bin/lint_schema.sh {staged_files}
     editorconfig:
       run: ./bin/lint_editorconfig.sh {staged_files}
+    yaml-lint:
+      glob:
+        - "*.yml"
+        - "*.yaml"
+      run: ./bin/lint_yaml.sh {staged_files}
     workflow-lint:
       glob:
         - ".github/workflows/*.yml"
