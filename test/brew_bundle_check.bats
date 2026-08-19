@@ -108,7 +108,7 @@ wait_for() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[brew]"* ]]
   [[ "$output" == *"Brewfile.basic"* ]]
-  [[ "$output" == *"brew bundle install --file="* ]]
+  [[ "$output" == *"brew bundle install --file=$REPO/Brewfile.basic"* ]]
   # `brew bundle check` fails for outdated packages too, so the nag must not
   # claim they are merely uninstalled.
   [[ "$output" == *"missing or outdated"* ]]
@@ -170,6 +170,25 @@ STUBEOF
 
   start=$(date +%s)
   "$SCRIPT" >/dev/null 2>&1
+  elapsed=$(( $(date +%s) - start ))
+  [ "$elapsed" -lt 3 ]
+}
+
+@test "foreground spawns no helper processes when there is nothing to report" {
+  # Same budget as dotfiles_sync_check.sh: with an empty cache the foreground
+  # prints nothing, so it must also resolve nothing. Stub every helper the
+  # script uses to sleep 3s — if the repo-root resolution, the platform
+  # Brewfile pick or the cache mkdir is still on the foreground path, this
+  # cannot return in under 3 seconds.
+  STUB2="$TMP/stubbin2"
+  mkdir -p "$STUB2"
+  for c in readlink dirname mkdir uname; do
+    printf '#!/bin/bash\nsleep 3\nexit 0\n' >"$STUB2/$c"
+    chmod +x "$STUB2/$c"
+  done
+
+  start=$(date +%s)
+  PATH="$STUB2:$PATH" "$SCRIPT" >/dev/null 2>&1
   elapsed=$(( $(date +%s) - start ))
   [ "$elapsed" -lt 3 ]
 }

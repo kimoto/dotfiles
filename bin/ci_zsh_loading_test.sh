@@ -114,6 +114,8 @@ print "VISUAL=$VISUAL"
 print "PAGER=$PAGER"
 print "HOMEBREW_PREFIX=${HOMEBREW_PREFIX:-unset}"
 print "ZCOMPDUMP_ZWC=$([[ -s ${ZDOTDIR:-$HOME}/.zcompdump.zwc ]] && echo yes || echo no)"
+print "ZSHRC_ZWC=$([[ -s ${ZDOTDIR:-$HOME}/.zshrc.zwc ]] && echo yes || echo no)"
+print "ZSHRC_ZWC_TMP=$([[ -e ${ZDOTDIR:-$HOME}/.zshrc.new.zwc ]] && echo left-behind || echo clean)"
 for o in autocd autopushd share_history interactivecomments noclobber; do
   [[ -o $o ]] && print "OPT_ON:$o"
 done
@@ -146,6 +148,12 @@ fi
 
 # compinit dump is compiled to wordcode so later startups parse it faster.
 require_grep ".zcompdump.zwc missing (zcompile after compinit)" "$env_out" "ZCOMPDUMP_ZWC=yes"
+
+# .zshrc compiles itself to wordcode too, so later startups skip parsing it.
+# The temp name it compiles under must never survive the run: a leftover
+# .zshrc.new.zwc means the atomic rename failed and every shell is recompiling.
+require_grep ".zshrc.zwc missing (self-zcompile at the tail of .zshrc)" "$env_out" "ZSHRC_ZWC=yes"
+require_grep ".zshrc.new.zwc left behind (rename failed)" "$env_out" "ZSHRC_ZWC_TMP=clean"
 
 # shell options (setopt)
 for opt in autocd autopushd share_history interactivecomments noclobber; do

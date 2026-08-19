@@ -27,17 +27,17 @@ set -u
 # brew not installed yet -> stay silent; bootstrap (bin/mkworld.sh) handles that.
 command -v brew >/dev/null 2>&1 || exit 0
 
-REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." 2>/dev/null && pwd) || exit 0
-
-# Brewfiles to check: shell-load essentials + full workstation + this platform.
-files=(Brewfile.basic Brewfile.common)
-case "$(uname)" in
-    Darwin) files+=(Brewfile.macos) ;;
-    Linux) files+=(Brewfile.linux) ;;
-esac
+# Path-only, no subprocesses: every fork here is paid by an interactive shell
+# before it can draw a prompt, and on an EDR-managed mac an exec costs far more
+# than the work it does. Resolving the repo root, picking the platform Brewfile
+# and creating the cache dir all run commands, so they are deferred: the repo
+# root is resolved lazily (only when there is actually a warning to print), the
+# rest happens inside the background job.
+resolve_repo_dir() {
+    REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." 2>/dev/null && pwd)
+}
 
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
-mkdir -p "$cache_dir" 2>/dev/null || true
 stamp="$cache_dir/last_brew_check"
 result="$cache_dir/brew_missing"
 
@@ -45,6 +45,8 @@ result="$cache_dir/brew_missing"
 # foreground: print the cached result and get out of the way
 #---------------------------------------------------------------
 if [ -s "$result" ]; then
+    resolve_repo_dir || exit 0
+
     yellow=$'\033[33m'
     cyan=$'\033[36m'
     reset=$'\033[0m'
@@ -66,6 +68,16 @@ fi
 # All fds are detached so neither the terminal nor the caller (zsh startup, or
 # bats' fd 3) ever waits on this job.
 (
+    resolve_repo_dir || exit 0
+    mkdir -p "$cache_dir" 2>/dev/null || true
+
+    # Brewfiles to check: shell-load essentials + full workstation + this platform.
+    files=(Brewfile.basic Brewfile.common)
+    case "$(uname)" in
+        Darwin) files+=(Brewfile.macos) ;;
+        Linux) files+=(Brewfile.linux) ;;
+    esac
+
     # Re-run the (slow) check at most once per 24h — but only trust a cached
     # "all satisfied" result. A pending warning is re-checked every startup so
     # acting on it clears the nag on the next shell.

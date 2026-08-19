@@ -23,10 +23,11 @@ set -u
 
 [ -n "${DOTFILES_NO_SYNC_CHECK:-}" ] && exit 0
 
-REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." 2>/dev/null && pwd) || exit 0
-
+# Path-only, no subprocesses: every fork here is paid by an interactive shell
+# before it can draw a prompt, and on an EDR-managed mac an exec costs far more
+# than the work it does. Anything that needs to run a command (resolving the
+# repo root, creating the cache dir) happens inside the background job below.
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
-mkdir -p "$cache_dir" 2>/dev/null || true
 fetch_stamp="$cache_dir/last_fetch"
 result="$cache_dir/sync_status"
 
@@ -41,6 +42,9 @@ result="$cache_dir/sync_status"
 # All fds are detached so neither the terminal nor the caller (zsh startup, or
 # bats' fd 3) ever waits on this job.
 (
+    REPO_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." 2>/dev/null && pwd) || exit 0
+    mkdir -p "$cache_dir" 2>/dev/null || true
+
     # Only proceed inside a git work tree.
     git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 
