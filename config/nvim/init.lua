@@ -33,7 +33,19 @@ require('kimoto/plugins/which_key')
 -- FileType autocmd over already-loaded buffers (`doautoall nvim.lsp.enable
 -- FileType`), so `nvim foo.ts` still attaches. Only `dap`'s keymaps register
 -- late, and they are function keys on a debugger that has to be started anyway.
-vim.schedule(function()
-  require('kimoto/plugins/lsp')
-  require('kimoto/plugins/dap')
-end)
+--
+-- Hung off VimEnter rather than a bare vim.schedule: the doautoall above is
+-- guarded by `vim.v.vim_did_enter == 1`, and a plain schedule runs on whatever
+-- tick comes first. Anything that spins the event loop before VimEnter (a
+-- `--headless -c` script that waits, a plugin that blocks) would then run
+-- vim.lsp.enable() too early and it would silently skip the buffers already
+-- open — no error, just no LSP. VimEnter makes the ordering explicit.
+vim.api.nvim_create_autocmd('VimEnter', {
+  once = true,
+  callback = function()
+    vim.schedule(function()
+      require('kimoto/plugins/lsp')
+      require('kimoto/plugins/dap')
+    end)
+  end,
+})

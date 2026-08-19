@@ -57,6 +57,10 @@ truth, so the two never diverge.
   `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
   Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
   (CI + lefthook run `--check` to enforce it stays in sync).
+- `test/fixtures/` — helpers the `ci_*_test.sh` e2e checks need but that are
+  not themselves under test: `stub_lsp.py` is a language server that only
+  completes the handshake, so CI can assert "opening a .ts file attaches a
+  client" without installing a real one (which would test npm, not this repo).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror.
 - `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
   prepares the web sandbox), `SessionEnd` (`auto-main-sync.sh` — after a PR

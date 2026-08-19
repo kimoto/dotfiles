@@ -31,6 +31,7 @@ fi
 command -v nvim >/dev/null 2>&1 || die "nvim not installed"
 command -v git  >/dev/null 2>&1 || die "git not installed"
 command -v tmux >/dev/null 2>&1 || die "tmux not installed"
+command -v python3 >/dev/null 2>&1 || die "python3 not installed (needed by the stub LSP server)"
 REPO="$PWD"
 [ -f "$REPO/config/nvim/init.lua" ] || die "no config/nvim/init.lua in $REPO"
 echo "== $(nvim --version | head -1) =="
@@ -61,6 +62,24 @@ export DOTFILES_NO_NVIM_AUTO_INSTALL=1
 
 run_nvim() { HOME="$HOME_DIR" nvim --headless "$@" </dev/null; }
 
+# Write a g:clipboard provider that copies to / pastes from a plain file. Used
+# both to silence tmux's clipboard in the pane and to assert that a yank
+# actually leaves nvim. It has to be loaded with --cmd: g:clipboard is read
+# when the provider is first resolved, which can happen before a -c command.
+write_clipboard_provider() {
+  local lua_file="$1" store="$2"
+  cat >"$lua_file" <<PROVIDER
+local copy = { 'sh', '-c', 'cat > $store' }
+local paste = { 'sh', '-c', 'cat $store 2>/dev/null' }
+vim.g.clipboard = {
+  name = 'stub',
+  copy = { ['+'] = copy, ['*'] = copy },
+  paste = { ['+'] = paste, ['*'] = paste },
+  cache_enabled = 0,
+}
+PROVIDER
+}
+
 # ---------------------------------------------------------------------------
 # Install: a plain first startup must bootstrap everything on its own —
 # setup_plugin.lua curls jetpack and, on missing plugins, runs :JetpackSync
@@ -89,8 +108,7 @@ echo "== plugin tree present =="
 # ---------------------------------------------------------------------------
 # Assert 1 (headless): a full init.lua startup produces no error messages and
 # representative plugins really loaded — commands defined, colorscheme
-# applied, lualine required, yanky mappings active. A short sleep lets
-# just-after-startup async work surface errors before :messages is dumped.
+# applied, lualine required, yanky mappings active.
 # ---------------------------------------------------------------------------
 echo "== headless startup check =="
 msgs="$HOME_DIR/messages.txt"
@@ -100,7 +118,6 @@ startup_log="$HOME_DIR/startup.log"
 probe="$HOME_DIR/probe.vim"
 cat >"$probe" <<PROBE
 set nomore
-sleep 500m
 redir! > $msgs
 silent messages
 silent echo "TELESCOPE=".(exists(":Telescope")?"loaded":"missing")
@@ -122,7 +139,11 @@ silent echo "DESC_DAPUI=".(get(maparg("<leader>du","n",0,1),"desc","none"))
 redir END
 qall!
 PROBE
-run_nvim -c "source $probe" >"$startup_log" 2>&1 || {
+# Sourced from VimEnter, not straight from -c: init.lua defers the LSP/DAP
+# modules to a VimEnter autocmd, so a -c probe that waits would spin the event
+# loop first and read a state the real editor never sits in. The sleep then
+# lets just-after-startup async work surface errors before :messages is dumped.
+run_nvim -c "autocmd VimEnter * ++once sleep 800m | source $probe" >"$startup_log" 2>&1 || {
   echo "---- startup output ----"; cat "$startup_log"
   die "nvim exited non-zero on startup"; }
 
@@ -163,10 +184,16 @@ echo "== headless startup clean (no errors, plugins + colorscheme loaded) =="
 # headless run can miss for UI-time errors).
 # ---------------------------------------------------------------------------
 echo "== real-terminal startup check =="
+# The config sets clipboard=unnamedplus, and inside a detached tmux session
+# nvim's provider auto-detection picks tmux and then fails with "no current
+# client" — noise that lands on the message line and can swallow a keypress.
+# Give this nvim the stub provider so the pane only shows real problems; the
+# clipboard itself is asserted properly further down.
+write_clipboard_provider "$HOME_DIR/tmux_clipboard.lua" "$HOME_DIR/tmux_clipboard.txt"
 tmux -L "$SOCK" new-session -d -x 180 -y 45 \
   "env HOME='$HOME_DIR' XDG_CONFIG_HOME='$XDG_CONFIG_HOME' XDG_DATA_HOME='$XDG_DATA_HOME' \
        XDG_STATE_HOME='$XDG_STATE_HOME' XDG_CACHE_HOME='$XDG_CACHE_HOME' \
-       TERM=xterm-256color nvim" ||
+       TERM=xterm-256color nvim --cmd 'luafile $HOME_DIR/tmux_clipboard.lua'" ||
   die "failed to start tmux session"
 
 screen=""
@@ -182,7 +209,120 @@ if printf '%s\n' "$screen" | grep -qiE 'Press ENTER|E[0-9]{2,}:|Error detected|a
 fi
 printf '%s\n' "$screen" | grep -qE 'NORMAL|\[No Name\]' ||
   { echo "---- pane ----"; printf '%s\n' "$screen" >&2; die "nvim did not reach a normal startup screen"; }
-tmux -L "$SOCK" send-keys ':qa!' Enter
 echo "== real-terminal startup clean (normal screen, no Press-ENTER) =="
+
+# ---------------------------------------------------------------------------
+# Assert 3 (real terminal): holding <leader> pops up which-key, listing the
+# maps by the `desc` they were registered with. Everything else about
+# which-key can be true (plugin loaded, module required, descs present) while
+# the popup itself never renders, so assert on the pixels.
+# ---------------------------------------------------------------------------
+echo "== which-key popup check =="
+# Re-press rather than press once and poll: the pane reaches a normal screen
+# before which-key has registered its triggers, and a <leader> that lands in
+# that window is just a prefix nobody answers — nvim waits out 'timeoutlen'
+# and the popup never comes. Pressing once made this check fail ~2 runs in 8.
+# Escape first each round so a half-entered prefix cannot accumulate.
+popup=""
+for _ in $(seq 1 20); do
+  tmux -L "$SOCK" send-keys Escape
+  sleep 0.1
+  tmux -L "$SOCK" send-keys Space
+  sleep 0.5
+  popup="$(tmux -L "$SOCK" capture-pane -p 2>/dev/null || true)"
+  printf '%s\n' "$popup" | grep -q 'find (telescope)' && break
+done
+printf '%s\n' "$popup" | grep -q 'find (telescope)' ||
+  { echo "---- pane ----"; printf '%s\n' "$popup" >&2
+    die "which-key popup did not list the <leader>f group"; }
+# A group label alone would still pass with every desc missing; check a real map.
+printf '%s\n' "$popup" | grep -q 'Toggle file tree' ||
+  { echo "---- pane ----"; printf '%s\n' "$popup" >&2
+    die "which-key popup rendered without the <leader>e desc"; }
+tmux -L "$SOCK" send-keys Escape
+echo "== which-key popup lists groups and descs =="
+
+# ---------------------------------------------------------------------------
+# Assert 4 (real terminal): clipboard = unnamedplus really routes a yank out
+# of nvim. Without a provider nvim keeps the text to itself, which is the
+# state that option exists to fix, and it fails silently. The stub provider
+# above stands in for pbcopy — same mechanism, no pasteboard needed.
+#
+# Driven by real keystrokes rather than a headless `:normal! yy`: in headless
+# mode a scripted yank does not mirror into "+ at all (an explicit "+yy does),
+# so a headless probe would assert something the editor never does.
+# setline over insert mode keeps auto-save's InsertLeave hook out of it.
+# ---------------------------------------------------------------------------
+echo "== clipboard check =="
+tmux -L "$SOCK" send-keys ':call setline(1, "yanked-through-the-provider")' Enter
+sleep 0.5
+tmux -L "$SOCK" send-keys 'gg' 'yy'
+for _ in $(seq 1 40); do
+  grep -q 'yanked-through-the-provider' "$HOME_DIR/tmux_clipboard.txt" 2>/dev/null && break
+  sleep 0.2
+done
+grep -q 'yanked-through-the-provider' "$HOME_DIR/tmux_clipboard.txt" 2>/dev/null ||
+  { echo "---- pane ----"; tmux -L "$SOCK" capture-pane -p >&2 || true
+    die "a plain yy never reached the clipboard provider (clipboard=unnamedplus not in effect)"; }
+echo "== yank reaches the system clipboard provider =="
+
+tmux -L "$SOCK" send-keys ':qa!' Enter
+
+# ---------------------------------------------------------------------------
+# Assert 5: opening a real .ts file attaches an LSP client. This is what the
+# deferred load in init.lua could silently break — vim.lsp.enable() only
+# re-runs its FileType autocmd over already-open buffers when it is called
+# after VimEnter, and a miss produces no error, just no LSP.
+#
+# The server is test/fixtures/stub_lsp.py behind a wrapper named
+# `typescript-language-server`, first on PATH: nvim resolves lspconfig's real
+# ts_ls cmd to it, so the config under test is untouched. Installing a real
+# server would test npm instead, and the auto-installers are off here anyway.
+# ---------------------------------------------------------------------------
+echo "== LSP attach check =="
+STUB_BIN="$HOME_DIR/stubbin"
+mkdir -p "$STUB_BIN"
+printf '#!/bin/sh\nexec python3 "%s/test/fixtures/stub_lsp.py"\n' "$REPO" >"$STUB_BIN/typescript-language-server"
+chmod +x "$STUB_BIN/typescript-language-server"
+
+TS_PROJECT="$HOME_DIR/tsproject"
+mkdir -p "$TS_PROJECT"
+echo '{"compilerOptions":{}}' >"$TS_PROJECT/tsconfig.json"
+echo 'export const answer: number = 42' >"$TS_PROJECT/probe.ts"
+
+# The probe hangs off VimEnter for the same reason init.lua does: waiting from
+# a plain -c command would spin the loop before VimEnter and measure a state
+# the real editor never reaches.
+lsp_out="$HOME_DIR/lsp_probe.txt"
+lsp_probe="$HOME_DIR/lsp_probe.lua"
+cat >"$lsp_probe" <<LUAPROBE
+vim.api.nvim_create_autocmd('VimEnter', {
+  once = true,
+  callback = function()
+    vim.schedule(function()
+      vim.wait(15000, function() return #vim.lsp.get_clients({ bufnr = 0 }) > 0 end)
+      local names = vim.tbl_map(function(c) return c.name end, vim.lsp.get_clients({ bufnr = 0 }))
+      vim.fn.writefile({
+        'FILETYPE=' .. vim.bo.filetype,
+        'VIM_DID_ENTER=' .. vim.v.vim_did_enter,
+        'LSP_CLIENTS=' .. table.concat(names, ','),
+      }, '$lsp_out')
+      vim.cmd('qall!')
+    end)
+  end,
+})
+LUAPROBE
+
+( cd "$TS_PROJECT" && PATH="$STUB_BIN:$PATH" HOME="$HOME_DIR" \
+    nvim --headless probe.ts -c "luafile $lsp_probe" ) </dev/null >"$HOME_DIR/lsp.log" 2>&1 ||
+  { cat "$HOME_DIR/lsp.log"; die "nvim exited non-zero on the LSP probe"; }
+
+[ -f "$lsp_out" ] || { cat "$HOME_DIR/lsp.log"; die "LSP probe never wrote its result"; }
+echo "---- lsp probe ----"; cat "$lsp_out"; echo "-------------------"
+grep -q "FILETYPE=typescript" "$lsp_out" || die "probe.ts did not get filetype=typescript"
+grep -q "VIM_DID_ENTER=1"     "$lsp_out" || die "probe ran before VimEnter (test harness bug)"
+grep -q "LSP_CLIENTS=ts_ls"   "$lsp_out" ||
+  die "no LSP client attached to probe.ts (the deferred vim.lsp.enable missed the open buffer)"
+echo "== LSP attached to a .ts file opened on the command line =="
 
 echo "PASS"
