@@ -13,6 +13,7 @@ YQ_VERSION="${YQ_VERSION:-4.53.3}"
 BIOME_VERSION="${BIOME_VERSION:-2.5.7}"
 EC_VERSION="${EC_VERSION:-3.11.1}"
 CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.38.0}"
+YAMLLINT_VERSION="${YAMLLINT_VERSION:-1.38.0}"
 LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.1.10}"
 
 # Map uname -m onto each project's release-asset arch suffix (projects differ:
@@ -97,5 +98,15 @@ if ! command -v check-jsonschema >/dev/null 2>&1; then
   else
     pip install --break-system-packages "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" \
       || pip install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+  fi
+fi
+
+# yamllint (yaml-lint: style of every tracked .yml/.yaml, per .yamllint.yml).
+if ! command -v yamllint >/dev/null 2>&1; then
+  if command -v pipx >/dev/null 2>&1; then
+    pipx install "yamllint==${YAMLLINT_VERSION}"
+  else
+    pip install --break-system-packages "yamllint==${YAMLLINT_VERSION}" \
+      || pip install "yamllint==${YAMLLINT_VERSION}"
   fi
 fi
