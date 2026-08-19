@@ -114,6 +114,10 @@ silent echo "LSP_TS=".(luaeval("vim.lsp.config['ts_ls'] ~= nil")?"configured":"m
 silent echo "COLORSCHEME=".(exists("g:colors_name")?g:colors_name:"none")
 silent echo "LUALINE=".(luaeval("package.loaded['lualine'] ~= nil")?"loaded":"missing")
 silent echo "YANKY_P=".(maparg("p","n")=~#"Yanky"?"mapped":"missing")
+silent echo "WHICHKEY=".(exists(":WhichKey")?"loaded":"missing")
+silent echo "WHICHKEY_CFG=".(luaeval("package.loaded['kimoto/plugins/which_key'] ~= nil")?"loaded":"missing")
+silent echo "DESC_FF=".(get(maparg("<leader>ff","n",0,1),"desc","none"))
+silent echo "DESC_DAPUI=".(get(maparg("<leader>du","n",0,1),"desc","none"))
 redir END
 qall!
 PROBE
@@ -136,6 +140,15 @@ grep -q "LSP_TS=configured"   "$msgs" || die "ts_ls lsp config not resolved"
 grep -q "COLORSCHEME=onedark" "$msgs" || die "onedark colorscheme not applied"
 grep -q "LUALINE=loaded"      "$msgs" || die "lualine did not load"
 grep -q "YANKY_P=mapped"      "$msgs" || die "yanky put mapping not active"
+grep -q "WHICHKEY=loaded"     "$msgs" || die "which-key plugin did not load"
+# The plugin ships its own plugin/ file, so ":WhichKey existing" alone would
+# pass even with our module gone — assert our config module ran too.
+grep -q "WHICHKEY_CFG=loaded" "$msgs" || die "kimoto/plugins/which_key was not required from init.lua"
+# which-key renders whatever `desc` each map carries, so a map registered
+# without one is invisible in the popup even though the key still works.
+grep -q "DESC_FF=Find files"  "$msgs" || die "<leader>ff has no desc (which-key would show it blank)"
+grep -q "DESC_DAPUI=Debug: toggle dap-ui" "$msgs" ||
+  die "<leader>du missing/undescribed (dap-ui toggle must not sit on the <leader>d prefix)"
 echo "== headless startup clean (no errors, plugins + colorscheme loaded) =="
 
 # ---------------------------------------------------------------------------

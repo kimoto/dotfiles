@@ -7,4 +7,4 @@ require('toggleterm').setup {
   open_mapping = [[<c-@>]],
 }
 
-vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>')
+vim.keymap.set('n', '<leader>t', ':ToggleTerm<CR>', { desc = 'Toggle terminal' })

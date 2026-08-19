@@ -47,6 +47,7 @@ require('jetpack.paq') {
   'akinsho/bufferline.nvim',
   'akinsho/toggleterm.nvim',
   'yamatsum/nvim-cursorline',
+  'folke/which-key.nvim', -- popup listing the keys behind a prefix
   'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
   'navarasu/onedark.nvim', -- color theme
 

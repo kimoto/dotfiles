@@ -22,3 +22,5 @@ require('kimoto/plugins/treesitter')
 require('kimoto/plugins/colorscheme')
 require('kimoto/plugins/lsp')
 require('kimoto/plugins/dap')
+-- last: reads the `desc` of every map registered above
+require('kimoto/plugins/which_key')
