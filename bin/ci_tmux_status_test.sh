@@ -3,7 +3,8 @@
 # configured format is expanded with `display-message -p`, which evaluates a
 # format string exactly as tmux does when drawing it — so we assert the
 # rendering *logic* (conditionals and fields) without brittle pixel capture of
-# the status line. Covers: status-left (session), status-right (clock),
+# the status line. Covers: status-left (session), status-right (clock and the
+# which-key prefix hint, both branches),
 # window-status-current-format (#I:#W), automatic-rename-format (its
 # panes/title conditional, both branches), and pane-border-format.
 set -euo pipefail
@@ -39,6 +40,35 @@ today="$(date +%F)"
 expand "$(opt status-right)" | grep -q "$today" \
   || die "status-right did not render today's date ($today)"
 echo "== status-right shows the clock ($today) =="
+
+# 2b) The which-key prefix hint. Two halves, both worth pinning: it must be
+#     invisible until the prefix is held (display-message expands with
+#     client_prefix off, so the plain status-right must not carry it), and the
+#     held-prefix branch must expand to every key pair. The second half is not
+#     cosmetic — a `,` anywhere inside a #{?...} branch silently ends the
+#     branch, so a hint written inline would truncate at the first comma with
+#     no error anywhere.
+case "$(expand "$(opt status-right)")" in
+  *extrakto*) die "the prefix hint renders even when the prefix is not held" ;;
+esac
+# display-message cannot hold the prefix down, so render the configured
+# status-right with its condition forced true — same string, other branch.
+# The `#[...]` styles are stripped so each key sits next to its label again:
+# the hint colors the key and the word after it differently, so a style run
+# lands between them in the raw expansion.
+held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
+  sed 's/#\[[^]]*\]//g')"
+for pair in "? help" "g lazygit" "t shell" "f jump" "Tab extrakto" "e sync"; do
+  case "$held" in
+    *"$pair"*) ;;
+    *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
+  esac
+done
+case "$held" in
+  *"$today"*) ;;
+  *) die "the prefix hint replaced the rest of status-right instead of prefixing it" ;;
+esac
+echo "== prefix hint renders only while the prefix is held =="
 
 # 3) window-status-current-format renders the active window's #I:#W.
 cur="$(tmux -L "$SOCK" display-message -p '#I:#W')"

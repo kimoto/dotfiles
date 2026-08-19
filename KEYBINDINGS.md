@@ -9,6 +9,11 @@ file whenever a binding changes there.
 
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
+The tables below are also the data behind `bin/keys.sh`, which turns them into a
+searchable picker — `prefix + ?` in tmux, `⌃+X ?` (or the `keys` command) in
+zsh. Each row it prints is tagged with the layer it came from, so adding a row
+here is all it takes to make a new binding discoverable at the keyboard.
+
 ---
 
 ## macOS (global)
@@ -120,8 +125,14 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 
 ### With prefix (C-t)
 
+While the prefix is held, status-right turns into a hint of the most-used keys
+below (`? help  g lazygit  t shell  f jump  Tab extrakto  e sync`), so the
+common ones never need looking up. `prefix + b` hides the status bar, and with
+it the hint.
+
 | Key | Action |
 |-----|--------|
+| prefix + ? | Keybinding cheatsheet: fzf popup over this whole file, pre-filtered to the tmux layer (erase the query to search every layer). Replaces the default `?` = list-keys, still available as `:list-keys` |
 | prefix + C-t | Jump back to the last window (double-tap the prefix) |
 | prefix + C-b | Send the prefix through to a nested tmux |
 | prefix + Right | Join pane to next window |
@@ -161,6 +172,7 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 | ⌃+T | File picker (fzf; bat preview; ⌃+O opens in editor) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
 | ⌃+X ⌃+N | Snippet search (fzf over `config/zsh/snippets`) → insert into command line |
+| ⌃+X ? | Keybinding cheatsheet: fzf over this whole file, mid-command (the line being edited is kept; nothing is inserted). Replaces compinit's `_complete_debug` |
 | ⌃+\ | Undo |
 | ⌃+A / E | Beginning / end of line |
 | ⌃+W | Delete word backward |
@@ -206,7 +218,7 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
-| `keys [query]` | Search this file's keybinding/helper tables (fzf) |
+| `keys [query]` | Search this file's keybinding/helper tables (fzf; `bin/keys.sh`, same picker as ⌃+X ? and tmux's prefix + ?) |
 | `dotfiles-ship` | Push, open a PR, auto-merge, wait for merge, then switch back to `main` |
 
 ---

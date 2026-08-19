@@ -323,16 +323,10 @@ snip() {
 
 # KEYBINDINGS.md lookup: fzf across every layer's binding/helper tables,
 # each row prefixed with its section heading. Answers "what was that key?"
-# without leaving the prompt.
+# without leaving the prompt. The picker itself lives in bin/keys.sh so that
+# tmux's `prefix + ?` popup and the ⌃+X ? widget below all show one list.
 keys() {
-  awk '
-    /^#/ { section = $0; sub(/^#+[[:space:]]*/, "", section) }
-    /^\|/ {
-      if ($0 ~ /^[| :-]+$/) next
-      if ($0 ~ /^\| *(Key|Command) *\|/) next
-      printf "[%s] %s\n", section, $0
-    }
-  ' "$DOTFILES_ROOT/KEYBINDINGS.md" | fzf --query="$*"
+  "$DOTFILES_ROOT/bin/keys.sh" "$@"
 }
 
 # ls if no arg / directory arg, otherwise bat the file.
@@ -376,6 +370,21 @@ search_snippet_and_replace_lbuffer() {
 }
 zle -N search_snippet_and_replace_lbuffer
 bindkey '^X^N' search_snippet_and_replace_lbuffer
+
+# which-key style cheatsheet on ⌃+X ?: the same picker as `keys` and as tmux's
+# `prefix + ?`, but reachable from a zle widget, i.e. mid-command without
+# throwing away what is already typed. fzf runs in --height mode so it draws
+# *below* the prompt rather than clearing the screen, and nothing is inserted
+# when it closes — this is a lookup, not a completion, so the selection is
+# discarded and the line under edit is redrawn untouched.
+# ⌃+X ? displaces compinit's _complete_debug (a completion-debugging widget
+# this setup never uses); the rest of the ⌃+X table is left alone.
+keys_widget() {
+  "$DOTFILES_ROOT/bin/keys.sh" >/dev/null
+  zle reset-prompt
+}
+zle -N keys_widget
+bindkey '^X?' keys_widget
 
 # ripgrep -> fzf -> nvim live grep [QUERY]
 RELOAD='reload:rg --column --color=always --smart-case {q} || :'

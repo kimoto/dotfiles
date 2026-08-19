@@ -17,6 +17,9 @@ truth, so the two never diverge.
   `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
   here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
+  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` and
+  tmux's `prefix + ?` — it reads `KEYBINDINGS.md`, so adding a row there is what
+  makes a binding discoverable),
   `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
@@ -45,7 +48,9 @@ truth, so the two never diverge.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
   tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
   rebind a key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh,
-  `config/nvim`), update it in the same PR.
+  `config/nvim`), update it in the same PR. It is also data, not just docs:
+  `bin/keys.sh` parses its tables into the on-demand cheatsheet, so keep the
+  `| key | action |` table shape and the heading levels intact.
 - `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
   needs at load time (prompt, completion, plugin manager, eval-cache inlines,
