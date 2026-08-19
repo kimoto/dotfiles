@@ -109,6 +109,9 @@ wait_for() {
   [[ "$output" == *"[brew]"* ]]
   [[ "$output" == *"Brewfile.basic"* ]]
   [[ "$output" == *"brew bundle install --file="* ]]
+  # `brew bundle check` fails for outdated packages too, so the nag must not
+  # claim they are merely uninstalled.
+  [[ "$output" == *"missing or outdated"* ]]
   # Also points at the interactive one-shot installer.
   [[ "$output" == *"brew_bundle_install.sh"* ]]
 }

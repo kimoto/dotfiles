@@ -7,7 +7,7 @@
 # wired into shell startup, and it refuses to run without a terminal on both
 # stdin and stdout, so CI, hooks, or an AI agent invoking it is a no-op.
 #
-# Flow: one y/N confirmation, then a fully unattended pass — sudo is disabled
+# Flow: one Y/n confirmation (Enter proceeds), then a fully unattended pass — sudo is disabled
 # via a failing SUDO_ASKPASS so a cask that needs a password fails fast instead
 # of blocking on a prompt, letting you walk away. Everything that needs a human
 # is batched into a final interactive phase: trusting third-party taps,
@@ -25,18 +25,19 @@ Usage: brew_bundle_install.sh [--help]
 Interactively install every Brewfile bundle for this machine
 (Brewfile.basic, Brewfile.common, plus the platform Brewfile).
 
-Phase 1 runs unattended after a single y/N confirmation; anything that
+Phase 1 runs unattended after a single Y/n confirmation; anything that
 needs a human (sudo password, untrusted tap, cask overwritten by a
 self-update) is collected and prompted for at the end.
 EOF
 }
 
-# y/N prompt, default no.
+# Y/n prompt, default yes: a bare Enter proceeds, only an explicit n declines.
+# EOF (no answer at all, e.g. stdin closed) still declines.
 confirm() {
   local reply
-  printf '%s [y/N] ' "$1"
+  printf '%s [Y/n] ' "$1"
   IFS= read -r reply || return 1
-  [[ "$reply" == [yY]* ]]
+  [[ ! "$reply" == [nN]* ]]
 }
 
 # "Error: Refusing to load cask X from untrusted tap T." -> T

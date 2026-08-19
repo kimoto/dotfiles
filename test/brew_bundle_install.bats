@@ -66,6 +66,29 @@ teardown() {
   [ ! -e "$TMP/brew_was_called" ]
 }
 
+# The prompt defaults to yes: drift is normally something you want installed,
+# so Enter proceeds. Only an explicit n — or no answer at all — declines.
+@test "confirm: a bare Enter accepts" {
+  run bash -c "source '$SCRIPT'; printf '\\n' | confirm 'go?'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[Y/n]"* ]]
+}
+
+@test "confirm: an explicit n declines" {
+  run bash -c "source '$SCRIPT'; printf 'n\\n' | confirm 'go?'"
+  [ "$status" -ne 0 ]
+}
+
+@test "confirm: y accepts" {
+  run bash -c "source '$SCRIPT'; printf 'y\\n' | confirm 'go?'"
+  [ "$status" -eq 0 ]
+}
+
+@test "confirm: closed stdin declines rather than defaulting to yes" {
+  run bash -c "source '$SCRIPT'; confirm 'go?' </dev/null"
+  [ "$status" -ne 0 ]
+}
+
 @test "parse_untrusted_taps extracts the tap name once" {
   run bash -c "source '$SCRIPT'; parse_untrusted_taps '$LOG'"
   [ "$status" -eq 0 ]
