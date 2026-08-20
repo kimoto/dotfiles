@@ -21,6 +21,8 @@ DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 need tmux
 need zsh
+# step 5 asserts on what `ll` renders, and `ll` is eza (Brewfile.basic).
+need eza
 ZSH_BIN="$(command -v zsh)"
 REPO="$PWD"
 [ -f "$REPO/.zshrc" ] || die "no .zshrc in $REPO"
@@ -29,6 +31,22 @@ echo "== $(tmux -V), $("$ZSH_BIN" --version) =="
 SOCK="ci_tmux_e2e_$$"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
+
+# Prime the wordcode cache before the pane starts. .zshrc compiles itself to
+# <ZDOTDIR>/.zshrc.zwc at the end of its own load, so the very first shell on a
+# machine parses the source and every shell after it maps the .zwc instead —
+# and zcompile resolves aliases at *compile* time, so the two paths can disagree
+# about what a function body ended up containing. A single pane would only ever
+# exercise the first-shell path and never see that skew; burning one throwaway
+# shell here puts the pane below in the state every real shell is in.
+# zsh_pane_cmd already spells out the env the pane runs under, so the warm-up
+# borrows it wholesale rather than hand-building a second copy that could drift.
+eval "$(zsh_pane_cmd) -c true" >/dev/null 2>&1 || true
+if [ -f "$REPO/.zshrc.zwc" ]; then
+  echo "== wordcode cache primed: the pane loads .zshrc.zwc =="
+else
+  echo "== no .zshrc.zwc after warm-up: the pane loads the source =="
+fi
 
 # Launch an *interactive* zsh inside a real (tmux) terminal, under the shared
 # CI pane conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh).
@@ -118,5 +136,27 @@ if [ "$window_name" != "$e2e_name" ]; then
   die "tmux window was not renamed to $e2e_name (got: $window_name)"
 fi
 echo "== tmux window renamed to the cd target ($e2e_name) =="
+
+# 5) chpwd: every cd must list the directory it landed in (the `ll` call in
+#    .zshrc's chpwd hook). The assertion is a marker *file name* that the typed
+#    command line never mentions, so the only way it can reach the screen is the
+#    hook genuinely listing the directory. C-l first, so a listing left over
+#    from step 4's cd cannot be mistaken for this one. `builtin cd` again, for
+#    the same reason as step 4.
+ll_dir="$(mktemp -d)"
+: >"$ll_dir/__E2E_LL_MARKER__"
+tmux -L "$SOCK" send-keys C-l
+tmux -L "$SOCK" send-keys "builtin cd '$ll_dir'" Enter
+wait_for_pane "$SOCK" '__E2E_LL_MARKER__'
+# The hook must list *silently*: a `command not found` here means chpwd ran but
+# could not resolve what it calls (e.g. an alias that the .zwc left unexpanded),
+# which no amount of rendered output would tell us apart from success.
+if tmux -L "$SOCK" capture-pane -p | grep -q 'command not found'; then
+  tmux -L "$SOCK" capture-pane -p >&2
+  rm -rf "$ll_dir"
+  die "chpwd could not resolve the command it lists with"
+fi
+rm -rf "$ll_dir"
+echo "== chpwd listed the directory after cd (auto ll) =="
 
 echo "PASS"

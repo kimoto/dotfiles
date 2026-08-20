@@ -238,13 +238,26 @@ ls() {
     eza --icons auto "$@"
   fi
 }
-alias ll='ls --long --all --git-repos-no-status --time-style=relative --sort=modified'
+# A function, not an alias: this file compiles itself to wordcode (see the
+# zcompile block at the bottom) and zsh maps that .zwc instead of parsing the
+# source, so an alias here is resolved once - when the file is compiled - while
+# a function body is resolved when it runs. `chpwd` and `l` below both list with
+# `ll`, and as an alias it reached them as a bare unresolvable word in every
+# shell but the first one on a machine (`command not found: ll` on every cd).
+ll() {
+  ls --long --all --git-repos-no-status --time-style=relative --sort=modified "$@"
+}
 alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
 alias vi='nvim'
 alias reload="exec zsh"
+# The interactive command line only: functions in this file call `builtin cd`
+# instead, for the same reason `ll` above is a function - whether an alias
+# reaches them depends on which of the two load paths ran. Nothing is lost:
+# zoxide records the jump from its own chpwd hook, however the directory
+# changed.
 [[ $- == *i* ]] && alias cd="z"
 alias cat='bat'
 alias less='bat --pager=less'
@@ -275,7 +288,7 @@ bindkey "^\\" undo
 DOTFILES_ROOT="${${(%):-%x}:A:h}"
 
 temp(){
-  cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX)"
+  builtin cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX)"
 }
 
 # lazygit: chase into the directory it was left in (newdir file), if any.
@@ -283,7 +296,7 @@ lg() {
   export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
   lazygit "$@"
   if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
-    cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
+    builtin cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
     rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
   fi
 }
@@ -291,7 +304,7 @@ lg() {
 # ghq + fzf: jump to a cloned repo.
 g() {
   local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
-  [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
+  [ -n "$dir" ] && builtin cd "$(ghq root)/$dir" || return
 }
 
 # git branch switch via fzf.
@@ -310,7 +323,7 @@ B() {
 # git worktree jump via fzf (in the style of b/g): cd into a chosen worktree.
 w() {
   local dir=$(git worktree list | fzf --preview '' --query="$*" | awk '{print $1}')
-  test -z "$dir" || cd "$dir"
+  test -z "$dir" || builtin cd "$dir"
 }
 
 c() {
@@ -595,6 +608,16 @@ fi
 # moment the source is newer - so a `git pull` invalidates it on its own and
 # this block just rebuilds it in the next shell.
 #
+# Compiled *with* alias expansion (no -U): zcompile resolves aliases as they
+# stand when it runs - at the bottom of this file, with every alias above
+# already defined - while parsing the source resolves each line against only the
+# aliases defined above it. Neither order is the other, so the two load paths
+# agree only as long as nothing here depends on an alias defined here: functions
+# list with the `ll` function and jump with `builtin cd`, never the aliases. The
+# only uses left ahead of the alias block are `mkdir`/`mv` in the sheldon cache
+# code above, whose aliases are bare `nocorrect` wrappers that change nothing
+# when they are baked in.
+#
 # Compiled under a temp name and renamed: zcompile writes in place, so a shell
 # killed mid-write would leave a truncated .zwc, which zsh then reports as
 # "invalid zwc file" on stderr at *every* startup until something regenerates
@@ -603,7 +626,7 @@ fi
 () {
   local src="${ZDOTDIR:-$HOME}/.zshrc"
   if [[ -f "$src" && ! "$src.zwc" -nt "$src" ]]; then
-    if zcompile -U "$src.new.zwc" "$src" 2>/dev/null; then
+    if zcompile "$src.new.zwc" "$src" 2>/dev/null; then
       mv -f "$src.new.zwc" "$src.zwc" 2>/dev/null || rm -f "$src.new.zwc" 2>/dev/null
     fi
   fi
