@@ -89,6 +89,16 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
 -- Format on save with prettier for the filetypes it handles, falling back to
 -- the attached LSP formatter for everything else.
+--
+-- format_after_save, not format_on_save: the sync variant runs prettier
+-- *before* the write completes, and auto-save (plugins/auto_save.lua) writes on
+-- every InsertLeave — so leaving insert mode in a js/ts/json/css/html/md/yaml
+-- buffer froze the editor for the length of a node startup. Measured here with
+-- prettier 3.9.6: 299ms on the first write, 257ms on a write of an
+-- already-formatted buffer (the cost is spawning node, not the diff). Async it
+-- is 12ms. Verified alongside that: :wq still leaves a formatted file on disk
+-- (conform waits on exit), and a format whose buffer changed while it ran is
+-- dropped rather than applied, so it cannot clobber what you typed after Esc.
 require('conform').setup({
   formatters_by_ft = {
     javascript = { 'prettier' },
@@ -105,7 +115,7 @@ require('conform').setup({
     graphql = { 'prettier' },
     handlebars = { 'prettier' },
   },
-  format_on_save = { timeout_ms = 1000, lsp_format = 'fallback' },
+  format_after_save = { lsp_format = 'fallback' },
 })
 
 -- Auto-fix eslint findings on write. The eslint server registers
