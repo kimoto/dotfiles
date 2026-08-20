@@ -105,7 +105,7 @@ require_grep "ls -l output missing bin/mkworld.sh" "$ls_out" "mkworld.sh"
 echo "== extended .zshrc assertions =="
 probe="$(mktemp)"
 cat >"$probe" <<'PROBE'
-alias ll
+functions ll
 alias vi
 alias cat
 alias reload
@@ -119,7 +119,7 @@ print "ZSHRC_ZWC_TMP=$([[ -e ${ZDOTDIR:-$HOME}/.zshrc.new.zwc ]] && echo left-be
 for o in autocd autopushd share_history interactivecomments noclobber; do
   [[ -o $o ]] && print "OPT_ON:$o"
 done
-for fn in temp lg g l px livegrep snip keys source-if-exist; do
+for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
   whence -w "$fn"
 done
 bindkey "^G"
@@ -130,7 +130,10 @@ rm -f "$probe"
 printf '%s\n' "$env_out"
 
 # aliases
-require_grep "ll alias missing --long flags"   "$env_out" "ll=.*--long"
+# `ll` is a function, not an alias (pinned by the function list further down):
+# an alias would not survive .zshrc's own wordcode cache into the function
+# bodies that list with it (chpwd, l), so only the body proves the flags.
+require_grep "ll missing --long flags"          "$env_out" "ls --long --all"
 require_grep "vi is not aliased to nvim"        "$env_out" "vi=.*nvim"
 require_grep "cat is not aliased to bat"        "$env_out" "cat=.*bat"
 require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
@@ -161,7 +164,7 @@ for opt in autocd autopushd share_history interactivecomments noclobber; do
 done
 
 # utility functions defined in .zshrc
-for fn in temp lg g l px livegrep snip keys source-if-exist; do
+for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
   require_grep "function not defined: $fn" "$env_out" "$fn: function"
 done
 
