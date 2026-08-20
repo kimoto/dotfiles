@@ -255,6 +255,9 @@ you when you have forgotten a binding exists.
 | Space+fb | Buffers |
 | Space+fh | Help tags |
 | Space+fr | Frecency (recent files) |
+| Space+fo | Previously opened files (oldfiles) |
+| Space+fs | Changed files (git status) |
+| Space+fl | Reopen the last picker (resume) |
 
 ### LSP / completion
 

@@ -135,6 +135,7 @@ silent echo "YANKY_P=".(maparg("p","n")=~#"Yanky"?"mapped":"missing")
 silent echo "WHICHKEY=".(exists(":WhichKey")?"loaded":"missing")
 silent echo "WHICHKEY_CFG=".(luaeval("package.loaded['kimoto/plugins/which_key'] ~= nil")?"loaded":"missing")
 silent echo "DESC_FF=".(get(maparg("<leader>ff","n",0,1),"desc","none"))
+silent echo "DESC_FL=".(get(maparg("<leader>fl","n",0,1),"desc","none"))
 silent echo "DESC_DAPUI=".(get(maparg("<leader>du","n",0,1),"desc","none"))
 redir END
 qall!
@@ -173,6 +174,8 @@ grep -q "WHICHKEY_CFG=loaded" "$msgs" || die "kimoto/plugins/which_key was not r
 # which-key renders whatever `desc` each map carries, so a map registered
 # without one is invisible in the popup even though the key still works.
 grep -q "DESC_FF=Find files"  "$msgs" || die "<leader>ff has no desc (which-key would show it blank)"
+grep -q "DESC_FL=Reopen the last picker" "$msgs" ||
+  die "<leader>fl (telescope resume) is missing"
 grep -q "DESC_DAPUI=Debug: toggle dap-ui" "$msgs" ||
   die "<leader>du missing/undescribed (dap-ui toggle must not sit on the <leader>d prefix)"
 echo "== headless startup clean (no errors, plugins + colorscheme loaded) =="
