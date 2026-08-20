@@ -20,9 +20,13 @@ setup() {
 # the next line), the quoted value taken, then the #[...] style runs dropped —
 # they are what colors the keys, and are invisible on screen.
 conf_hint() {
-  sed -e :a -e '/\\$/{N;s/\\\n//;ta}' "$CONF" |
-    sed -n 's/^set -g @prefix_hint "\(.*\)"$/\1/p' |
-    sed -e 's/#\[[^]]*\]//g' -e 's/^ *//' -e 's/ *$//'
+  awk '/^set -g @prefix_hint "/ {
+         line = $0
+         while (line ~ /\\$/) { sub(/\\$/, "", line); getline next_line; line = line next_line }
+         sub(/^set -g @prefix_hint "/, "", line); sub(/"$/, "", line)
+         gsub(/#\[[^]]*\]/, "", line); gsub(/^ +| +$/, "", line)
+         print line
+       }' "$CONF"
 }
 
 # The first backticked span of the "While the prefix is held" paragraph in the
