@@ -70,6 +70,9 @@ tmux -L "$OUTER" -f /dev/null new-session -d -x 200 -y 50 \
 
 # Wait for the INNER server to come up (its first window to exist).
 wait_count 1
+# INNER loaded the real config, so disarm continuum's restore before it fires
+# (see disable_continuum_restore); OUTER is vanilla (-f /dev/null), nothing to do.
+disable_continuum_restore "$INNER"
 echo "== nested tmux is live =="
 
 # 1) base-index 1 + renumber-windows: the first window is index 1, not 0.

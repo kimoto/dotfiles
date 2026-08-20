@@ -25,6 +25,7 @@ cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
 
 tmux -L "$SOCK" -f "$CONF" new-session -d -s "$SESS" -x 200 -y 50 || die "failed to start tmux"
+disable_continuum_restore "$SOCK"
 
 # Expand a configured option's format string the way tmux would draw it.
 opt() { tmux -L "$SOCK" show-options -gqv "$1"; }
