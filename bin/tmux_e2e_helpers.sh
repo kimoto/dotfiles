@@ -50,6 +50,22 @@ tmux_conf_path() {
   printf '%s\n' "$conf"
 }
 
+# disable_continuum_restore <socket>: turn @continuum-restore off on a scratch
+# server that has just loaded the repo .tmux.conf. The config sets the option
+# globally to 'on', so tmux-continuum restores the developer's *saved* session
+# into any server a few seconds after it starts — spawning a shell per saved
+# pane in a server the test never accounts for, and leaking those shells if the
+# test dies before its cleanup trap fires (issue #207). The restore is
+# asynchronous and off the startup path, so disabling the option the instant the
+# server is up disarms it before it can trigger. CI runners have no
+# ~/.tmux/resurrect state, so the restore is a no-op there; this guards the local
+# `./bin/ci_tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
+# e2e server started with the real config must call this right after new-session.
+disable_continuum_restore() {
+  [ -n "${1:-}" ] || die "disable_continuum_restore needs a socket"
+  tmux -L "$1" set-option -g @continuum-restore 'off' 2>/dev/null || true
+}
+
 # wait_for_pane <socket> <pattern> [tries]: poll `capture-pane -p` until the
 # grep -E <pattern> appears, or time out (default 150 tries * 0.1s = 15s).
 # Polling beats a fixed sleep — as fast as the shell on a quick runner, as

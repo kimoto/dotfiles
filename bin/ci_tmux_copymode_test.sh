@@ -25,6 +25,7 @@ cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
 
 tmux -L "$SOCK" -f "$CONF" new-session -d -x 120 -y 30 || die "failed to start tmux"
+disable_continuum_restore "$SOCK"
 
 # Put a known line on screen, then wait until it has actually rendered so the
 # copy-mode search below can find it.

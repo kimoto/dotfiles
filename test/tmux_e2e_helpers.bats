@@ -40,6 +40,23 @@ setup() {
   [[ "$output" == *"zsh_pane_cmd needs REPO and ZSH_BIN"* ]]
 }
 
+@test "disable_continuum_restore dies without a socket" {
+  run disable_continuum_restore
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"disable_continuum_restore needs a socket"* ]]
+}
+
+@test "every e2e test that loads the real .tmux.conf disarms continuum restore" {
+  local f
+  for f in "$REPO_ROOT"/bin/ci_tmux_*_test.sh; do
+    grep -q 'tmux_conf_path' "$f" || continue   # doesn't load the real config
+    if ! grep -q 'disable_continuum_restore' "$f"; then
+      echo "$f loads .tmux.conf but never calls disable_continuum_restore (issue #207)" >&2
+      return 1
+    fi
+  done
+}
+
 @test "every e2e test that spawns an interactive zsh pane uses zsh_pane_cmd" {
   local f
   for f in "$REPO_ROOT"/bin/ci_*_test.sh; do

@@ -49,6 +49,9 @@ if grep -qiE 'unknown option|invalid option|unknown command|ambiguous command|[^
 fi
 [ -s "$err_log" ] && { echo "-- note: non-fatal stderr from load --"; cat "$err_log"; }
 echo "== loaded without config errors =="
+# The config just armed @continuum-restore 'on'; disarm it before it restores
+# the saved session into this scratch server (see disable_continuum_restore).
+disable_continuum_restore "$SOCK"
 
 load_ms=$((end_ms - start_ms))
 echo "== load time: ${load_ms}ms (budget: ${LOAD_BUDGET_MS}ms) =="
