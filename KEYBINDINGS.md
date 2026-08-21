@@ -248,6 +248,7 @@ you when you have forgotten a binding exists.
 | Space+e | Toggle file tree (nvim-tree) |
 | Space+t | Toggle terminal (toggleterm) |
 | ⌃+Space | Normal mode: toggle terminal / insert mode: trigger completion |
+| Esc | Clear search highlight |
 
 ### Telescope
 
