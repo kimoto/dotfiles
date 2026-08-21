@@ -126,9 +126,11 @@ while AeroSpace only intercepts plain ⌥+hjkl.
 ### With prefix (C-t)
 
 While the prefix is held, status-right turns into a hint of the most-used keys
-below (`? help  g lazygit  t shell  f jump  Tab extrakto  e sync`), so the
-common ones never need looking up. `prefix + b` hides the status bar, and with
-it the hint.
+below (`? help  g lazygit  t shell`), so the common ones never need looking up.
+The hint takes the place of the kube/clock segment rather than pushing it along,
+which is what keeps the window list from being cut short while you hold the
+prefix — that is also why only three keys fit; `prefix + ?` has the rest.
+`prefix + b` hides the status bar, and with it the hint.
 
 | Key | Action |
 |-----|--------|

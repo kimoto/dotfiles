@@ -41,15 +41,20 @@ expand "$(opt status-right)" | grep -q "$today" \
   || die "status-right did not render today's date ($today)"
 echo "== status-right shows the clock ($today) =="
 
-# 2b) The which-key prefix hint. Two halves, both worth pinning: it must be
+# 2b) The which-key prefix hint. Three parts, all worth pinning: it must be
 #     invisible until the prefix is held (display-message expands with
-#     client_prefix off, so the plain status-right must not carry it), and the
-#     held-prefix branch must expand to every key pair. The second half is not
-#     cosmetic — a `,` anywhere inside a #{?...} branch silently ends the
-#     branch, so a hint written inline would truncate at the first comma with
-#     no error anywhere.
+#     client_prefix off, so the plain status-right must not carry it), the
+#     held-prefix branch must expand to every key pair, and it must *replace*
+#     the kube/clock segment instead of stacking in front of it. The last one is
+#     the whole point of the layout: tmux draws status-left and status-right to
+#     their full width first and gives the window list what is left, so a hint
+#     that stacked stole its own width from the window list and hid half the
+#     open windows for as long as the prefix was held.
+#     The key pairs are not cosmetic either — a `,` anywhere inside a #{?...}
+#     branch silently ends the branch, so a hint written inline would truncate
+#     at the first comma with no error anywhere.
 case "$(expand "$(opt status-right)")" in
-  *extrakto*) die "the prefix hint renders even when the prefix is not held" ;;
+  *lazygit*) die "the prefix hint renders even when the prefix is not held" ;;
 esac
 # display-message cannot hold the prefix down, so render the configured
 # status-right with its condition forced true — same string, other branch.
@@ -58,17 +63,26 @@ esac
 # lands between them in the raw expansion.
 held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
   sed 's/#\[[^]]*\]//g')"
-for pair in "? help" "g lazygit" "t shell" "f jump" "Tab extrakto" "e sync"; do
+for pair in "? help" "g lazygit" "t shell"; do
   case "$held" in
     *"$pair"*) ;;
     *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
   esac
 done
 case "$held" in
-  *"$today"*) ;;
-  *) die "the prefix hint replaced the rest of status-right instead of prefixing it" ;;
+  *"$today"*) die "the prefix hint stacked in front of the clock instead of replacing it" ;;
 esac
-echo "== prefix hint renders only while the prefix is held =="
+# ...and replacing it is only worth anything while the hint stays about as wide
+# as what it replaces. The ceiling is on the hint alone: the SYNC indicator sits
+# outside the swap, so it costs both states the same, and a kube context only
+# ever makes the segment being replaced wider. Counted as ASCII characters (the
+# styles are already gone; dropping the powerline glyphs keeps this the same
+# number on every locale) that segment is ~21 with no kube context at all —
+# the worst case, and the one this ceiling is set against.
+cols="$(printf %s "$held" | LC_ALL=C tr -cd '\40-\176' | wc -c | tr -d ' ')"
+[ "$cols" -le 32 ] \
+  || die "the prefix hint is $cols columns wide; keep it under 32 or the window list loses a slice of itself"
+echo "== prefix hint renders only while the prefix is held, replacing the clock ($cols cols) =="
 
 # 3) window-status-current-format renders the active window's #I:#W.
 cur="$(tmux -L "$SOCK" display-message -p '#I:#W')"
@@ -153,9 +167,10 @@ echo "== status-left renders a dot per session with no shell job =="
 
 # 9) The kube context is read by a job that sleeps between prints. A bare
 #    `kubectl config current-context` here is a ~35ms process on every redraw.
-case "$(opt status-right)" in
+#    It lives in @status_info, the half of status-right the prefix hint hides.
+case "$(opt @status_info)" in
   *sleep*) ;;
-  *) die "status-right's kube job no longer throttles itself; it will run kubectl every status-interval" ;;
+  *) die "the kube job no longer throttles itself; it will run kubectl every status-interval" ;;
 esac
 echo "== the kube context job throttles itself =="
 
