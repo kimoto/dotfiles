@@ -97,6 +97,8 @@ brew "netcat"
 brew "nmap"
 # SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
 brew "openvpn"
+# Man-in-the-Middle proxy for HTTP/HTTPS traffic
+brew "proxelar"
 # Generic machine emulator and virtualizer
 brew "qemu"
 # Pin/lint GitHub Actions workflows to immutable commit SHAs

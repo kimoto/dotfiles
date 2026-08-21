@@ -86,6 +86,7 @@ _Source: `Brewfile.common`._
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
 | [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
+| [proxelar](https://formulae.brew.sh/formula/proxelar) | Man-in-the-Middle proxy for HTTP/HTTPS traffic |
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
 | [ratchet](https://formulae.brew.sh/formula/ratchet) | Pin/lint GitHub Actions workflows to immutable commit SHAs |
 | [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
