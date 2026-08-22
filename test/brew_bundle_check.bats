@@ -22,6 +22,9 @@ setup() {
 
   REPO="$TMP/repo"
   mkdir -p "$REPO/bin"
+  # Resolve symlinks (e.g. macOS's /var -> /private/var) so $REPO matches what
+  # the script under test reports after its own `readlink -f`.
+  REPO="$(cd "$REPO" && pwd -P)"
   cp "$REPO_ROOT/bin/brew_bundle_check.sh" "$REPO/bin/brew_bundle_check.sh"
   chmod +x "$REPO/bin/brew_bundle_check.sh"
   SCRIPT="$REPO/bin/brew_bundle_check.sh"
