@@ -22,7 +22,7 @@ cd "$BASE_DIR" || exit 1
 SKIP_HOSTS="starship.rs"
 
 if ! command -v check-jsonschema >/dev/null 2>&1; then
-    echo "x check-jsonschema not found; install it (pipx install check-jsonschema)" >&2
+    echo "x check-jsonschema not found (brew install check-jsonschema, or pipx install check-jsonschema)" >&2
     exit 1
 fi
 
