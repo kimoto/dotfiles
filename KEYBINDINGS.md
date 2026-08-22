@@ -147,6 +147,8 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
+| prefix + a | A second Claude Code in a floating pane, same cwd (tmux 3.7+ only, no popup fallback). A fresh session — nothing is carried over from the pane it was opened from |
+| prefix + A | Same, but forking the Claude Code session running in this pane: it keeps the conversation so far and writes a separate transcript from there, so a long investigation does not bloat the original |
 | prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
