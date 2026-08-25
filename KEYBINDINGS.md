@@ -36,6 +36,33 @@ here is all it takes to make a new binding discoverable at the keyboard.
 
 ---
 
+## Windows (global)
+
+The other machine. A peer of the macOS layer, not another level on top of it —
+the two are different devices and never in effect at once. Modifiers are spelled
+out because Win is not ⌘: it sits where a Mac keyboard has Alt. Stock Windows
+keys are not listed; only what this setup adds.
+
+### ShareX (screen capture)
+
+ShareX's `HotkeysConfig.json` lives under `%USERPROFILE%` and cannot be
+symlinked in (a symlink made from WSL under `/mnt/c` is not one Windows can
+follow), so this table is the only copy under version control.
+
+| Key | Action |
+|-----|--------|
+| Ctrl+Shift+Win+4 | Capture region → clipboard only. Stands in for ⌃⇧⌘4; the only one that writes no file, so the only one OneDrive never sees |
+| Ctrl+PrintScreen | Capture region → clipboard + file |
+| PrintScreen | Capture all screens → clipboard + file |
+| Alt+PrintScreen | Capture active window → clipboard + file |
+| Shift+PrintScreen | Start / stop screen recording (region) |
+| Ctrl+Shift+PrintScreen | Same, as GIF |
+
+Ctrl+Shift+Win+4 collides with Windows' own Win+Ctrl+Shift+&lt;n&gt;; ShareX wins
+the `RegisterHotKey` race, so if it ever stops firing, check that first.
+
+---
+
 ## Hammerspoon (global remaps, every app except Ghostty)
 
 | Key | Action |
