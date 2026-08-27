@@ -17,10 +17,9 @@ truth, so the two never diverge.
   `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
   here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
-  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` — it
-  reads `KEYBINDINGS.md`, so adding a row there is what makes a binding
-  discoverable; tmux's `prefix + ?` opens tmux-which-key's menu tree instead,
-  it does not run this script),
+  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` and
+  tmux's `prefix + ?` — it reads `KEYBINDINGS.md`, so adding a row there is what
+  makes a binding discoverable),
   `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.

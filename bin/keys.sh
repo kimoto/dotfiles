@@ -9,9 +9,10 @@
 # out to everything. That prefix is also what makes the list unambiguous: three
 # layers bind `f`, and only the `[...]` tag says which one you are looking at.
 #
-# One script, one caller: zsh's `keys` helper and the ⌃+X ? widget (.zshrc).
-# tmux's prefix + ? opens tmux-which-key's own menu tree instead (.tmux.conf),
-# not this script.
+# One script, three callers, so the picker never drifts between them:
+#   - zsh: the `keys` helper and the ⌃+X ? widget (.zshrc)
+#   - tmux: prefix + ? opens it in a popup (.tmux.conf). It reaches this file as
+#     ~/bin/keys.sh — bin/mklink.sh symlinks the repo's bin/ to ~/bin.
 #
 # Usage: keys.sh [--list] [query...]
 #   --list   print the rows and exit, no picker (tests, and for piping to grep)
