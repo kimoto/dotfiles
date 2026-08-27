@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
-# Tests for bin/keys.sh — the keybinding cheatsheet picker shared by zsh
-# (`keys` / ⌃+X ?) and tmux (prefix + ?).
+# Tests for bin/keys.sh — the keybinding cheatsheet picker behind zsh's
+# `keys` helper and ⌃+X ? widget.
 #
 # Only the extraction half is unit-testable here (--list skips fzf); driving the
 # picker itself is bin/ci_keys_command_test.sh. What must hold: every table row
@@ -97,7 +97,8 @@ teardown() {
 @test "lists the repo's own tmux and zsh cheatsheet keys" {
   run "$SCRIPT" --list
   [ "$status" -eq 0 ]
-  # The two bindings that open this very picker, each under its own layer.
+  # prefix + ? is tmux-which-key's menu, not this picker; ⌃+X ? is the binding
+  # that opens this picker in zsh.
   [[ "$output" == *"[tmux (prefix: C-t) / With prefix (C-t)] prefix + ?"* ]]
   [[ "$output" == *"[zsh (emacs mode)] ⌃+X ?"* ]]
 }

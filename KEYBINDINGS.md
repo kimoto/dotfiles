@@ -161,7 +161,6 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 
 | Key | Action |
 |-----|--------|
-| prefix + ? | Keybinding cheatsheet: fzf popup over this whole file, pre-filtered to the tmux layer (erase the query to search every layer). Replaces the default `?` = list-keys, still available as `:list-keys` |
 | prefix + C-t | Jump back to the last window (double-tap the prefix) |
 | prefix + C-b | Send the prefix through to a nested tmux |
 | prefix + Right | Join pane to next window |
