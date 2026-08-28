@@ -102,6 +102,7 @@ _Source: `Brewfile.common`._
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
 | [yamllint](https://formulae.brew.sh/formula/yamllint) | Linter for YAML files |
+| [yazi](https://formulae.brew.sh/formula/yazi) | Blazing fast terminal file manager written in Rust, based on async I/O |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
 | [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
