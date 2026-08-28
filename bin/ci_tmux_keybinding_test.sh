@@ -122,11 +122,11 @@ keys C-t C-t
 wait_active "$here"
 echo "== prefix C-t returns to the last window =="
 
-# 7) `bind-key C-b send-prefix`, bound *after* tpm: tmux-sensible unbinds C-b
-#    whenever it still carries this exact default binding, so a binding placed
-#    before the tpm run silently disappears. Wait for the plugins to finish
-#    loading first — prefix C-s (tmux-resurrect) is the marker — otherwise the
-#    assertion can win a race it should lose.
+# 7) `bind-key C-b send-prefix`, bound *after* tpm: a still-loading plugin
+#    (or one added later) can unbind or shadow C-b before the run finishes, so
+#    a binding placed before the tpm run can silently disappear. Wait for the
+#    plugins to finish loading first — prefix C-s (tmux-resurrect) is the
+#    marker — otherwise the assertion can win a race it should lose.
 inner_binding() { tmux -L "$INNER" list-keys -T prefix 2>/dev/null | grep -E "^bind-key +-T prefix +$1 " || true; }
 i=0
 while [ "$i" -lt 100 ]; do
@@ -136,7 +136,7 @@ done
 [ -n "$(inner_binding 'C-s')" ] || die "tpm plugins never finished loading (no prefix C-s)"
 case "$(inner_binding 'C-b')" in
   *send-prefix*) ;;
-  *) die "prefix C-b lost its send-prefix binding (tmux-sensible unbound it?)" ;;
+  *) die "prefix C-b lost its send-prefix binding (unbound or shadowed by a plugin?)" ;;
 esac
 echo "== prefix C-b still sends the prefix after tpm =="
 
