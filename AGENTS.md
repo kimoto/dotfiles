@@ -125,8 +125,7 @@ truth, so the two never diverge.
 - Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.
   lefthook and GitHub branch protection both block it.
 - One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
-  (Summary, Changes, Verification, checklist). Verification lists the actual
-  steps taken, not the generic checklist. Use `gh pr edit --body-file`.
+  with `gh pr edit --body-file`. How to write one is in the shared rules.
 - An auto-created PR (web/remote) starts with an empty body — the template is
   only injected by the GitHub UI; backfill it from the template before anything.
 - Claude Code auto-appends its PR-body / commit trailers — don't remove them.

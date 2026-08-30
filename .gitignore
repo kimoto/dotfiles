@@ -52,6 +52,7 @@ config/gh/hosts.yml
 claudecode/rules/*
 !claudecode/rules/environment.md
 !claudecode/rules/latency.md
+!claudecode/rules/pull-requests.md
 
 # mysqlsh
 mysqlsh/*
