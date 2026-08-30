@@ -1,18 +1,10 @@
 # Writing
 
-**Answer first, then stop.** Depth on request — never front-loaded. A human takes time to read: length is a cost.
+**A human reads slowly, and every line costs them.** Producing text is free; the cost lands entirely on the reader.
 
-⚠️ Never cut what a ⚠️ says. Cut backstory and repeats.
+- **The opening carries the whole shape** — cause and trigger, before any mechanism. It is the only part guaranteed to be read.
+- **Detail moves below it, on request.** Evidence is not cut; "give evidence" is not "write all of it".
+- **A correction replaces the premise**, never gets appended to a wrong one.
+- **Cut what carries nothing**: preamble, self-assessment, repeats, how it came to be noticed.
 
-| Keep | Cut |
-|---|---|
-| The trap ("the flag is ignored when the file already exists") | How it came to be noticed |
-| Numbers ("3 of 12 runs timed out") | The same thing said twice |
-| ⛔ The decision, and why | What the table already said |
-| Corrections (fix the premise) | Self-assessment, preamble |
-
-Dense ≠ long — one trap per line reads fast.
-
-chat, `.md`, commit message: same rule. ⚠️ The Concise output style reaches chat only; this reaches the work product too.
-
-⚠️★2026-08-30: "give evidence" was read as "write all of it". **Evidence is the conclusion and the numbers, not the route.**
+⚠️ Same in chat, `.md`, and commit messages — the Concise output style reaches chat only.
