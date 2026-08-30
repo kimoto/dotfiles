@@ -53,6 +53,7 @@ claudecode/rules/*
 !claudecode/rules/environment.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
+!claudecode/rules/session-resume.md
 !claudecode/rules/writing.md
 
 # mysqlsh
