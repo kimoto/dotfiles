@@ -77,10 +77,11 @@ truth, so the two never diverge.
   `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
   reminds to update the PR description to match what was just pushed; a command
   that only quotes a push stays silent). It also allow-lists the repo's own read-only check
-  toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`, `bats
-  test/…`) so running a check the way CI runs it needs no prompt; anything that
-  writes (`gen_tools_list.sh` without `--check`, `mklink.sh`, `brew bundle`)
-  stays out.
+  toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`,
+  `bin/ci_zsh_loading_test.sh`, `bin/ci_tmux_loading_test.sh`,
+  `bin/gen_tools_list.sh --check`, `bats test/…`) so running a check the way CI
+  runs it needs no prompt; anything that writes (`gen_tools_list.sh` without
+  `--check`, `mklink.sh`, `brew bundle`) stays out.
 - `.codex/skills/` — the skills, and the single source for both agents:
   `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
   is written once. A real directory holding a symlinked `SKILL.md` (not a
