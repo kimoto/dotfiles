@@ -27,9 +27,11 @@ truth, so the two never diverge.
 - `claudecode/rules/` — Claude Code user rules, linked in as
   `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
   every session on the machine; no frontmatter needed (add `paths:` only to
-  scope a rule to matching files). A rule belongs here when it is a quirk this
-  dotfiles setup creates on every machine — shell aliases and functions that
-  shadow standard commands, zsh options that change how redirects behave.
+  scope a rule to matching files). A rule belongs here when it holds on every
+  machine regardless of what is being built: a quirk this setup creates — shell
+  aliases and functions that shadow standard commands, zsh options that change
+  how redirects behave — or a standing judgement short enough that always
+  loading it costs nothing.
   Machine-specific instructions go in another repo's own `~/.claude/rules/`
   entry; project-specific ones go in that project's `CLAUDE.md`. It is a conf.d: each source repo links its
   own subdirectory into `~/.claude/rules/`, so another repo can keep its rules
