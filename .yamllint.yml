@@ -15,7 +15,8 @@ rules:
   # before the comment, and rewrites it that way on every pin.
   comments:
     min-spaces-from-content: 1
-  # No file here opens with a `---` marker; requiring one would touch them all.
+  # Most files here don't open with a `---` marker (only the 3 GitHub Actions
+  # workflows and this file itself do); requiring one would touch the rest.
   document-start: disable
   # A workflow's `on:` key is YAML-truthy but is not a boolean, and renaming it
   # is not an option — check values only.
