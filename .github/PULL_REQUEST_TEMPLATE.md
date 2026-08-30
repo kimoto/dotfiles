@@ -7,23 +7,17 @@ Commit subjects must follow Conventional Commits (enforced by lefthook + CI):
 
 ## Summary
 
-<!-- State this PR's intent (what & why) concisely. 1-3 sentences. -->
-
-## Changes
-
-<!-- Bullet list of the concrete changes. -->
--
+<!-- Why, not what. -->
 
 ## Verification
 
-<!-- PR-specific checks, if any (steps/results). Otherwise "none". CI is enforced by branch protection. -->
+<!-- Name what checked this — a job, a hook, a command you ran. -->
 -
 
 ## Checklist
 
-- [ ] Branched off `main` — no direct commits to `main`
-- [ ] Commit subjects follow Conventional Commits
-- [ ] No secrets / sensitive files committed (gitleaks clean)
+- [ ] Scope is what the title says, and nothing rode along
+- [ ] Behaviour changes are visible in the diff, not only in a description
 
 ## Related
 
