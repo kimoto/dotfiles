@@ -37,3 +37,11 @@ ln -sf "$BASE_DIR/.aerospace.toml" ./
 # sessions, plugin caches).
 mkdir -p ./.claude/rules
 ln -nsf "$BASE_DIR/claudecode/rules" ./.claude/rules/dotfiles
+
+# Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
+# installed by other tools, so each of ours is linked by name — never the
+# directory. Adding one means a line here and in bin/rmworld.sh (a test fails
+# if the two lists drift).
+mkdir -p ./.claude/skills
+ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
+ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup

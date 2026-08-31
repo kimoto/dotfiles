@@ -42,6 +42,15 @@ truth, so the two never diverge.
   which is both too close to this repo's own `.claude/` and, via
   `core.excludesfile = ~/.gitignore`, would make `claude/*` ignore rules apply
   in every repo on the machine.
+- `claudecode/skills/` — Claude Code user skills, linked in one by one as
+  `~/.claude/skills/<name>`. A rule costs every session; a skill costs only the
+  session that invokes it, so anything procedural belongs here rather than in
+  `rules/`. Two entries share a machine with skills other tools install, which
+  is why the link is per skill and the `.gitignore` allow-list names each one.
+  ⚠️ These are written in Japanese, against the language rule below, for two
+  reasons: the `description` is what a request is matched against and the
+  requests arrive in Japanese, and a skill is also read by the person deciding
+  whether it says the right thing.
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
   `keybindings.json` to this repo (replacing any existing file) and
   installs/overwrites the `extensions` list. Manual, human-only setup step —
