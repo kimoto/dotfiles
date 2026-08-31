@@ -124,6 +124,42 @@ teardown() {
   [ "$(cat "$HOME_SANDBOX/.claude/CLAUDE.md")" = "my own global instructions" ]
 }
 
+# ~/.claude/skills/ differs from rules/: skills installed by other tools live in
+# the same directory, so ours are linked by name. Linking the directory itself
+# would hide every one of them.
+
+@test "mklink.sh links each of our skills into ~/.claude/skills by name" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills" ]
+  [ -L "$HOME_SANDBOX/.claude/skills/session-resume" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/skills/session-resume")" \
+      = "$REPO_ROOT/claudecode/skills/session-resume" ]
+  [ -f "$HOME_SANDBOX/.claude/skills/session-resume/SKILL.md" ]
+}
+
+@test "mklink.sh leaves a skill installed by another tool alone" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  mkdir -p "$HOME_SANDBOX/.claude/skills/vendor-skill"
+  echo vendor >"$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"   # re-running must not disturb it
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md")" = vendor ]
+}
+
+@test "rmworld.sh unlinks our skills but leaves another tool's skill in place" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  mkdir -p "$HOME_SANDBOX/.claude/skills/vendor-skill"
+  echo vendor >"$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md"
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME_SANDBOX/.claude/skills/session-resume" ]
+  [ ! -e "$HOME_SANDBOX/.claude/skills/wrapup" ]
+  [ "$(cat "$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md")" = vendor ]
+}
+
 @test "rmworld.sh unlinks our rules but leaves another repo's rules in place" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
   ln -s /nonexistent-other-rules "$HOME_SANDBOX/.claude/rules/other"

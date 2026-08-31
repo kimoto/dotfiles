@@ -55,6 +55,13 @@ claudecode/rules/*
 !claudecode/rules/pull-requests.md
 !claudecode/rules/writing.md
 
+# claudecode/skills/: whitelist too. Other tools install their own skills into
+# ~/.claude/skills/, and a skill is a directory, so an accidental copy would
+# arrive as a whole tree.
+claudecode/skills/*
+!claudecode/skills/session-resume/
+!claudecode/skills/wrapup/
+
 # mysqlsh
 mysqlsh/*
 !mysqlsh/options.json
