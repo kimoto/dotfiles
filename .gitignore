@@ -50,7 +50,9 @@ config/gh/hosts.yml
 # never be committed here by accident. Track a new rule explicitly:
 #   !claudecode/rules/<name>.md
 claudecode/rules/*
+!claudecode/rules/comments.md
 !claudecode/rules/environment.md
+!claudecode/rules/git.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
 !claudecode/rules/tooling.md
