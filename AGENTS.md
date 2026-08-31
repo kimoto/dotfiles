@@ -91,6 +91,13 @@ truth, so the two never diverge.
   `bin/gen_tools_list.sh --check`, `bats test/…`) so running a check the way CI
   runs it needs no prompt; anything that writes (`gen_tools_list.sh` without
   `--check`, `mklink.sh`, `brew bundle`) stays out.
+- `.claude/hooks/git-leftovers-reminder.sh` — a `Stop` hook that reports how
+  much is uncommitted, untracked, or unpushed as context the agent sees rather
+  than output the user reads, and stays quiet until those counts change.
+  Unlike every other hook here it is **not wired by `.claude/settings.json`**:
+  it is registered per machine in `~/.claude/settings.json` and reached by a
+  symlink nothing in `bin/` creates, so `mkworld.sh` installs the script
+  without enabling it.
 - `.codex/skills/` — the skills, and the single source for both agents:
   `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
   is written once. A real directory holding a symlinked `SKILL.md` (not a
