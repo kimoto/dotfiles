@@ -53,6 +53,7 @@ claudecode/rules/*
 !claudecode/rules/environment.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
+!claudecode/rules/tooling.md
 !claudecode/rules/writing.md
 
 # claudecode/skills/: whitelist too. Other tools install their own skills into
