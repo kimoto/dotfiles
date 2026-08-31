@@ -40,6 +40,7 @@ fi
 # waiting-for-input / finished states) in ~/.claude/settings.json. Idempotent;
 # warns and skips instead of failing when jq is missing.
 sh "$BASE_DIR/bin/install_claude_tmux_hooks.sh"
+sh "$BASE_DIR/bin/install_claude_idle_hooks.sh"
 
 # Install git hooks (lefthook) and the commit message template
 if command -v lefthook >/dev/null 2>&1; then
