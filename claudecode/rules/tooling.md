@@ -24,6 +24,18 @@ looks like not enough happening. ★Check it worked first.
 > back right, nothing ran for 27 minutes. The room warmed up, the script called
 > that under-cooling, and drove a dead machine to full power in an empty house.
 
+**Finish it in one order: e2e, then units, then speed.**
+
+- **e2e first — the whole thing, called the way it will really be called.**
+  ★It is the only test that fails when every piece is right and the wiring is
+  not. ⚠️ Written after the units, it can only confirm the shape you already
+  picked.
+- **Units next, on the parts the e2e made you name.**
+- **Speed last, against a number you took before you touched it.** ★No
+  before-number, no tuning: you cannot tell a win from a rewrite. The thresholds
+  are in `latency.md`. ⚠️ Tuning ahead of the two above is not tuning, it is
+  rewriting code nothing is watching.
+
 ⚠️ **Skip all this if the job ends when you get the answer** — a migration, a
 bug hunt, poking around. Say which one. "This will be quick" is how you get the
 second copy.
