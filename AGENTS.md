@@ -17,6 +17,14 @@ truth, so the two never diverge.
   `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
   here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
+  `claude_idle_recap.sh` + `install_claude_idle_hooks.sh` (on the first prompt
+  after a long absence, tell the model the reader lost the thread — it opens
+  with the problem instead of a diff; see `claudecode/skills/session-resume`).
+  ⚠️ The gap is measured from the end of the last assistant turn, never wall
+  clock: a 40-minute tool run leaves the same hole as someone leaving the desk,
+  and only one of those is an absence. ⚠️ Nothing fires when a person merely
+  looks at a terminal that stayed open — Claude Code has no such event — so the
+  notice rides the first prompt after the gap,
   `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` and
   tmux's `prefix + ?` — it reads `KEYBINDINGS.md`, so adding a row there is what
   makes a binding discoverable),
