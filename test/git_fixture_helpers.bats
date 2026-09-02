@@ -48,7 +48,10 @@ teardown() {
   cd "$REPO_ROOT"
   missing=""
   for f in test/*.bats; do
-    grep -qE '(^|[^[:alnum:]_-])git ' "$f" || continue
+    # Comment lines are stripped first: prose about git identity or a git hook
+    # is not a fixture running git, and rewording the comment to dodge this
+    # check would be the wrong lesson to teach.
+    grep -vE '^[[:space:]]*#' "$f" | grep -qE '(^|[^[:alnum:]_-])git ' || continue
     grep -q 'isolate_git_env' "$f" || missing="$missing $f"
   done
   [ -z "$missing" ] || echo "not isolated:$missing"

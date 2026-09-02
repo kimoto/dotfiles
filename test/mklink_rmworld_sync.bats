@@ -10,10 +10,13 @@
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   MKLINK="$REPO_ROOT/bin/mklink.sh"
+  # mklink.sh delegates the ~/.claude entries; both files hold half the list.
+  CLAUDE_LINK="$REPO_ROOT/bin/link_claudecode.sh"
   RMWORLD="$REPO_ROOT/bin/rmworld.sh"
 }
 
-# The $HOME entry names mklink.sh creates. Each `ln` line is either
+# The $HOME entry names mklink.sh and bin/link_claudecode.sh create between
+# them. Each `ln` line is either
 #   ln ... "$BASE_DIR/<src>" ./<name>   -> link name is <name>
 #   ln ... "$BASE_DIR/<src>" ./         -> link name is basename(<src>)
 # (e.g. `... "$BASE_DIR/config" ./.config` links .config, not config), so the
@@ -25,7 +28,7 @@ mklink_targets() {
     dest = $NF
     if (dest == "./") { sub(/\/$/, "", src); sub(/.*\//, "", src); print src }
     else { sub(/^\.\//, "", dest); sub(/\/$/, "", dest); print dest }
-  }' "$MKLINK" | sort -u
+  }' "$MKLINK" "$CLAUDE_LINK" | sort -u
 }
 
 # Entries rmworld.sh unlinks: the argument of each unlink_if_symlink call,

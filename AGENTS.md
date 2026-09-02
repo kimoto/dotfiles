@@ -14,7 +14,10 @@ truth, so the two never diverge.
 
 - `bin/` — install scripts + the `lint_*`/`check_*` toolchain (shared by CI and
   lefthook). Key scripts: `mkworld.sh` (full bootstrap), `mklink.sh` (symlinks,
-  `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
+  `rmworld.sh` reverses), `link_claudecode.sh` (the `~/.claude` half of
+  `mklink.sh`, split out so a cloud environment can run it alone — see **Cloud
+  environments** below; it writes nothing outside `~/.claude`, and a test holds
+  that line), `install_check_tools.sh` (pinned tool versions — bump
   here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
   `claude_idle_recap.sh` + `install_claude_idle_hooks.sh` (on the first prompt
@@ -128,6 +131,33 @@ truth, so the two never diverge.
   test (or the assertion) so the test actually fails for the expected reason,
   then revert and confirm green. Especially for the `ci_*_test.sh` e2e checks,
   where a typo'd assertion can silently pass forever.
+
+### Cloud environments (Claude Code on the web)
+
+`~/.claude/rules/` and `~/.claude/skills/` do not exist in a cloud session, so
+none of `claudecode/` applies there until something links it in. The vehicle is
+the **environment's setup script** (the field in the environment dialog at
+claude.ai/code): it runs before Claude Code launches, for every cloud session in
+that environment, whichever repository is checked out.
+
+```bash
+#!/bin/bash
+# rev 1 — bump this line to force a cache rebuild after changing claudecode/
+git clone --depth 1 https://github.com/kimoto/dotfiles.git /opt/dotfiles || true
+sh /opt/dotfiles/bin/link_claudecode.sh || true
+```
+
+⚠️ **Run `link_claudecode.sh`, never `mklink.sh`.** A cloud session's `$HOME` is
+the platform's: `mklink.sh` would replace its `~/.gitconfig`, and every commit
+and push in that session goes through the identity it holds.
+
+⚠️ **The setup script runs once, then the filesystem is snapshotted and reused**
+for about seven days, so the clone is frozen at snapshot time: a rule you push
+today does not reach cloud sessions until the cache is rebuilt. Editing the
+setup script is what rebuilds it — hence the `rev` line, which is there to be
+bumped. There is no per-session refresh to fall back on: a cloud session runs
+hooks from the repository it has open and from server-managed settings, and the
+VM's own `~/.claude/settings.json` is not read.
 
 ### Conventions
 

@@ -30,18 +30,7 @@ ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
 ln -sf "$BASE_DIR/.aerospace.toml" ./
 
-# Claude Code user rules. ~/.claude/rules/ is a conf.d: every .md under it
-# loads into every session. Each source repo links its own subdirectory, so
-# another repo can keep its rules there too — only our own entry is linked.
-# ~/.claude itself is never linked: it also holds runtime state (transcripts,
-# sessions, plugin caches).
-mkdir -p ./.claude/rules
-ln -nsf "$BASE_DIR/claudecode/rules" ./.claude/rules/dotfiles
-
-# Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
-# installed by other tools, so each of ours is linked by name — never the
-# directory. Adding one means a line here and in bin/rmworld.sh (a test fails
-# if the two lists drift).
-mkdir -p ./.claude/skills
-ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
-ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
+# Claude Code rules and skills. Kept in their own script because a Claude Code
+# cloud environment runs just that part: there, $HOME is the platform's and the
+# links above would replace its ~/.gitconfig.
+sh "$BASE_DIR/bin/link_claudecode.sh"
