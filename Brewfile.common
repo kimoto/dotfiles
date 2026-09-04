@@ -131,5 +131,7 @@ brew "wget"
 brew "yamllint"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
+# Find security issues in GitHub Actions setups
+brew "zizmor"
 # Additional completion definitions for zsh
 brew "zsh-completions"
