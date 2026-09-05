@@ -218,7 +218,12 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 # --hyperlinkはeza側にauto相当の指定がなく常時有効になるため、パイプ/リダイレクト時に
 # OSC8エスケープシーケンスがterminal/tmux側で正しく解釈されず表示が乱れることがある。
 # TTY出力時のみ有効化する。
-ls() {
+# unalias first: some distros (e.g. RHEL/EL8 via /etc/profile.d/colorls.sh) alias
+# `ls` for login shells before ~/.zshrc runs. `function ls {}` alone avoids the
+# parse error that causes, but the alias would still linger and get expanded
+# ahead of the function on every call (e.g. injecting a stray --color=auto).
+unalias ls 2>/dev/null
+function ls {
   if [[ -t 1 ]]; then
     eza --hyperlink --icons auto "$@"
   else
@@ -258,12 +263,12 @@ bindkey "^\\" undo
 #=====================
 # utility functions
 #=====================
-temp(){
+function temp {
   cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}\`XXXXXX)"
 }
 
 # lazygit: chase into the directory it was left in (newdir file), if any.
-lg() {
+function lg {
   export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
   lazygit "$@"
   if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
@@ -273,27 +278,27 @@ lg() {
 }
 
 # ghq + fzf: jump to a cloned repo.
-g() {
+function g {
   local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
   [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
 }
 
 # git branch switch via fzf.
-b() {
+function b {
   local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview '' --query="$*")
   test -z "$branch" || git switch "$branch"
 }
 
-B() {
+function B {
   gh branch
 }
 
-c() {
+function c {
   kubectx
 }
 
 # ls if no arg / directory arg, otherwise bat the file.
-l() {
+function l {
   if [[ "$#" == 0 ]]; then
     ll
   else
@@ -308,7 +313,7 @@ l() {
 # test: switch starship main / sub prompt
 starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
 starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
-px() {
+function px {
   if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
     export STARSHIP_CONFIG="$starship_conf_sub"
   elif [ "$STARSHIP_CONFIG" = "" ]; then
@@ -322,7 +327,7 @@ px() {
 # zle widgets
 #=====================
 # navi snippet picker -> insert into the command line.
-search_snippet_and_replace_lbuffer() {
+function search_snippet_and_replace_lbuffer {
   LBUFFER+=$(navi)
   zle redisplay
 }
@@ -374,21 +379,21 @@ export FZF_COMPLETION_OPTS="--border --info=inline"
 # Use fd (https://github.com/sharkdp/fd) for listing path candidates.
 # - The first argument to the function ($1) is the base path to start traversal
 # - See the source code (completion.{bash,zsh}) for the details.
-_fzf_compgen_path() {
+function _fzf_compgen_path {
   fd --hidden --follow --exclude ".git" . "$1"
 }
 # Use fd to generate the list for directory completion
-_fzf_compgen_dir() {
+function _fzf_compgen_dir {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
 
 # This speeds up pasting w/ autosuggest
 # https://github.com/zsh-users/zsh-autosuggestions/issues/238
-pasteinit() {
+function pasteinit {
   OLD_SELF_INSERT=${${(s.:.)widgets[self-insert]}[2,3]}
   zle -N self-insert url-quote-magic # I wonder if you'd need `.url-quote-magic`?
 }
-pastefinish() {
+function pastefinish {
   zle -N self-insert $OLD_SELF_INSERT
 }
 zstyle :bracketed-paste-magic paste-init pasteinit
@@ -400,7 +405,7 @@ zstyle :bracketed-paste-magic paste-finish pastefinish
 autoload -Uz add-zsh-hook
 
 # List the directory after every cd.
-chpwd() {
+function chpwd {
   [[ -o interactive ]] || return
   ll
 }
@@ -409,7 +414,7 @@ chpwd() {
 # when the name actually changed, so the common case (precmd on every prompt)
 # forks nothing; the trade-off is that an external rename sticks until the
 # next cd.
-update_tmux_window () {
+function update_tmux_window {
   [[ -n "$TMUX" ]] || return
   # '.' and ':' are target separators that tmux (>= 3.7) rejects in window
   # names ("invalid window name"), so map them to '_'.
@@ -429,7 +434,7 @@ add-zsh-hook precmd update_tmux_window
 # $PROMPT persists across precmd calls (Starship sets it once to a string containing a
 # `$(...)` substitution zsh re-evaluates at render time), so the prepend must be guarded —
 # otherwise every prompt in a long-lived tmux session stacks another marker onto it forever.
-_tmux_prompt_mark() {
+function _tmux_prompt_mark {
   [[ -n "$TMUX" ]] || return
   [[ "$PROMPT" == $'%{\e]133;A\a%}'* ]] && return
   PROMPT=$'%{\e]133;A\a%}'"$PROMPT"
@@ -438,7 +443,7 @@ add-zsh-hook precmd _tmux_prompt_mark
 
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
-dotfiles-ship() {
+function dotfiles-ship {
   local branch
   branch=$(git rev-parse --abbrev-ref HEAD) || return 1
   git push -u origin HEAD || return 1
@@ -458,7 +463,7 @@ dotfiles-ship() {
 #=====================
 # load other settings
 #=====================
-source-if-exist() {
+function source-if-exist {
   file_path="$1"
   if [[ -f "$file_path" ]]; then
     source "$file_path"
