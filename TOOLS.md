@@ -103,6 +103,7 @@ _Source: `Brewfile.common`._
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
 | [yamllint](https://formulae.brew.sh/formula/yamllint) | Linter for YAML files |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
+| [zizmor](https://formulae.brew.sh/formula/zizmor) | Find security issues in GitHub Actions setups |
 | [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
 ## macOS apps
