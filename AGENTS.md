@@ -136,9 +136,19 @@ truth, so the two never diverge.
 
 `~/.claude/rules/` and `~/.claude/skills/` do not exist in a cloud session, so
 none of `claudecode/` applies there until something links it in. The vehicle is
-the **environment's setup script** (the field in the environment dialog at
-claude.ai/code): it runs before Claude Code launches, for every cloud session in
-that environment, whichever repository is checked out.
+the **environment's setup script**: it runs before Claude Code launches, for
+every cloud session in that environment, whichever repository is checked out.
+
+The field is easy to conclude does not exist, because it is not in any settings
+page — the docs say outright there is no settings page or direct URL for it. It
+is behind the cloud icon in the row above the message box at claude.ai/code:
+open that, hover an environment, take the gear that appears on its right.
+
+⚠️ **A setup script belongs to one environment, not to the account.** This
+account has several, so a script pasted into one leaves sessions started in any
+of the others with no rules at all. An environment whose network access is **None**
+cannot clone either: the `|| true` below keeps the session from failing to
+start, but nothing gets linked.
 
 ```bash
 #!/bin/bash
