@@ -20,18 +20,23 @@ teardown() {
 }
 
 # Build a minimal git repo around a copy of the script, with one workflow
-# whose checkout step uses the given ref.
+# whose checkout step uses the given ref. Sets permissions/persist-credentials
+# so the fixture is zizmor-clean too — these tests are about ratchet, not it.
 make_fixture_repo() {
   local ref="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
   cp "$SCRIPT" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@${ref}
+        with:
+          persist-credentials: false
 EOF
   git -C "$TMP/repo" init -q
   git -C "$TMP/repo" add -A
@@ -59,17 +64,23 @@ EOF
 
 # Same shape, but the workflow is correctly SHA-pinned and instead carries a
 # mistake only actionlint sees — so a failure here cannot come from ratchet.
+# Also zizmor-clean (permissions/persist-credentials set), same reasoning as
+# make_fixture_repo above.
 make_actionlint_fixture_repo() {
   local runner="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
   cp "$SCRIPT" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ${runner}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - run: echo hi
 EOF
   git -C "$TMP/repo" init -q
@@ -92,4 +103,29 @@ EOF
 @test "the real repo's workflows are all SHA-pinned and actionlint-clean" {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
+}
+
+# Same shape again, but missing permissions/persist-credentials entirely — a
+# mistake only zizmor sees, so a failure here cannot come from ratchet or
+# actionlint (both would accept this workflow).
+make_zizmor_fixture_repo() {
+  mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
+  cp "$SCRIPT" "$TMP/repo/bin/"
+  cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+EOF
+  git -C "$TMP/repo" init -q
+  git -C "$TMP/repo" add -A
+}
+
+@test "rejects a workflow with no permissions block (zizmor, not ratchet/actionlint)" {
+  make_zizmor_fixture_repo
+  run "$TMP/repo/bin/lint_actions.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"excessive-permissions"* ]]
 }
