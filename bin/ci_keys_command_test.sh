@@ -22,6 +22,9 @@
 # needs no installed dotfiles, and the real linking stays covered by
 # test/mklink_rmworld_behaviour.bats.
 #
+# ⚠ FAKE_HOME has no ~/.tmux/plugins, so tmux-which-key never loads to win `?`
+# back — see .tmux.conf and ci_tmux_keybinding_test.sh for the real-machine path.
+#
 # shellcheck disable=SC2016  # send-keys strings are single-quoted on purpose:
 # every `$PWD`/`$(...)` must be evaluated by the zsh inside the pane, not here.
 set -euo pipefail
