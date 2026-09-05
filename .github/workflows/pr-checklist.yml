@@ -1,6 +1,10 @@
 ---
 name: pr-checklist
-# Block merging until every checklist item in the PR description is ticked.
+# Block merging until every checklist item present in the PR description is
+# ticked. A PR with no checklist at all passes — see #234: the two boxes the
+# template used to carry were things every PR satisfies by construction, which
+# is exactly what claudecode/rules/pull-requests.md says a checklist box must
+# not be, so nothing here is actually required to exist.
 # Runs on `edited` too, so ticking a box in the PR body re-evaluates the check.
 # The result attaches to the PR head SHA; make this job a *required* status
 # check in the branch protection / ruleset for `main` to actually gate merges
@@ -21,11 +25,11 @@ jobs:
   require-checklist:
     runs-on: ubuntu-latest
     steps:
-      # requireChecklist: also fail if the body has no checklist at all, so a
-      # PR that drops the template can't slip through. Mutually-exclusive
-      # choices (e.g. the Type section) use `<!-- TaskRadio name -->` so only
-      # one box per group is required; strike through N/A items to skip them.
+      # requireChecklist: false — a checklist is optional; if one is present,
+      # every box in it must be ticked. Mutually-exclusive choices (e.g. a
+      # Type section) use `<!-- TaskRadio name -->` so only one box per group
+      # is required; strike through N/A items to skip them.
       - name: Require PR checklist complete
         uses: mheap/require-checklist-action@9c8100a52aa9726d4648e61aa92415f6c843c990 # v2.6.1
         with:
-          requireChecklist: true
+          requireChecklist: false
