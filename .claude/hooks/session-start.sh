@@ -40,4 +40,18 @@ if ! command -v fzf >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   as_root apt-get install -y -qq fzf >/dev/null || true
 fi
 
+# 4. Claude Code user rules. ~/.claude/rules/ is a conf.d every session on the
+#    machine reads; bin/mklink.sh fills it on a real machine, and nothing filled
+#    it here — so rules this repo means to apply everywhere were reaching local
+#    sessions only. Only our own entry is linked, exactly as mklink.sh does it:
+#    another repo keeps its rules in the same directory.
+#
+#    ~/.claude itself is never symlinked — it also holds runtime state
+#    (transcripts, sessions, plugin caches) that belongs to the sandbox.
+rules_dir="$HOME/.claude/rules"
+if ! (mkdir -p "$rules_dir" && ln -nsf "$REPO/claudecode/rules" "$rules_dir/dotfiles"); then
+  # Never silent: rules that failed to link look exactly like rules that loaded.
+  echo "[session-start] could not link $rules_dir/dotfiles — repo rules will not load"
+fi
+
 echo "[session-start] tooling ready (bin/install_check_tools.sh + lefthook + fzf)"
