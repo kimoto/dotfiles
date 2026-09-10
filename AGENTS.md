@@ -87,7 +87,9 @@ truth, so the two never diverge.
   client" without installing a real one (which would test npm, not this repo).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror.
 - `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
-  prepares the web sandbox), `SessionEnd` (`auto-main-sync.sh` — after a PR
+  prepares the web sandbox — the pinned lint toolchain, lefthook, fzf, and the
+  `~/.claude/rules/dotfiles` entry `mklink.sh` makes on a real machine, which is
+  why a rule here reaches web sessions too), `SessionEnd` (`auto-main-sync.sh` — after a PR
   merges, switches back to `main`, pulls, and deletes the merged branch; a
   dirty tree, a still-open PR, or a linked worktree just prints a reminder
   instead — a worktree is told to remove itself, never switched to `main`), and

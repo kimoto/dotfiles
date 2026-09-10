@@ -40,4 +40,12 @@ if ! command -v fzf >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   as_root apt-get install -y -qq fzf >/dev/null || true
 fi
 
+# 4. Claude Code user rules — our own entry (never the whole directory) in
+#    ~/.claude/rules/, the conf.d every session on this machine reads.
+rules_dir="$HOME/.claude/rules"
+if ! (mkdir -p "$rules_dir" && ln -nsf "$REPO/claudecode/rules" "$rules_dir/dotfiles"); then
+  # A link that failed is indistinguishable from rules that loaded, so say it.
+  echo "[session-start] could not link $rules_dir/dotfiles — repo rules will not load"
+fi
+
 echo "[session-start] tooling ready (bin/install_check_tools.sh + lefthook + fzf)"

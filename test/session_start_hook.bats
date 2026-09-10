@@ -26,7 +26,10 @@ setup() {
   HOOK="$REPO_ROOT/.claude/hooks/session-start.sh"
   TMP="$(mktemp -d)"
 
-  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin"
+  # The rules directory has to really exist: `ln -sf` dereferences an existing
+  # symlink only when the target is real, so a dangling one hides the -n case.
+  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/claudecode/rules"
+  : >"$TMP/repo/claudecode/rules/example.md"
   for stub in lefthook sudo apt-get; do
     cat >"$TMP/bin/$stub" <<EOF
 #!/bin/bash
@@ -41,13 +44,12 @@ echo "install_check_tools" >>"$TMP/calls"
 EOF
   chmod +x "$TMP/repo/bin/install_check_tools.sh"
 
-  # The real commands the hook needs, symlinked in one at a time. `id` (via
-  # as_root) is currently the only one; everything else it runs is a shell
-  # builtin or stubbed above. Listing them explicitly is what makes the sandbox
-  # deterministic: a command the hook grows a dependency on is then absent on
-  # every machine alike until it is added here, rather than present or missing
-  # depending on what the host happens to carry.
-  for real in id; do
+  # The real commands the hook needs, symlinked in one at a time; everything
+  # else it runs is a shell builtin or stubbed above. Listing them explicitly is
+  # what makes the sandbox deterministic: a command the hook grows a dependency
+  # on is then absent on every machine alike until it is added here, rather than
+  # present or missing depending on what the host happens to carry.
+  for real in id mkdir ln; do
     real_path="$(command -v "$real")" || return 1
     ln -s "$real_path" "$TMP/sysbin/$real"
   done
@@ -66,13 +68,18 @@ calls() { cat "$TMP/calls" 2>/dev/null; }
 # assignments and must precede the PATH operand: GNU env stops reading options
 # at the first operand, so `env PATH=... -u FOO` would look for a utility named
 # `-u`.
-hook() { run env "$@" PATH="$SANDBOX_PATH" "$HOOK"; }
+#
+# HOME is redirected too: the hook writes into $HOME/.claude/rules/, and at the
+# real one the suite would rewrite the developer's own configuration.
+hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
 
 @test "a local session is a silent no-op: nothing is installed" {
   hook -u CLAUDE_CODE_REMOTE
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   [ -z "$(calls)" ]
+  # On a real machine mkworld.sh owns ~/.claude; the hook must not reach in.
+  [ ! -e "$TMP/home/.claude" ]
 }
 
 @test "CLAUDE_CODE_REMOTE set to anything but true is still local" {
@@ -106,4 +113,46 @@ hook() { run env "$@" PATH="$SANDBOX_PATH" "$HOOK"; }
   chmod +x "$TMP/bin/fzf"
   hook CLAUDE_CODE_REMOTE=true
   [[ "$(calls)" != *"apt-get"* ]]
+}
+
+# --- repo rules --------------------------------------------------------------
+
+@test "the web sandbox links the repo's rules into ~/.claude/rules" {
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ -L "$TMP/home/.claude/rules/dotfiles" ]
+  [ "$(readlink "$TMP/home/.claude/rules/dotfiles")" = "$CLAUDE_PROJECT_DIR/claudecode/rules" ]
+}
+
+@test "linking the rules is idempotent" {
+  hook CLAUDE_CODE_REMOTE=true
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ -L "$TMP/home/.claude/rules/dotfiles" ]
+  # A missing -n does its damage in the repo, not here: the second run drops a
+  # stray link *inside* claudecode/rules/ — untracked, and read as a rule.
+  [ ! -e "$TMP/repo/claudecode/rules/rules" ]
+  [ "$(find "$TMP/home/.claude/rules" -mindepth 1 | wc -l)" -eq 1 ]
+}
+
+@test "rules linked in by another repo are left alone" {
+  mkdir -p "$TMP/home/.claude/rules" "$TMP/other-repo/rules"
+  ln -s "$TMP/other-repo/rules" "$TMP/home/.claude/rules/other"
+
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$TMP/home/.claude/rules/other")" = "$TMP/other-repo/rules" ]
+  # Both, or this case passes while the hook does nothing at all.
+  [ -L "$TMP/home/.claude/rules/dotfiles" ]
+}
+
+@test "a link it cannot make is reported, not swallowed" {
+  # A file where the rules directory belongs, so mkdir -p fails.
+  mkdir -p "$TMP/home/.claude"
+  : >"$TMP/home/.claude/rules"
+
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"rules"* ]]
+  [[ "$output" == *"will not load"* ]]
 }
