@@ -26,10 +26,8 @@ setup() {
   HOOK="$REPO_ROOT/.claude/hooks/session-start.sh"
   TMP="$(mktemp -d)"
 
-  # The rules directory has to really exist: `ln -sf` onto an existing symlink
-  # only dereferences it — and nests the second link inside — when the target is
-  # a real directory. A dangling link would hide that difference, and with it
-  # the reason the hook passes -n.
+  # The rules directory has to really exist: `ln -sf` dereferences an existing
+  # symlink only when the target is real, so a dangling one hides the -n case.
   mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/claudecode/rules"
   : >"$TMP/repo/claudecode/rules/example.md"
   for stub in lefthook sudo apt-get; do
@@ -46,12 +44,11 @@ echo "install_check_tools" >>"$TMP/calls"
 EOF
   chmod +x "$TMP/repo/bin/install_check_tools.sh"
 
-  # The real commands the hook needs, symlinked in one at a time: `id` (via
-  # as_root), and mkdir/ln for the rules link. Everything else it runs is a
-  # shell builtin or stubbed above. Listing them explicitly is what makes the
-  # sandbox deterministic: a command the hook grows a dependency on is then
-  # absent on every machine alike until it is added here, rather than present or
-  # missing depending on what the host happens to carry.
+  # The real commands the hook needs, symlinked in one at a time; everything
+  # else it runs is a shell builtin or stubbed above. Listing them explicitly is
+  # what makes the sandbox deterministic: a command the hook grows a dependency
+  # on is then absent on every machine alike until it is added here, rather than
+  # present or missing depending on what the host happens to carry.
   for real in id mkdir ln; do
     real_path="$(command -v "$real")" || return 1
     ln -s "$real_path" "$TMP/sysbin/$real"
@@ -72,9 +69,8 @@ calls() { cat "$TMP/calls" 2>/dev/null; }
 # at the first operand, so `env PATH=... -u FOO` would look for a utility named
 # `-u`.
 #
-# HOME is redirected too, because the hook links this repo's rules into
-# $HOME/.claude/rules/. Left at the real one, running the suite would rewrite
-# the developer's own Claude Code configuration.
+# HOME is redirected too: the hook writes into $HOME/.claude/rules/, and at the
+# real one the suite would rewrite the developer's own configuration.
 hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
 
 @test "a local session is a silent no-op: nothing is installed" {
@@ -120,10 +116,6 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
 }
 
 # --- repo rules --------------------------------------------------------------
-#
-# ~/.claude/rules/ is a conf.d that Claude Code loads into every session on the
-# machine. bin/mklink.sh fills it on a real machine and nothing filled it here,
-# so a rule this repo keeps for every session was reaching local sessions only.
 
 @test "the web sandbox links the repo's rules into ~/.claude/rules" {
   hook CLAUDE_CODE_REMOTE=true
@@ -137,9 +129,8 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
   hook CLAUDE_CODE_REMOTE=true
   [ "$status" -eq 0 ]
   [ -L "$TMP/home/.claude/rules/dotfiles" ]
-  # The damage a missing -n does lands in the repo, not here: `ln -s` onto an
-  # existing symlink dereferences it, so the second run drops a stray link
-  # *inside* claudecode/rules/ — untracked, and picked up as a rule.
+  # A missing -n does its damage in the repo, not here: the second run drops a
+  # stray link *inside* claudecode/rules/ — untracked, and read as a rule.
   [ ! -e "$TMP/repo/claudecode/rules/rules" ]
   [ "$(find "$TMP/home/.claude/rules" -mindepth 1 | wc -l)" -eq 1 ]
 }
@@ -156,8 +147,7 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
 }
 
 @test "a link it cannot make is reported, not swallowed" {
-  # A file where the rules directory belongs: mkdir -p fails, and the hook has
-  # to say so. Silence here would look exactly like rules that loaded.
+  # A file where the rules directory belongs, so mkdir -p fails.
   mkdir -p "$TMP/home/.claude"
   : >"$TMP/home/.claude/rules"
 
