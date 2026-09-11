@@ -10,9 +10,12 @@ file whenever a binding changes there.
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
 The tables below are also the data behind `bin/keys.sh`, which turns them into a
-searchable picker — `prefix + ?` in tmux, `⌃+X ?` (or the `keys` command) in
-zsh. Each row it prints is tagged with the layer it came from, so adding a row
-here is all it takes to make a new binding discoverable at the keyboard.
+searchable picker — `⌃+X ?` (or the `keys` command) in zsh. tmux binds the same
+script to `prefix + ?`, but tmux-which-key rebinds that key again once its
+plugin loads and wins, so in practice tmux's `prefix + ?` opens which-key's
+menu instead (see the tmux section below). Each row it prints is tagged with
+the layer it came from, so adding a row here is all it takes to make a new
+binding discoverable at the keyboard.
 
 ---
 
@@ -161,7 +164,6 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 
 | Key | Action |
 |-----|--------|
-| prefix + ? | Keybinding cheatsheet: fzf popup over this whole file, pre-filtered to the tmux layer (erase the query to search every layer). Replaces the default `?` = list-keys, still available as `:list-keys` |
 | prefix + C-t | Jump back to the last window (double-tap the prefix) |
 | prefix + C-b | Send the prefix through to a nested tmux |
 | prefix + Right | Join pane to next window |
@@ -179,7 +181,7 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 | prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
-| prefix + ? | tmux-which-key: menu tree of tmux commands (windows, panes, buffers, sessions, client); its +Keys entry is where `list-keys -N` lives |
+| prefix + ? | tmux-which-key: menu tree of tmux commands (windows, panes, buffers, sessions, client); its +Keys entry is where `list-keys -N` lives. Wins this key back from `bin/keys.sh`'s cheatsheet popup, bound to the same key — reach that instead via zsh's `keys` / ⌃+X ? |
 | prefix + Ctrl-s | Save tmux session state (tmux-resurrect; tmux-continuum also auto-saves every 15 min and auto-restores it on tmux start; tmux-assistant-resurrect also saves AI coding assistant sessions, e.g. Claude Code) |
 | prefix + Ctrl-r | Restore last saved tmux session state (tmux-resurrect; tmux-assistant-resurrect also resumes saved AI coding assistant sessions) |
 | prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane); opens in a floating pane on tmux 3.7+, taking the half of the window the cursor is not in so it never covers the lines you are picking from |
@@ -251,7 +253,7 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
-| `keys [query]` | Search this file's keybinding/helper tables (fzf; `bin/keys.sh`, same picker as ⌃+X ? and tmux's prefix + ?) |
+| `keys [query]` | Search this file's keybinding/helper tables (fzf; `bin/keys.sh`, same picker as ⌃+X ?; tmux's prefix + ? is bound to it too, but tmux-which-key wins that key back) |
 | `dotfiles-ship` | Push, open a PR, auto-merge, wait for merge, then switch back to `main` |
 
 ---

@@ -25,9 +25,11 @@ truth, so the two never diverge.
   and only one of those is an absence. ⚠️ Nothing fires when a person merely
   looks at a terminal that stayed open — Claude Code has no such event — so the
   notice rides the first prompt after the gap,
-  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` and
-  tmux's `prefix + ?` — it reads `KEYBINDINGS.md`, so adding a row there is what
-  makes a binding discoverable),
+  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` — it
+  reads `KEYBINDINGS.md`, so adding a row there is what makes a binding
+  discoverable; tmux also binds it to `prefix + ?`, but tmux-which-key rebinds
+  that same key once its plugin loads and wins, so in practice tmux's
+  `prefix + ?` opens which-key instead),
   `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
