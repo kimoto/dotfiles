@@ -326,6 +326,16 @@ w() {
   test -z "$dir" || builtin cd "$dir"
 }
 
+# The counterpart to w: cut a *new* worktree for a branch and land in it, so a
+# second line of work can start without disturbing whatever the main checkout
+# is holding. bin/worktree_new.sh decides the base (origin's default branch,
+# freshly fetched) and prints the path; this only moves there.
+W() {
+  local dir
+  dir=$(worktree_new.sh "$@") || return
+  builtin cd "$dir"
+}
+
 c() {
   kubectx
 }

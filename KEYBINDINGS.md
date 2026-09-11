@@ -245,6 +245,7 @@ Short interactive commands defined in `.zshrc` for frequent workflows:
 | `b [query]` | Switch git branch (fzf; last-15-commits preview) |
 | `B` | GitHub branch browser (`gh branch`; needs a manually installed gh extension, e.g. `mislav/gh-branch` — not part of `mkworld.sh`) |
 | `w [query]` | Jump to a git worktree (fzf) |
+| `W <type>/<short-desc>` | Cut a new worktree for that branch off origin's default branch and cd into it (`bin/worktree_new.sh`; lives under `~/.worktrees/<repo>/`, leaves the main checkout where it is) |
 | `c` | Switch Kubernetes context (`kubectx`) |
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
 | `px` | Toggle between main and sub starship prompt config |
