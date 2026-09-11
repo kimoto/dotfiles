@@ -36,6 +36,7 @@ binding discoverable at the keyboard.
 | ⌘+⇧+3 | Screenshot (full) |
 | ⌘+⇧+4 | Screenshot (selection) |
 | ⌘+⇧+5 | Screenshot menu |
+| ⌃+⌘+⇧+3 / 4 | Same full / selection capture, clipboard only — writes no file. The one to reach for when the shot is going straight into ⌘+V (an agent prompt, a chat), so no stray screenshot lands in a synced folder |
 
 ---
 

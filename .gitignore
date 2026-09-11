@@ -50,6 +50,7 @@ config/gh/hosts.yml
 # never be committed here by accident. Track a new rule explicitly:
 #   !claudecode/rules/<name>.md
 claudecode/rules/*
+!claudecode/rules/autonomy.md
 !claudecode/rules/captures.md
 !claudecode/rules/comments.md
 !claudecode/rules/environment.md
