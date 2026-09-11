@@ -69,6 +69,7 @@ _Source: `Brewfile.common`._
 | [gnu-sed](https://formulae.brew.sh/formula/gnu-sed) | GNU implementation of the famous stream editor |
 | [gnupg](https://formulae.brew.sh/formula/gnupg) | GNU Privacy Guard (OpenPGP) |
 | [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
+| [hunk](https://formulae.brew.sh/formula/hunk) | Review-first terminal diff viewer for agent-authored changesets |
 | [john-jumbo](https://formulae.brew.sh/formula/john-jumbo) | Enhanced version of john, a UNIX password cracker |
 | [jq](https://formulae.brew.sh/formula/jq) | Lightweight and flexible command-line JSON processor |
 | [k9s](https://formulae.brew.sh/formula/k9s) | Kubernetes CLI To Manage Your Clusters In Style! |
