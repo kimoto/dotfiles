@@ -41,7 +41,9 @@ truth, so the two never diverge.
   machine regardless of what is being built: a quirk this setup creates — shell
   aliases and functions that shadow standard commands, zsh options that change
   how redirects behave — or a standing judgement short enough that always
-  loading it costs nothing.
+  loading it costs nothing. ⚠️ Both are acted on by the session that reads
+  them; guidance for the person supervising it costs every session and moves
+  none.
   Machine-specific instructions go in another repo's own `~/.claude/rules/`
   entry; project-specific ones go in that project's `CLAUDE.md`. It is a conf.d: each source repo links its
   own subdirectory into `~/.claude/rules/`, so another repo can keep its rules
