@@ -79,8 +79,10 @@ inline = '_evalcache starship init zsh'
 [plugins.zoxide]
 inline = '_evalcache zoxide init zsh'
 
+# --shims, never plain activate: activate prints an absolute PATH with no $PATH
+# in it, and _evalcache pins whatever it printed.
 [plugins.mise]
-inline = '_evalcache mise activate zsh'
+inline = '_evalcache mise activate --shims zsh'
 
 [plugins.direnv]
 inline = '_evalcache direnv hook zsh'
