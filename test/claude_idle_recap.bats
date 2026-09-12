@@ -156,3 +156,21 @@ JSON
   [ "$status" -eq 0 ]
   [ "$(cat "$SETTINGS")" = "not json" ]
 }
+
+@test "leaves an array-shaped hooks key untouched and exits 0 (bootstrap-safe)" {
+  mkdir -p "$HOME/.claude"
+  printf '{"hooks": []}\n' >"$SETTINGS"
+  run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$SETTINGS")" = '{"hooks": []}' ]
+  [[ "$output" == *"unexpected"* ]]
+}
+
+@test "leaves a non-array event value untouched and exits 0 (bootstrap-safe)" {
+  mkdir -p "$HOME/.claude"
+  printf '{"hooks": {"Stop": "not-an-array"}}\n' >"$SETTINGS"
+  run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$SETTINGS")" = '{"hooks": {"Stop": "not-an-array"}}' ]
+  [[ "$output" == *"unexpected"* ]]
+}
