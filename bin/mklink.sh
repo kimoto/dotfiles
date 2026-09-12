@@ -38,6 +38,14 @@ ln -sf "$BASE_DIR/.aerospace.toml" ./
 mkdir -p ./.claude/rules
 ln -nsf "$BASE_DIR/claudecode/rules" ./.claude/rules/dotfiles
 
+# claudecode/rules-cloud describes what a container lacks, so every line of it
+# is false on the machine this script is setting up. bin/link_claude_dir.sh
+# --cloud is the only thing that puts it here, and the only other thing that
+# knows the name, so a $HOME that was once a container keeps it until here.
+if [ -L ./.claude/rules/dotfiles-cloud ]; then
+    rm -f ./.claude/rules/dotfiles-cloud
+fi
+
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
 # directory. Adding one means a line here and in bin/rmworld.sh (a test fails

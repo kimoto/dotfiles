@@ -184,3 +184,21 @@ teardown() {
   [ ! -e "$HOME_SANDBOX/.zshrc.zwc" ]
   [ ! -e "$HOME_SANDBOX/.zshrc.new.zwc" ]
 }
+
+@test "mklink.sh takes the container-only rule out of a workstation HOME" {
+  mkdir -p "$HOME_SANDBOX/.claude/rules"
+  ln -nsf "$REPO_ROOT/claudecode/rules-cloud" "$HOME_SANDBOX/.claude/rules/dotfiles-cloud"
+  ln -nsf /tmp "$HOME_SANDBOX/.claude/rules/someone-else"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+
+  # link_claude_dir.sh --cloud can have run here before this machine was a
+  # workstation, and no other script knows the name.
+  [ ! -L "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
+  [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
+
+  # ~/.claude/rules is a conf.d: another repo's entry is not ours to remove.
+  [ -L "$HOME_SANDBOX/.claude/rules/someone-else" ]
+  [ -L "$HOME_SANDBOX/.claude/rules/dotfiles" ]
+}

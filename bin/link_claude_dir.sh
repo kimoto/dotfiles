@@ -19,9 +19,16 @@ with_cloud=0
 
 mkdir -p "$CLAUDE_DIR/rules" "$CLAUDE_DIR/skills"
 
+cloud_dest="$CLAUDE_DIR/rules/dotfiles-cloud"
+
 ln -nsf "$BASE_DIR/claudecode/rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
-  ln -nsf "$BASE_DIR/claudecode/rules-cloud" "$CLAUDE_DIR/rules/dotfiles-cloud"
+  ln -nsf "$BASE_DIR/claudecode/rules-cloud" "$cloud_dest"
+elif [ -L "$cloud_dest" ]; then
+  # Not linking it is not enough: a run without --cloud says this $HOME is one
+  # where every line of rules-cloud is false, and an earlier --cloud run in the
+  # same $HOME would otherwise go on claiming `cat` is cat and `>` overwrites.
+  rm -f "$cloud_dest"
 fi
 
 # Other tools install skills here too, so an existing real directory is theirs.
@@ -48,9 +55,11 @@ report_rules() {
   fi
 }
 
-# SKILL.md is the contract, not just a file that happens to be there.
+# SKILL.md is the contract, not just a file that happens to be there — and the
+# directory we leave alone above is another tool's, holding its own SKILL.md.
+# So follow the link to our copy: what loads under our name may not be ours.
 report_skill() {
-  if [ -f "$2/SKILL.md" ]; then
+  if [ "$(readlink -f "$2" 2>/dev/null)" = "$3" ] && [ -f "$2/SKILL.md" ]; then
     echo "  ok   skill $1"
   else
     echo "  MISS skill $1"
@@ -61,12 +70,15 @@ report_skill() {
 echo "[claude-dir]"
 report_rules "rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
-  report_rules "cloud rules" "$CLAUDE_DIR/rules/dotfiles-cloud"
+  report_rules "cloud rules" "$cloud_dest"
+elif [ -e "$cloud_dest" ] || [ -L "$cloud_dest" ]; then
+  echo "  MISS cloud rules still in place without --cloud"
+  missing=1
 fi
 for skill in "$BASE_DIR"/claudecode/skills/*/; do
   [ -d "$skill" ] || continue
   name="$(basename "$skill")"
-  report_skill "$name" "$CLAUDE_DIR/skills/$name"
+  report_skill "$name" "$CLAUDE_DIR/skills/$name" "${skill%/}"
 done
 
 exit "$missing"
