@@ -15,6 +15,7 @@ EC_VERSION="${EC_VERSION:-3.11.2}"
 CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.38.0}"
 YAMLLINT_VERSION="${YAMLLINT_VERSION:-1.38.0}"
 LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.1.11}"
+ZIZMOR_VERSION="${ZIZMOR_VERSION:-1.30.0}"
 
 # Map uname -m onto each project's release-asset arch suffix (projects differ:
 # amd64/arm64 vs x64/arm64 vs x86_64/arm64).
@@ -80,6 +81,14 @@ if ! command -v editorconfig-checker >/dev/null 2>&1; then
   curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH_AMD64}.tar.gz" \
     | as_root tar -xz -C /usr/local/bin --strip-components=1 "bin/ec-linux-${ARCH_AMD64}"
   as_root mv "/usr/local/bin/ec-linux-${ARCH_AMD64}" /usr/local/bin/editorconfig-checker
+fi
+
+# zizmor (GitHub Actions security auditor, run --offline via bin/lint_actions.sh).
+# Rust target triples use uname -m verbatim on Linux (x86_64/aarch64), unlike
+# the ARCH_* maps above.
+if ! command -v zizmor >/dev/null 2>&1; then
+  curl -sSfL "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-$(uname -m)-unknown-linux-gnu.tar.gz" \
+    | as_root tar -xz -C /usr/local/bin zizmor
 fi
 
 # lefthook (git hook runner: pre-commit/pre-push run the bin/ checks locally).
