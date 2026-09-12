@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
-# Behavioural tests for bin/link_claude_dir.sh: runs the real script against a
-# throwaway $HOME, like mklink_rmworld_behaviour.bats does.
+# Runs the real script against a throwaway $HOME, like
+# mklink_rmworld_behaviour.bats does.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -32,7 +32,6 @@ teardown() {
 @test "--cloud decides whether the container-only rule comes along" {
   HOME="$HOME_SANDBOX" run "$LINK"
   [ "$status" -eq 0 ]
-  # Nothing false on a workstation may reach one.
   [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
 
   HOME="$HOME_SANDBOX" run "$LINK" --cloud
@@ -70,7 +69,7 @@ teardown() {
 }
 
 @test "the rules check follows the link, not one rule's filename" {
-  # Retiring a rule must not read as a broken link, so any .md satisfies it.
+  # Retiring a rule must not read as a broken link.
   fake_repo="$HOME_SANDBOX/repo"
   mkdir -p "$fake_repo/bin" "$fake_repo/claudecode/rules" "$fake_repo/claudecode/skills"
   cp "$LINK" "$fake_repo/bin/"
@@ -82,7 +81,7 @@ teardown() {
 }
 
 @test "a link it could not make is reported, and changes the exit status" {
-  # ln goes inside it, so the rules never become readable at that path.
+  # ln goes inside a real directory, so the link never becomes readable.
   mkdir -p "$HOME_SANDBOX/.claude/rules/dotfiles"
 
   HOME="$HOME_SANDBOX" run "$LINK"

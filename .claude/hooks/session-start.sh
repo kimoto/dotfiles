@@ -40,8 +40,8 @@ if ! command -v fzf >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   as_root apt-get install -y -qq fzf >/dev/null || true
 fi
 
-# 4. The ~/.claude entries. --cloud because this sandbox is a container too: no
-#    mklink, no Homebrew (install_check_tools.sh uses apt + GitHub releases).
+# 4. --cloud because this sandbox is a container too: no mklink, and no
+#    Homebrew (install_check_tools.sh uses apt + GitHub releases).
 "$REPO/bin/link_claude_dir.sh" --cloud \
   || echo "[session-start] a MISS above did not link — those rules or skills will not load"
 

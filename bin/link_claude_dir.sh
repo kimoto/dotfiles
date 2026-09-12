@@ -1,14 +1,13 @@
 #!/bin/bash
-# The ~/.claude entries, for a container where bin/mklink.sh never runs: a cloud
-# session (Setup script field at claude.ai/code) or this repo's web sandbox.
+# From the Setup script field at claude.ai/code and from the web-sandbox hook,
+# always as `... --cloud || true` — a non-zero exit there fails the whole
+# session, and a failed link exits non-zero here.
 #
-#     /root/dotfiles/bin/link_claude_dir.sh --cloud || true
+# Never the rest of mklink in a container: .zshrc costs a shell load per Bash
+# call and its aliases point at absent tools (#252); .gitconfig breaks
+# `git commit` and takes `git config --global` into this repo.
 #
-# `|| true` matters: a non-zero exit there fails the session, and a failed link
-# exits non-zero here. Never the rest of mklink — in a container .zshrc costs a
-# shell load per Bash call and its aliases point at absent tools (#252), and
-# .gitconfig breaks `git commit` and takes `git config --global` into this repo.
-# --cloud is opt-in because claudecode/rules-cloud is false where mklink ran.
+# --cloud is opt-in: claudecode/rules-cloud is false where mklink ran.
 
 set -uo pipefail
 
@@ -25,8 +24,7 @@ if [ "$with_cloud" -eq 1 ]; then
   ln -nsf "$BASE_DIR/claudecode/rules-cloud" "$CLAUDE_DIR/rules/dotfiles-cloud"
 fi
 
-# Walked, not named like mklink.sh: no rmworld list to keep in sync. Other
-# tools install skills here, so an existing real directory is left alone.
+# Other tools install skills here too, so an existing real directory is theirs.
 for skill in "$BASE_DIR"/claudecode/skills/*/; do
   [ -d "$skill" ] || continue
   dest="$CLAUDE_DIR/skills/$(basename "$skill")"
@@ -37,7 +35,7 @@ for skill in "$BASE_DIR"/claudecode/skills/*/; do
   ln -nsf "${skill%/}" "$dest"
 done
 
-# A failed link looks like one that worked, so report what is readable.
+# A failed link looks like one that worked; silence is the failure mode.
 missing=0
 
 # Any .md: retiring a rule must not read as a broken link.
@@ -50,7 +48,7 @@ report_rules() {
   fi
 }
 
-# SKILL.md is the contract; without one the skill has not arrived.
+# SKILL.md is the contract, not just a file that happens to be there.
 report_skill() {
   if [ -f "$2/SKILL.md" ]; then
     echo "  ok   skill $1"
