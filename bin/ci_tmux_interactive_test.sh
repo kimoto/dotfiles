@@ -73,16 +73,18 @@ wait_for_pane "$SOCK" '__E2E_READY__42' 300
 echo "== shell is live (echo rendered in pane) =="
 
 # 2) .zshrc actually took effect in a real tty (not just under `script`): an
-#    alias it defines resolves interactively. The command line is `type vi`, so
-#    only the result line "vi is an alias for nvim" matches vi.*nvim.
+#    alias it defines resolves interactively. `reload` rather than one of the
+#    tool aliases: those are guarded on the tool being installed, and CI installs
+#    only Brewfile.basic, so `vi` is plain /usr/bin/vi here. The command line is
+#    `type reload`, which carries no "exec zsh", so only the result line matches.
 #    Same 30s budget as step 1: __E2E_READY__42 can render while zsh-defer is
 #    still draining the deferred plugin init (fast-syntax-highlighting,
 #    autosuggestions, carapace), so on a slow runner the shell may not process
 #    this second command within the default 5s — the wait returns the instant
 #    the line appears, so the larger ceiling only removes the flake.
-tmux -L "$SOCK" send-keys 'type vi' Enter
-wait_for_pane "$SOCK" 'vi.*nvim' 300
-echo "== alias resolves interactively (vi -> nvim) =="
+tmux -L "$SOCK" send-keys 'type reload' Enter
+wait_for_pane "$SOCK" 'reload.*exec zsh' 300
+echo "== alias resolves interactively (reload -> exec zsh) =="
 
 # 3) The zsh line editor (zle) responds to a real key press. After running a
 #    marked command, C-l (clear-screen, a zle widget that adds no history entry)
