@@ -10,6 +10,7 @@ export DOTFILES_NO_SYNC_CHECK=1
 # Likewise skip the Brewfile drift reminder: CI installs only Brewfile.basic, so
 # a check would always report common/* missing, and `brew bundle check` is slow.
 export DOTFILES_NO_BREW_CHECK=1
+export DOTFILES_NO_MISE_CHECK=1
 
 die() {
   echo "CI error: $*" >&2

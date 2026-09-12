@@ -605,6 +605,19 @@ if [[ -z "${DOTFILES_NO_BREW_CHECK:-}" ]]; then
 fi
 
 #=====================
+# mise missing-tool reminder
+#=====================
+# A tool in mise's config that is not installed is re-resolved on every precmd,
+# so it taxes each prompt and says nothing. Notify-only: prints the cached
+# result and refreshes it in a background job, so startup never waits on mise.
+# Skipped in CI via DOTFILES_NO_MISE_CHECK.
+if [[ -z "${DOTFILES_NO_MISE_CHECK:-}" ]]; then
+  _dotfiles_dir="${${(%):-%x}:A:h}"
+  [[ -x "$_dotfiles_dir/bin/mise_missing_check.sh" ]] && "$_dotfiles_dir/bin/mise_missing_check.sh"
+  unset _dotfiles_dir
+fi
+
+#=====================
 # wordcode cache for this file
 #=====================
 # zsh maps <startup-file>.zwc instead of parsing the file itself whenever the

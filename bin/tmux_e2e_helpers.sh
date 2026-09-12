@@ -33,7 +33,8 @@ zsh_pane_cmd() {
   if [ -z "${REPO:-}" ] || [ -z "${ZSH_BIN:-}" ]; then
     die "zsh_pane_cmd needs REPO and ZSH_BIN"
   fi
-  local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 TERM=xterm-256color"
+  local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1"
+  cmd="$cmd DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 TERM=xterm-256color"
   local a
   for a in "$@"; do
     cmd="$cmd $a"
