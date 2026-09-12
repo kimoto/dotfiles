@@ -70,23 +70,15 @@ truth, so the two never diverge.
   than merely not make it: those two are the workstation, and a `$HOME` that was
   a container first would otherwise keep telling it `cat` is cat.
 - `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
-  session; `--cloud` links it, a run without it and `mklink.sh` take it back
-  out. ⚠️ That path is Claude Code's own and on a workstation holds what the
-  machine set up for itself, so neither script touches anything but its own
-  link. For a setting that must hold whichever repo a cloud session was opened
-  on — a repo's `.claude/settings.json` reaches only sessions opened there.
-- `bin/setup_cloud_session.sh` — everything a cloud container needs from this
-  repo: the toolchain, this checkout's git hooks, fzf, the `~/.claude` entries.
-  Called both by the Setup script field at claude.ai/code and by the web sandbox
-  hook, so a session opened on *another* repo — which clones this one to the
-  side and never cd's into it — is set up the same as one opened here.
-  ⚠️ Toolchain and hooks go in together or not at all: the hooks run the
-  `bin/lint_*.sh` scripts, which exit non-zero when their tool is absent, so
-  hooks alone refuse every commit.
-- `bin/link_claude_dir.sh` — the `~/.claude` entries for a container where
-  `mklink.sh` never runs. Reached through `setup_cloud_session.sh` above; still
-  its own script because the entries it makes are the half that must also be
-  takeable back out (see `mklink.sh`).
+  session, for a setting that must hold whichever repo the session was opened
+  on. ⚠️ That path is Claude Code's own: neither script touches anything there
+  but its own link.
+- `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
+  git hooks, fzf, the `~/.claude` entries. Called by the Setup script field at
+  claude.ai/code and by the web sandbox hook. ⚠️ Toolchain and hooks go in
+  together or not at all — hooks alone refuse every commit.
+- `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
+  script because those entries must also be takeable back out (`mklink.sh`).
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
   `keybindings.json` to this repo (replacing any existing file) and
   installs/overwrites the `extensions` list. Manual, human-only setup step —
@@ -114,14 +106,11 @@ truth, so the two never diverge.
   completes the handshake, so CI can assert "opening a .ts file attaches a
   client" without installing a real one (which would test npm, not this repo).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
-  local half only exists where `lefthook install` ran: in a container that is
-  `bin/setup_cloud_session.sh`, and a checkout no one ran it in commits with no
-  checks in front of it at all, CI staying green the whole way.
+  local half only exists where `lefthook install` ran; a checkout without it
+  commits unchecked, CI green the whole way.
 - `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
-  which checks this is the web sandbox and hands the preparing itself to
-  `bin/setup_cloud_session.sh`, so a web session and a cloud session opened on
-  another repo get the same container — and why a rule here reaches web
-  sessions too), `SessionEnd` (`auto-main-sync.sh` — after a PR
+  which checks this is the web sandbox and hands the rest to
+  `bin/setup_cloud_session.sh`), `SessionEnd` (`auto-main-sync.sh` — after a PR
   merges, switches back to `main`, pulls, and deletes the merged branch; a
   dirty tree, a still-open PR, or a linked worktree just prints a reminder
   instead — a worktree is told to remove itself, never switched to `main`), and
