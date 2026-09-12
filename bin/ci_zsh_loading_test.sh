@@ -118,9 +118,8 @@ probe="$(mktemp)"
 cat >"$probe" <<'PROBE'
 functions ll
 alias reload
-# Every alias that shadows a real command must point at a tool that exists:
-# unguarded, `cat` stops being cat on a machine without bat instead of becoming
-# something nicer. Reports per command so a failure names which one.
+# An alias shadowing a real command must point at a tool that exists, or `cat`
+# stops being cat rather than becoming something nicer.
 for _c in cat less curl top ping dig vi; do
   _a=${aliases[$_c]}
   if [[ -n $_a ]]; then
@@ -154,9 +153,8 @@ printf '%s\n' "$env_out"
 # an alias would not survive .zshrc's own wordcode cache into the function
 # bodies that list with it (chpwd, l), so only the body proves the flags.
 require_grep "ll missing --long flags"          "$env_out" "ls --long --all"
-# The tools these shadow live in Brewfile.common, which CI does not install, so
-# the aliases are absent here and present on a workstation. What must hold on
-# both is that none of them shadows a command with a tool that is not there.
+# CI installs only Brewfile.basic, so these aliases are absent here and present
+# on a workstation; the dangling case is what must hold on both.
 require_grep "shadowing-alias probe did not run" "$env_out" "SHADOW_CHECKED"
 refute_grep "an alias shadows a command with a missing tool" "$env_out" "SHADOW_DANGLING:"
 require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"

@@ -259,10 +259,8 @@ alias reload="exec zsh"
 # zoxide records the jump from its own chpwd hook, however the directory
 # changed.
 [[ $- == *i* ]] && alias cd="z"
-# Each of these shadows a command that works without the dotfiles, so an
-# unguarded alias does not replace it, it takes it away: `cat` becomes
-# `command not found: bat` until brew finishes. Guarded, a machine mid-bootstrap
-# or without Homebrew keeps the real command.
+# Guarded because each shadows a command that works without the dotfiles: an
+# unguarded alias does not replace `cat`, it takes it away.
 (( $+commands[bat] ))    && alias cat='bat'
 (( $+commands[bat] ))    && alias less='bat --pager=less'
 (( $+commands[curlie] )) && alias curl='curlie' # for pretty-print

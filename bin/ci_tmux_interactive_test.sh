@@ -73,10 +73,9 @@ wait_for_pane "$SOCK" '__E2E_READY__42' 300
 echo "== shell is live (echo rendered in pane) =="
 
 # 2) .zshrc actually took effect in a real tty (not just under `script`): an
-#    alias it defines resolves interactively. `reload` rather than one of the
-#    tool aliases: those are guarded on the tool being installed, and CI installs
-#    only Brewfile.basic, so `vi` is plain /usr/bin/vi here. The command line is
-#    `type reload`, which carries no "exec zsh", so only the result line matches.
+#    alias it defines resolves interactively. `reload`, not a tool alias: those
+#    are guarded, and CI has no nvim. `type reload` carries no "exec zsh", so
+#    only the result line matches.
 #    Same 30s budget as step 1: __E2E_READY__42 can render while zsh-defer is
 #    still draining the deferred plugin init (fast-syntax-highlighting,
 #    autosuggestions, carapace), so on a slow runner the shell may not process
