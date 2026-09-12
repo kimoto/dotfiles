@@ -35,10 +35,8 @@ setup() {
   : >"$TMP/repo/claudecode/settings-cloud.json"
   : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
 
-  # The real scripts, not stubs: what the hook is being trusted to do lives in
-  # bin/setup_cloud_session.sh and bin/link_claude_dir.sh now, so a stub here
-  # would test the call and not the result — the half that was silently missing
-  # before. These cases are therefore about delegation reaching the whole of it.
+  # The real scripts, not stubs: a stub tests the call, not the result — the
+  # half that was silently missing before.
   cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
     "$TMP/repo/bin/"
   for stub in lefthook sudo apt-get; do

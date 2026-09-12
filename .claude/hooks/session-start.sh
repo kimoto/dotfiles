@@ -1,13 +1,7 @@
 #!/bin/bash
 # Claude Code on the web — SessionStart hook.
 #
-# Provisions this repo's lint toolchain in the ephemeral web sandbox so commits
-# (lefthook) and the bin/ lint scripts behave the same as in CI. The pinned tool
-# versions live in bin/install_check_tools.sh (shared with CI) — NOT duplicated
-# here.
-#
-# Local (non-remote) sessions are skipped: on a real machine `brew bundle` /
-# bin/mkworld.sh already set everything up.
+# Local (non-remote) sessions are skipped: mkworld.sh already set that machine up.
 set -euo pipefail
 
 # Only run inside the remote web sandbox.

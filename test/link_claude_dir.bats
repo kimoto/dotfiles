@@ -130,8 +130,7 @@ teardown() {
   mkdir -p "$HOME_SANDBOX/.claude"
   echo '{"theirs": true}' >"$HOME_SANDBOX/.claude/settings.json"
 
-  # Unlike our own entry names, this path is Claude Code's: linking over it
-  # would take a machine's settings into the repo, and edits here into it.
+  # Claude Code's own path: a link would take their settings into the repo.
   HOME="$HOME_SANDBOX" run "$LINK" --cloud
   [ "$status" -ne 0 ]
   [[ "$output" == *"MISS cloud settings"* ]]

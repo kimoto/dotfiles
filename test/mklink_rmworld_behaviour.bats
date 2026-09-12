@@ -221,7 +221,6 @@ teardown() {
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
   [ "$status" -eq 0 ]
 
-  # The path is where every machine keeps its own hooks and permissions.
   grep -q mine "$HOME_SANDBOX/.claude/settings.json"
   [ -e "$HOME_SANDBOX/elsewhere.json" ]
 }

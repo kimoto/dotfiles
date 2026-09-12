@@ -33,8 +33,8 @@ elif [ -L "$cloud_dest" ]; then
   rm -f "$cloud_dest"
 fi
 
-# ⚠ Unlike the entries above, this path is Claude Code's own, so anywhere a
-# person set their own the link would take those into this checkout.
+# ⚠ Claude Code's own path, not a name we own: linking over a person's own
+# settings would take them into this checkout.
 if [ "$with_cloud" -eq 1 ]; then
   if [ -e "$settings_dest" ] && [ ! -L "$settings_dest" ]; then
     echo "[claude-dir] $settings_dest is not ours; left alone" >&2

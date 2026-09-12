@@ -20,8 +20,7 @@ setup() {
   : >"$TMP/repo/claudecode/settings-cloud.json"
   : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
 
-  # The real linker, not a stub: what this script is trusted to end with is the
-  # linking, so a stub would test the call instead of the result.
+  # The real linker, not a stub: a stub tests the call, not the result.
   cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/"
   SETUP="$TMP/repo/bin/setup_cloud_session.sh"
 
@@ -73,9 +72,7 @@ run_setup() { run env HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
 @test "a toolchain that did not land leaves the git hooks alone" {
   toolchain_stub 1
 
-  # Hooks run the bin/lint_*.sh scripts, which exit non-zero when the tool they
-  # drive is missing: installing them here would refuse every commit, which is
-  # worse than the unchecked state they replaced.
+  # Installed here they would refuse every commit instead of checking it.
   run_setup
   [ "$status" -ne 0 ]
   [[ "$(calls)" == *"install_check_tools"* ]]
@@ -94,8 +91,7 @@ run_setup() { run env HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
 }
 
 @test "it finds its repo from itself, not from the working directory" {
-  # A session opened on another repository clones this one to the side and
-  # never cd's into it — the case that left this checkout with no hooks.
+  # The case that left this checkout with no hooks.
   run env -C "$TMP/decoy" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"
   [ "$status" -eq 0 ]
   [ "$(readlink "$TMP/home/.claude/rules/dotfiles")" = "$TMP/repo/claudecode/rules" ]

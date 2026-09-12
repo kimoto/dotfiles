@@ -46,8 +46,7 @@ if [ -L ./.claude/rules/dotfiles-cloud ]; then
     rm -f ./.claude/rules/dotfiles-cloud
 fi
 
-# Rides with those rules. Only while it still points here: that path is Claude
-# Code's own, and on a workstation it holds what the machine set up itself.
+# Only while it still points here: that path holds this machine's own settings.
 if [ "$(readlink -f ./.claude/settings.json 2>/dev/null)" = "$BASE_DIR/claudecode/settings-cloud.json" ]; then
     rm -f ./.claude/settings.json
 fi
