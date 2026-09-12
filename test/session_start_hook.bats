@@ -28,8 +28,16 @@ setup() {
 
   # The rules directory has to really exist: `ln -sf` dereferences an existing
   # symlink only when the target is real, so a dangling one hides the -n case.
-  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/claudecode/rules"
+  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/claudecode/rules" \
+    "$TMP/repo/claudecode/rules-cloud" "$TMP/repo/claudecode/skills/example-skill"
   : >"$TMP/repo/claudecode/rules/example.md"
+  : >"$TMP/repo/claudecode/rules-cloud/scope.md"
+  : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
+
+  # The real linker, not a stub: what the hook is being trusted to do lives in
+  # bin/link_claude_dir.sh now, so a stub here would test the call and not the
+  # linking — which is the half that was silently missing before.
+  cp "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/link_claude_dir.sh"
   for stub in lefthook sudo apt-get; do
     cat >"$TMP/bin/$stub" <<EOF
 #!/bin/bash
@@ -49,7 +57,7 @@ EOF
   # what makes the sandbox deterministic: a command the hook grows a dependency
   # on is then absent on every machine alike until it is added here, rather than
   # present or missing depending on what the host happens to carry.
-  for real in id mkdir ln; do
+  for real in id mkdir ln readlink dirname basename find; do
     real_path="$(command -v "$real")" || return 1
     ln -s "$real_path" "$TMP/sysbin/$real"
   done
@@ -132,7 +140,25 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
   # A missing -n does its damage in the repo, not here: the second run drops a
   # stray link *inside* claudecode/rules/ — untracked, and read as a rule.
   [ ! -e "$TMP/repo/claudecode/rules/rules" ]
-  [ "$(find "$TMP/home/.claude/rules" -mindepth 1 | wc -l)" -eq 1 ]
+  [ "$(find "$TMP/home/.claude/rules" -mindepth 1 | wc -l)" -eq 2 ]
+}
+
+@test "the web sandbox gets the skills too, not only the rules" {
+  # The gap this sandbox had: rules arrived, skills never did, so an
+  # instruction naming a skill resolved to nothing while the session looked
+  # correctly set up.
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ -L "$TMP/home/.claude/skills/example-skill" ]
+  [ -f "$TMP/home/.claude/skills/example-skill/SKILL.md" ]
+}
+
+@test "the web sandbox is a container, so it gets the cloud scope rule" {
+  hook CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ -L "$TMP/home/.claude/rules/dotfiles-cloud" ]
+  [ "$(readlink "$TMP/home/.claude/rules/dotfiles-cloud")" \
+      = "$CLAUDE_PROJECT_DIR/claudecode/rules-cloud" ]
 }
 
 @test "rules linked in by another repo are left alone" {
