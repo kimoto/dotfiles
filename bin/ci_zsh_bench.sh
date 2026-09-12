@@ -26,6 +26,7 @@ die() {
 # (network + noise) out of the measured startup.
 export DOTFILES_NO_SYNC_CHECK=1
 export DOTFILES_NO_BREW_CHECK=1
+export DOTFILES_NO_MISE_CHECK=1
 export TERM="xterm-256color"
 
 # In CI the shell under test is the brew zsh from Brewfile.basic - the same
