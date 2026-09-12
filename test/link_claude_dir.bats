@@ -21,8 +21,7 @@ teardown() {
   [ "$(readlink -f "$HOME_SANDBOX/.claude/rules/dotfiles")" \
       = "$REPO_ROOT/claudecode/rules" ]
 
-  # Every skill in the repo, not a list repeated here: one added upstream must
-  # arrive without this test being edited.
+  # Not a list repeated here: one added upstream must arrive untouched.
   for skill in "$REPO_ROOT"/claudecode/skills/*/; do
     name="$(basename "$skill")"
     [ -L "$HOME_SANDBOX/.claude/skills/$name" ]
@@ -33,7 +32,7 @@ teardown() {
 @test "--cloud decides whether the container-only rule comes along" {
   HOME="$HOME_SANDBOX" run "$LINK"
   [ "$status" -eq 0 ]
-  # Without it, nothing that is false on a workstation can reach one.
+  # Nothing false on a workstation may reach one.
   [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
 
   HOME="$HOME_SANDBOX" run "$LINK" --cloud
@@ -64,8 +63,8 @@ teardown() {
   [ ! -L "$foreign" ]
   grep -q "someone else's" "$foreign/SKILL.md"
 
-  # `ln -nsf` onto a real directory links *into* it rather than replacing it,
-  # so the directory surviving is not evidence the guard ran. An empty one is.
+  # `ln -nsf` links *into* a real directory, so the directory surviving is not
+  # evidence the guard ran. An empty one is.
   run find "$foreign" -mindepth 1 -not -name SKILL.md
   [ -z "$output" ]
 }
@@ -83,8 +82,7 @@ teardown() {
 }
 
 @test "a link it could not make is reported, and changes the exit status" {
-  # A real directory where the link belongs: ln goes inside it, so the rules
-  # never become readable at that path.
+  # ln goes inside it, so the rules never become readable at that path.
   mkdir -p "$HOME_SANDBOX/.claude/rules/dotfiles"
 
   HOME="$HOME_SANDBOX" run "$LINK"

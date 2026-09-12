@@ -1,21 +1,14 @@
 #!/bin/bash
-# Link this repo's ~/.claude entries into $HOME where bin/mklink.sh never runs:
-# a Claude Code cloud session, or this repo's own web sandbox. Goes in the
-# environment's Setup script field at claude.ai/code, after the clone:
+# The ~/.claude entries, for a container where bin/mklink.sh never runs: a cloud
+# session (Setup script field at claude.ai/code) or this repo's web sandbox.
 #
 #     /root/dotfiles/bin/link_claude_dir.sh --cloud || true
 #
-# The `|| true` is load-bearing: a non-zero exit there fails the whole session,
-# and this script reports a failed link by exiting non-zero.
-#
-# Only ~/.claude, never mklink.sh. .zshrc costs a shell load on every Bash call
-# rather than one per login, and with no Homebrew its aliases take `cat` and
-# `curl` away instead of replacing them (#252). .gitconfig breaks `git commit`
-# on a GPG key the container lacks, and the session's own `git config --global`
-# then writes through the symlink into this repo.
-#
-# --cloud adds claudecode/rules-cloud: a flag and not the default, because every
-# line of it is false on a machine where mklink ran.
+# `|| true` matters: a non-zero exit there fails the session, and a failed link
+# exits non-zero here. Never the rest of mklink — in a container .zshrc costs a
+# shell load per Bash call and its aliases point at absent tools (#252), and
+# .gitconfig breaks `git commit` and takes `git config --global` into this repo.
+# --cloud is opt-in because claudecode/rules-cloud is false where mklink ran.
 
 set -uo pipefail
 
@@ -32,9 +25,8 @@ if [ "$with_cloud" -eq 1 ]; then
   ln -nsf "$BASE_DIR/claudecode/rules-cloud" "$CLAUDE_DIR/rules/dotfiles-cloud"
 fi
 
-# Walked, not named like mklink.sh: nothing here pairs with a list in
-# rmworld.sh, so that drift is avoidable. Other tools install their own skills
-# here, so a destination that is already a real directory is left alone.
+# Walked, not named like mklink.sh: no rmworld list to keep in sync. Other
+# tools install skills here, so an existing real directory is left alone.
 for skill in "$BASE_DIR"/claudecode/skills/*/; do
   [ -d "$skill" ] || continue
   dest="$CLAUDE_DIR/skills/$(basename "$skill")"
@@ -45,11 +37,10 @@ for skill in "$BASE_DIR"/claudecode/skills/*/; do
   ln -nsf "${skill%/}" "$dest"
 done
 
-# A failed link looks exactly like one that worked, and a rule that did not load
-# is silent, so report what is readable rather than what was attempted.
+# A failed link looks like one that worked, so report what is readable.
 missing=0
 
-# Any .md, not a named one: retiring a rule must not read as a broken link.
+# Any .md: retiring a rule must not read as a broken link.
 report_rules() {
   if [ -n "$(find "$2/" -maxdepth 1 -name '*.md' -print -quit 2>/dev/null)" ]; then
     echo "  ok   $1"
@@ -59,7 +50,7 @@ report_rules() {
   fi
 }
 
-# SKILL.md is the contract, so a skill without one has not arrived.
+# SKILL.md is the contract; without one the skill has not arrived.
 report_skill() {
   if [ -f "$2/SKILL.md" ]; then
     echo "  ok   skill $1"
