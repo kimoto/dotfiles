@@ -88,3 +88,30 @@ teardown() {
   [ "$status" -ne 0 ]
   [[ "$output" == *"MISS rules"* ]]
 }
+
+@test "a run without --cloud takes the container-only rule back out" {
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -eq 0 ]
+  [ -f "$HOME_SANDBOX/.claude/rules/dotfiles-cloud/scope.md" ]
+
+  # Every line of rules-cloud is false outside a container, so one inherited
+  # from an earlier run reads as truth about this machine.
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
+  [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
+}
+
+@test "a skill left alone is not reported as one that linked" {
+  name="$(basename "$(find "$REPO_ROOT/claudecode/skills" -mindepth 1 -maxdepth 1 -type d | head -1)")"
+  foreign="$HOME_SANDBOX/.claude/skills/$name"
+  mkdir -p "$foreign"
+  echo "someone else's" >"$foreign/SKILL.md"
+
+  # Their SKILL.md is not ours arriving: what loads under that name is theirs,
+  # which is the case the report exists to make visible.
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -ne 0 ]
+  [[ "$output" != *"ok   skill $name"* ]]
+  [[ "$output" == *"MISS skill $name"* ]]
+}

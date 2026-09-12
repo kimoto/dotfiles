@@ -65,7 +65,10 @@ truth, so the two never diverge.
   whether it says the right thing.
 - `claudecode/rules-cloud/` — linked in as `~/.claude/rules/dotfiles-cloud` only
   by `bin/link_claude_dir.sh --cloud`. It says what a container lacks, so every
-  line of it is false on a workstation and it must never reach one.
+  line of it is false on a workstation and it must never reach one. Which is
+  why a run *without* the flag, and `mklink.sh`, take the entry back out rather
+  than merely not make it: those two are the workstation, and a `$HOME` that was
+  a container first would otherwise keep telling it `cat` is cat.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries for a container where
   `mklink.sh` never runs: a cloud session (the environment's Setup script field
   at claude.ai/code) and this repo's web sandbox (`.claude/hooks/session-start.sh`).
