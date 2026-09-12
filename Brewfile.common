@@ -63,6 +63,8 @@ brew "gnu-sed"
 brew "gnupg"
 # Ping, but with a graph (ping replacement)
 brew "gping"
+# Review-first terminal diff viewer for agent-authored changesets
+brew "hunk"
 # Enhanced version of john, a UNIX password cracker
 brew "john-jumbo"
 # Lightweight and flexible command-line JSON processor
