@@ -20,6 +20,8 @@ with_cloud=0
 mkdir -p "$CLAUDE_DIR/rules" "$CLAUDE_DIR/skills"
 
 cloud_dest="$CLAUDE_DIR/rules/dotfiles-cloud"
+settings_src="$BASE_DIR/claudecode/settings-cloud.json"
+settings_dest="$CLAUDE_DIR/settings.json"
 
 ln -nsf "$BASE_DIR/claudecode/rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
@@ -29,6 +31,18 @@ elif [ -L "$cloud_dest" ]; then
   # where every line of rules-cloud is false, and an earlier --cloud run in the
   # same $HOME would otherwise go on claiming `cat` is cat and `>` overwrites.
   rm -f "$cloud_dest"
+fi
+
+# ⚠ Unlike the entries above, this path is Claude Code's own, so anywhere a
+# person set their own the link would take those into this checkout.
+if [ "$with_cloud" -eq 1 ]; then
+  if [ -e "$settings_dest" ] && [ ! -L "$settings_dest" ]; then
+    echo "[claude-dir] $settings_dest is not ours; left alone" >&2
+  else
+    ln -nsf "$settings_src" "$settings_dest"
+  fi
+elif [ "$(readlink -f "$settings_dest" 2>/dev/null)" = "$settings_src" ]; then
+  rm -f "$settings_dest"
 fi
 
 # Other tools install skills here too, so an existing real directory is theirs.
@@ -55,6 +69,15 @@ report_rules() {
   fi
 }
 
+report_link() {
+  if [ "$(readlink -f "$2" 2>/dev/null)" = "$3" ]; then
+    echo "  ok   $1"
+  else
+    echo "  MISS $1"
+    missing=1
+  fi
+}
+
 # SKILL.md is the contract, not just a file that happens to be there — and the
 # directory we leave alone above is another tool's, holding its own SKILL.md.
 # So follow the link to our copy: what loads under our name may not be ours.
@@ -73,6 +96,12 @@ if [ "$with_cloud" -eq 1 ]; then
   report_rules "cloud rules" "$cloud_dest"
 elif [ -e "$cloud_dest" ] || [ -L "$cloud_dest" ]; then
   echo "  MISS cloud rules still in place without --cloud"
+  missing=1
+fi
+if [ "$with_cloud" -eq 1 ]; then
+  report_link "cloud settings" "$settings_dest" "$settings_src"
+elif [ "$(readlink -f "$settings_dest" 2>/dev/null)" = "$settings_src" ]; then
+  echo "  MISS cloud settings still in place without --cloud"
   missing=1
 fi
 for skill in "$BASE_DIR"/claudecode/skills/*/; do

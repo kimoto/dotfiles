@@ -46,6 +46,12 @@ if [ -L ./.claude/rules/dotfiles-cloud ]; then
     rm -f ./.claude/rules/dotfiles-cloud
 fi
 
+# Rides with those rules. Only while it still points here: that path is Claude
+# Code's own, and on a workstation it holds what the machine set up itself.
+if [ "$(readlink -f ./.claude/settings.json 2>/dev/null)" = "$BASE_DIR/claudecode/settings-cloud.json" ]; then
+    rm -f ./.claude/settings.json
+fi
+
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
 # directory. Adding one means a line here and in bin/rmworld.sh (a test fails

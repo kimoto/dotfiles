@@ -202,3 +202,26 @@ teardown() {
   [ -L "$HOME_SANDBOX/.claude/rules/someone-else" ]
   [ -L "$HOME_SANDBOX/.claude/rules/dotfiles" ]
 }
+
+@test "mklink.sh takes the cloud session's settings out of a workstation HOME" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  ln -nsf "$REPO_ROOT/claudecode/settings-cloud.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME_SANDBOX/.claude/settings.json" ]
+  [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+}
+
+@test "mklink.sh leaves a settings.json that is not ours" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"mine": true}' >"$HOME_SANDBOX/.claude/settings.json"
+  ln -nsf "$HOME_SANDBOX/.claude/settings.json" "$HOME_SANDBOX/elsewhere.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+
+  # The path is where every machine keeps its own hooks and permissions.
+  grep -q mine "$HOME_SANDBOX/.claude/settings.json"
+  [ -e "$HOME_SANDBOX/elsewhere.json" ]
+}

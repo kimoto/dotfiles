@@ -69,6 +69,12 @@ truth, so the two never diverge.
   why a run *without* the flag, and `mklink.sh`, take the entry back out rather
   than merely not make it: those two are the workstation, and a `$HOME` that was
   a container first would otherwise keep telling it `cat` is cat.
+- `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
+  session; `--cloud` links it, a run without it and `mklink.sh` take it back
+  out. ⚠️ That path is Claude Code's own and on a workstation holds what the
+  machine set up for itself, so neither script touches anything but its own
+  link. For a setting that must hold whichever repo a cloud session was opened
+  on — a repo's `.claude/settings.json` reaches only sessions opened there.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries for a container where
   `mklink.sh` never runs: a cloud session (the environment's Setup script field
   at claude.ai/code) and this repo's web sandbox (`.claude/hooks/session-start.sh`).
