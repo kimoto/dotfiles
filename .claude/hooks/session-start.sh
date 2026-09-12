@@ -40,12 +40,10 @@ if ! command -v fzf >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   as_root apt-get install -y -qq fzf >/dev/null || true
 fi
 
-# 4. Claude Code user rules and skills — the ~/.claude entries bin/mklink.sh
-#    makes on a real machine. Through the same linker the cloud Setup script
-#    calls, so a rename moves one file instead of every caller. --cloud because
-#    this sandbox is one: mklink did not run and there is no Homebrew here
-#    (bin/install_check_tools.sh installs from apt and GitHub releases), which
-#    is exactly what claudecode/rules-cloud says.
+# 4. The ~/.claude entries bin/mklink.sh makes on a real machine, through the
+#    linker the cloud Setup script also calls. --cloud because this sandbox is a
+#    container too: no mklink, and no Homebrew (install_check_tools.sh uses apt
+#    and GitHub releases).
 "$REPO/bin/link_claude_dir.sh" --cloud \
   || echo "[session-start] a MISS above did not link — those rules or skills will not load"
 

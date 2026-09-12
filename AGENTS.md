@@ -62,14 +62,12 @@ truth, so the two never diverge.
   requests arrive in Japanese, and a skill is also read by the person deciding
   whether it says the right thing.
 - `claudecode/rules-cloud/` — linked in as `~/.claude/rules/dotfiles-cloud` only
-  by `bin/link_claude_dir.sh --cloud`, which is the whole point: it says what a
-  container does *not* have, so every line of it is false on a workstation and it
-  must never reach one.
-- `bin/link_claude_dir.sh` — links the `~/.claude` entries for a container where
-  `mklink.sh` never runs: a cloud session (pasted into the environment's Setup
-  script field at claude.ai/code) and this repo's own web sandbox (`.claude/hooks/
-  session-start.sh`). One script for both, so a rename cannot move one caller and
-  strand the other. Its header says why `.zshrc` and `.gitconfig` stay out.
+  by `bin/link_claude_dir.sh --cloud`. It says what a container lacks, so every
+  line of it is false on a workstation and it must never reach one.
+- `bin/link_claude_dir.sh` — the `~/.claude` entries for a container where
+  `mklink.sh` never runs: a cloud session (the environment's Setup script field
+  at claude.ai/code) and this repo's web sandbox (`.claude/hooks/session-start.sh`).
+  One script for both, so a rename cannot strand a caller.
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
   `keybindings.json` to this repo (replacing any existing file) and
   installs/overwrites the `extensions` list. Manual, human-only setup step —

@@ -1,15 +1,7 @@
 #!/usr/bin/env bats
 
-# Behavioural tests for bin/link_claude_dir.sh.
-#
-# Like mklink_rmworld_behaviour.bats these RUN the real script against a
-# throwaway $HOME, because what is worth proving is what it does to a
-# container: that the ~/.claude entries arrive, that *only* those do (a
-# container that acquired .zshrc or .gitconfig is the failure this script
-# exists to avoid), that --cloud is what decides whether a rule true only of a
-# container comes with them, and that a link it could not make is visible —
-# the Setup script field swallows the exit status, so the MISS line is the
-# only signal left.
+# Behavioural tests for bin/link_claude_dir.sh: runs the real script against a
+# throwaway $HOME, like mklink_rmworld_behaviour.bats does.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -29,9 +21,8 @@ teardown() {
   [ "$(readlink -f "$HOME_SANDBOX/.claude/rules/dotfiles")" \
       = "$REPO_ROOT/claudecode/rules" ]
 
-  # Every skill in the repo, not a list repeated here: a skill added upstream
-  # must arrive without this test being edited, which is the property the walk
-  # buys over mklink.sh's named entries.
+  # Every skill in the repo, not a list repeated here: one added upstream must
+  # arrive without this test being edited.
   for skill in "$REPO_ROOT"/claudecode/skills/*/; do
     name="$(basename "$skill")"
     [ -L "$HOME_SANDBOX/.claude/skills/$name" ]
@@ -73,18 +64,14 @@ teardown() {
   [ ! -L "$foreign" ]
   grep -q "someone else's" "$foreign/SKILL.md"
 
-  # What dropping the guard actually does, and the only part a caller sees:
-  # `ln -nsf` onto a real directory does not replace it, it links *into* it, so
-  # the skill quietly lands one level down and never loads. The directory
-  # surviving is not evidence the guard ran; an empty one next to SKILL.md is.
+  # `ln -nsf` onto a real directory links *into* it rather than replacing it,
+  # so the directory surviving is not evidence the guard ran. An empty one is.
   run find "$foreign" -mindepth 1 -not -name SKILL.md
   [ -z "$output" ]
 }
 
 @test "the rules check follows the link, not one rule's filename" {
-  # Pinning the health check to a named rule turns retiring that rule into a
-  # MISS on a link that is fine — a false alarm in the only output a container
-  # shows. Any rule in there has to satisfy it.
+  # Retiring a rule must not read as a broken link, so any .md satisfies it.
   fake_repo="$HOME_SANDBOX/repo"
   mkdir -p "$fake_repo/bin" "$fake_repo/claudecode/rules" "$fake_repo/claudecode/skills"
   cp "$LINK" "$fake_repo/bin/"
@@ -96,8 +83,8 @@ teardown() {
 }
 
 @test "a link it could not make is reported, and changes the exit status" {
-  # A real directory where the rules link belongs: ln puts the source *inside*
-  # it instead of replacing it, so the rules never become readable at that path.
+  # A real directory where the link belongs: ln goes inside it, so the rules
+  # never become readable at that path.
   mkdir -p "$HOME_SANDBOX/.claude/rules/dotfiles"
 
   HOME="$HOME_SANDBOX" run "$LINK"
