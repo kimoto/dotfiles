@@ -58,6 +58,12 @@ claudecode/rules/*
 !claudecode/rules/tooling.md
 !claudecode/rules/writing.md
 
+# claudecode/rules-cloud/: whitelist too. Linked in only by
+# bin/setup_cloud_session.sh, so a rule lands here when it is true of a cloud
+# container and false of a workstation.
+claudecode/rules-cloud/*
+!claudecode/rules-cloud/scope.md
+
 # claudecode/skills/: whitelist too. Other tools install their own skills into
 # ~/.claude/skills/, and a skill is a directory, so an accidental copy would
 # arrive as a whole tree.

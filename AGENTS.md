@@ -61,6 +61,16 @@ truth, so the two never diverge.
   reasons: the `description` is what a request is matched against and the
   requests arrive in Japanese, and a skill is also read by the person deciding
   whether it says the right thing.
+- `claudecode/rules-cloud/` — linked in as `~/.claude/rules/dotfiles-cloud` by
+  `bin/setup_cloud_session.sh` and by nothing else, which is the whole point: it
+  says what a cloud container does *not* have, so every line of it is false on a
+  workstation and it must never reach one.
+- `bin/setup_cloud_session.sh` — the `~/.claude` half of `mklink.sh`, for a Claude
+  Code cloud session; pasted into the environment's Setup script field at
+  claude.ai/code together with the clone that puts this repo on disk. Its header
+  says why `.zshrc` and `.gitconfig` stay out, and the field's two constraints it
+  is written to (a non-zero exit fails the session; work past five minutes is
+  dropped from the environment snapshot).
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
   `keybindings.json` to this repo (replacing any existing file) and
   installs/overwrites the `extensions` list. Manual, human-only setup step —
