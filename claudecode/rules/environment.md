@@ -4,7 +4,7 @@ Quirks these dotfiles create on every machine. Machine-specific rules belong in 
 
 ## Shadowed commands
 
-`.zshrc` replaces these and the Bash tool inherits them. Use `command <cmd>`, which bypasses aliases *and* functions, or an absolute path.
+`.zshrc` replaces these where the tool is installed, and the Bash tool inherits them. Use `command <cmd>`, which bypasses aliases *and* functions, or an absolute path. ⚠️ Where it is not — a container, a machine mid-bootstrap — the real command runs, so neither state is safe to assume.
 
 | Typed | Actually | Symptom |
 |---|---|---|
