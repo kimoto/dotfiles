@@ -1,53 +1,29 @@
 #!/bin/bash
 
-# mise missing-tool reminder.
-#
-# A tool in mise's config that is not installed makes mise re-resolve it on
-# every precmd, so the cost lands on each prompt rather than once at startup.
-# Nothing reports it: the shell just feels slow, and the state is reachable
-# from ordinary paths — mklink.sh before `mise install`, an install that failed
-# partway, a machine set up last month and never finished.
-#
-# Notify-only, never installs. Same shape as dotfiles_sync_check.sh: the
-# foreground prints the cached result of the previous run and a detached
-# background job recomputes it, so a warning can be one shell stale. No
-# throttle — the check is cheap when healthy, and while tools are missing the
-# nag has to survive until they are installed.
-#
-# Skipped entirely when DOTFILES_NO_MISE_CHECK is set (used by CI so the load
-# test neither slows down nor prints reminder noise).
+# A tool in mise's config that is not installed is re-resolved on every precmd,
+# so it taxes each prompt and says nothing: the shell just feels slow.
+# DOTFILES_NO_MISE_CHECK is CI's way out, so the load test stays quiet.
 
 set -u
 
 [ -n "${DOTFILES_NO_MISE_CHECK:-}" ] && exit 0
 
-# mise not installed yet -> stay silent; bootstrap (bin/mkworld.sh) handles that.
 command -v mise >/dev/null 2>&1 || exit 0
 
-# Path-only, no subprocesses: every fork here is paid by an interactive shell
-# before it can draw a prompt.
+# No subprocesses here: a fork is paid before the prompt can render.
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
 result="$cache_dir/mise_missing"
 
-#---------------------------------------------------------------
-# foreground: print the cached result and get out of the way
-#---------------------------------------------------------------
 [ -s "$result" ] && cat "$result" >&2
 
-#---------------------------------------------------------------
-# background: refresh the cache for the next shell
-#---------------------------------------------------------------
-# All fds are detached so neither the terminal nor the caller (zsh startup, or
-# bats' fd 3) ever waits on this job.
+# Every fd is detached below, or zsh startup and bats' fd 3 wait on this job.
 (
     mkdir -p "$cache_dir" 2>/dev/null || true
 
     tmp="$result.tmp.$$"
     : >"$tmp" 2>/dev/null || exit 0
 
-    # A mise too old for `--missing` errors out and prints nothing, which leaves
-    # the cache empty and this silent — the same as healthy, and the safe way
-    # round.
+    # A mise too old for --missing prints nothing, which reads as healthy.
     missing=$(mise ls --missing 2>/dev/null | grep -c . || true)
 
     if [ "${missing:-0}" -gt 0 ] 2>/dev/null; then
@@ -60,7 +36,7 @@ result="$cache_dir/mise_missing"
             "$cyan" "$reset" >>"$tmp"
     fi
 
-    # Replaced atomically so a shell reading mid-write never sees a torn file.
+    # Atomic: a shell reading mid-write must not see a torn file.
     mv -f "$tmp" "$result" 2>/dev/null || rm -f "$tmp" 2>/dev/null
 ) >/dev/null 2>&1 3>&- </dev/null &
 

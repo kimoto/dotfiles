@@ -1,15 +1,8 @@
 #!/usr/bin/env bats
 
-# Behavioural tests for bin/mise_missing_check.sh.
-#
-# mise is stubbed on PATH rather than used: the thing under test is what the
-# script does with the answer, and a real mise would make the answer depend on
-# whichever tools this machine happens to have installed.
-#
-# The script prints the cached result of the *previous* run and recomputes in a
-# detached background job, so most cases run twice: once to fill the cache,
-# wait_for it, then again to see the warning. Warnings go to stderr, which bats
-# folds into $output.
+# mise is stubbed, or the answer would depend on what this machine has
+# installed. The script prints the previous run's cache, so a case that wants
+# the warning runs twice.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -26,10 +19,8 @@ teardown() {
   rm -rf "$TMP"
 }
 
-# $1: what `mise ls --missing` should print on stdout. Bare `mise ls` answers
-# with an installed tool instead, so a script that drops the flag counts the
-# whole config and is caught here rather than on a machine that then warns at
-# every prompt with nothing missing.
+# $1 is what `--missing` prints. Bare `ls` answers with an installed tool, so
+# dropping the flag is caught here and not on a machine that then always warns.
 stub_mise() {
   cat >"$STUB_DIR/mise" <<EOF
 #!/bin/bash
@@ -87,7 +78,7 @@ node  26.8.2 (missing)  ~/.config/mise/config.toml  latest'
 }
 
 @test "a mise too old for --missing is silent, not noisy" {
-  # Prints usage to stderr and exits non-zero, like an unknown flag does.
+  # Exits non-zero on stderr, like an unknown flag.
   cat >"$STUB_DIR/mise" <<'EOF'
 #!/bin/bash
 echo "error: unexpected argument '--missing'" >&2
@@ -103,8 +94,7 @@ EOF
 }
 
 @test "no mise on PATH is silent and spawns nothing" {
-  # An empty stub dir, so no mise. Set on the run only: clobbering PATH for the
-  # whole test takes rm away from teardown too.
+  # Set on the run only: clobbering PATH takes rm away from teardown too.
   run env PATH="$STUB_DIR:/usr/bin:/bin" "$SCRIPT"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
