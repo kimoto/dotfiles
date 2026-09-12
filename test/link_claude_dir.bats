@@ -1,18 +1,19 @@
 #!/usr/bin/env bats
 
-# Behavioural tests for bin/setup_cloud_session.sh.
+# Behavioural tests for bin/link_claude_dir.sh.
 #
 # Like mklink_rmworld_behaviour.bats these RUN the real script against a
-# throwaway $HOME, because the thing worth proving is what it does to a
-# container: that it links the ~/.claude entries, that it links *only* those
-# (a cloud session that acquired .zshrc or .gitconfig is the failure this
-# script exists to avoid), and that it still exits 0 when a link could not be
-# made — the Setup script field fails the whole session on a non-zero exit, so
-# the MISS line is the only signal left and has to be there.
+# throwaway $HOME, because what is worth proving is what it does to a
+# container: that the ~/.claude entries arrive, that *only* those do (a
+# container that acquired .zshrc or .gitconfig is the failure this script
+# exists to avoid), that --cloud is what decides whether a rule true only of a
+# container comes with them, and that a link it could not make is visible —
+# the Setup script field swallows the exit status, so the MISS line is the
+# only signal left.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  SETUP="$REPO_ROOT/bin/setup_cloud_session.sh"
+  LINK="$REPO_ROOT/bin/link_claude_dir.sh"
   HOME_SANDBOX="$(mktemp -d)"
 }
 
@@ -20,17 +21,13 @@ teardown() {
   rm -rf "$HOME_SANDBOX"
 }
 
-@test "links the rules, the cloud scope rule, and every skill" {
-  HOME="$HOME_SANDBOX" run "$SETUP"
+@test "links the rules and every skill" {
+  HOME="$HOME_SANDBOX" run "$LINK"
   [ "$status" -eq 0 ]
 
   [ -L "$HOME_SANDBOX/.claude/rules/dotfiles" ]
   [ "$(readlink -f "$HOME_SANDBOX/.claude/rules/dotfiles")" \
       = "$REPO_ROOT/claudecode/rules" ]
-  [ -f "$HOME_SANDBOX/.claude/rules/dotfiles/writing.md" ]
-
-  [ -L "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
-  [ -f "$HOME_SANDBOX/.claude/rules/dotfiles-cloud/scope.md" ]
 
   # Every skill in the repo, not a list repeated here: a skill added upstream
   # must arrive without this test being edited, which is the property the walk
@@ -42,11 +39,22 @@ teardown() {
   done
 }
 
+@test "--cloud decides whether the container-only rule comes along" {
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  # Without it, nothing that is false on a workstation can reach one.
+  [ ! -e "$HOME_SANDBOX/.claude/rules/dotfiles-cloud" ]
+
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -eq 0 ]
+  [ -f "$HOME_SANDBOX/.claude/rules/dotfiles-cloud/scope.md" ]
+}
+
 @test "links nothing outside ~/.claude" {
-  HOME="$HOME_SANDBOX" run "$SETUP"
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
   [ "$status" -eq 0 ]
 
-  # The two that break a cloud session rather than merely adding to it.
+  # The two that break a container rather than merely adding to it.
   [ ! -e "$HOME_SANDBOX/.zshrc" ]
   [ ! -e "$HOME_SANDBOX/.gitconfig" ]
 
@@ -61,8 +69,7 @@ teardown() {
   mkdir -p "$foreign"
   echo "someone else's" >"$foreign/SKILL.md"
 
-  HOME="$HOME_SANDBOX" run "$SETUP"
-  [ "$status" -eq 0 ]
+  HOME="$HOME_SANDBOX" run "$LINK"
   [ ! -L "$foreign" ]
   grep -q "someone else's" "$foreign/SKILL.md"
 
@@ -74,13 +81,26 @@ teardown() {
   [ -z "$output" ]
 }
 
-@test "exits 0 but reports MISS when a link could not be made" {
+@test "the rules check follows the link, not one rule's filename" {
+  # Pinning the health check to a named rule turns retiring that rule into a
+  # MISS on a link that is fine — a false alarm in the only output a container
+  # shows. Any rule in there has to satisfy it.
+  fake_repo="$HOME_SANDBOX/repo"
+  mkdir -p "$fake_repo/bin" "$fake_repo/claudecode/rules" "$fake_repo/claudecode/skills"
+  cp "$LINK" "$fake_repo/bin/"
+  : >"$fake_repo/claudecode/rules/something-else.md"
+
+  HOME="$HOME_SANDBOX" run "$fake_repo/bin/link_claude_dir.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok   rules"* ]]
+}
+
+@test "a link it could not make is reported, and changes the exit status" {
   # A real directory where the rules link belongs: ln puts the source *inside*
   # it instead of replacing it, so the rules never become readable at that path.
   mkdir -p "$HOME_SANDBOX/.claude/rules/dotfiles"
 
-  HOME="$HOME_SANDBOX" run "$SETUP"
-  [ "$status" -eq 0 ]
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -ne 0 ]
   [[ "$output" == *"MISS rules"* ]]
-  [[ "$output" == *"will not load this session"* ]]
 }
