@@ -5,8 +5,6 @@
 # or bin/ci_tmux_loading_test.sh, it goes here. CI installs ONLY this file
 # (Brewfile.common is skipped when CI=true). Everything else -> Brewfile.common.
 # NOTE: Keep entries sorted A-Z within this file.
-# Additional Homebrew tap
-tap "rs/tap"
 # Multi-shell completion engine with specs for 1000+ commands
 brew "carapace"
 # GNU File, Shell, and Text utilities
