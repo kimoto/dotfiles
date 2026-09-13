@@ -32,12 +32,13 @@ setup() {
     "$TMP/repo/claudecode/rules-cloud" "$TMP/repo/claudecode/skills/example-skill"
   : >"$TMP/repo/claudecode/rules/example.md"
   : >"$TMP/repo/claudecode/rules-cloud/scope.md"
+  : >"$TMP/repo/claudecode/settings-cloud.json"
   : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
 
-  # The real linker, not a stub: what the hook is being trusted to do lives in
-  # bin/link_claude_dir.sh now, so a stub here would test the call and not the
-  # linking — which is the half that was silently missing before.
-  cp "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/link_claude_dir.sh"
+  # The real scripts, not stubs: a stub tests the call, not the result — the
+  # half that was silently missing before.
+  cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
+    "$TMP/repo/bin/"
   for stub in lefthook sudo apt-get; do
     cat >"$TMP/bin/$stub" <<EOF
 #!/bin/bash

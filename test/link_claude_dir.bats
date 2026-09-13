@@ -115,3 +115,48 @@ teardown() {
   [[ "$output" != *"ok   skill $name"* ]]
   [[ "$output" == *"MISS skill $name"* ]]
 }
+
+@test "--cloud puts the session's settings under the repo" {
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok   cloud settings"* ]]
+
+  [ -L "$HOME_SANDBOX/.claude/settings.json" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" \
+      = "$REPO_ROOT/claudecode/settings-cloud.json" ]
+}
+
+@test "settings already there are never linked over" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"theirs": true}' >"$HOME_SANDBOX/.claude/settings.json"
+
+  # Claude Code's own path: a link would take their settings into the repo.
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"MISS cloud settings"* ]]
+
+  [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+  grep -q theirs "$HOME_SANDBOX/.claude/settings.json"
+}
+
+@test "a run without --cloud takes the cloud settings back out too" {
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/settings.json" ]
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+  [ ! -e "$HOME_SANDBOX/.claude/settings.json" ]
+}
+
+@test "a settings symlink someone else made is left alone too" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"theirs": true}' >"$HOME_SANDBOX/theirs.json"
+  ln -nsf "$HOME_SANDBOX/theirs.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"MISS cloud settings"* ]]
+  [ "$(readlink "$HOME_SANDBOX/.claude/settings.json")" = "$HOME_SANDBOX/theirs.json" ]
+}
