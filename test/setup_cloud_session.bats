@@ -10,7 +10,7 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
-  TMP="$(mktemp -d)"
+  TMP="$(fixture_tmpdir)"
 
   mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/decoy" "$TMP/repo/bin" \
     "$TMP/repo/claudecode/rules" "$TMP/repo/claudecode/rules-cloud" \

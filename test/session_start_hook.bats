@@ -24,7 +24,7 @@ setup() {
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
   HOOK="$REPO_ROOT/.claude/hooks/session-start.sh"
-  TMP="$(mktemp -d)"
+  TMP="$(fixture_tmpdir)"
 
   # The rules directory has to really exist: `ln -sf` dereferences an existing
   # symlink only when the target is real, so a dangling one hides the -n case.
