@@ -26,6 +26,8 @@ Checked harmless: `grep`/`egrep`/`fgrep`, `mkdir`, `mv`.
 
 `>` onto an existing file fails with `file exists:`. It fails quietly mid-pipeline and the old content survives, so a later check reads the unchanged file as "the edit wasn't needed" rather than "the edit was lost". Use `>|`, or write a temp file and `cp`.
 
+★**`>>` is the mirror image: it fails when the file does *not* exist** (`no such file or directory`), so appending to a fresh log, or to one a `rm -f` just removed, dies on the first write. ⚠️ In a loop that redirects stderr to that same target, every error lands in the file that was never created — the loop finishes silently and reports success. Use `>>|`, or create it first with `: >| file`.
+
 ## zsh expands unquoted option values
 
 `--include=*.ts` dies with `no matches found` before the command runs. Quote glob patterns passed as option values.
