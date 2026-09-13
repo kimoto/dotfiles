@@ -71,12 +71,9 @@ truth, so the two never diverge.
   a container first would otherwise keep telling it `cat` is cat.
 - `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
   session, for a setting that must hold whichever repo the session was opened
-  on. ⚠️ That path is Claude Code's own: neither script touches anything there
-  but its own link.
+  on.
 - `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
-  git hooks, fzf, the `~/.claude` entries. Called by the Setup script field at
-  claude.ai/code and by the web sandbox hook. ⚠️ Toolchain and hooks go in
-  together or not at all — hooks alone refuse every commit.
+  git hooks, fzf, the `~/.claude` entries.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
   script because those entries must also be takeable back out (`mklink.sh`).
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
