@@ -251,7 +251,7 @@ alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
-alias vi='nvim'
+(( $+commands[nvim] )) && alias vi='nvim'
 alias reload="exec zsh"
 # The interactive command line only: functions in this file call `builtin cd`
 # instead, for the same reason `ll` above is a function - whether an alias
@@ -259,12 +259,14 @@ alias reload="exec zsh"
 # zoxide records the jump from its own chpwd hook, however the directory
 # changed.
 [[ $- == *i* ]] && alias cd="z"
-alias cat='bat'
-alias less='bat --pager=less'
-alias curl='curlie' # for pretty-print
-alias top='btop'
-alias ping='gping'
-alias dig='doggo'
+# Guarded because each shadows a command that works without the dotfiles: an
+# unguarded alias does not replace `cat`, it takes it away.
+(( $+commands[bat] ))    && alias cat='bat'
+(( $+commands[bat] ))    && alias less='bat --pager=less'
+(( $+commands[curlie] )) && alias curl='curlie' # for pretty-print
+(( $+commands[btop] ))   && alias top='btop'
+(( $+commands[gping] ))  && alias ping='gping'
+(( $+commands[doggo] ))  && alias dig='doggo'
 alias grep='grep --color=auto'
 # egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
 # route through the grep alias above, so they get color and skip the warning.

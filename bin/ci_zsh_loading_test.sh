@@ -36,6 +36,16 @@ run_zsh() {
   env CI= "$ZSH_BIN" -ic "$cmd" 2>&1
 }
 
+refute_grep() {
+  local label="$1"
+  local haystack="$2"
+  local pattern="$3"
+
+  if printf '%s\n' "$haystack" | grep -q "$pattern"; then
+    die "$label: $(printf '%s\n' "$haystack" | grep "$pattern" | tr '\n' ' ')"
+  fi
+}
+
 require_grep() {
   local label="$1"
   local haystack="$2"
@@ -107,9 +117,17 @@ echo "== extended .zshrc assertions =="
 probe="$(mktemp)"
 cat >"$probe" <<'PROBE'
 functions ll
-alias vi
-alias cat
 alias reload
+# An alias shadowing a real command must point at a tool that exists, or `cat`
+# stops being cat rather than becoming something nicer.
+for _c in cat less curl top ping dig vi; do
+  _a=${aliases[$_c]}
+  if [[ -n $_a ]]; then
+    _t=${_a%% *}
+    (( $+commands[$_t] )) && print "SHADOW_OK:$_c->$_t" || print "SHADOW_DANGLING:$_c->$_t"
+  fi
+done
+print "SHADOW_CHECKED"
 print "EDITOR=$EDITOR"
 print "VISUAL=$VISUAL"
 print "PAGER=$PAGER"
@@ -135,8 +153,10 @@ printf '%s\n' "$env_out"
 # an alias would not survive .zshrc's own wordcode cache into the function
 # bodies that list with it (chpwd, l), so only the body proves the flags.
 require_grep "ll missing --long flags"          "$env_out" "ls --long --all"
-require_grep "vi is not aliased to nvim"        "$env_out" "vi=.*nvim"
-require_grep "cat is not aliased to bat"        "$env_out" "cat=.*bat"
+# CI installs only Brewfile.basic, so these aliases are absent here and present
+# on a workstation; the dangling case is what must hold on both.
+require_grep "shadowing-alias probe did not run" "$env_out" "SHADOW_CHECKED"
+refute_grep "an alias shadows a command with a missing tool" "$env_out" "SHADOW_DANGLING:"
 require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
 
 # environment variables
