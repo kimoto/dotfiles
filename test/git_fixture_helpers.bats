@@ -54,3 +54,16 @@ teardown() {
   [ -z "$missing" ] || echo "not isolated:$missing"
   [ -z "$missing" ]
 }
+
+@test "fixture_tmpdir resolves a symlinked TMPDIR, as macOS always hands it one" {
+  mkdir -p "$TMP/real"
+  ln -s "$TMP/real" "$TMP/link"
+
+  dir="$(TMPDIR="$TMP/link" fixture_tmpdir)"
+
+  [ -d "$dir" ]
+  # Returned unresolved, a fixture's own path and the one git reports for it
+  # are two different strings for one directory.
+  case "$dir" in "$TMP/link"/*) false ;; esac
+  [ "$dir" = "$(cd "$dir" && pwd -P)" ]
+}

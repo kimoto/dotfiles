@@ -22,7 +22,7 @@ setup() {
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
   SCRIPT="$REPO_ROOT/bin/worktree_new.sh"
-  TMP="$(mktemp -d)"
+  TMP="$(fixture_tmpdir)"
 
   ORIGIN="$TMP/origin.git"
   git init -q --bare -b main "$ORIGIN"

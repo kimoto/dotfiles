@@ -20,3 +20,13 @@ isolate_git_env() {
     GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE \
     GIT_QUARANTINE_PATH GIT_INTERNAL_SUPER_PREFIX
 }
+
+# fixture_tmpdir: a throwaway directory whose path is already resolved. macOS
+# hands back /var/folders/... from mktemp -d while git and readlink report the
+# /private/var/folders/... it points at, so a fixture that compares a path it
+# built itself against one a command reported sees two strings for one
+# directory. The template is spelled out because macOS mktemp ignores TMPDIR
+# without one, which would leave the guard in the bats file unable to steer it.
+fixture_tmpdir() {
+  (cd "$(mktemp -d "${TMPDIR:-/tmp}/fixture.XXXXXXXX")" && pwd -P)
+}
