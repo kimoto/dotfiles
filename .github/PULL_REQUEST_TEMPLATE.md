@@ -14,11 +14,6 @@ Commit subjects must follow Conventional Commits (enforced by lefthook + CI):
 <!-- Name what checked this — a job, a hook, a command you ran. -->
 -
 
-## Checklist
-
-- [ ] Scope is what the title says, and nothing rode along
-- [ ] Behaviour changes are visible in the diff, not only in a description
-
 ## Related
 
 <!-- Closes #123, refs #456, or "none". -->
