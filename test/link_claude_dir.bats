@@ -149,3 +149,14 @@ teardown() {
   [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
   [ ! -e "$HOME_SANDBOX/.claude/settings.json" ]
 }
+
+@test "a settings symlink someone else made is left alone too" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"theirs": true}' >"$HOME_SANDBOX/theirs.json"
+  ln -nsf "$HOME_SANDBOX/theirs.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"MISS cloud settings"* ]]
+  [ "$(readlink "$HOME_SANDBOX/.claude/settings.json")" = "$HOME_SANDBOX/theirs.json" ]
+}
