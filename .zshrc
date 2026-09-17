@@ -322,6 +322,20 @@ B() {
   gh branch
 }
 
+# Publishing is the one git operation with no undo: a force-push moves the ref
+# back, but the objects stay fetchable by SHA, so a push to a public repository
+# is over the moment it lands. This asks first - and only there, on a public
+# GitHub remote; a private one is untouched. What counts as such a push lives
+# in the script, so it can be tested; this wrapper only decides when to ask.
+# Intentional bypass: PUBLIC_PUSH_OK=1 git push ...
+git() {
+  local guard="$DOTFILES_ROOT/bin/check_public_push.sh"
+  if [[ -x $guard ]]; then
+    "$guard" "$@" || return 1
+  fi
+  command git "$@"
+}
+
 # git worktree jump via fzf (in the style of b/g): cd into a chosen worktree.
 w() {
   local dir=$(git worktree list | fzf --preview '' --query="$*" | awk '{print $1}')

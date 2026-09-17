@@ -19,6 +19,7 @@ Quirks these dotfiles create on every machine. Machine-specific rules belong in 
 | `cp` | `cp -v` | |
 | `vi` | nvim | |
 | `w` | a **function** | |
+| ★`git` | a **function**: `push` is shown to `bin/check_public_push.sh` first | a push to a **public** GitHub remote stops with `PUBLIC: <owner>/<repo>` and exits 1 — nothing is sent. Private remotes and every other subcommand are untouched. ⚠️ With no terminal (every agent session) it refuses instead of asking, by design: publishing is the one git operation with no undo, so it is a person's call. |
 
 Checked harmless: `grep`/`egrep`/`fgrep`, `mkdir`, `mv`.
 

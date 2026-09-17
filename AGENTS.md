@@ -25,6 +25,12 @@ truth, so the two never diverge.
   and only one of those is an absence. ⚠️ Nothing fires when a person merely
   looks at a terminal that stayed open — Claude Code has no such event — so the
   notice rides the first prompt after the gap,
+  `check_public_push.sh` (the guard behind the `git` wrapper function in
+  `.zshrc`: a push to a public GitHub remote stops and, given a terminal,
+  asks — with no terminal it refuses. This repo is public, so pushing a PR
+  branch from an agent session needs `PUBLIC_PUSH_OK=1 git push …`; that
+  bypass is deliberately not printed by the refusal, so a session pushing
+  somewhere else has to surface the target instead of routing around it),
   `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` — it
   reads `KEYBINDINGS.md`, so adding a row there is what makes a binding
   discoverable; tmux also binds it to `prefix + ?`, but tmux-which-key rebinds
