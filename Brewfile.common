@@ -115,6 +115,8 @@ brew "sevenzip"
 brew "shellcheck"
 # Create beautiful image of your source code
 brew "silicon"
+# Very fast implementation of tldr in Rust
+brew "tealdeer"
 # User interface to the TELNET protocol
 brew "telnet"
 # Manage complex tmux sessions easily
