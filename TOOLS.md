@@ -95,6 +95,7 @@ _Source: `Brewfile.common`._
 | [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
 | [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
+| [tealdeer](https://formulae.brew.sh/formula/tealdeer) | Very fast implementation of tldr in Rust |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
