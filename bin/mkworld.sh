@@ -7,10 +7,15 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
 cd "$HOME"
 
+# Helpers are executed directly, never as `sh <script>`: each one's shebang
+# picks its interpreter. `sh` would be bash-in-POSIX-mode on macOS but dash on
+# Linux, and setup_homebrew.sh (and friends) open with `set -euo pipefail`,
+# which dash rejects outright — under the set -e above that killed the whole
+# bootstrap at the Homebrew step, on Linux only.
 mkdir -p ./tmp
-sh "$BASE_DIR/bin/mklink.sh"
+"$BASE_DIR/bin/mklink.sh"
 if [ "${SKIP_BREW:-0}" = "0" ]; then
-    sh "$BASE_DIR/bin/setup_homebrew.sh"
+    "$BASE_DIR/bin/setup_homebrew.sh"
 fi
 
 # Vim (legacy .vimrc): fetch the NeoBundle plugin manager, tracked as a
@@ -39,8 +44,8 @@ fi
 # Claude Code: register the tmux state-indicator hooks (pane/window colors for
 # waiting-for-input / finished states) in ~/.claude/settings.json. Idempotent;
 # warns and skips instead of failing when jq is missing.
-sh "$BASE_DIR/bin/install_claude_tmux_hooks.sh"
-sh "$BASE_DIR/bin/install_claude_idle_hooks.sh"
+"$BASE_DIR/bin/install_claude_tmux_hooks.sh"
+"$BASE_DIR/bin/install_claude_idle_hooks.sh"
 
 # Install git hooks (lefthook) and the commit message template
 if command -v lefthook >/dev/null 2>&1; then
@@ -50,11 +55,11 @@ fi
 # macOS: enable weekly background brew auto-upgrade (formulae; casks stay manual).
 # Non-fatal so a hiccup here never aborts the bootstrap.
 if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ]; then
-    sh "$BASE_DIR/bin/setup_brew_autoupdate.sh" || true
+    "$BASE_DIR/bin/setup_brew_autoupdate.sh" || true
 fi
 
 # macOS: apply system preferences (Finder, key repeat, startup mute — needs
 # sudo for nvram). Non-fatal so a denied sudo never aborts the bootstrap.
 if [ "$(uname)" = "Darwin" ]; then
-    sh "$BASE_DIR/bin/setup_macosx.sh" || true
+    "$BASE_DIR/bin/setup_macosx.sh" || true
 fi

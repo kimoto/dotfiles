@@ -28,9 +28,33 @@ setup() {
 
 @test "zsh_pane_cmd places extra env assignments before zsh" {
   REPO=/repo ZSH_BIN=/bin/zsh
-  run zsh_pane_cmd "PATH='/stub:/usr/bin'"
+  run zsh_pane_cmd "PATH=/stub:/usr/bin"
   [ "$status" -eq 0 ]
   [[ "$output" == *" PATH='/stub:/usr/bin' '/bin/zsh' -i" ]]
+}
+
+@test "zsh_pane_cmd quotes extra env values, so a PATH with spaces survives" {
+  # tmux runs the whole string through /bin/sh. Under WSL the inherited PATH
+  # carries the Windows one along with it, and its entries have spaces and
+  # parentheses ("/mnt/c/Program Files (x86)/..."). Unquoted, /bin/sh answers
+  # `Syntax error: "(" unexpected`, the pane dies before zsh starts, and the
+  # test that spawned it just sees an empty pane time out.
+  REPO=/repo ZSH_BIN=/bin/zsh
+  run zsh_pane_cmd "PATH=/stub:/mnt/c/Program Files (x86)/Common Files"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"PATH='/stub:/mnt/c/Program Files (x86)/Common Files'"* ]]
+
+  # ...and prove it against a real /bin/sh rather than by eyeballing the quotes.
+  printf '%s' "$output" | sh -n
+}
+
+@test "zsh_pane_cmd survives a value containing a single quote" {
+  REPO=/repo ZSH_BIN=/bin/zsh
+  run zsh_pane_cmd "FOO=a'b"
+  [ "$status" -eq 0 ]
+  # '"'"' is the only way to put a quote inside a single-quoted sh word.
+  [[ "$output" == *"FOO='a'\\''b'"* ]]
+  printf '%s' "$output" | sh -n
 }
 
 @test "zsh_pane_cmd dies when REPO / ZSH_BIN are not set" {

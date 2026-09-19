@@ -121,10 +121,19 @@ wait_absent() {
 }
 
 # Launch an interactive zsh in a real terminal, under the shared CI pane
-# conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh). The stub bin is
-# prepended to PATH so `ghq`/`bat` resolve to the fixtures.
-tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd "PATH='$STUB_BIN:$PATH'")" ||
+# conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh). The stub bin goes into
+# the pane's environment so anything .zshrc spawns inherits it too.
+tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd "PATH=$STUB_BIN:$PATH")" ||
   die "failed to start tmux session"
+
+# ...and re-prepend it once the shell is up, because .zshrc rebuilds $path with
+# the Homebrew bin directories *ahead* of whatever it inherited. On a machine
+# that has the real ghq installed (any full workstation — ghq is in
+# Brewfile.common) that real ghq shadows the stub and the fixture silently
+# stops being hermetic: `ghq root` answers with the developer's own ~/ghq.
+# CI never noticed because it installs Brewfile.basic only, so there is no real
+# ghq there to win.
+tmux -L "$SOCK" send-keys "export PATH=$STUB_BIN:\$PATH" Enter
 
 # 0) Shell is live and our fixtures are the ones on PATH (proves the env took).
 tmux -L "$SOCK" send-keys 'echo __G_READY__$((6 * 7)):$(ghq root)' Enter

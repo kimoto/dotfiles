@@ -20,6 +20,14 @@ die() { echo "CI error: $*" >&2; exit 1; }
 # need <cmd>: abort unless <cmd> is on PATH.
 need() { command -v "$1" >/dev/null 2>&1 || die "$1 not installed"; }
 
+# sh_quote <string>: wrap <string> in single quotes for /bin/sh, escaping any
+# single quote it already contains ('"'"' is the only way to get one inside a
+# single-quoted word). Used for every value interpolated into a command string
+# that tmux will hand to sh.
+sh_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
 # zsh_pane_cmd [VAR=value ...]: build the new-session command string that
 # launches an interactive zsh pane under the shared CI conventions:
 #   - CI is cleared so .zshrc does not enable err_exit and abort on the first
@@ -27,17 +35,26 @@ need() { command -v "$1" >/dev/null 2>&1 || die "$1 not installed"; }
 #   - the startup sync-check and brew bundle check are silenced so the pane
 #     neither touches the network nor burns seconds of its first-render budget;
 #   - TERM is pinned for reproducible rendering.
-# Extra VAR=value assignments (e.g. a stubbed PATH) land before zsh. Requires
-# $REPO (the ZDOTDIR under test) and $ZSH_BIN, set by every caller.
+# Extra VAR=value assignments (e.g. a stubbed PATH) land before zsh, with the
+# value quoted here — pass it raw. Requires $REPO (the ZDOTDIR under test) and
+# $ZSH_BIN, set by every caller.
+#
+# The quoting is not cosmetic: tmux runs this whole string through /bin/sh, and
+# under WSL the inherited PATH has the Windows one appended to it, entries and
+# all — "/mnt/c/Program Files (x86)/...". Unquoted, sh answers `Syntax error:
+# "(" unexpected`, the pane dies before zsh starts, and the caller only sees an
+# empty pane time out 15 seconds later.
 zsh_pane_cmd() {
   if [ -z "${REPO:-}" ] || [ -z "${ZSH_BIN:-}" ]; then
     die "zsh_pane_cmd needs REPO and ZSH_BIN"
   fi
   local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1"
   cmd="$cmd DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 TERM=xterm-256color"
-  local a
+  local a name value
   for a in "$@"; do
-    cmd="$cmd $a"
+    name="${a%%=*}"
+    value="${a#*=}"
+    cmd="$cmd $name=$(sh_quote "$value")"
   done
   printf '%s' "$cmd '$ZSH_BIN' -i"
 }

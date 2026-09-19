@@ -81,6 +81,12 @@ truth, so the two never diverge.
   installs/overwrites the `extensions` list. Manual, human-only setup step —
   not called from `mkworld.sh`, CI, or lefthook; never invoke it from an agent.
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
+- `windows/` — the Windows half of the same workstation, for the WSL host: the
+  `Brewfile.macos` → winget mapping, a winget manifest, the Windows Terminal
+  scheme and the AutoHotkey port of `hammerspoon/init.lua`. Reference and
+  manual `winget import` only — nothing in `bin/` reads it, because a symlink
+  made from WSL under `/mnt/c` is not one Windows follows, so every file here
+  is a copy someone applies by hand.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
   tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
   rebind a key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh,
@@ -98,6 +104,10 @@ truth, so the two never diverge.
   `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
   Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
   (CI + lefthook run `--check` to enforce it stays in sync).
+- `docs/` — design notes for work that is planned but not built. They record
+  *why* and the change list, so the work starts from a list rather than from
+  scratch; each says so at the top. Nothing here describes current behaviour —
+  that lives next to the code it describes.
 - `test/fixtures/` — helpers the `ci_*_test.sh` e2e checks need but that are
   not themselves under test: `stub_lsp.py` is a language server that only
   completes the handshake, so CI can assert "opening a .ts file attaches a

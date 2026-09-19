@@ -41,6 +41,18 @@ tmux -L "$SOCK" new-session -d -x 200 -y 50 || die "failed to start tmux server"
 # Non-fatal: a missing-plugin `run` in the config can exit non-zero on first run.
 tmux -L "$SOCK" source-file "$CONF" 2>/dev/null || true
 
+# Point tpm at the throwaway server. Its scripts call bare `tmux`, and a bare
+# tmux client follows $TMUX whenever it is set — and bin/mkworld.sh is normally
+# run from inside a tmux session, so $TMUX arrives here pointing at a different
+# server entirely. When that inherited server is an older build than the tmux
+# now on PATH (a distro /usr/bin/tmux still serving the session while Homebrew
+# supplies the client), every tpm call dies with "server version is too old for
+# client" and tpm gives up with "FATAL: Tmux Plugin Manager not configured in
+# tmux.conf" — which, under mkworld's `set -e`, took the rest of the bootstrap
+# (Claude tmux hooks, lefthook) down with it.
+TMUX="$(tmux -L "$SOCK" display-message -p '#{socket_path},#{pid},0')"
+export TMUX
+
 echo "== installing plugins from @tpm_plugins =="
 "$TPM/bin/install_plugins"
 

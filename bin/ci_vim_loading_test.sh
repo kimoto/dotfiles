@@ -116,8 +116,12 @@ echo "== headless startup clean (no errors, plugins + colorscheme loaded) =="
 # terminal and confirm it lands on a normal editing screen with neither.
 # ---------------------------------------------------------------------------
 echo "== real-terminal startup check =="
+# LC_ALL is pinned for the same reason TERM is: the assertions below read Vim's
+# own UI strings off the pane, and Vim translates them. Under a Japanese locale
+# the empty buffer is labelled [無名], not [No Name], and this check failed on a
+# perfectly healthy Vim — a false alarm that says nothing about the config.
 tmux -L "$SOCK" new-session -d -x 120 -y 40 \
-  "env HOME='$HOME_DIR' TERM=xterm-256color vim -N -u '$HOME_DIR/.vimrc'" ||
+  "env HOME='$HOME_DIR' TERM=xterm-256color LC_ALL=C vim -N -u '$HOME_DIR/.vimrc'" ||
   die "failed to start tmux session"
 
 screen=""

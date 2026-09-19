@@ -44,6 +44,30 @@ teardown() {
   [ "$(git -C "$FIXTURE" log --oneline | wc -l | tr -d ' ')" = "1" ]
 }
 
+@test "isolate_git_env turns off commit signing the fixture host may not be able to do" {
+  # ~/.gitconfig sets commit.gpgsign = true and .gitconfig.default_user names a
+  # signing key, and mklink.sh symlinks both into $HOME — so on any machine
+  # without that secret key in its keyring (a fresh Linux box, a CI runner)
+  # every fixture commit dies with "gpg failed to sign the data". gpg.program
+  # here is `false`, so the signing attempt fails identically everywhere,
+  # keyring or not.
+  FIXTURE="$TMP/signing"
+  git init -q -b main "$FIXTURE"
+  git -C "$FIXTURE" config user.email t@t.test
+  git -C "$FIXTURE" config user.name test
+  git -C "$FIXTURE" config commit.gpgsign true
+  git -C "$FIXTURE" config gpg.program false
+
+  # Red without the helper: local config alone still forces a signature.
+  unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1
+  run git -C "$FIXTURE" commit -q --allow-empty -m "feat: signed"
+  [ "$status" -ne 0 ]
+
+  isolate_git_env
+  git -C "$FIXTURE" commit -q --allow-empty -m "feat: unsigned"
+  [ "$(git -C "$FIXTURE" log --oneline | wc -l | tr -d ' ')" = "1" ]
+}
+
 @test "every fixture that runs git isolates the git env first" {
   cd "$REPO_ROOT"
   missing=""
