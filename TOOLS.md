@@ -95,7 +95,6 @@ _Source: `Brewfile.common`._
 | [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
 | [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
-| [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
@@ -115,6 +114,7 @@ _Source: `Brewfile.macos`._
 
 | Tool | Description |
 | --- | --- |
+| [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
 | [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
@@ -129,3 +129,13 @@ _Source: `Brewfile.macos`._
 | [raycast](https://formulae.brew.sh/cask/raycast) | Control your tools with a few keystrokes |
 | [rectangle](https://formulae.brew.sh/cask/rectangle) | Move and resize windows using keyboard shortcuts or snap areas |
 | [stats](https://formulae.brew.sh/cask/stats) | System monitor for the menu bar |
+
+## Linux
+
+Linux-specific additions.
+
+_Source: `Brewfile.linux`._
+
+| Tool | Description |
+| --- | --- |
+| [xclip](https://formulae.brew.sh/formula/xclip) | Access X11 clipboards from the command-line |

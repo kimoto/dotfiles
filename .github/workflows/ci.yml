@@ -154,6 +154,22 @@ jobs:
           path: ~/.tmux/plugins
           key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
 
+      - name: Install check tools
+        # This job installs Brewfile.basic only, and bats-core is in
+        # Brewfile.common — so the suite below has no runner without this. The
+        # whole toolchain rather than bats alone: the lint_*.bats cases drive
+        # the real binaries and fail rather than skip when one is missing.
+        run: ./bin/install_check_tools.sh
+
+      - name: Unit tests (bats) with the dotfiles linked into $HOME
+        # Deliberately a second run of the same suite static_checks runs: that
+        # job has a pristine $HOME, this one has just been through mkworld, so
+        # ~/.gitconfig is the repo's. That difference is a whole class of bug —
+        # fixtures inheriting commit.gpgsign = true and a signing key no runner
+        # holds the secret half of, which fails on every fresh machine and on no
+        # CI job. Seconds to run, so it stays per-push rather than monthly.
+        run: ./bin/run_tests.sh
+
       - name: Load to test .zshrc
         run: ./bin/ci_zsh_loading_test.sh
 

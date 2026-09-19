@@ -121,6 +121,18 @@ EOF
   [[ "$output" == *"starship.rs"* ]]
 }
 
+@test "schemas in SKIP_SCHEMAS are skipped, and say so distinctly" {
+  # Not a download problem — this schema fetches fine but is itself invalid, so
+  # the skip reason must not claim the host refused us.
+  printf '{ "$schema": "https://aka.ms/winget-packages.schema.2.0.json" }\n' \
+    >"$TMP/winget.json"
+  run "$SCRIPT" "$TMP/winget.json"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skip"* ]]
+  [[ "$output" == *"schema itself is invalid"* ]]
+  [[ "$output" != *"refuses automated downloads"* ]]
+}
+
 @test "a mixed batch fails if any single file is invalid" {
   cat >"$TMP/ok.json" <<EOF
 { "\$schema": "$SCHEMA", "name": "ok" }

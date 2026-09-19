@@ -1,1 +1,20 @@
-# Linux-specific entries can be added here.
+# Brewfile.linux — Linux-only additions, plus the Linux stand-ins for macOS
+# entries that have no Linux bottle. Installed after Brewfile.basic and
+# Brewfile.common on Linux; the macOS counterpart is Brewfile.macos.
+# NOTE: Keep entries sorted A-Z within this file.
+#
+# Deliberately NOT here:
+# - telnet: Homebrew has no Linux bottle (Tier 3, "no bottle available"), and
+#   building from source is not worth it for a debug client. Every distro ships
+#   one (`apt install telnet` -> /usr/bin/telnet), and `nc` from the netcat
+#   formula in Brewfile.common covers the same "poke a TCP port" job.
+# - inetutils, the other Homebrew source of a telnet binary: it conflicts with
+#   the gping formula in Brewfile.common (both install a `gping` binary), and
+#   .zshrc aliases `ping` to gping.
+#
+# Named explicitly even though silicon already pulls it in transitively: the
+# pbcopy/pbpaste shims in .zshrc and the copy-mode yank in .tmux.conf both
+# fall back to it, so it should not rest on a dependency edge. (Under WSL
+# without WSLg there is no X server; both fall through to clip.exe.)
+# Access X11 clipboards from the command-line
+brew "xclip"

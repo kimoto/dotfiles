@@ -47,6 +47,21 @@ the two are different devices and never in effect at once. Modifiers are spelled
 out because Win is not ⌘: it sits where a Mac keyboard has Alt. Stock Windows
 keys are not listed; only what this setup adds.
 
+### AutoHotkey (global remaps, every app except Windows Terminal)
+
+The port of the Hammerspoon table below, in
+`windows/autohotkey/emacs-remaps.ahk`. Windows Terminal is exempted for the
+same reason Ghostty is on the mac: zsh and nvim bind these themselves.
+
+| Key | Action |
+|-----|--------|
+| Alt+B / F | Move word backward / forward (sends Ctrl+←/→) |
+| Ctrl+/ | Undo (sends Ctrl+Z) |
+
+Hammerspoon's ⌃+W (delete word backward) is deliberately **not** ported: Ctrl+W
+is close-tab in nearly every Windows app, and Ctrl+Backspace already deletes the
+previous word. The line is in the script, commented out.
+
 ### ShareX (screen capture)
 
 ShareX's `HotkeysConfig.json` lives under `%USERPROFILE%` and cannot be

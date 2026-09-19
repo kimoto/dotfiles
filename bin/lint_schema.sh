@@ -21,6 +21,19 @@ cd "$BASE_DIR" || exit 1
 # Schema hosts that block programmatic GETs (HTTP 403); no usable mirror.
 SKIP_HOSTS="starship.rs"
 
+# Schemas that download fine but are themselves invalid, so no validator can
+# get as far as looking at our file. Keyed on the full URL, not the host:
+# aka.ms fronts many unrelated schemas.
+#
+# winget-packages.schema.2.0.json declares
+#   "WinGetVersion": { "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(\\-preview)?$" }
+# and JSON Schema requires `pattern` to be a valid ECMA-262 regex, where `\-`
+# is not a legal identity escape. check-jsonschema validates the schema against
+# the metaschema first and stops there ("SchemaError: ... is not a 'regex'").
+# Python's own `re` is lenient enough to accept it, which is why this only shows
+# up under a strict validator. Upstream's bug; nothing to fix on our side.
+SKIP_SCHEMAS="https://aka.ms/winget-packages.schema.2.0.json"
+
 if ! command -v check-jsonschema >/dev/null 2>&1; then
     echo "x check-jsonschema not found (brew install check-jsonschema, or pipx install check-jsonschema)" >&2
     exit 1
@@ -97,12 +110,15 @@ for f in "${files[@]}"; do
     [ -z "$schema" ] && continue
 
     host=${schema#*://}; host=${host%%/*}
-    skip=0
+    skip_reason=""
     for h in $SKIP_HOSTS; do
-        [ "$host" = "$h" ] && skip=1
+        [ "$host" = "$h" ] && skip_reason="schema host '$host' refuses automated downloads"
     done
-    if [ "$skip" -eq 1 ]; then
-        echo "- skip $f: schema host '$host' refuses automated downloads"
+    for u in $SKIP_SCHEMAS; do
+        [ "$schema" = "$u" ] && skip_reason="schema itself is invalid (see SKIP_SCHEMAS)"
+    done
+    if [ -n "$skip_reason" ]; then
+        echo "- skip $f: $skip_reason"
         continue
     fi
 

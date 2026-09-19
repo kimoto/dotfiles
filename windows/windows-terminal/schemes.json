@@ -1,0 +1,50 @@
+{
+  "schemes": [
+    {
+      "background": "#002B36",
+      "black": "#073642",
+      "blue": "#268BD2",
+      "brightBlack": "#335E69",
+      "brightBlue": "#839496",
+      "brightCyan": "#93A1A1",
+      "brightGreen": "#586E75",
+      "brightPurple": "#6C71C4",
+      "brightRed": "#CB4B16",
+      "brightWhite": "#FDF6E3",
+      "brightYellow": "#657B83",
+      "cursorColor": "#839496",
+      "cyan": "#2AA198",
+      "foreground": "#839496",
+      "green": "#859900",
+      "name": "iTerm2 Solarized Dark",
+      "purple": "#D33682",
+      "red": "#DC322F",
+      "selectionBackground": "#073642",
+      "white": "#EEE8D5",
+      "yellow": "#B58900"
+    },
+    {
+      "background": "#002B36",
+      "black": "#073642",
+      "blue": "#268BD2",
+      "brightBlack": "#657B83",
+      "brightBlue": "#839496",
+      "brightCyan": "#93A1A1",
+      "brightGreen": "#586E75",
+      "brightPurple": "#6C71C4",
+      "brightRed": "#CB4B16",
+      "brightWhite": "#FDF6E3",
+      "brightYellow": "#657B83",
+      "cursorColor": "#657B83",
+      "cyan": "#2AA198",
+      "foreground": "#FDF6E3",
+      "green": "#859900",
+      "name": "Solarized Dark Patched",
+      "purple": "#D33682",
+      "red": "#DC322F",
+      "selectionBackground": "#FFFFFF",
+      "white": "#EEE8D5",
+      "yellow": "#B58900"
+    }
+  ]
+}

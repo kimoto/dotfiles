@@ -79,6 +79,32 @@ path=(
   ${^_brew_bins}(N-/)
   $path
 )
+
+# _evalcache (mroth/evalcache, loaded as a sheldon plugin and driven by the
+# inlines in config/sheldon/plugins.toml) names its cache after the command
+# line alone — nothing about the binary. So `brew upgrade direnv` leaves a
+# cache that still `source`s the previous Cellar path, and every prompt prints
+#   _direnv_hook:2: no such file or directory: .../Cellar/direnv/2.35.0/bin/direnv
+# until someone deletes the file by hand. Drop any entry the binary has
+# outlived; the sheldon inlines below regenerate it on this same startup.
+#
+# Resolved against $_brew_bins rather than $PATH on purpose. Every tool cached
+# this way is brew-installed, and a real PATH lookup that misses (the two
+# entries wrapping this repo's own scripts always miss) walks all of $PATH —
+# under WSL that is the inherited Windows path over the 9p mount, ~90ms each.
+# This way it is one stat per Homebrew prefix per entry.
+for _evalcache_file in ${ZSH_EVALCACHE_DIR:-$HOME/.zsh-evalcache}/init-*.sh(N); do
+  # init-direnv-hook-zsh.sh -> direnv
+  _evalcache_cmd=${${_evalcache_file:t}#init-}
+  _evalcache_cmd=${_evalcache_cmd%%-*}
+  for _evalcache_bin in ${^_brew_bins}/$_evalcache_cmd(N-*); do
+    [[ $_evalcache_bin -nt $_evalcache_file ]] &&
+      rm -f "$_evalcache_file" "$_evalcache_file.zwc"
+    break
+  done
+done
+unset _evalcache_file _evalcache_cmd _evalcache_bin
+
 unset _brew_bins
 manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
@@ -274,6 +300,70 @@ alias egrep='grep -E'
 alias fgrep='grep -F'
 alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
 alias gist='gh gist create --web'
+
+#=====================
+# macOS parity shims
+#=====================
+# pbcopy / pbpaste / open ship with every mac, so they end up baked into muscle
+# memory, snippets (see `snip` below) and scripts shared across both machines.
+# Defined off macOS only — the $OSTYPE test is free, whereas asking whether
+# `pbcopy` exists is a PATH miss, and a miss has to walk every entry of $PATH.
+# Under WSL that means stat()ing the inherited Windows path (/mnt/c/Program
+# Files/..., /mnt/c/Users/.../WindowsApps, ...) across the 9p mount: ~90ms per
+# lookup, ~280ms of startup for these three alone.
+#
+# The provider inside each function is chosen when the function runs, not when
+# the shell starts: a display can appear mid-session (WSLg, an ssh -X login),
+# and nothing is probed until something is actually copied.
+if [[ $OSTYPE != darwin* ]]; then
+  pbcopy() {
+    if [[ -n "$WAYLAND_DISPLAY" ]] && builtin command -v wl-copy >/dev/null; then
+      wl-copy
+    elif [[ -n "$DISPLAY" ]] && builtin command -v xclip >/dev/null; then
+      xclip -selection clipboard -in
+    elif builtin command -v clip.exe >/dev/null; then
+      # WSL with no display at all: reach the Windows clipboard over /mnt/c
+      # interop. clip.exe takes UTF-8 as-is on current Windows builds.
+      clip.exe
+    else
+      print -u2 "pbcopy: no clipboard provider (wl-copy / xclip / clip.exe)"
+      return 1
+    fi
+  }
+
+  pbpaste() {
+    if [[ -n "$WAYLAND_DISPLAY" ]] && builtin command -v wl-paste >/dev/null; then
+      wl-paste --no-newline
+    elif [[ -n "$DISPLAY" ]] && builtin command -v xclip >/dev/null; then
+      xclip -selection clipboard -out
+    elif builtin command -v powershell.exe >/dev/null; then
+      # Get-Clipboard returns CRLF line endings and appends a newline of its
+      # own. $(...) strips every trailing newline, `print -r --` puts back the
+      # single one a pipeline expects; unlike macOS pbpaste this therefore
+      # normalises the trailing whitespace of what was copied.
+      local text
+      text=$(powershell.exe -NoProfile -NonInteractive -Command Get-Clipboard 2>/dev/null | tr -d '\r')
+      print -r -- "$text"
+    else
+      print -u2 "pbpaste: no clipboard provider (wl-paste / xclip / powershell.exe)"
+      return 1
+    fi
+  }
+
+  # `open FILE|URL|.` -> hand it to the desktop's default handler.
+  open() {
+    if builtin command -v wslview >/dev/null; then
+      # WSL: wslview (from wslu) translates the path and lets Windows pick the
+      # app, so `open .` lands in Explorer the way it lands in Finder.
+      wslview "$@"
+    elif builtin command -v xdg-open >/dev/null; then
+      xdg-open "$@"
+    else
+      print -u2 "open: no handler (wslview / xdg-open)"
+      return 1
+    fi
+  }
+fi
 
 #=====================
 # keybindings

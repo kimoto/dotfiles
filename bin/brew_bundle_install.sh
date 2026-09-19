@@ -103,7 +103,10 @@ for f in "${files[@]}"; do
 done
 confirm "Install now? (unattended; steps needing a human run at the end)" || exit 0
 
-log=$(mktemp -t brew_bundle_install) || exit 1
+# Explicit XXXXXX template rather than `mktemp -t prefix`: BSD mktemp (macOS)
+# fills in a suffix for a bare prefix, but GNU mktemp (Linux) requires at least
+# three trailing X's and errors out with "too few X's in template".
+log=$(mktemp "${TMPDIR:-/tmp}/brew_bundle_install.XXXXXX") || exit 1
 trap 'rm -f "$log"' EXIT
 
 # A sudo askpass helper that always fails: any cask needing a password errors

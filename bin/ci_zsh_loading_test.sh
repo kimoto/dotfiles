@@ -113,6 +113,31 @@ require_grep "ls -l output missing bin/mkworld.sh" "$ls_out" "mkworld.sh"
 # intermediate shell (where it is empty) before the inner zsh ever sees it.
 # Sourcing a file keeps every `$` expansion inside the inner zsh, after .zshrc
 # has loaded. It still loads .zshrc only once.
+# _evalcache (mroth/evalcache, driven by the sheldon inlines) keys its cache on
+# the command line alone, so `brew upgrade direnv` leaves a cached init script
+# that still `source`s the *old* Cellar path — and zsh then prints
+# "_direnv_hook:2: no such file or directory: .../Cellar/direnv/<old>/bin/direnv"
+# on every single prompt until the cache is deleted by hand. .zshrc drops any
+# cache entry older than the binary it wraps; both halves are asserted here.
+echo "== evalcache staleness =="
+stale_dir="$(mktemp -d)"
+printf '# stale\n' >"$stale_dir/init-zsh-stale.sh"
+touch -t 197001020000 "$stale_dir/init-zsh-stale.sh"
+printf '# fresh\n' >"$stale_dir/init-zsh-fresh.sh"
+# Not derived from any command on PATH: must be left alone, not swept up.
+printf '# other\n' >"$stale_dir/init-nosuchcommand-x.sh"
+touch -t 197001020000 "$stale_dir/init-nosuchcommand-x.sh"
+env CI= ZDOTDIR="$PWD" ZSH_EVALCACHE_DIR="$stale_dir" DOTFILES_NO_SYNC_CHECK=1 \
+  DOTFILES_NO_BREW_CHECK=1 "$ZSH_BIN" -ic true >/dev/null 2>&1 || true
+[ -e "$stale_dir/init-zsh-stale.sh" ] &&
+  die "evalcache entry older than its binary was not invalidated"
+[ -e "$stale_dir/init-zsh-fresh.sh" ] ||
+  die "evalcache entry newer than its binary was wrongly deleted"
+[ -e "$stale_dir/init-nosuchcommand-x.sh" ] ||
+  die "evalcache entry for an unknown command was wrongly deleted"
+rm -rf "$stale_dir"
+echo "== stale evalcache entries invalidated, fresh ones kept =="
+
 echo "== extended .zshrc assertions =="
 probe="$(mktemp)"
 cat >"$probe" <<'PROBE'
@@ -140,6 +165,11 @@ for o in autocd autopushd share_history interactivecomments noclobber; do
 done
 for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
   whence -w "$fn"
+done
+# macOS parity shims: functions off macOS, the real binaries on it. Printing
+# only the kind keeps the assertion identical on both platforms.
+for fn in pbcopy pbpaste open; do
+  print "PARITY:$fn=$(whence -w "$fn" 2>/dev/null | cut -d: -f2- | tr -d ' ')"
 done
 bindkey "^G"
 bindkey "^X^N"
@@ -188,6 +218,33 @@ done
 for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
   require_grep "function not defined: $fn" "$env_out" "$fn: function"
 done
+
+# macOS parity shims. pbcopy/pbpaste/open are macOS built-ins that snippets and
+# muscle memory assume everywhere, so .zshrc defines stand-ins wherever the real
+# command is missing. Either resolution is a pass — what must never happen is
+# `none`, which is what a mac-only assumption looks like on Linux.
+for fn in pbcopy pbpaste open; do
+  require_grep "no $fn on this platform (macOS parity shim missing)" \
+    "$env_out" "PARITY:$fn=\(function\|command\|builtin\)"
+done
+
+# ...and the shim must actually reach a clipboard, not just exist. Gated on a
+# provider being installed: a headless CI runner has no display and no Windows
+# interop, where returning an error is the correct behaviour.
+if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && command -v xclip >/dev/null 2>&1 ||
+  command -v clip.exe >/dev/null 2>&1; then
+  clip_probe="$(mktemp)"
+  cat >"$clip_probe" <<'CLIP'
+print -rn -- "parity-roundtrip-テスト" | pbcopy && print "CLIP_PUT=ok"
+print "CLIP_GET=$(pbpaste)"
+CLIP
+  clip_out="$(run_zsh "source '$clip_probe'")"
+  rm -f "$clip_probe"
+  printf '%s\n' "$clip_out"
+  require_grep "pbcopy found no clipboard provider" "$clip_out" "CLIP_PUT=ok"
+  require_grep "pbpaste did not read back what pbcopy wrote" \
+    "$clip_out" "CLIP_GET=parity-roundtrip-テスト"
+fi
 
 # zle widgets / keybindings
 require_grep "livegrep not bound to ^G" "$env_out" "livegrep"

@@ -78,8 +78,10 @@ esac
 # outside the swap, so it costs both states the same, and a kube context only
 # ever makes the segment being replaced wider. Counted as ASCII characters (the
 # styles are already gone; dropping the powerline glyphs keeps this the same
-# number on every locale) that segment is ~21 with no kube context at all —
-# the worst case, and the one this ceiling is set against.
+# number on every locale) that segment is ~18 on a machine with no kube context
+# — the clock alone, since the guard in .tmux.conf drops the ⎈ box rather than
+# drawing it empty. That is the worst case, and the one this ceiling is set
+# against.
 cols="$(printf %s "$held" | LC_ALL=C tr -cd '\40-\176' | wc -c | tr -d ' ')"
 [ "$cols" -le 32 ] \
   || die "the prefix hint is $cols columns wide; keep it under 32 or the window list loses a slice of itself"
@@ -166,13 +168,32 @@ dots="$(expand "$(opt status-left)" | grep -o '[●•]' | grep -c .)"
 [ "$dots" = "2" ] || die "status-left did not follow a session going away (expected 2, got ${dots:-0})"
 echo "== status-left renders a dot per session with no shell job =="
 
-# 9) The kube context is read by a job that sleeps between prints. A bare
-#    `kubectl config current-context` here is a ~35ms process on every redraw.
-#    It lives in @status_info, the half of status-right the prefix hint hides.
-case "$(opt @status_info)" in
-  *sleep*) ;;
-  *) die "the kube job no longer throttles itself; it will run kubectl every status-interval" ;;
-esac
-echo "== the kube context job throttles itself =="
+# 9) The kube segment. Which of the two branches .tmux.conf picked depends on
+#    whether this machine has a current context, so assert the one that
+#    applies -- both have something worth pinning.
+#    With a context: the name is read by a job that sleeps between prints. A
+#    bare `kubectl config current-context` here is a ~35ms process on every
+#    redraw.
+#    Without one: the segment must be gone entirely, not drawn empty. An empty
+#    green box is indistinguishable from a context whose name did not arrive
+#    yet, and the job behind it would wake once a minute forever to print
+#    nothing.
+if kubectl config current-context >/dev/null 2>&1; then
+  case "$(opt @status_info)" in
+    *sleep*) ;;
+    *) die "the kube job no longer throttles itself; it will run kubectl every status-interval" ;;
+  esac
+  echo "== the kube context job throttles itself =="
+else
+  case "$(opt @status_info)" in
+    *kubectl*) die "no current context here, but @status_info still runs kubectl behind an empty segment" ;;
+  esac
+  case "$(opt @status_info)" in
+    *'⎈'*) die "no current context here, but the kube glyph is still drawn" ;;
+  esac
+  expand "$(opt @status_info)" | grep -q "$today" \
+    || die "the no-context branch dropped the clock along with the kube segment"
+  echo "== no current context on this machine: the kube segment and its job are absent =="
+fi
 
 echo "PASS"

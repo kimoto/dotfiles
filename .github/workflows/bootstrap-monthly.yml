@@ -1,0 +1,117 @@
+---
+# Monthly, no-cache, full-workstation bootstrap on Ubuntu.
+#
+# ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
+# slice of it: setup_homebrew.sh skips Brewfile.common when CI=true,
+# ci_prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
+# suite never links the dotfiles into $HOME. So the parts of the bootstrap a
+# human actually executes are the parts CI never touches, and a run of bugs
+# escaped that way — a `sh <bash script>` that only dash rejects, a formula with
+# no Linux bottle, fixtures inheriting commit.gpgsign from the real ~/.gitconfig.
+#
+# This job closes that gap by doing what a person does on a fresh machine:
+# ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
+# same locale the real machine uses. Slow and network-bound (it installs every
+# Brewfile), hence monthly + manual rather than per-push — the same trade-off as
+# vim-monthly.yml.
+name: bootstrap-monthly
+on:
+  schedule:
+    - cron: '0 7 1 * *'   # 07:00 UTC on the 1st, an hour after vim-monthly
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  full-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      # The real machine is Japanese, and that is not cosmetic: Vim translates
+      # the UI strings the e2e assertions read off the pane, so a check can pass
+      # under the C locale CI defaults to and fail on the actual workstation.
+      LANG: ja_JP.UTF-8
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate the ja_JP locale
+        run: sudo locale-gen ja_JP.UTF-8
+
+      - name: Install a tmux to bootstrap from
+        # Only needed to *host* the bootstrap; Brewfile.basic installs the tmux
+        # everything afterwards actually uses.
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tmux
+
+      - name: Bootstrap from scratch, from inside a tmux session
+        # Nothing skipped: no SKIP_BREW, no CI=true, so this is the first place
+        # `brew bundle` sees Brewfile.common and Brewfile.linux, and the first
+        # place mkworld runs its own helper scripts for real.
+        #
+        # Inside tmux on purpose. $TMUX is then inherited all the way down to
+        # tpm, which resolves its server from it like any bare tmux client —
+        # that is how install_tmux_plugins.sh came to talk to the wrong server
+        # and abort the rest of the bootstrap. A bootstrap launched from a login
+        # shell that already runs tmux is the normal case, not the exotic one.
+        #
+        # tmux detaches the pane's process, so the exit status has to come back
+        # out of band: the pane writes it to a file and signals a wait-for
+        # channel. A signal sent before anyone waits is remembered by tmux, so
+        # a fast bootstrap cannot slip past the wait below.
+        run: |
+          set -e
+          cat >"$RUNNER_TEMP/bootstrap.sh" <<'EOF'
+          #!/bin/sh
+          cd "$GITHUB_WORKSPACE" || exit 1
+          ./bin/mkworld.sh
+          echo $? >"$RUNNER_TEMP/mkworld.rc"
+          tmux wait-for -S bootstrapped
+          EOF
+          chmod +x "$RUNNER_TEMP/bootstrap.sh"
+          tmux new-session -d -x 200 -y 50 "$RUNNER_TEMP/bootstrap.sh"
+          tmux wait-for bootstrapped
+          rc="$(cat "$RUNNER_TEMP/mkworld.rc")"
+          echo "mkworld.sh exit=$rc"
+          [ "$rc" = "0" ]
+
+      - name: Every Brewfile for this platform is satisfied
+        # The direct canary for a formula that has no Linux bottle: `brew bundle
+        # install` reports it and moves on, so only an explicit check fails.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          for f in Brewfile.basic Brewfile.common Brewfile.linux; do
+            echo "== $f =="
+            brew bundle check --verbose --file="$f"
+          done
+
+      - name: Unit tests (bats) against a $HOME the dotfiles are linked into
+        # ci.yml runs these in a job with a pristine $HOME. Here ~/.gitconfig is
+        # the repo's, so the fixtures inherit commit.gpgsign = true and a
+        # signing key this runner has no secret half of — exactly the machine
+        # every fresh checkout is.
+        #
+        # Each step is a fresh shell, so brew has to go back on PATH: bats comes
+        # from Brewfile.common, as do the linters the suite shells out to.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ./bin/run_tests.sh
+
+      - name: Interactive e2e that only bite with the full toolchain installed
+        # ci.yml runs these too, but with Brewfile.common absent. `g` stubs ghq
+        # on PATH, and a real ghq is only here to shadow that stub once
+        # Brewfile.common is in.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ./bin/ci_zsh_loading_test.sh
+          ./bin/ci_tmux_loading_test.sh
+          ./bin/ci_g_command_test.sh
+          ./bin/ci_w_command_test.sh

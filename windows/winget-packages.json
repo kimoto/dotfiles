@@ -1,0 +1,39 @@
+{
+ "$schema" : "https://aka.ms/winget-packages.schema.2.0.json",
+ "Sources": [
+  {
+   "Packages": [
+    {
+     "PackageIdentifier": "AutoHotkey.AutoHotkey"
+    },
+    {
+     "PackageIdentifier": "DeepL.DeepL"
+    },
+    {
+     "PackageIdentifier": "Google.JapaneseIME"
+    },
+    {
+     "PackageIdentifier": "Microsoft.PowerToys"
+    },
+    {
+     "PackageIdentifier": "Microsoft.WindowsTerminal"
+    },
+    {
+     "PackageIdentifier": "OliverSchwendener.ueli"
+    },
+    {
+     "PackageIdentifier": "ShareX.ShareX"
+    },
+    {
+     "PackageIdentifier": "xanderfrangos.twinkletray"
+    }
+   ],
+   "SourceDetails": {
+    "Argument": "https://cdn.winget.microsoft.com/cache",
+    "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+    "Name": "winget",
+    "Type": "Microsoft.PreIndexed.Package"
+   }
+  }
+ ]
+}
