@@ -21,15 +21,24 @@ teardown() {
 
 # $1 is what `--missing` prints. Bare `ls` answers with an installed tool, so
 # dropping the flag is caught here and not on a machine that then always warns.
+#
+# Each call gets its own directory prepended to PATH rather than rewriting
+# $STUB_DIR/mise in place: the script under test backgrounds and detaches a
+# `mise` invocation, so an earlier generation can still be mid-exec when the
+# next stub_mise runs, and truncating a file that is currently being exec'd
+# is a real ETXTBSY race, not a hypothetical one.
 stub_mise() {
-  cat >"$STUB_DIR/mise" <<EOF
+  local dir
+  dir="$(mktemp -d "$TMP/bin.XXXXXX")"
+  cat >"$dir/mise" <<EOF
 #!/bin/bash
 case " \$* " in
   *" --missing "*) printf '%s' "$1" ;;
   *)               printf 'go  1.27.1  ~/.config/mise/config.toml  latest\n' ;;
 esac
 EOF
-  chmod +x "$STUB_DIR/mise"
+  chmod +x "$dir/mise"
+  PATH="$dir:$PATH"
 }
 
 wait_for() {
