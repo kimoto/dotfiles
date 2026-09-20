@@ -44,19 +44,35 @@ binding discoverable at the keyboard.
 
 The other machine. A peer of the macOS layer, not another level on top of it —
 the two are different devices and never in effect at once. Modifiers are spelled
-out because Win is not ⌘: it sits where a Mac keyboard has Alt. Stock Windows
-keys are not listed; only what this setup adds.
+out because Win is not ⌘. This machine is driven from a Mac keyboard with the
+modifiers passed through unremapped, so Command arrives as **Win** — the key
+under the thumb is the same one, and every `Win+…` row below is what ⌘ already
+reaches for. Stock Windows keys are not listed; only what this setup adds.
 
 ### AutoHotkey (global remaps, every app except Windows Terminal)
 
 The port of the Hammerspoon table below, in
-`windows/autohotkey/emacs-remaps.ahk`. Windows Terminal is exempted for the
+`windows/autohotkey/mac-keys.ahk`. Windows Terminal is exempted for the
 same reason Ghostty is on the mac: zsh and nvim bind these themselves.
 
 | Key | Action |
 |-----|--------|
 | Alt+B / F | Move word backward / forward (sends Ctrl+←/→) |
 | Ctrl+/ | Undo (sends Ctrl+Z) |
+
+### AutoHotkey (inside Windows Terminal only)
+
+The other half of `mac-keys.ahk`, and the mirror of the section above: these
+fire *only* when the terminal is frontmost. They exist because Windows reserves
+`Win+<key>` for the shell, so Windows Terminal is not allowed to bind them
+itself — `Win+1` would otherwise launch the first taskbar app. The bytes match
+the Ghostty rows further down, so tmux cannot tell the two machines apart.
+
+| Key | Action |
+|-----|--------|
+| Win+1~9 | → sends ESC+1~9 to tmux (select window 1~9) |
+| Win+Alt+←/→ | → sends ⌥+←/→ to tmux (previous / next window) |
+| Win+Alt+↑/↓ | → sends ⌥+↑/↓ to tmux (previous / next session) |
 
 Hammerspoon's ⌃+W (delete word backward) is deliberately **not** ported: Ctrl+W
 is close-tab in nearly every Windows app, and Ctrl+Backspace already deletes the

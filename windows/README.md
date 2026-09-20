@@ -124,11 +124,20 @@ So the choice is Windows' keys with zero moving parts, or a hotkey tool.
 technology changed, so it wants an uninstall and reinstall, which risks the
 existing PowerToys settings.
 
-## The `hammerspoon` layer
+## AutoHotkey: the `hammerspoon` layer, and the keys Windows will not lend out
 
-`autohotkey/emacs-remaps.ahk` ports the three remaps that carry over. It is
-config for an off-the-shelf tool rather than a program, but it *is* something to
-maintain, so the alternatives, and why they were not taken:
+`autohotkey/mac-keys.ahk` holds both halves. Outside the terminal it ports the
+Hammerspoon remaps that carry over; inside it, it reproduces the Ghostty
+keybinds that reach tmux.
+
+The second half is not a preference. A Mac keyboard sends Win where the mac
+sends Command, and Windows reserves every `Win+<key>` for the shell — so
+`Win+1` launches the first taskbar app and no application may bind it, Windows
+Terminal included. Its `settings.json` cannot express these at all, which is
+what puts them here rather than beside the rest of the terminal's config.
+
+It is config for an off-the-shelf tool rather than a program, but it *is*
+something to maintain, so the alternatives, and why they were not taken:
 
 - **PowerToys Keyboard Manager** — same exclusion gap as above. A global
   `Alt+B` → `Ctrl+Left` would also fire inside Windows Terminal, where zsh
