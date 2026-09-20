@@ -22,7 +22,7 @@ if [ "${BREW_CACHE_HIT:-}" = "true" ]; then
   echo "== brew cache hit: skipping Homebrew install =="
 else
   echo "== brew cache miss: installing Homebrew + Brewfile.basic =="
-  ./bin/setup_homebrew.sh
+  SKIP_BREWFILE_COMMON=1 ./bin/setup_homebrew.sh
 fi
 
 # Put brew on PATH for the rest of this script, whichever path ran above.

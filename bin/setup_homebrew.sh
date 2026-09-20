@@ -5,34 +5,45 @@ set -euo pipefail
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1;
 
-if ! command -v brew >/dev/null 2>&1; then
-    os="$(uname)"
-    if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Everything here is discovery, for the normal case of a machine that may not
+# have Homebrew yet. A caller that already knows where brew is passes BREW_BIN
+# and skips the lot -- including the `shellenv` eval, which prepends a prefix to
+# PATH and would otherwise decide the answer for it.
+if [ -z "${BREW_BIN:-}" ]; then
+    if ! command -v brew >/dev/null 2>&1; then
+        os="$(uname)"
+        if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
     fi
-fi
 
-if [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x "/opt/homebrew/bin/brew" ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-BREW_BIN="$(command -v brew 2>/dev/null || true)"
-if [ -z "$BREW_BIN" ]; then
     if [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
-        BREW_BIN="/home/linuxbrew/.linuxbrew/bin/brew"
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
     elif [ -x "/opt/homebrew/bin/brew" ]; then
-        BREW_BIN="/opt/homebrew/bin/brew"
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+
+    BREW_BIN="$(command -v brew 2>/dev/null || true)"
+    if [ -z "$BREW_BIN" ]; then
+        if [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
+            BREW_BIN="/home/linuxbrew/.linuxbrew/bin/brew"
+        elif [ -x "/opt/homebrew/bin/brew" ]; then
+            BREW_BIN="/opt/homebrew/bin/brew"
+        fi
     fi
 fi
-if [ -z "$BREW_BIN" ]; then
+if [ -z "${BREW_BIN:-}" ]; then
     echo "brew not found after installation" >&2
     exit 1
 fi
 
 "$BREW_BIN" bundle install --file=Brewfile.basic
-if [ "${CI:-}" != "true" ]; then
+
+# Brewfile.common is the expensive half, and a caller that only needs a shell to
+# start says so itself. Deliberately not keyed on $CI: Actions exports CI=true
+# into every step, so the one job built to bootstrap with nothing skipped could
+# not opt back in, and installed nothing but Brewfile.basic.
+if [ "${SKIP_BREWFILE_COMMON:-0}" != "1" ]; then
     "$BREW_BIN" bundle install --file=Brewfile.common
 fi
 
