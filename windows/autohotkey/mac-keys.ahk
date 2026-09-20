@@ -41,6 +41,47 @@
 ; Enable it only as a deliberate trade against close-tab:
 ; ^w::Send("^{BackSpace}")
 
+; --- Command as Command ---------------------------------------------------
+; The Mac keyboard's Command arrives as Win, so ⌘+C is physically Win+C, and
+; Windows spends Win+<letter> on shell shortcuts. Except here: NoWinKeys is set
+; on this machine, which kills every one of them. Nothing is being taken away,
+; which is the only reason these are a straight remap rather than a negotiation.
+;
+; Left out on purpose, each because the mac key means something Windows has no
+; equal of rather than because the chord is taken:
+;   ⌘+Q  quits the application; Alt+F4 closes a window. Same finger, different
+;        blast radius, and the wrong one is unrecoverable.
+;   ⌘+H  hides an application. Windows has no such state.
+;   ⌘+M  minimises -- Win+Down already does, and is not shadowed here.
+;   ⌘+Tab is a held-modifier cycle with its own switcher UI. Send can produce
+;        one hop, which feels like a broken Alt+Tab rather than a Command+Tab.
+;   ⌘+L  would be the address bar, and is the one entry here that is not a
+;        judgement call: Win+L locks the workstation from below the hook layer,
+;        where NoWinKeys does not reach and AutoHotkey cannot intercept. The
+;        remap would not fire and the screen would lock instead.
+#a::Send("^a")
+#c::Send("^c")
+#f::Send("^f")
+#n::Send("^n")
+#p::Send("^p")
+#r::Send("^r")
+#s::Send("^s")
+#t::Send("^t")
+#v::Send("^v")
+#w::Send("^w")
+#x::Send("^x")
+#z::Send("^z")
+
+#+z::Send("^y")        ; ⇧⌘+Z  redo
+#+t::Send("^+t")       ; ⇧⌘+T  reopen the tab just closed
+
+; Line and document motion. Win+<arrow> is Windows' snap, and is dead here for
+; the same reason as the letters above.
+#Left::Send("{Home}")
+#Right::Send("{End}")
+#Up::Send("^{Home}")
+#Down::Send("^{End}")
+
 #HotIf
 
 ; ---------------------------------------------------------------------------
