@@ -55,6 +55,7 @@ claudecode/rules/*
 !claudecode/rules/comments.md
 !claudecode/rules/environment.md
 !claudecode/rules/git.md
+!claudecode/rules/hooks.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
 !claudecode/rules/tooling.md
