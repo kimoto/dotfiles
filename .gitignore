@@ -54,6 +54,7 @@ claudecode/rules/*
 !claudecode/rules/captures.md
 !claudecode/rules/comments.md
 !claudecode/rules/environment.md
+!claudecode/rules/experiments.md
 !claudecode/rules/git.md
 !claudecode/rules/hooks.md
 !claudecode/rules/latency.md
