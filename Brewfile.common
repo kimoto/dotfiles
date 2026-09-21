@@ -7,6 +7,8 @@
 brew "actionlint"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
 brew "ast-grep"
+# Static verification of installation bash scripts
+brew "bashka"
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
 # Bash Automated Testing System (bin/run_tests.sh)
