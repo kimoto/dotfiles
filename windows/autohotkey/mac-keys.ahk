@@ -126,3 +126,172 @@
 #HotIf WinActive("ShareX - Image Editor ahk_exe ShareX.exe")
 #+c::Send("{Enter}")
 #HotIf
+
+; Rectangle-style window controls, including Windows Terminal. See KEYBINDINGS.md.
+; Force the keyboard hook so Windows desktop/accessibility shortcuts do not win.
+; Repeated half/quarter keys cycle 1/2 -> 2/3 -> 1/3 like Rectangle.
+; Quarter actions keep half height and cycle only their width.
+#HotIf
+$^#a::RectangleMove("left")
+$^#d::RectangleMove("right")
+$^#k::RectangleMove("top")
+$^#j::RectangleMove("bottom")
+$^#[::RectangleMove("topLeft")
+$^#]::RectangleMove("topRight")
+$^#'::RectangleMove("bottomLeft")
+$^#\::RectangleMove("bottomRight")
+$^#f::RectangleMove("maximize")
+$^#s::RectangleMove("center")
+$^#x::RectangleMove("centerHalf")
+$^#;::RectangleMove("larger")
+$^#-::RectangleMove("smaller")
+$^#o::RectangleMove("restore")
+$^#g::RectangleMove("next")
+$^#Left::RectangleMove("edgeLeft")
+$^#Right::RectangleMove("edgeRight")
+$^#Up::RectangleMove("edgeTop")
+$^#Down::RectangleMove("edgeBottom")
+
+RectangleMove(action, hwnd := 0) {
+    static originals := Map()
+    static cycles := Map()
+    if !hwnd
+        hwnd := WinExist("A")
+    if !hwnd
+        return
+    target := "ahk_id " hwnd
+    ; Use physical pixels consistently across monitors with different scaling.
+    previousDpi := DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
+    try {
+        if WinGetClass(target) ~= "^(Progman|WorkerW|Shell_TrayWnd|Shell_SecondaryTrayWnd)$"
+            return
+        ; Discard closed windows and protect against a reused HWND from another process.
+        for savedHwnd, saved in originals.Clone() {
+            if !WinExist("ahk_id " savedHwnd) || WinGetPID("ahk_id " savedHwnd) != saved.pid {
+                originals.Delete(savedHwnd)
+                if cycles.Has(savedHwnd)
+                    cycles.Delete(savedHwnd)
+            }
+        }
+        if action = "restore" {
+            if originals.Has(hwnd) {
+                saved := originals[hwnd]
+                WinRestore(target)
+                WinMove(saved.x, saved.y, saved.w, saved.h, target)
+                if saved.maximized
+                    WinMaximize(target)
+                originals.Delete(hwnd)
+            }
+            if cycles.Has(hwnd)
+                cycles.Delete(hwnd)
+            return
+        }
+        if action = "next" && MonitorGetCount() = 1
+            return
+        wasMaximized := WinGetMinMax(target) = 1
+        monitor := RectangleMonitor(hwnd)
+        if wasMaximized
+            WinRestore(target)
+        WinGetPos(&x, &y, &w, &h, target)
+        if !originals.Has(hwnd)
+            originals[hwnd] := {x: x, y: y, w: w, h: h, pid: WinGetPID(target), maximized: wasMaximized}
+        if action = "maximize" {
+            if cycles.Has(hwnd)
+                cycles.Delete(hwnd)
+            WinMaximize(target)
+            return
+        }
+        MonitorGetWorkArea(monitor, &left, &top, &right, &bottom)
+        ; DWM visible borders exclude Windows' invisible resize frame.
+        frame := Buffer(16)
+        visible := DllCall("dwmapi\DwmGetWindowAttribute", "ptr", hwnd, "uint", 9,
+            "ptr", frame, "uint", frame.Size, "int") = 0
+        ml := visible ? NumGet(frame, 0, "int") - x : 0
+        mt := visible ? NumGet(frame, 4, "int") - y : 0
+        mr := visible ? x + w - NumGet(frame, 8, "int") : 0
+        mb := visible ? y + h - NumGet(frame, 12, "int") : 0
+        x += ml, y += mt, w -= ml + mr, h -= mt + mb
+        areaW := right - left, areaH := bottom - top
+        halfW := Floor(areaW / 2), halfH := Floor(areaH / 2)
+        cycleActions := Map("left", true, "right", true, "top", true, "bottom", true,
+            "topLeft", true, "topRight", true, "bottomLeft", true, "bottomRight", true)
+        if cycleActions.Has(action) {
+            previous := cycles.Has(hwnd) ? cycles[hwnd] : {action: "", step: 0}
+            step := previous.action = action ? Mod(previous.step, 3) + 1 : 1
+            cycles[hwnd] := {action: action, step: step}
+        } else {
+            if cycles.Has(hwnd)
+                cycles.Delete(hwnd)
+            step := 1
+        }
+        fraction := step = 1 ? 0.5 : step = 2 ? 2 / 3 : 1 / 3
+        switch action {
+            case "left":
+                x := left, y := top, w := Round(areaW * fraction), h := areaH
+            case "right":
+                w := Round(areaW * fraction), x := right - w, y := top, h := areaH
+            case "top":
+                x := left, y := top, w := areaW, h := Round(areaH * fraction)
+            case "bottom":
+                h := Round(areaH * fraction), x := left, y := bottom - h, w := areaW
+            case "topLeft", "topRight", "bottomLeft", "bottomRight":
+                isRight := InStr(action, "Right"), isBottom := InStr(action, "bottom")
+                w := Round(areaW * fraction)
+                x := isRight ? right - w : left, y := top + (isBottom ? halfH : 0)
+                h := isBottom ? areaH - halfH : halfH
+            case "centerHalf":
+                w := halfW, h := areaH, x := left + Floor((areaW - w) / 2), y := top
+            case "center":
+                x := left + Floor((areaW - w) / 2), y := top + Floor((areaH - h) / 2)
+            case "larger", "smaller":
+                direction := action = "larger" ? 1 : -1
+                newW := Min(areaW, Max(160, w + Round(areaW * 0.1) * direction))
+                newH := Min(areaH, Max(100, h + Round(areaH * 0.1) * direction))
+                x := Max(left, Min(right - newW, x - Floor((newW - w) / 2)))
+                y := Max(top, Min(bottom - newH, y - Floor((newH - h) / 2)))
+                w := newW, h := newH
+            case "edgeLeft":
+                x := left
+            case "edgeRight":
+                x := right - w
+            case "edgeTop":
+                y := top
+            case "edgeBottom":
+                y := bottom - h
+            case "next":
+                MonitorGetWorkArea(Mod(monitor, MonitorGetCount()) + 1, &nl, &nt, &nr, &nb)
+                ; Preserve relative size/position when moving between unlike displays.
+                x := nl + Round((x - left) * (nr - nl) / areaW)
+                y := nt + Round((y - top) * (nb - nt) / areaH)
+                w := Min(nr - nl, Round(w * (nr - nl) / areaW))
+                h := Min(nb - nt, Round(h * (nb - nt) / areaH))
+                x := Max(nl, Min(nr - w, x)), y := Max(nt, Min(nb - h, y))
+        }
+        WinMove(x - ml, y - mt, w + ml + mr, h + mt + mb, target)
+        if action = "next" && wasMaximized
+            WinMaximize(target)
+    } catch TargetError {
+        ; The focused window may close between the hotkey and WinMove.
+        return
+    } catch OSError as err {
+        ; Some elevated or non-resizable apps refuse window operations.
+        TrayTip("Window could not be moved: " err.Message, "Rectangle shortcuts")
+    } finally {
+        if previousDpi
+            DllCall("SetThreadDpiAwarenessContext", "ptr", previousDpi, "ptr")
+    }
+}
+
+RectangleMonitor(hwnd) {
+    handle := DllCall("MonitorFromWindow", "ptr", hwnd, "uint", 2, "ptr")
+    info := Buffer(40, 0)
+    NumPut("uint", 40, info)
+    if DllCall("GetMonitorInfoW", "ptr", handle, "ptr", info) {
+        loop MonitorGetCount() {
+            MonitorGet(A_Index, &left, &top, &right, &bottom)
+            if left = NumGet(info, 4, "int") && top = NumGet(info, 8, "int")
+                return A_Index
+        }
+    }
+    return MonitorGetPrimary()
+}
