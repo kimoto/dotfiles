@@ -160,3 +160,18 @@ teardown() {
   [[ "$output" == *"MISS cloud settings"* ]]
   [ "$(readlink "$HOME_SANDBOX/.claude/settings.json")" = "$HOME_SANDBOX/theirs.json" ]
 }
+
+@test "a settings link from another checkout of this repo is ours to relink" {
+  # A container can hold two checkouts: the Setup script's clone links first,
+  # then the session's own checkout runs and must end up owning all three.
+  other="$HOME_SANDBOX/other-checkout/claudecode"
+  mkdir -p "$other" "$HOME_SANDBOX/.claude"
+  echo '{}' >"$other/settings-cloud.json"
+  ln -nsf "$other/settings-cloud.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run "$LINK" --cloud
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok   cloud settings"* ]]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" \
+      = "$REPO_ROOT/claudecode/settings-cloud.json" ]
+}

@@ -23,6 +23,12 @@ cloud_dest="$CLAUDE_DIR/rules/dotfiles-cloud"
 settings_src="$BASE_DIR/claudecode/settings-cloud.json"
 settings_dest="$CLAUDE_DIR/settings.json"
 
+# Any checkout's copy counts as ours: a container can hold the Setup script's
+# clone as well as the session's own, and whichever runs last owns the entries.
+is_cloud_settings() {
+  [[ "$(readlink -f "$settings_dest" 2>/dev/null)" == */claudecode/settings-cloud.json ]]
+}
+
 ln -nsf "$BASE_DIR/claudecode/rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
   ln -nsf "$BASE_DIR/claudecode/rules-cloud" "$cloud_dest"
@@ -37,12 +43,12 @@ fi
 # belongs to this machine, and linking over it would take it into this checkout.
 if [ "$with_cloud" -eq 1 ]; then
   if { [ -e "$settings_dest" ] || [ -L "$settings_dest" ]; } &&
-     [ "$(readlink -f "$settings_dest" 2>/dev/null)" != "$settings_src" ]; then
+     ! is_cloud_settings; then
     echo "[claude-dir] $settings_dest is not ours; left alone" >&2
   else
     ln -nsf "$settings_src" "$settings_dest"
   fi
-elif [ "$(readlink -f "$settings_dest" 2>/dev/null)" = "$settings_src" ]; then
+elif is_cloud_settings; then
   rm -f "$settings_dest"
 fi
 
@@ -101,7 +107,7 @@ elif [ -e "$cloud_dest" ] || [ -L "$cloud_dest" ]; then
 fi
 if [ "$with_cloud" -eq 1 ]; then
   report_link "cloud settings" "$settings_dest" "$settings_src"
-elif [ "$(readlink -f "$settings_dest" 2>/dev/null)" = "$settings_src" ]; then
+elif is_cloud_settings; then
   echo "  MISS cloud settings still in place without --cloud"
   missing=1
 fi
