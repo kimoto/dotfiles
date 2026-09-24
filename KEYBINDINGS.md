@@ -99,7 +99,7 @@ follow), so this table is the only copy under version control.
 
 | Key | Action |
 |-----|--------|
-| Ctrl+Shift+Win+4 | Capture region → clipboard only. Stands in for ⌃⇧⌘4; the only one that writes no file, so the only one OneDrive never sees |
+| Ctrl+Shift+Win+4 | Capture region → image editor → Enter puts the annotated image on the clipboard. Stands in for ⌃⇧⌘4 plus CleanShot X's annotate step; the only one that writes no file, so the only one OneDrive never sees |
 | Ctrl+PrintScreen | Capture region → clipboard + file |
 | PrintScreen | Capture all screens → clipboard + file |
 | Alt+PrintScreen | Capture active window → clipboard + file |
@@ -108,6 +108,22 @@ follow), so this table is the only copy under version control.
 
 Ctrl+Shift+Win+4 collides with Windows' own Win+Ctrl+Shift+&lt;n&gt;; ShareX wins
 the `RegisterHotKey` race, so if it ever stops firing, check that first.
+
+### ShareX image editor (after Ctrl+Shift+Win+4)
+
+| Key | Action |
+|-----|--------|
+| R | Rectangle (outline) |
+| A | Arrow |
+| P | Pixelate |
+| C | Step counter (1, 2, 3…) |
+| T | Text (outlined) |
+| Enter | Done: copy to clipboard and close. While typing text, it only commits the text |
+| Win+Shift+C (⇧⌘C) | Same as Enter, via `mac-keys.ahk` |
+
+Only C differs from ShareX's defaults: Step moved there from N, and Crop lost it.
+The keys are in `ApplicationConfig.json` (`ImageEditorOptions.ToolbarItems`),
+which ShareX rewrites on exit, so edit it with ShareX closed.
 
 ---
 

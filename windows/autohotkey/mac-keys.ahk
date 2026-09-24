@@ -115,3 +115,9 @@
 #!Down::Send("!{Down}")
 
 #HotIf
+
+; ShareX's image editor hard-codes Ctrl+Shift+C to "copy annotation", so ⇧⌘C
+; sends Enter ("done", which copies the image) instead, as in CleanShot X.
+#HotIf WinActive("ShareX - Image Editor ahk_exe ShareX.exe")
+#+c::Send("{Enter}")
+#HotIf
