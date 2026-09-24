@@ -8,57 +8,65 @@
 # exercised here. A raw `curl | bash`/`sh` gets fetched, saved to disk (raw
 # bytes, before anything runs them — captures.md), scanned with `bashka
 # --check`, and blocked; the human reviews and runs the saved copy by hand.
+#
+# curl/bashka are stubbed as zsh *functions* defined inside the sourced
+# session, not scripts dropped on PATH: .zshrc's own path=() rebuild
+# prepends Homebrew's bin dirs ahead of anything a test puts on PATH, and a
+# brewed `curl` (pulled in as a dependency of Brewfile.common's `curlie`)
+# would shadow a PATH-based stub on any machine that has it installed —
+# a function always wins the lookup regardless of PATH order.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  STUB_DIR="$(mktemp -d)"
   CACHE_HOME="$(mktemp -d)"
+  export ZDOTDIR="$REPO_ROOT"
+  export XDG_CACHE_HOME="$CACHE_HOME"
+  export DOTFILES_NO_SYNC_CHECK=1
+  export DOTFILES_NO_BREW_CHECK=1
+  export DOTFILES_NO_MISE_CHECK=1
+  unset STUB_CURL_BODY STUB_CURL_EXIT STUB_BASHKA_OUTPUT
 }
 
 teardown() {
-  rm -rf "$STUB_DIR" "$CACHE_HOME"
+  rm -rf "$CACHE_HOME"
 }
 
 stub_bashka() {
   # $1 (optional): stdout to print. Exit code always 0 (a real `--check`
   # verdict is reported through stdout text, not treated specially here).
-  cat >"$STUB_DIR/bashka" <<EOF
-#!/bin/bash
-cat >/dev/null
-printf '%s\n' "${1:-scan: green}"
-EOF
-  chmod +x "$STUB_DIR/bashka"
+  export STUB_BASHKA_OUTPUT="${1:-scan: green}"
 }
 
 stub_curl() {
-  # $1: what to print to stdout. $2 (optional): exit code, default 0.
-  local body="$1" code="${2:-0}"
-  cat >"$STUB_DIR/curl" <<EOF
-#!/bin/bash
-printf '%s' '$body'
-exit $code
-EOF
-  chmod +x "$STUB_DIR/curl"
+  # $1: what to print to stdout (may contain real newlines). $2 (optional):
+  # exit code, default 0.
+  export STUB_CURL_BODY="$1"
+  export STUB_CURL_EXIT="${2:-0}"
 }
 
+# run_check <command-line>: hand <command-line> to the guard as accept-line
+# would via $BUFFER. Passed as a positional parameter ($1 inside the zsh -c
+# script, after the `_` placeholder for $0) rather than interpolated into the
+# script text, so quoting it is never a concern.
 run_check() {
-  # $1: the command line to hand to the guard, as accept-line would via $BUFFER.
-  PATH="$STUB_DIR:$PATH" XDG_CACHE_HOME="$CACHE_HOME" zsh -f -c "
-    export ZDOTDIR='$REPO_ROOT'
-    export DOTFILES_NO_SYNC_CHECK=1
-    export DOTFILES_NO_BREW_CHECK=1
-    export DOTFILES_NO_MISE_CHECK=1
-    source '$REPO_ROOT/.zshrc' >/dev/null 2>&1
-    # CI sets \$CI, which turns on this file's err_exit/err_return — a bare
-    # nonzero-returning statement (the expected \"blocked\" result) would abort
-    # the script right here before the prints below ever ran. && / || is the
-    # standard errexit-safe way to capture \$? without tripping it (the real
+  zsh -f -c '
+    source "$ZDOTDIR/.zshrc" >/dev/null 2>&1
+    if [[ -n "${STUB_CURL_BODY+x}" ]]; then
+      curl() { printf "%s" "$STUB_CURL_BODY"; return "${STUB_CURL_EXIT:-0}"; }
+    fi
+    if [[ -n "${STUB_BASHKA_OUTPUT+x}" ]]; then
+      bashka() { cat >/dev/null; printf "%s\n" "$STUB_BASHKA_OUTPUT"; }
+    fi
+    # $CI turns on this file'"'"'s err_exit/err_return — a bare nonzero-
+    # returning statement (the expected "blocked" result) would abort the
+    # script right here before the prints below ever ran. && / || is the
+    # standard errexit-safe way to capture $? without tripping it (the real
     # accept-line widget only ever calls this as an if-condition, which is
     # exempt the same way, so production is unaffected either way).
-    _bashka_guard_check '$1' && rc=0 || rc=\$?
-    print -r -- \"status=\$rc\"
-    print -r -- \"\$_bashka_guard_message\"
-  " 2>&1
+    _bashka_guard_check "$1" && rc=0 || rc=$?
+    print -r -- "status=$rc"
+    print -r -- "$_bashka_guard_message"
+  ' _ "$1" 2>&1
 }
 
 @test "allows a command that doesn't match curl|shell" {
@@ -80,7 +88,7 @@ run_check() {
 }
 
 @test "allows when bashka is not installed" {
-  # No stub_bashka: PATH carries no bashka binary.
+  # No stub_bashka: no "bashka" function or binary exists anywhere.
   run run_check 'curl -fsSL https://example.com/install.sh | bash'
   [[ "$output" == "status=0"* ]]
 }
