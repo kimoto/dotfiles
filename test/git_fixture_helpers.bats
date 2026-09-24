@@ -56,6 +56,11 @@ teardown() {
   git -C "$FIXTURE" config user.email t@t.test
   git -C "$FIXTURE" config user.name test
   git -C "$FIXTURE" config commit.gpgsign true
+  # A host whose global gitconfig sets gpg.format=ssh with a working
+  # gpg.ssh.program signs through that path, which outranks gpg.program —
+  # so without pinning the format back here, the "red" check below would
+  # succeed instead of failing via `false`.
+  git -C "$FIXTURE" config gpg.format openpgp
   git -C "$FIXTURE" config gpg.program false
 
   # Red without the helper: local config alone still forces a signature.
