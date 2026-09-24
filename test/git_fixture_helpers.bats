@@ -48,15 +48,17 @@ teardown() {
   # ~/.gitconfig sets commit.gpgsign = true and .gitconfig.default_user names a
   # signing key, and mklink.sh symlinks both into $HOME — so on any machine
   # without that secret key in its keyring (a fresh Linux box, a CI runner)
-  # every fixture commit dies with "gpg failed to sign the data". gpg.program
-  # here is `false`, so the signing attempt fails identically everywhere,
-  # keyring or not.
+  # every fixture commit dies with "gpg failed to sign the data". Force-failing
+  # both gpg.program and gpg.ssh.program covers a host on either signing
+  # format — a Claude Code cloud container's ~/.gitconfig sets gpg.format=ssh
+  # with a working gpg.ssh.program, which ignores gpg.program entirely.
   FIXTURE="$TMP/signing"
   git init -q -b main "$FIXTURE"
   git -C "$FIXTURE" config user.email t@t.test
   git -C "$FIXTURE" config user.name test
   git -C "$FIXTURE" config commit.gpgsign true
   git -C "$FIXTURE" config gpg.program false
+  git -C "$FIXTURE" config gpg.ssh.program false
 
   # Red without the helper: local config alone still forces a signature.
   unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1
