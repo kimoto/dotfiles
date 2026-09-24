@@ -108,29 +108,29 @@ equivalent is `"opacity": 60` with `"useAcrylic": false` on the profile.
 
 ## Window management (the `rectangle` layer)
 
-Prefer what already ships. Rectangle's job splits three ways on Windows and
-only the last one needs anything installed:
+`autohotkey/mac-keys.ahk` implements the customized Rectangle keys listed in
+`KEYBINDINGS.md`, with Ctrl+Win in place of Ctrl+Command. They apply in every
+app, including Windows Terminal. The keyboard hook intercepts the chords that
+Windows normally uses for virtual desktops or accessibility features.
 
-| Want | Use | Setup |
-|---|---|---|
-| Halves, quarters | **`Win` + arrows** (built in) | none — `WindowArrangementActive` is already 1 |
-| Thirds, wider layouts | **`Win` + `Z`** Snap Layouts (Windows 11, pick with number keys) | none — on by default |
-| Irregular zones a fraction cannot express | **PowerToys FancyZones** | needs PowerToys upgraded first, see below |
+The script places windows directly in the monitor work area (excluding the
+taskbar), rather than forwarding Windows snap keys. It supports halves,
+quarters, center, center half, maximize, resize, edges without resizing, and
+moving to the next monitor in Windows monitor order. Visible window borders
+are used for alignment. Apps may enforce their own minimum size.
 
-`Win` + `←` then `Win` + `↑` lands a window top-left, i.e. the quadrant keys
-Rectangle spends `⌃⌥U/I/J/K` on are already there under a different grip.
+Restore returns to the position, size, and maximized state before the first
+window operation, until restored or the script exits. Repeated half and quarter keys cycle through 1/2, 2/3, and 1/3;
+quarter actions change only the width. Larger/smaller changes each dimension by 10% of the work
+area, centered and bounded by the screen; this is an explicit Windows default,
+not a value recovered from the Mac. Next display preserves relative geometry
+and keeps a maximized window maximized. Todo mode is not used or mapped.
 
-What genuinely does *not* survive the port is Rectangle's **key choice**.
-Nothing off-the-shelf will put this on `⌃⌥` + arrows: FancyZones cannot rebind
-its own trigger keys, and PowerToys Keyboard Manager can scope a remap *to* an
-app but has no exclusion, which is
-[a long-standing open request](https://github.com/microsoft/PowerToys/issues/29641).
-So the choice is Windows' keys with zero moving parts, or a hotkey tool.
-
-**FancyZones needs PowerToys upgraded first.** The installed build is 0.51.1
-(2021); current is 0.100.2, and winget cannot upgrade across it — the installer
-technology changed, so it wants an uninstall and reinstall, which risks the
-existing PowerToys settings.
+Copy the updated `mac-keys.ahk` to the live script location and reload it.
+Do not assign the same shortcuts in Raycast or another window manager.
+Elevated apps may require running AutoHotkey at matching privileges. Mixed-DPI
+monitor transitions and punctuation keys should also be checked on the actual
+keyboard and monitors.
 
 ## AutoHotkey: the `hammerspoon` layer, and the keys Windows will not lend out
 

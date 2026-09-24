@@ -103,23 +103,28 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 ---
 
-## Raycast (Mac only)
+## Launcher
 
 Source:
-- in-app
+- Mac: Raycast, in-app
+- Windows: PowerToys Command Palette, in-app
 
 | Key | Action |
 |-----|--------|
-| ⌃⌘+V | Clipboard history |
-| ⌘+⇧+V | Paste clipboard history items one by one (Paste Sequentially) |
-| ⌃⌘+C | Snippets |
+| Ctrl+Space | Open launcher |
+| ⌃⌘+V | Clipboard history (Mac only) |
+| ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
+| ⌃⌘+C | Snippets (Mac only) |
 
 ---
 
-## Rectangle (Mac only)
+## Window management (Mac / Windows)
 
 Source:
-- in-app (`defaults read com.knollsoft.Rectangle`)
+- Mac: Rectangle, in-app (`defaults read com.knollsoft.Rectangle`)
+- Windows: `windows/autohotkey/mac-keys.ahk`
+
+Same physical keys on both: Command on the Mac keyboard arrives as Win on Windows.
 
 | Key | Action |
 |-----|--------|
@@ -136,6 +141,7 @@ Source:
 | ⌃⌘+←/↓/↑/→ | Move to left / bottom / top / right edge (keeps size) |
 
 Repeat a half / quarter key to cycle ½ → ⅔ → ⅓ (quarters grow horizontally).
+On Windows, restore history lasts until restored or AutoHotkey exits. Larger/smaller uses 10% of the work area.
 
 ---
 
