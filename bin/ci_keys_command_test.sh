@@ -73,7 +73,9 @@ tmux -L "$SOCK" send-keys 'echo __KEYS_KEPT__'
 tmux -L "$SOCK" send-keys C-x
 tmux -L "$SOCK" send-keys '?'
 wait_for_pane "$SOCK" 'keys>'
-wait_for_pane "$SOCK" '\[macOS'
+first_layer=$(sed -n 's/^## \([A-Za-z ]*\).*/\1/p' "$REPO/KEYBINDINGS.md" | head -n 1)
+[ -n "$first_layer" ] || die "no layer heading in KEYBINDINGS.md"
+wait_for_pane "$SOCK" "\\[${first_layer% }"
 echo "== ⌃+X ? opened the cheatsheet over KEYBINDINGS.md =="
 
 # 2) Typing narrows across every layer, and the layer tag rides along — which

@@ -45,6 +45,10 @@ More prose.
 | Word | Expands to |
 |------|------------|
 | `ag` | `rg` |
+
+| Mac (App A) | Windows (App B) | Action |
+|-----|---------|--------|
+| ⌃+/ | Ctrl+/ | Undo |
 EOF
 }
 
@@ -63,6 +67,7 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[Layer Two / Sub A] B | do beta"* ]]
   [[ "$output" == *'[Layer Two / Sub B] `x` | run x'* ]]
+  [[ "$output" == *"[Layer Two / Sub B] ⌃+/ | Ctrl+/ | Undo"* ]]
 }
 
 @test "a later subsection does not inherit the previous one" {
@@ -78,6 +83,7 @@ teardown() {
   [[ "$output" != *"Key | Action"* ]]
   [[ "$output" != *"Command | Action"* ]]
   [[ "$output" != *"Word | Expands to"* ]]
+  [[ "$output" != *"Mac (App A)"* ]]
   [[ "$output" != *"---"* ]]
 }
 
@@ -85,7 +91,7 @@ teardown() {
   KEYBINDINGS_MD="$DOC" run "$SCRIPT" --list
   [ "$status" -eq 0 ]
   [[ "$output" != *"prose"* ]]
-  [ "${#lines[@]}" -eq 4 ]
+  [ "${#lines[@]}" -eq 5 ]
 }
 
 @test "fails loudly when the reference document is missing" {
@@ -99,5 +105,5 @@ teardown() {
   [ "$status" -eq 0 ]
   # The two bindings that open this very picker, each under its own layer.
   [[ "$output" == *"[tmux (prefix: C-t) / With prefix (C-t)] prefix + ?"* ]]
-  [[ "$output" == *"[zsh (emacs mode)] ⌃+X ?"* ]]
+  [[ "$output" == *"[zsh] ⌃+X ?"* ]]
 }

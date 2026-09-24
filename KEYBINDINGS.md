@@ -1,14 +1,92 @@
 # Keybindings
 
-Hierarchical keybinding reference. Upper layers intercept keys first.
-
-Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
-
-Search these tables from zsh with `keys` or ⌃+X ?.
+Upper layers intercept keys first.
 
 ---
 
-## macOS (global)
+## Text editing (every app except the terminal)
+
+Source:
+- Mac: `hammerspoon/init.lua`, the rest macOS built-in
+- Windows: `windows/autohotkey/mac-keys.ahk`
+
+Same keys on both.
+
+| Key | Action |
+|-----|--------|
+| ⌥+B / F | Word backward / forward |
+| ⌃+W | Delete word backward |
+| ⌥+D | Delete word forward (Windows only) |
+| ⌃+/ | Undo |
+| ⌃+A / E | Beginning / end of line |
+| ⌃+B / F | Character backward / forward |
+| ⌃+P / N | Line up / down |
+| ⌃+H / D | Delete character backward / forward |
+| ⌃+K | Delete to end of line |
+| ⌘+A/C/F/N/P/R/S/T/V/W/X/Z | Select all, copy, find, new, print, reload, save, new tab, paste, close, cut, undo |
+| ⌘+⇧+Z / T | Redo / reopen closed tab |
+
+On Windows these work outside text fields too; close tabs with ⌘+W.
+
+---
+
+## Screenshots
+
+Source:
+- Mac: CleanShot X, in-app (`LAVA*` keys of `pl.maketheweb.cleanshotx`)
+- Windows: ShareX, `HotkeysConfig.json` under `%USERPROFILE%`
+
+| Mac (CleanShot X) | Windows (ShareX) | Action |
+|-------------------|------------------|--------|
+| ⌃+⌘+⇧+4 | same | Region → annotate → clipboard |
+| ⌘+⇧+4 | Ctrl+PrintScreen (clipboard + file) | Region |
+| ⌘+⇧+3 | PrintScreen (clipboard + file) | Full screen |
+| ⌘+⇧+4, then Space | Alt+PrintScreen (clipboard + file) | Active window |
+| ⌘+⇧+5 | Shift+PrintScreen; Ctrl+Shift+PrintScreen as GIF | Screen recording |
+
+### Annotating (after a screenshot)
+
+Source:
+- Mac: CleanShot X defaults
+- Windows: ShareX, `ApplicationConfig.json` (`ImageEditorOptions.ToolbarItems`); ⌘+⇧+C via `windows/autohotkey/mac-keys.ahk`
+
+Same keys on both.
+
+| Key | Action |
+|-----|--------|
+| R | Rectangle (outline) |
+| A | Arrow |
+| P | Pixelate (CleanShot: Redaction) |
+| C | Step counter (1, 2, 3…) |
+| T | Text |
+| ⌘+⇧+C | Copy and close (Enter also works on Windows) |
+
+---
+
+## Terminal (intercepts before tmux)
+
+Source:
+- Mac: `config/ghostty/config`
+- Windows: `windows/autohotkey/mac-keys.ahk`, `windows/windows-terminal/keybindings.json`
+
+Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
+
+| Key | Action |
+|-----|--------|
+| ⌘+1~9 | tmux window 1~9 (sends ESC+1~9) |
+| ⌘+⌥+← / → | Previous / next tmux window |
+| ⌘+⌥+↑ / ↓ | Previous / next tmux session |
+| ⇧+Enter / ⌥+Enter | Newline in Claude Code (Windows only) |
+| F12 | Toggle quick terminal (Mac only) |
+| ⌘+⇧+O | Toggle background opacity (Mac only) |
+| ¥ | Insert `\` (Mac only) |
+
+- Mac: ⌥ is Meta; ⌥+0~5 go to AeroSpace.
+- Windows: at a shell prompt, Shift/Alt+Enter run the command. F11 is fullscreen.
+
+---
+
+## macOS (Mac only)
 
 | Key | Action |
 |-----|--------|
@@ -22,27 +100,26 @@ Search these tables from zsh with `keys` or ⌃+X ?.
 | ⌃+Left / Right | Switch spaces |
 | ⌃+Up | Mission Control |
 | ⌃+Down | Application windows |
-| ⌘+⇧+3 | Screenshot (full) |
-| ⌘+⇧+4 | Screenshot (selection) |
-| ⌘+⇧+5 | Screenshot menu |
-| ⌃+⌘+⇧+3 / 4 | Same full / selection capture, clipboard only (no file) |
 
 ---
 
-## Raycast (macOS, global)
+## Raycast (Mac only)
 
-Source: set in-app, not in this repo
+Source:
+- in-app
 
 | Key | Action |
 |-----|--------|
 | ⌃⌘+V | Clipboard history |
+| ⌘+⇧+V | Paste clipboard history items one by one (Paste Sequentially) |
 | ⌃⌘+C | Snippets |
 
 ---
 
-## Rectangle (macOS, global)
+## Rectangle (Mac only)
 
-Source: in-app, readable with `defaults read com.knollsoft.Rectangle`
+Source:
+- in-app (`defaults read com.knollsoft.Rectangle`)
 
 | Key | Action |
 |-----|--------|
@@ -57,100 +134,15 @@ Source: in-app, readable with `defaults read com.knollsoft.Rectangle`
 | ⌃⌘+O | Restore |
 | ⌃⌘+G | Next display |
 | ⌃⌘+←/↓/↑/→ | Move to left / bottom / top / right edge (keeps size) |
-| ⌃⌥+B | Toggle Todo mode (Logseq pinned as a side column) |
-| ⌃⌥+N | Reflow Todo |
+
+Repeat a half / quarter key to cycle ½ → ⅔ → ⅓ (quarters grow horizontally).
 
 ---
 
-## Windows (global)
+## AeroSpace (Mac only, intercepts before apps)
 
-Driven from a Mac keyboard, so ⌘ arrives as **Win**. Stock Windows keys are not listed.
-
-### AutoHotkey (global remaps, every app except Windows Terminal)
-
-Source: `windows/autohotkey/mac-keys.ahk`
-
-| Key | Action |
-|-----|--------|
-| Alt+B / F | Move word backward / forward (sends Ctrl+←/→) |
-| Ctrl+/ | Undo (sends Ctrl+Z) |
-| Ctrl+A / E | Beginning / end of line |
-| Ctrl+B / F | Move one character backward / forward |
-| Ctrl+P / N | Move up / down |
-| Ctrl+H / D | Delete one character backward / forward |
-| Ctrl+K | Delete to end of line; at line end, delete the next newline. No kill ring |
-| Ctrl+W / Alt+D | Delete previous / next word |
-| Win+A/C/F/N/P/R/S/T/V/W/X/Z | Send the corresponding Ctrl shortcut (select all, copy, find, new, print, reload, save, new tab, paste, close, cut, undo) |
-| Win+Shift+Z / T | Redo (Ctrl+Y) / reopen closed tab |
-| Win+Left / Right | Beginning / end of line |
-| Win+Up / Down | Beginning / end of document |
-
-These apply outside text fields too: close a tab with Win+W, not Ctrl+W.
-
-### AutoHotkey (inside Windows Terminal only)
-
-Source: `windows/autohotkey/mac-keys.ahk`
-
-| Key | Action |
-|-----|--------|
-| Win+1~9 | → sends ESC+1~9 to tmux (select window 1~9) |
-| Win+Alt+←/→ | → sends ⌥+←/→ to tmux (previous / next window) |
-| Win+Alt+↑/↓ | → sends ⌥+↑/↓ to tmux (previous / next session) |
-
-### Windows Terminal (all profiles)
-
-Source: `windows/windows-terminal/keybindings.json`
-
-| Key | Action |
-|-----|--------|
-| Shift+Enter / Alt+Enter | Send LF (Ctrl+J): insert a newline in Claude Code, including through tmux |
-
-At a shell prompt these run the command like Enter. F11 toggles fullscreen.
-
-### ShareX (screen capture)
-
-Source: `HotkeysConfig.json` under `%USERPROFILE%`, not in this repo
-
-| Key | Action |
-|-----|--------|
-| Ctrl+Shift+Win+4 | Capture region → image editor → Enter copies it to the clipboard (no file) |
-| Ctrl+PrintScreen | Capture region → clipboard + file |
-| PrintScreen | Capture all screens → clipboard + file |
-| Alt+PrintScreen | Capture active window → clipboard + file |
-| Shift+PrintScreen | Start / stop screen recording (region) |
-| Ctrl+Shift+PrintScreen | Same, as GIF |
-
-### ShareX image editor (after Ctrl+Shift+Win+4)
-
-Source: `ApplicationConfig.json` (`ImageEditorOptions.ToolbarItems`), not in this repo
-
-| Key | Action |
-|-----|--------|
-| R | Rectangle (outline) |
-| A | Arrow |
-| P | Pixelate |
-| C | Step counter (1, 2, 3…) |
-| T | Text (outlined) |
-| Enter | Done: copy to clipboard and close. While typing text, it only commits the text |
-| Win+Shift+C (⇧⌘C) | Same as Enter, via `mac-keys.ahk` |
-
----
-
-## Hammerspoon (global remaps, every app except Ghostty)
-
-Source: `hammerspoon/init.lua`
-
-| Key | Action |
-|-----|--------|
-| ⌥+B / F | Move word backward / forward (emacs-style) |
-| ⌃+W | Delete word backward |
-| ⌃+/ | Undo (⌘+Z) |
-
----
-
-## AeroSpace (global, intercepts before apps)
-
-Source: `.aerospace.toml`
+Source:
+- `.aerospace.toml`
 
 | Key | Action |
 |-----|--------|
@@ -184,25 +176,10 @@ Source: `.aerospace.toml`
 
 ---
 
-## Ghostty (intercepts before tmux)
-
-Source: `config/ghostty/config`
-
-| Key | Action |
-|-----|--------|
-| F12 | Toggle quick terminal (global) |
-| ⌘+1~9 | → sends ESC+1~9 to tmux (window switching) |
-| ⌘⌥+←/→/↑/↓ | → sends ⌥+arrows to tmux (window / session switching) |
-| ⌘+⇧+O | Toggle background opacity |
-| ¥ | Insert `\` (backslash) |
-
-⌥ acts as Meta (ESC prefix). ⌥+0~5 pass through to AeroSpace.
-
----
-
 ## tmux (prefix: C-t)
 
-Source: `.tmux.conf`
+Source:
+- `.tmux.conf`
 
 ### Windows / sessions (no prefix)
 
@@ -245,7 +222,7 @@ While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
 | prefix + ? | tmux-which-key: menu of tmux commands |
-| prefix + Ctrl-s | Save session state, Claude Code sessions included (also auto-saved every 15 min) |
+| prefix + Ctrl-s | Save session state, incl. Claude Code (auto every 15 min) |
 | prefix + Ctrl-r | Restore the last saved session state |
 | prefix + Tab | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
@@ -261,16 +238,19 @@ While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 
 ---
 
-## zsh (emacs mode)
+## zsh
 
-Source: `.zshrc`
+Emacs keybindings.
+
+Source:
+- `.zshrc`
 
 | Key | Action |
 |-----|--------|
 | ⌃+R | History search (fzf; wrapped full-command preview) |
 | ⌃+T | File picker (fzf; bat preview; ⌃+O opens in editor) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
-| ⌃+X ⌃+N | Snippet search (fzf over `config/zsh/snippets`) → insert into command line |
+| ⌃+X ⌃+N | Snippet search → insert |
 | ⌃+X ? | Keybinding cheatsheet (keeps the line being edited) |
 | ⌃+\ | Undo |
 | ⌃+A / E | Beginning / end of line |
@@ -282,9 +262,8 @@ Source: `.zshrc`
 
 ### Abbreviations (Space / Enter, command position only)
 
-Source: `config/zsh/abbr.zsh`
-
-Type the word where a command starts, then Space or Enter.
+Source:
+- `config/zsh/abbr.zsh`
 
 | Word | Expands to |
 |------|------------|
@@ -303,12 +282,13 @@ Type the word where a command starts, then Space or Enter.
 
 ### Shell helpers
 
-Source: `.zshrc`
+Source:
+- `.zshrc`
 
 | Command | Action |
 |---------|--------|
 | `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
-| `lg [args]` | Launch lazygit (args passed through); chase into the directory it was left in |
+| `lg [args]` | lazygit; cd to where you left it |
 | `b [query]` | Switch git branch (fzf; last-15-commits preview) |
 | `B` | GitHub branch browser (`gh branch` extension) |
 | `w [query]` | Jump to a git worktree (fzf) |
@@ -317,7 +297,7 @@ Source: `.zshrc`
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
 | `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
-| `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
+| `snip add [note]` | Save the previous command as a snippet; bare `snip` edits them |
 | `keys [query]` | Search these tables (same as ⌃+X ?) |
 | `dotfiles-ship` | Push, open a PR, auto-merge, wait for merge, then switch back to `main` |
 
@@ -325,9 +305,11 @@ Source: `.zshrc`
 
 ## Neovim (leader: Space)
 
-Source: `config/nvim/lua/kimoto/keymaps.lua`, `config/nvim/lua/kimoto/plugins/*.lua`
+Source:
+- `config/nvim/lua/kimoto/keymaps.lua`
+- `config/nvim/lua/kimoto/plugins/*.lua`
 
-Hold a prefix (Space, `g`, `z`, …) and which-key shows what follows.
+Hold a prefix and which-key shows the rest.
 
 ### Windows / buffers / tools
 
@@ -399,5 +381,5 @@ Hold a prefix (Space, `g`, `z`, …) and which-key shows what follows.
 |-----|--------|
 | gcc / gc{motion} | Toggle comment (Comment.nvim) |
 | ys / cs / ds | Add / change / delete surround (vim-surround) |
-| ( [ { " ' | Auto-closed (nvim-autopairs); Enter stays with vim-endwise so `end` still gets added |
+| ( [ { " ' | Auto-close (nvim-autopairs) |
 | Space+j | Jump to definition (any-jump) |
