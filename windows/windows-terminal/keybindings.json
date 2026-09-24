@@ -1,0 +1,12 @@
+{
+  "actions": [
+    {
+      "command": { "action": "sendInput", "input": "\n" },
+      "id": "User.ClaudeNewline"
+    }
+  ],
+  "keybindings": [
+    { "id": "User.ClaudeNewline", "keys": "shift+enter" },
+    { "id": "User.ClaudeNewline", "keys": "alt+enter" }
+  ]
+}
