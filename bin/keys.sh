@@ -41,15 +41,15 @@ fi
 # Markdown -> "[layer / subsection] key | action" rows. `## ` opens a layer and
 # clears any subsection (otherwise the first table of a new layer would inherit
 # the last `###` of the previous one); `### ` refines it. Table scaffolding —
-# the |---| separator and the header row of each of the three table shapes the
-# document uses (Key/Command/Word) — is dropped: unselectable noise in a picker.
+# the |---| separator and the header row of each of the four table shapes the
+# document uses (Key/Command/Word/Mac) — is dropped: unselectable noise in a picker.
 extract() {
     awk '
         /^## /  { layer = substr($0, 4); section = ""; next }
         /^### / { section = substr($0, 5); next }
         /^\|/ {
             if ($0 ~ /^[|[:space:]:-]+$/) next
-            if ($0 ~ /^\|[[:space:]]*(Key|Command|Word)[[:space:]]*\|/) next
+            if ($0 ~ /^\|[[:space:]]*(Key|Command|Word|Mac)[^|]*\|/) next
             row = $0
             sub(/^\|[[:space:]]*/, "", row)
             sub(/[[:space:]]*\|[[:space:]]*$/, "", row)
