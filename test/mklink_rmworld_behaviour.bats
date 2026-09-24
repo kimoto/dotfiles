@@ -224,3 +224,37 @@ teardown() {
   grep -q mine "$HOME_SANDBOX/.claude/settings.json"
   [ -e "$HOME_SANDBOX/elsewhere.json" ]
 }
+
+
+@test "mklink.sh installs Codex defaults without replacing existing files" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ "$(readlink -f "$HOME_SANDBOX/.codex/config.toml")" = "$REPO_ROOT/codex/config.toml" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.codex/AGENTS.md")" = "$REPO_ROOT/codex/AGENTS.md" ]
+
+  rm "$HOME_SANDBOX/.codex/config.toml" "$HOME_SANDBOX/.codex/AGENTS.md"
+  printf "mine\n" >"$HOME_SANDBOX/.codex/config.toml"
+  printf "local instructions\n" >"$HOME_SANDBOX/.codex/AGENTS.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME_SANDBOX/.codex/config.toml")" = mine ]
+  [ "$(cat "$HOME_SANDBOX/.codex/AGENTS.md")" = "local instructions" ]
+  [[ "$output" == *"Preserving existing Codex config"* ]]
+  [[ "$output" == *"Preserving existing Codex instructions"* ]]
+}
+
+@test "rmworld.sh removes only this repo's Codex links" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME_SANDBOX/.codex/config.toml" ]
+  [ ! -e "$HOME_SANDBOX/.codex/AGENTS.md" ]
+
+  printf "mine\n" >"$HOME_SANDBOX/.codex/config.toml"
+  ln -s /nonexistent-other-instructions "$HOME_SANDBOX/.codex/AGENTS.md"
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME_SANDBOX/.codex/config.toml")" = mine ]
+  [ "$(readlink "$HOME_SANDBOX/.codex/AGENTS.md")" = /nonexistent-other-instructions ]
+}

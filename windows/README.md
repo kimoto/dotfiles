@@ -13,6 +13,10 @@ Already-installed packages are skipped, so re-running it is cheap. It can also
 be driven from WSL as `winget.exe import ...`, though anything needing admin
 will prompt on the Windows side.
 
+## Codex
+
+Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex/config.toml](../codex/config.toml) while preserving the app's machine-specific settings, then shares Claude instructions and rules through native Windows symlinks. The script locates the checkout automatically; see [Codex setup](../codex/README.md).
+
 ## macOS → Windows
 
 | `Brewfile.macos` | Windows | winget ID | Why this one |
