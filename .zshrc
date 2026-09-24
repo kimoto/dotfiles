@@ -631,19 +631,101 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
-# Nudge toward scanning a third-party curl|bash installer with bashka before it
-# runs (AGENTS.md "third-party installers"). Advisory only: preexec fires after
-# the line is already accepted for execution, and zsh gives it no way to cancel
-# that command, so this only ever prints a suggestion, never blocks.
-_bashka_curl_pipe_hint() {
-  local cmd="$1"
-  [[ "$cmd" == *bashka* ]] && return 0
-  [[ "$cmd" =~ 'curl[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(bash|sh|zsh)([[:space:]]|$)' ]] || return 0
+# Block a raw curl|bash/sh instead of just nudging toward bashka (AGENTS.md
+# "third-party installers"): a heuristic scanner that still auto-runs the
+# script is only as good as its ruleset, so the safer default is to fetch the
+# script ourselves, keep the raw bytes on disk (captures.md — capture before
+# anything runs them, not after), scan that saved copy, and make the human
+# review and run it as a separate, deliberate step.
+#
+# Kept free of `zle` calls on purpose: it's the same function a bats test
+# drives directly and the accept-line widget below wraps. Sets
+# $_bashka_guard_message and returns 0 to let the line run as typed, 1 to
+# block it (message explains why / what to do instead).
+_bashka_guard_check() {
+  local buf="$1"
+  _bashka_guard_message=""
+
+  # A literal prefix, not a real env var any command reads — our own escape
+  # hatch, checked in the typed text before anything is parsed as a pipeline.
+  [[ "$buf" == ALLOW_CURL_PIPE=1\ * ]] && return 0
+  [[ "$buf" == *bashka* ]] && return 0
+  [[ "$buf" =~ 'curl[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(bash|sh|zsh)([[:space:]]|$)' ]] || return 0
   command -v bashka >/dev/null 2>&1 || return 0
-  local yellow=$'\033[33m' cyan=$'\033[36m' reset=$'\033[0m'
-  print -u2 -- "${yellow}[bashka]${reset} curl piped straight into a shell — scan it first: ${cyan}| bashka${reset}"
+
+  local url=""
+  [[ "$buf" =~ '(https?://[^[:space:]|]+)' ]] && url="$match[1]"
+  if [[ -z "$url" ]]; then
+    _bashka_guard_message="[bashka] blocked curl|shell, but couldn't find a URL in it to
+fetch and scan — save the script to a file and review it yourself first.
+bypass: prefix the line with ALLOW_CURL_PIPE=1"
+    return 1
+  fi
+
+  # --max-time bounds this: accept-line runs synchronously, so a hung server
+  # would otherwise hang the prompt (latency.md).
+  local body
+  body=$(curl -fsSL --max-time 10 -- "$url" 2>/dev/null)
+  if [[ $? -ne 0 || -z "$body" ]]; then
+    _bashka_guard_message="[bashka] blocked curl|shell, but fetching ${url} failed
+(timeout or network error) — not running it for you.
+bypass: prefix the line with ALLOW_CURL_PIPE=1"
+    return 1
+  fi
+
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/curl-scripts"
+  mkdir -p "$cache_dir" 2>/dev/null
+
+  local sha
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha=$(print -r -- "$body" | sha256sum | cut -d' ' -f1)
+  elif command -v shasum >/dev/null 2>&1; then
+    sha=$(print -r -- "$body" | shasum -a 256 | cut -d' ' -f1)
+  else
+    sha="nohash-$$"
+  fi
+
+  # Not `path` — zsh ties that name to the $PATH array, and shadowing it with
+  # a plain `local path` here breaks command lookup for everything called
+  # afterward in this function (date, bashka — found silently nowhere).
+  local ts saved_path
+  ts=$(date -u +%Y%m%dT%H%M%SZ)
+  saved_path="$cache_dir/${ts}_${sha[1,12]}.sh"
+  print -r -- "$body" >| "$saved_path"
+  {
+    print -r -- "url: $url"
+    print -r -- "fetched_at: $ts"
+    print -r -- "sha256: $sha"
+  } >| "$saved_path.meta"
+
+  # --check: report only, never run the script itself — bashka's own default
+  # behavior on a clean verdict is to execute it, which is exactly what this
+  # guard exists to stop from happening automatically.
+  local scan
+  scan=$(bashka --check --non-interactive <"$saved_path" 2>&1)
+
+  _bashka_guard_message="[bashka] blocked curl|shell — fetched and saved instead of running it:
+  ${saved_path}
+
+${scan}
+
+review it:  \$PAGER ${saved_path}
+run it:     bash ${saved_path}
+bypass:     prefix the line with ALLOW_CURL_PIPE=1"
+  return 1
 }
-add-zsh-hook preexec _bashka_curl_pipe_hint
+
+# Thin zle wrapper: the only part of this feature that needs a live line
+# editor, so the logic above stays testable without one. `.accept-line` (dot
+# prefix) calls zsh's own builtin widget, not this one, avoiding recursion.
+_bashka_guard_accept_line() {
+  if _bashka_guard_check "$BUFFER"; then
+    zle .accept-line
+    return
+  fi
+  zle -M "$_bashka_guard_message"
+}
+zle -N accept-line _bashka_guard_accept_line
 
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
