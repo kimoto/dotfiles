@@ -631,6 +631,20 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
+# Nudge toward scanning a third-party curl|bash installer with bashka before it
+# runs (AGENTS.md "third-party installers"). Advisory only: preexec fires after
+# the line is already accepted for execution, and zsh gives it no way to cancel
+# that command, so this only ever prints a suggestion, never blocks.
+_bashka_curl_pipe_hint() {
+  local cmd="$1"
+  [[ "$cmd" == *bashka* ]] && return 0
+  [[ "$cmd" =~ 'curl[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(bash|sh|zsh)([[:space:]]|$)' ]] || return 0
+  command -v bashka >/dev/null 2>&1 || return 0
+  local yellow=$'\033[33m' cyan=$'\033[36m' reset=$'\033[0m'
+  print -u2 -- "${yellow}[bashka]${reset} curl piped straight into a shell — scan it first: ${cyan}| bashka${reset}"
+}
+add-zsh-hook preexec _bashka_curl_pipe_hint
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
