@@ -53,6 +53,26 @@ macOS section above.
 
 ---
 
+## Rectangle (macOS, global)
+
+| Key | Action |
+|-----|--------|
+| ⌃⌘+A / D | Left / right half |
+| ⌃⌘+K / J | Top / bottom half |
+| ⌃⌘+[ / ] | Top-left / top-right quarter |
+| ⌃⌘+' / \ | Bottom-left / bottom-right quarter |
+| ⌃⌘+F | Maximize |
+| ⌃⌘+S | Center |
+| ⌃⌘+X | Center half |
+| ⌃⌘+; / - | Larger / smaller |
+| ⌃⌘+O | Restore |
+| ⌃⌘+G | Next display |
+| ⌃⌘+←/↓/↑/→ | Move to left / bottom / top / right edge (keeps size) |
+| ⌃⌥+B | Toggle Todo mode (Logseq pinned as a side column) |
+| ⌃⌥+N | Reflow Todo |
+
+---
+
 ## Windows (global)
 
 The other machine. A peer of the macOS layer, not another level on top of it —
