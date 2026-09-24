@@ -49,8 +49,13 @@ run_check() {
     export DOTFILES_NO_BREW_CHECK=1
     export DOTFILES_NO_MISE_CHECK=1
     source '$REPO_ROOT/.zshrc' >/dev/null 2>&1
-    _bashka_guard_check '$1'
-    rc=\$?
+    # CI sets \$CI, which turns on this file's err_exit/err_return — a bare
+    # nonzero-returning statement (the expected \"blocked\" result) would abort
+    # the script right here before the prints below ever ran. && / || is the
+    # standard errexit-safe way to capture \$? without tripping it (the real
+    # accept-line widget only ever calls this as an if-condition, which is
+    # exempt the same way, so production is unaffected either way).
+    _bashka_guard_check '$1' && rc=0 || rc=\$?
     print -r -- \"status=\$rc\"
     print -r -- \"\$_bashka_guard_message\"
   " 2>&1

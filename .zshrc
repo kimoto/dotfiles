@@ -664,9 +664,18 @@ bypass: prefix the line with ALLOW_CURL_PIPE=1"
 
   # --max-time bounds this: accept-line runs synchronously, so a hung server
   # would otherwise hang the prompt (latency.md).
-  local body
-  body=$(curl -fsSL --max-time 10 -- "$url" 2>/dev/null)
-  if [[ $? -ne 0 || -z "$body" ]]; then
+  #
+  # Every command from here on is wrapped (`if ... ; then`, or `|| true`) even
+  # where success is the overwhelmingly likely outcome: AGENTS.md turns on
+  # err_return under CI, which returns out of this function the instant any
+  # bare, unguarded statement exits non-zero — before this function gets to
+  # its own return. bashka's own `--check` exit codes (1 neutral, 2 red, 3
+  # strong gate, 4 critical) make that not just theoretical: a flagged script
+  # is the exact case this guard exists for, and it must reach the message
+  # below rather than bail out silently on bashka's raw exit code.
+  local body fetch_ok=0
+  body=$(curl -fsSL --max-time 10 -- "$url" 2>/dev/null) && fetch_ok=1
+  if [[ $fetch_ok -eq 0 || -z "$body" ]]; then
     _bashka_guard_message="[bashka] blocked curl|shell, but fetching ${url} failed
 (timeout or network error) — not running it for you.
 bypass: prefix the line with ALLOW_CURL_PIPE=1"
@@ -674,13 +683,13 @@ bypass: prefix the line with ALLOW_CURL_PIPE=1"
   fi
 
   local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/curl-scripts"
-  mkdir -p "$cache_dir" 2>/dev/null
+  mkdir -p "$cache_dir" 2>/dev/null || true
 
   local sha
   if command -v sha256sum >/dev/null 2>&1; then
-    sha=$(print -r -- "$body" | sha256sum | cut -d' ' -f1)
+    sha=$(print -r -- "$body" | sha256sum | cut -d' ' -f1) || true
   elif command -v shasum >/dev/null 2>&1; then
-    sha=$(print -r -- "$body" | shasum -a 256 | cut -d' ' -f1)
+    sha=$(print -r -- "$body" | shasum -a 256 | cut -d' ' -f1) || true
   else
     sha="nohash-$$"
   fi
@@ -689,20 +698,20 @@ bypass: prefix the line with ALLOW_CURL_PIPE=1"
   # a plain `local path` here breaks command lookup for everything called
   # afterward in this function (date, bashka — found silently nowhere).
   local ts saved_path
-  ts=$(date -u +%Y%m%dT%H%M%SZ)
+  ts=$(date -u +%Y%m%dT%H%M%SZ) || true
   saved_path="$cache_dir/${ts}_${sha[1,12]}.sh"
-  print -r -- "$body" >| "$saved_path"
+  print -r -- "$body" >| "$saved_path" || true
   {
     print -r -- "url: $url"
     print -r -- "fetched_at: $ts"
     print -r -- "sha256: $sha"
-  } >| "$saved_path.meta"
+  } >| "$saved_path.meta" || true
 
   # --check: report only, never run the script itself — bashka's own default
   # behavior on a clean verdict is to execute it, which is exactly what this
   # guard exists to stop from happening automatically.
   local scan
-  scan=$(bashka --check --non-interactive <"$saved_path" 2>&1)
+  scan=$(bashka --check --non-interactive <"$saved_path" 2>&1) || true
 
   _bashka_guard_message="[bashka] blocked curl|shell — fetched and saved instead of running it:
   ${saved_path}
