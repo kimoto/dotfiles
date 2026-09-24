@@ -2,20 +2,9 @@
 
 Hierarchical keybinding reference. Upper layers intercept keys first.
 
-Sources: `hammerspoon/init.lua`, AeroSpace (`.aerospace.toml`),
-`config/ghostty/config`, `.tmux.conf`, `.zshrc`, `config/zsh/abbr.zsh`,
-`config/nvim/` — each carries a pointer comment back to this file; update this
-file whenever a binding changes there.
-
 Symbols: ⌘ = Command, ⌥ = Option/Alt, ⌃ = Control, ⇧ = Shift
 
-The tables below are also the data behind `bin/keys.sh`, which turns them into a
-searchable picker — `⌃+X ?` (or the `keys` command) in zsh. tmux binds the same
-script to `prefix + ?`, but tmux-which-key rebinds that key again once its
-plugin loads and wins, so in practice tmux's `prefix + ?` opens which-key's
-menu instead (see the tmux section below). Each row it prints is tagged with
-the layer it came from, so adding a row here is all it takes to make a new
-binding discoverable at the keyboard.
+Search these tables from zsh with `keys` or ⌃+X ?.
 
 ---
 
@@ -36,15 +25,13 @@ binding discoverable at the keyboard.
 | ⌘+⇧+3 | Screenshot (full) |
 | ⌘+⇧+4 | Screenshot (selection) |
 | ⌘+⇧+5 | Screenshot menu |
-| ⌃+⌘+⇧+3 / 4 | Same full / selection capture, clipboard only — writes no file. The one to reach for when the shot is going straight into ⌘+V (an agent prompt, a chat), so no stray screenshot lands in a synced folder |
+| ⌃+⌘+⇧+3 / 4 | Same full / selection capture, clipboard only (no file) |
 
 ---
 
 ## Raycast (macOS, global)
 
-Installed via `Brewfile.macos`, on every mac this repo builds. Hotkeys are set
-in-app, so there is no config in this repo to check against — same as the
-macOS section above.
+Source: set in-app, not in this repo
 
 | Key | Action |
 |-----|--------|
@@ -54,6 +41,8 @@ macOS section above.
 ---
 
 ## Rectangle (macOS, global)
+
+Source: in-app, readable with `defaults read com.knollsoft.Rectangle`
 
 | Key | Action |
 |-----|--------|
@@ -75,18 +64,11 @@ macOS section above.
 
 ## Windows (global)
 
-The other machine. A peer of the macOS layer, not another level on top of it —
-the two are different devices and never in effect at once. Modifiers are spelled
-out because Win is not ⌘. This machine is driven from a Mac keyboard with the
-modifiers passed through unremapped, so Command arrives as **Win** — the key
-under the thumb is the same one, and every `Win+…` row below is what ⌘ already
-reaches for. Stock Windows keys are not listed; only what this setup adds.
+Driven from a Mac keyboard, so ⌘ arrives as **Win**. Stock Windows keys are not listed.
 
 ### AutoHotkey (global remaps, every app except Windows Terminal)
 
-The port of the Hammerspoon table below, in
-`windows/autohotkey/mac-keys.ahk`. Windows Terminal is exempted for the
-same reason Ghostty is on the mac: zsh and nvim bind these themselves.
+Source: `windows/autohotkey/mac-keys.ahk`
 
 | Key | Action |
 |-----|--------|
@@ -103,13 +85,11 @@ same reason Ghostty is on the mac: zsh and nvim bind these themselves.
 | Win+Left / Right | Beginning / end of line |
 | Win+Up / Down | Beginning / end of document |
 
+These apply outside text fields too: close a tab with Win+W, not Ctrl+W.
+
 ### AutoHotkey (inside Windows Terminal only)
 
-The other half of `mac-keys.ahk`, and the mirror of the section above: these
-fire *only* when the terminal is frontmost. They exist because Windows reserves
-`Win+<key>` for the shell, so Windows Terminal is not allowed to bind them
-itself — `Win+1` would otherwise launch the first taskbar app. The bytes match
-the Ghostty rows further down, so tmux cannot tell the two machines apart.
+Source: `windows/autohotkey/mac-keys.ahk`
 
 | Key | Action |
 |-----|--------|
@@ -117,39 +97,32 @@ the Ghostty rows further down, so tmux cannot tell the two machines apart.
 | Win+Alt+←/→ | → sends ⌥+←/→ to tmux (previous / next window) |
 | Win+Alt+↑/↓ | → sends ⌥+↑/↓ to tmux (previous / next session) |
 
-GUI Emacs remaps apply even outside text fields. Use Win+W to close a tab;
-Ctrl+W now deletes the previous word, matching Hammerspoon.
-
 ### Windows Terminal (all profiles)
 
-Merge fragment: `windows/windows-terminal/keybindings.json`.
+Source: `windows/windows-terminal/keybindings.json`
 
 | Key | Action |
 |-----|--------|
 | Shift+Enter / Alt+Enter | Send LF (Ctrl+J): insert a newline in Claude Code, including through tmux |
 
-These are Terminal-wide bindings. At a shell prompt they can execute commands.
-Alt+Enter replaces fullscreen; F11 still toggles fullscreen. Plain Enter is unchanged.
+At a shell prompt these run the command like Enter. F11 toggles fullscreen.
 
 ### ShareX (screen capture)
 
-ShareX's `HotkeysConfig.json` lives under `%USERPROFILE%` and cannot be
-symlinked in (a symlink made from WSL under `/mnt/c` is not one Windows can
-follow), so this table is the only copy under version control.
+Source: `HotkeysConfig.json` under `%USERPROFILE%`, not in this repo
 
 | Key | Action |
 |-----|--------|
-| Ctrl+Shift+Win+4 | Capture region → image editor → Enter puts the annotated image on the clipboard. Stands in for ⌃⇧⌘4 plus CleanShot X's annotate step; the only one that writes no file, so the only one OneDrive never sees |
+| Ctrl+Shift+Win+4 | Capture region → image editor → Enter copies it to the clipboard (no file) |
 | Ctrl+PrintScreen | Capture region → clipboard + file |
 | PrintScreen | Capture all screens → clipboard + file |
 | Alt+PrintScreen | Capture active window → clipboard + file |
 | Shift+PrintScreen | Start / stop screen recording (region) |
 | Ctrl+Shift+PrintScreen | Same, as GIF |
 
-Ctrl+Shift+Win+4 collides with Windows' own Win+Ctrl+Shift+&lt;n&gt;; ShareX wins
-the `RegisterHotKey` race, so if it ever stops firing, check that first.
-
 ### ShareX image editor (after Ctrl+Shift+Win+4)
+
+Source: `ApplicationConfig.json` (`ImageEditorOptions.ToolbarItems`), not in this repo
 
 | Key | Action |
 |-----|--------|
@@ -161,13 +134,11 @@ the `RegisterHotKey` race, so if it ever stops firing, check that first.
 | Enter | Done: copy to clipboard and close. While typing text, it only commits the text |
 | Win+Shift+C (⇧⌘C) | Same as Enter, via `mac-keys.ahk` |
 
-Only C differs from ShareX's defaults: Step moved there from N, and Crop lost it.
-The keys are in `ApplicationConfig.json` (`ImageEditorOptions.ToolbarItems`),
-which ShareX rewrites on exit, so edit it with ShareX closed.
-
 ---
 
 ## Hammerspoon (global remaps, every app except Ghostty)
+
+Source: `hammerspoon/init.lua`
 
 | Key | Action |
 |-----|--------|
@@ -175,12 +146,11 @@ which ShareX rewrites on exit, so edit it with ShareX closed.
 | ⌃+W | Delete word backward |
 | ⌃+/ | Undo (⌘+Z) |
 
-Ghostty is excluded — the terminal gets these natively via zsh/nvim readline
-bindings, so remapping there would double-apply or break them.
-
 ---
 
 ## AeroSpace (global, intercepts before apps)
+
+Source: `.aerospace.toml`
 
 | Key | Action |
 |-----|--------|
@@ -198,9 +168,6 @@ bindings, so remapping there would double-apply or break them.
 | ⌥+0 | Reset layout (flatten workspace tree) |
 | ⌥+⇧+; | Enter service mode |
 
-⌥+⇧+F means something different once you're in service mode below — it floats
-all windows in the workspace instead of toggling fullscreen.
-
 ### Service mode (⌥+⇧+;, then...)
 
 | Key | Action |
@@ -209,8 +176,8 @@ all windows in the workspace instead of toggling fullscreen.
 | R | Reset layout (flatten workspace tree), back to main mode |
 | F | Toggle floating/tiling layout, back to main mode |
 | Backspace | Close all windows but current, back to main mode |
-| ⌥+⇧+T | Tile all windows in focused workspace (`bin/tile-focused-workspace.sh tiling`), back to main mode |
-| ⌥+⇧+F | Float all windows in focused workspace (`bin/tile-focused-workspace.sh floating`), back to main mode |
+| ⌥+⇧+T | Tile all windows in focused workspace, back to main mode |
+| ⌥+⇧+F | Float all windows in focused workspace, back to main mode |
 | ⌥+⇧+h/j/k/l | Join with window left / down / up / right, back to main mode |
 | Down / Up | Volume down / up |
 | ⇧+Down | Mute (volume set 0), back to main mode |
@@ -218,6 +185,8 @@ all windows in the workspace instead of toggling fullscreen.
 ---
 
 ## Ghostty (intercepts before tmux)
+
+Source: `config/ghostty/config`
 
 | Key | Action |
 |-----|--------|
@@ -227,12 +196,13 @@ all windows in the workspace instead of toggling fullscreen.
 | ⌘+⇧+O | Toggle background opacity |
 | ¥ | Insert `\` (backslash) |
 
-`macos-option-as-alt = true` — ⌥ always sends ESC prefix (Meta key) to tmux.  
-⌥+0~5 are unbound in Ghostty, passed through to AeroSpace.
+⌥ acts as Meta (ESC prefix). ⌥+0~5 pass through to AeroSpace.
 
 ---
 
 ## tmux (prefix: C-t)
+
+Source: `.tmux.conf`
 
 ### Windows / sessions (no prefix)
 
@@ -249,19 +219,11 @@ all windows in the workspace instead of toggling fullscreen.
 |-----|--------|
 | ⌥⌘+h/j/k/l | Select pane left / down / up / right |
 | ⌥+Z (M-z) | Toggle pane zoom (🔍 in window status while zoomed) |
-| Mouse wheel | Scroll pane / enter copy-mode; scrolling to the bottom exits copy-mode (tmux-better-mouse-mode) |
-
-⌥⌘+hjkl works because Ghostty sends ESC+hjkl (M-hjkl) even with ⌘ held,
-while AeroSpace only intercepts plain ⌥+hjkl.
+| Mouse wheel | Scroll pane / enter copy-mode; scrolling to the bottom exits it |
 
 ### With prefix (C-t)
 
-While the prefix is held, status-right turns into a hint of the most-used keys
-below (`? help  g lazygit  t shell`), so the common ones never need looking up.
-The hint takes the place of the kube/clock segment rather than pushing it along,
-which is what keeps the window list from being cut short while you hold the
-prefix — that is also why only three keys fit; `prefix + ?` has the rest.
-`prefix + b` hides the status bar, and with it the hint.
+While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 
 | Key | Action |
 |-----|--------|
@@ -276,16 +238,16 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
-| prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+; replaces clock-mode) |
-| prefix + a | A second Claude Code in a floating pane, same cwd (tmux 3.7+ only, no popup fallback). A fresh session — nothing is carried over from the pane it was opened from |
-| prefix + A | Same, but forking the Claude Code session running in this pane: it keeps the conversation so far and writes a separate transcript from there, so a long investigation does not bloat the original |
-| prefix + f | fzf switcher across all panes of all sessions with live preview (replaces find-window); most-recently-used first, current pane omitted |
+| prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
+| prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
+| prefix + A | Same, but forking this pane's Claude Code session |
+| prefix + f | fzf switcher across all panes of all sessions, most recent first |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
-| prefix + ? | tmux-which-key: menu tree of tmux commands (windows, panes, buffers, sessions, client); its +Keys entry is where `list-keys -N` lives. Wins this key back from `bin/keys.sh`'s cheatsheet popup, bound to the same key — reach that instead via zsh's `keys` / ⌃+X ? |
-| prefix + Ctrl-s | Save tmux session state (tmux-resurrect; tmux-continuum also auto-saves every 15 min and auto-restores it on tmux start; tmux-assistant-resurrect also saves AI coding assistant sessions, e.g. Claude Code) |
-| prefix + Ctrl-r | Restore last saved tmux session state (tmux-resurrect; tmux-assistant-resurrect also resumes saved AI coding assistant sessions) |
-| prefix + Tab | extrakto: fuzzy-extract word/path/url/line from pane scrollback (Tab copies to clipboard, Enter inserts into pane); opens in a floating pane on tmux 3.7+, taking the half of the window the cursor is not in so it never covers the lines you are picking from |
+| prefix + ? | tmux-which-key: menu of tmux commands |
+| prefix + Ctrl-s | Save session state, Claude Code sessions included (also auto-saved every 15 min) |
+| prefix + Ctrl-r | Restore the last saved session state |
+| prefix + Tab | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
@@ -301,13 +263,15 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 
 ## zsh (emacs mode)
 
+Source: `.zshrc`
+
 | Key | Action |
 |-----|--------|
 | ⌃+R | History search (fzf; wrapped full-command preview) |
 | ⌃+T | File picker (fzf; bat preview; ⌃+O opens in editor) |
 | ⌃+G | livegrep (interactive ripgrep → open in editor) |
 | ⌃+X ⌃+N | Snippet search (fzf over `config/zsh/snippets`) → insert into command line |
-| ⌃+X ? | Keybinding cheatsheet: fzf over this whole file, mid-command (the line being edited is kept; nothing is inserted). Replaces compinit's `_complete_debug` |
+| ⌃+X ? | Keybinding cheatsheet (keeps the line being edited) |
 | ⌃+\ | Undo |
 | ⌃+A / E | Beginning / end of line |
 | ⌃+W | Delete word backward |
@@ -318,9 +282,9 @@ prefix — that is also why only three keys fit; `prefix + ?` has the rest.
 
 ### Abbreviations (Space / Enter, command position only)
 
-Static word → command expansion defined in `config/zsh/abbr.zsh` (a minimal
-zsh-abbr replacement). Typing one of these words where a command starts, then
-pressing Space or Enter, expands it in place:
+Source: `config/zsh/abbr.zsh`
+
+Type the word where a command starts, then Space or Enter.
 
 | Word | Expands to |
 |------|------------|
@@ -339,35 +303,31 @@ pressing Space or Enter, expands it in place:
 
 ### Shell helpers
 
-Short interactive commands defined in `.zshrc` for frequent workflows:
+Source: `.zshrc`
 
 | Command | Action |
 |---------|--------|
 | `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
 | `lg [args]` | Launch lazygit (args passed through); chase into the directory it was left in |
 | `b [query]` | Switch git branch (fzf; last-15-commits preview) |
-| `B` | GitHub branch browser (`gh branch`; needs a manually installed gh extension, e.g. `mislav/gh-branch` — not part of `mkworld.sh`) |
+| `B` | GitHub branch browser (`gh branch` extension) |
 | `w [query]` | Jump to a git worktree (fzf) |
-| `W <type>/<short-desc>` | Cut a new worktree for that branch off origin's default branch and cd into it (`bin/worktree_new.sh`; lives under `~/.worktrees/<repo>/`, leaves the main checkout where it is) |
+| `W <type>/<short-desc>` | New worktree for that branch off the default branch, and cd into it |
 | `c` | Switch Kubernetes context (`kubectx`) |
 | `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
 | `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a ⌃+X ⌃+N snippet; bare `snip` edits the snippet file |
-| `keys [query]` | Search this file's keybinding/helper tables (fzf; `bin/keys.sh`, same picker as ⌃+X ?; tmux's prefix + ? is bound to it too, but tmux-which-key wins that key back) |
+| `keys [query]` | Search these tables (same as ⌃+X ?) |
 | `dotfiles-ship` | Push, open a PR, auto-merge, wait for merge, then switch back to `main` |
 
 ---
 
 ## Neovim (leader: Space)
 
-Defined in `config/nvim/lua/kimoto/keymaps.lua` and
-`config/nvim/lua/kimoto/plugins/*.lua`.
+Source: `config/nvim/lua/kimoto/keymaps.lua`, `config/nvim/lua/kimoto/plugins/*.lua`
 
-Every map is registered with a `desc`, and which-key.nvim renders them: hold a
-prefix (Space, `g`, `z`, …) for ~300ms and the follow-ups appear in a popup.
-This table is the copy you read on purpose; the popup is the one that reaches
-you when you have forgotten a binding exists.
+Hold a prefix (Space, `g`, `z`, …) and which-key shows what follows.
 
 ### Windows / buffers / tools
 
@@ -377,7 +337,7 @@ you when you have forgotten a binding exists.
 | Space+1~6 | Go to buffer 1~6 |
 | Space+n / p | Next / previous buffer |
 | Tab / ⇧+Tab | Cycle buffers (bufferline) |
-| ⌃+o / ⌃+i | Jump back / forward (jumplist) — ⌃+i is mapped explicitly so Tab's buffer cycling does not swallow it |
+| ⌃+o / ⌃+i | Jump back / forward (jumplist) |
 | Space+e | Toggle file tree (nvim-tree) |
 | Space+t | Toggle terminal (toggleterm) |
 | ⌃+Space | Normal mode: toggle terminal / insert mode: trigger completion |
@@ -404,7 +364,7 @@ you when you have forgotten a binding exists.
 | grn / gra / grr | Rename / code action / references (nvim builtin) |
 | K | Hover (nvim builtin) |
 | Enter (insert) | Confirm completion (nvim-cmp) |
-| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip); a plain Tab when no snippet is active |
+| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip) |
 
 ### Diagnostics (trouble)
 
