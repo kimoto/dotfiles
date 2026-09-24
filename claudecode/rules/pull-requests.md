@@ -11,9 +11,9 @@ scale, and scale means nothing until the body says what it is scale of.
 
 ⚠️ **A line that opens with a filename, a function, or a step number has already
 spent the reader's attention on "where"** — which the diff answers. Open with the
-intent instead, one line per change, and refuse to hang before/after, evidence and
-blast radius underneath as sub-bullets. ★The body is read top-down by someone who
-will stop early, so nothing may hide behind `<details>`.
+intent instead, one line per change. A human reads this and stops early, so keep it
+short: add a sub-bullet only when the reader needs it, never for what the diff or
+CI already shows. ★Nothing may hide behind `<details>`.
 
 ⚠️ **Name what checked the change** — a job, a hook, a command run by hand, in
 one list. Asserting in prose that checks passed adds nothing and rots; a name
