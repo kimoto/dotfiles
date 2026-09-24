@@ -136,6 +136,11 @@ truth, so the two never diverge.
   it is registered per machine in `~/.claude/settings.json` and reached by a
   symlink nothing in `bin/` creates, so `mkworld.sh` installs the script
   without enabling it.
+- `codex/` — Codex user defaults and an `AGENTS.md` bridge that reads the
+  current host's `~/.claude/CLAUDE.md` and `~/.claude/rules/`. `mklink.sh`
+  links the config and bridge only when absent; `rmworld.sh` removes only our
+  links. Windows merges config values and uses native Windows symlinks for
+  the bridge and rules; see `codex/README.md`.
 - `.codex/skills/` — the skills, and the single source for both agents:
   `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
   is written once. A real directory holding a symlinked `SKILL.md` (not a

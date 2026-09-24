@@ -13,8 +13,11 @@ setup() {
   TMP="$(fixture_tmpdir)"
 
   mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/decoy" "$TMP/repo/bin" \
+    "$TMP/repo/codex" \
     "$TMP/repo/claudecode/rules" "$TMP/repo/claudecode/rules-cloud" \
     "$TMP/repo/claudecode/skills/example-skill"
+  : >"$TMP/repo/codex/config.toml"
+  : >"$TMP/repo/codex/AGENTS.md"
   : >"$TMP/repo/claudecode/rules/example.md"
   : >"$TMP/repo/claudecode/rules-cloud/scope.md"
   : >"$TMP/repo/claudecode/settings-cloud.json"
@@ -58,15 +61,17 @@ EOF
 
 calls() { cat "$TMP/calls" 2>/dev/null; }
 
-run_setup() { run env HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
+run_setup() { run env -u CODEX_HOME HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
 
-@test "a container gets the toolchain, the git hooks and the ~/.claude entries" {
+@test "a container gets the toolchain, hooks, and user configuration" {
   run_setup
   [ "$status" -eq 0 ]
   [[ "$(calls)" == *"install_check_tools"* ]]
   [[ "$(calls)" == *"lefthook install"* ]]
   [ -L "$TMP/home/.claude/rules/dotfiles" ]
   [ -L "$TMP/home/.claude/skills/example-skill" ]
+  [ "$(readlink -f "$TMP/home/.codex/config.toml")" = "$TMP/repo/codex/config.toml" ]
+  [ "$(readlink -f "$TMP/home/.codex/AGENTS.md")" = "$TMP/repo/codex/AGENTS.md" ]
 }
 
 @test "a toolchain that did not land leaves the git hooks alone" {
@@ -92,8 +97,21 @@ run_setup() { run env HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
 
 @test "it finds its repo from itself, not from the working directory" {
   # The case that left this checkout with no hooks.
-  run env -C "$TMP/decoy" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"
+  run env -u CODEX_HOME -C "$TMP/decoy" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"
   [ "$status" -eq 0 ]
   [ "$(readlink "$TMP/home/.claude/rules/dotfiles")" = "$TMP/repo/claudecode/rules" ]
   [ ! -e "$TMP/decoy/claudecode" ]
+}
+
+@test "an existing Codex config is preserved and reported" {
+  mkdir -p "$TMP/home/.codex"
+  printf 'foreign\n' >"$TMP/home/.codex/config.toml"
+
+  run_setup
+
+  [ "$status" -ne 0 ]
+  [ "$(cat "$TMP/home/.codex/config.toml")" = foreign ]
+  [[ "$output" == *"MISS Codex config"* ]]
+  # Independent entries still land, so repairing the collision is sufficient.
+  [ -L "$TMP/home/.codex/AGENTS.md" ]
 }

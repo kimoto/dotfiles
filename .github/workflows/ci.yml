@@ -63,6 +63,17 @@ jobs:
         # local hook. Needs the fetch-depth: 0 checkout above for origin/main.
         run: ./bin/check_commit_msgs_range.sh
 
+  windows_codex_setup:
+    if: github.event_name != 'schedule'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Test Codex config merge
+        shell: pwsh
+        run: ./test/link_codex.ps1
+
   # bin/install_check_tools.sh maps uname -m onto each project's release-asset
   # naming, and the Claude Code web sandbox that runs it via the SessionStart
   # hook can be arm64. Every other job covers x86_64 only; this one downloads

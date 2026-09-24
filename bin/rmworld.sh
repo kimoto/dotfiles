@@ -54,6 +54,12 @@ rm -f "./.zshrc.zwc" "./.zshrc.new.zwc"
 unlink_if_symlink "./.irbrc"
 unlink_if_symlink "./.vimrc"
 unlink_if_symlink "./.aerospace.toml"
+if [ "$(readlink -f ./.codex/config.toml 2>/dev/null)" = "$BASE_DIR/codex/config.toml" ]; then
+    unlink_if_symlink "./.codex/config.toml"
+fi
+if [ "$(readlink -f ./.codex/AGENTS.md 2>/dev/null)" = "$BASE_DIR/codex/AGENTS.md" ]; then
+    unlink_if_symlink "./.codex/AGENTS.md"
+fi
 unlink_if_symlink "./.claude/rules/dotfiles"
 unlink_if_symlink "./.claude/skills/session-resume"
 unlink_if_symlink "./.claude/skills/wrapup"
