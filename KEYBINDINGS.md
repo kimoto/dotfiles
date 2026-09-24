@@ -72,6 +72,16 @@ same reason Ghostty is on the mac: zsh and nvim bind these themselves.
 |-----|--------|
 | Alt+B / F | Move word backward / forward (sends Ctrl+←/→) |
 | Ctrl+/ | Undo (sends Ctrl+Z) |
+| Ctrl+A / E | Beginning / end of line |
+| Ctrl+B / F | Move one character backward / forward |
+| Ctrl+P / N | Move up / down |
+| Ctrl+H / D | Delete one character backward / forward |
+| Ctrl+K | Delete to end of line; at line end, delete the next newline. No kill ring |
+| Ctrl+W / Alt+D | Delete previous / next word |
+| Win+A/C/F/N/P/R/S/T/V/W/X/Z | Send the corresponding Ctrl shortcut (select all, copy, find, new, print, reload, save, new tab, paste, close, cut, undo) |
+| Win+Shift+Z / T | Redo (Ctrl+Y) / reopen closed tab |
+| Win+Left / Right | Beginning / end of line |
+| Win+Up / Down | Beginning / end of document |
 
 ### AutoHotkey (inside Windows Terminal only)
 
@@ -87,9 +97,19 @@ the Ghostty rows further down, so tmux cannot tell the two machines apart.
 | Win+Alt+←/→ | → sends ⌥+←/→ to tmux (previous / next window) |
 | Win+Alt+↑/↓ | → sends ⌥+↑/↓ to tmux (previous / next session) |
 
-Hammerspoon's ⌃+W (delete word backward) is deliberately **not** ported: Ctrl+W
-is close-tab in nearly every Windows app, and Ctrl+Backspace already deletes the
-previous word. The line is in the script, commented out.
+GUI Emacs remaps apply even outside text fields. Use Win+W to close a tab;
+Ctrl+W now deletes the previous word, matching Hammerspoon.
+
+### Windows Terminal (all profiles)
+
+Merge fragment: `windows/windows-terminal/keybindings.json`.
+
+| Key | Action |
+|-----|--------|
+| Shift+Enter / Alt+Enter | Send LF (Ctrl+J): insert a newline in Claude Code, including through tmux |
+
+These are Terminal-wide bindings. At a shell prompt they can execute commands.
+Alt+Enter replaces fullscreen; F11 still toggles fullscreen. Plain Enter is unchanged.
 
 ### ShareX (screen capture)
 

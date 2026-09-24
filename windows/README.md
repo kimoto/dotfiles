@@ -80,6 +80,14 @@ this list, never as the list itself.
 
 ## Windows Terminal
 
+Merge the `actions` and `keybindings` arrays from `windows-terminal/keybindings.json`
+into the live `settings.json`, retaining other entries and replacing existing
+bindings for the same keys. This is a merge fragment, not a complete settings file.
+Shift+Enter and Alt+Enter (Option on the Mac keyboard) send LF / Ctrl+J,
+which inserts a newline in Claude Code, including through tmux. Plain Enter is unchanged.
+These bindings apply to every Terminal profile: at a shell prompt they can execute
+commands, and Alt+Enter replaces Terminal's default fullscreen shortcut. Use F11 instead.
+
 `config/ghostty/config` pins `theme = Iterm2 Solarized Dark`, and that exact
 scheme has a Windows Terminal port under the same name in
 [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes/blob/master/windowsterminal/iTerm2%20Solarized%20Dark.json).
@@ -144,10 +152,12 @@ something to maintain, so the alternatives, and why they were not taken:
   already binds `Alt+B` to backward-word natively. Breaking the shell to fix
   everything else is the wrong way round.
 - **XKeymacs / Keyhac** — real products that do have per-app conditions, but
-  both install a whole Emacs-emulation layer. Only three keys are actually being
-  changed here.
+  both install a whole Emacs-emulation layer. The needed subset is kept in the existing AHK script.
 
-`⌃W` → delete-word-backward is deliberately left commented out: `Ctrl+W` closes
-a tab in nearly every Windows app, and `Ctrl+Backspace` already deletes the
-previous word natively. macOS closes with `⌘W`, which is exactly why `⌃W` is
-free for Hammerspoon to take there.
+The GUI remaps also cover Ctrl+A/E (line start/end), Ctrl+B/F (character motion),
+Ctrl+P/N (up/down), Ctrl+H/D (backward/forward delete), Ctrl+K (delete to line end),
+Ctrl+W (delete previous word), and Alt+D (delete next word). Ctrl+K does not keep
+an Emacs kill ring. These apply outside Windows Terminal even when focus is not
+in a text field, replacing the apps' native Ctrl shortcuts. Use Command/Win+A/F/N/P/W
+for select-all, find, new, print, and close-tab instead. Terminal retains native
+shell/editor bindings. Reload the copied AHK script after changing it.

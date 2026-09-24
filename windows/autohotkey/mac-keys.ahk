@@ -30,16 +30,21 @@
 ; init.lua: ctrl+/ -> cmd+z (undo).
 ^/::Send("^z")
 
-; init.lua: ctrl+w -> alt+delete (delete word backward).
-; DELIBERATELY LEFT OFF on Windows — this is the one remap that does not port:
-;   1. Ctrl+W is close-tab / close-window in virtually every Windows app
-;      (browsers, Explorer, VS Code, Terminal). Claiming it globally breaks
-;      that everywhere. macOS closes with Cmd+W, which is precisely why Ctrl+W
-;      is free there for init.lua to take.
-;   2. Windows already deletes the previous word on Ctrl+Backspace, so the
-;      remap adds far less here than it does on macOS.
-; Enable it only as a deliberate trade against close-tab:
-; ^w::Send("^{BackSpace}")
+; Basic Emacs-style editing outside Windows Terminal. Command/Win shortcuts
+; below retain select-all, find, new, print, and close-tab on the Mac keyboard.
+; These apply throughout GUI apps, including when focus is not in a text field.
+; Ctrl+K deletes to end of line (or the next newline at EOL); no kill ring.
+^a::Send("{Home}")
+^e::Send("{End}")
+^b::Send("{Left}")
+^f::Send("{Right}")
+^p::Send("{Up}")
+^n::Send("{Down}")
+^h::Send("{BackSpace}")
+^d::Send("{Delete}")
+^k::Send("+{End}{Delete}")
+^w::Send("^{BackSpace}")
+!d::Send("^{Delete}")
 
 ; --- Command as Command ---------------------------------------------------
 ; The Mac keyboard's Command arrives as Win, so ⌘+C is physically Win+C, and
