@@ -2,7 +2,7 @@
 # Monthly, no-cache, full-workstation bootstrap on Ubuntu.
 #
 # ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
-# slice of it: setup_homebrew.sh skips Brewfile.common when CI=true,
+# slice of it: ci_prepare.sh asks setup_homebrew.sh to leave Brewfile.common out,
 # ci_prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
 # suite never links the dotfiles into $HOME. So the parts of the bootstrap a
 # human actually executes are the parts CI never touches, and a run of bugs
@@ -50,9 +50,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends tmux
 
       - name: Bootstrap from scratch, from inside a tmux session
-        # Nothing skipped: no SKIP_BREW, no CI=true, so this is the first place
-        # `brew bundle` sees Brewfile.common and Brewfile.linux, and the first
-        # place mkworld runs its own helper scripts for real.
+        # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_COMMON is set, so
+        # this is the first place `brew bundle` sees Brewfile.common and
+        # Brewfile.linux, and the first place mkworld runs its own helper
+        # scripts for real. Both are opt-in for exactly this reason -- the
+        # earlier $CI test could not be opted out of, since Actions sets CI=true
+        # in every step including this one, and the run that proved it installed
+        # Brewfile.basic and then failed the check below.
         #
         # Inside tmux on purpose. $TMUX is then inherited all the way down to
         # tpm, which resolves its server from it like any bare tmux client —
