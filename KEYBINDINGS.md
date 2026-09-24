@@ -40,6 +40,19 @@ binding discoverable at the keyboard.
 
 ---
 
+## Raycast (macOS, global)
+
+Installed via `Brewfile.macos`, on every mac this repo builds. Hotkeys are set
+in-app, so there is no config in this repo to check against — same as the
+macOS section above.
+
+| Key | Action |
+|-----|--------|
+| ⌃⌘+V | Clipboard history |
+| ⌃⌘+C | Snippets |
+
+---
+
 ## Windows (global)
 
 The other machine. A peer of the macOS layer, not another level on top of it —
