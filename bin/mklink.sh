@@ -30,6 +30,22 @@ ln -sf "$BASE_DIR/.irbrc" ./
 ln -sf "$BASE_DIR/.vimrc" ./
 ln -sf "$BASE_DIR/.aerospace.toml" ./
 
+# Codex keeps machine-specific settings and runtime state in ~/.codex.
+# Preserve existing configs; only a missing config gets our shared defaults.
+mkdir -p ./.codex
+if [ ! -e ./.codex/config.toml ] && [ ! -L ./.codex/config.toml ]; then
+    ln -s "$BASE_DIR/codex/config.toml" ./.codex/config.toml
+elif [ "$(readlink -f ./.codex/config.toml)" != "$BASE_DIR/codex/config.toml" ]; then
+    echo "Preserving existing Codex config; merge defaults from $BASE_DIR/codex/config.toml" >&2
+fi
+
+# Share Claude user guidance without replacing an existing Codex instruction file.
+if [ ! -e ./.codex/AGENTS.md ] && [ ! -L ./.codex/AGENTS.md ]; then
+    ln -s "$BASE_DIR/codex/AGENTS.md" ./.codex/AGENTS.md
+elif [ "$(readlink -f ./.codex/AGENTS.md)" != "$BASE_DIR/codex/AGENTS.md" ]; then
+    echo "Preserving existing Codex instructions; merge $BASE_DIR/codex/AGENTS.md" >&2
+fi
+
 # Claude Code user rules. ~/.claude/rules/ is a conf.d: every .md under it
 # loads into every session. Each source repo links its own subdirectory, so
 # another repo can keep its rules there too — only our own entry is linked.

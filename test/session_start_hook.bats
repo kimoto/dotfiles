@@ -28,8 +28,11 @@ setup() {
 
   # The rules directory has to really exist: `ln -sf` dereferences an existing
   # symlink only when the target is real, so a dangling one hides the -n case.
-  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/claudecode/rules" \
+  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/codex" \
+    "$TMP/repo/claudecode/rules" \
     "$TMP/repo/claudecode/rules-cloud" "$TMP/repo/claudecode/skills/example-skill"
+  : >"$TMP/repo/codex/config.toml"
+  : >"$TMP/repo/codex/AGENTS.md"
   : >"$TMP/repo/claudecode/rules/example.md"
   : >"$TMP/repo/claudecode/rules-cloud/scope.md"
   : >"$TMP/repo/claudecode/settings-cloud.json"
@@ -103,6 +106,15 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
   [[ "$(calls)" == *"install_check_tools"* ]]
   [[ "$(calls)" == *"lefthook install"* ]]
   [[ "$output" == *"[session-start]"* ]]
+}
+
+@test "the Claude web bootstrap also installs the Codex cloud configuration" {
+  hook -u CODEX_HOME CLAUDE_CODE_REMOTE=true
+  [ "$status" -eq 0 ]
+  [ "$(readlink -f "$TMP/home/.codex/config.toml")" = "$TMP/repo/codex/config.toml" ]
+  [ "$(readlink -f "$TMP/home/.codex/AGENTS.md")" = "$TMP/repo/codex/AGENTS.md" ]
+  [[ "$output" == *"ok   Codex config"* ]]
+  [[ "$output" == *"ok   Codex instructions"* ]]
 }
 
 @test "the web sandbox installs fzf only when it is missing" {

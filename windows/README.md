@@ -160,4 +160,8 @@ Ctrl+W (delete previous word), and Alt+D (delete next word). Ctrl+K does not kee
 an Emacs kill ring. These apply outside Windows Terminal even when focus is not
 in a text field, replacing the apps' native Ctrl shortcuts. Use Command/Win+A/F/N/P/W
 for select-all, find, new, print, and close-tab instead. Terminal retains native
+
+## Codex
+
+Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex/config.toml](../codex/config.toml) while preserving the app's machine-specific settings, then shares Claude instructions and rules through native Windows symlinks. The script locates the checkout automatically; see [Codex setup](../codex/README.md).
 shell/editor bindings. Reload the copied AHK script after changing it.
