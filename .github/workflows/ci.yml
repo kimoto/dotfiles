@@ -232,6 +232,9 @@ jobs:
       - name: Interactive e2e for completion candidate colours (list-colors)
         run: ./bin/ci_completion_colors_test.sh
 
+      - name: Interactive e2e for the curl|bash guard (block, bypass, pass-through)
+        run: ./bin/ci_bashka_guard_test.sh
+
   vim_guard_test:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest

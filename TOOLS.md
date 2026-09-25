@@ -41,6 +41,7 @@ _Source: `Brewfile.common`._
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
 | [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
+| [bashka](https://formulae.brew.sh/formula/bashka) | Static verification of installation bash scripts |
 | [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
