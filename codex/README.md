@@ -14,7 +14,7 @@ See the [official configuration documentation](https://developers.openai.com/cod
 
 `AGENTS.md` asks Codex to read the current host's `~/.claude/CLAUDE.md` and Markdown rules under `~/.claude/rules/`. These are explicit reading instructions, not a native Markdown import. Claude hooks, permissions, and tools are not installed or emulated by this bridge.
 
-On macOS/Linux, `mklink.sh` links this bridge to `~/.codex/AGENTS.md` if absent, alongside the existing Claude rules link. It preserves any existing Codex instruction file; merge the bridge into that file manually. `rmworld.sh` removes only our bridge link. An absent Claude user file is fine; the shared rules still apply.
+On macOS/Linux, `mklink.sh` links this bridge to `~/.codex/AGENTS.md` if absent and installs the repository's `CLAUDE.md` plus shared rules under `~/.claude/`. Cloud setup uses the same Claude linker. Existing instruction files are preserved; merge the shared guidance manually when a destination is already owned. `rmworld.sh` removes only this repository's links.
 
 On Windows, run the setup script from the repository in PowerShell:
 

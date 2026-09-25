@@ -28,6 +28,24 @@ teardown() {
     [ -f "$HOME_SANDBOX/.claude/skills/$name/SKILL.md" ]
   done
 }
+@test "links the shared global instructions when the destination is absent" {
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/CLAUDE.md" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/CLAUDE.md")" = "$REPO_ROOT/AGENTS.md" ]
+  [[ "$output" == *"ok   global instructions"* ]]
+}
+
+@test "leaves foreign global instructions alone and reports the missing link" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo "someone else's" >"$HOME_SANDBOX/.claude/CLAUDE.md"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -ne 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/CLAUDE.md" ]
+  grep -q "someone else's" "$HOME_SANDBOX/.claude/CLAUDE.md"
+  [[ "$output" == *"MISS global instructions"* ]]
+}
 
 @test "--cloud decides whether the container-only rule comes along" {
   HOME="$HOME_SANDBOX" run "$LINK"

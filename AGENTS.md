@@ -34,6 +34,10 @@ truth, so the two never diverge.
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
+- `CLAUDE.md -> AGENTS.md` — the source for Claude's user instructions as well
+  as this repo's project instructions. `mklink.sh` and the cloud linker install
+  it at `~/.claude/CLAUDE.md` when absent, preserve foreign files, and
+  `rmworld.sh` removes only this repo's link.
 - `claudecode/rules/` — Claude Code user rules, linked in as
   `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
   every session on the machine; no frontmatter needed (add `paths:` only to

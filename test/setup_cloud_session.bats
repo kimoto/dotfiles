@@ -16,6 +16,8 @@ setup() {
     "$TMP/repo/codex" \
     "$TMP/repo/claudecode/rules" "$TMP/repo/claudecode/rules-cloud" \
     "$TMP/repo/claudecode/skills/example-skill"
+  : >"$TMP/repo/AGENTS.md"
+  ln -s AGENTS.md "$TMP/repo/CLAUDE.md"
   : >"$TMP/repo/codex/config.toml"
   : >"$TMP/repo/codex/AGENTS.md"
   : >"$TMP/repo/claudecode/rules/example.md"
@@ -67,6 +69,7 @@ run_setup() { run env -u CODEX_HOME HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETU
   run_setup
   [ "$status" -eq 0 ]
   [[ "$(calls)" == *"install_check_tools"* ]]
+  [ "$(readlink -f "$TMP/home/.claude/CLAUDE.md")" = "$TMP/repo/AGENTS.md" ]
   [[ "$(calls)" == *"lefthook install"* ]]
   [ -L "$TMP/home/.claude/rules/dotfiles" ]
   [ -L "$TMP/home/.claude/skills/example-skill" ]

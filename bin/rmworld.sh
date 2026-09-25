@@ -60,6 +60,9 @@ fi
 if [ "$(readlink -f ./.codex/AGENTS.md 2>/dev/null)" = "$BASE_DIR/codex/AGENTS.md" ]; then
     unlink_if_symlink "./.codex/AGENTS.md"
 fi
+if [ "$(readlink -f ./.claude/CLAUDE.md 2>/dev/null)" = "$BASE_DIR/AGENTS.md" ]; then
+    unlink_if_symlink "./.claude/CLAUDE.md"
+fi
 unlink_if_symlink "./.claude/rules/dotfiles"
 unlink_if_symlink "./.claude/skills/session-resume"
 unlink_if_symlink "./.claude/skills/wrapup"

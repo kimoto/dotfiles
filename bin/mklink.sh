@@ -52,6 +52,14 @@ fi
 # ~/.claude itself is never linked: it also holds runtime state (transcripts,
 # sessions, plugin caches).
 mkdir -p ./.claude/rules
+
+# Install the shared user instructions without replacing a machine-local file.
+if [ ! -e ./.claude/CLAUDE.md ] && [ ! -L ./.claude/CLAUDE.md ]; then
+    ln -s "$BASE_DIR/CLAUDE.md" ./.claude/CLAUDE.md
+elif [ "$(readlink -f ./.claude/CLAUDE.md)" != "$BASE_DIR/AGENTS.md" ]; then
+    echo "Preserving existing Claude instructions; merge $BASE_DIR/CLAUDE.md" >&2
+fi
+
 ln -nsf "$BASE_DIR/claudecode/rules" ./.claude/rules/dotfiles
 
 # claudecode/rules-cloud describes what a container lacks, so every line of it

@@ -22,12 +22,32 @@ mkdir -p "$CLAUDE_DIR/rules" "$CLAUDE_DIR/skills"
 cloud_dest="$CLAUDE_DIR/rules/dotfiles-cloud"
 settings_src="$BASE_DIR/claudecode/settings-cloud.json"
 settings_dest="$CLAUDE_DIR/settings.json"
+instructions_src="$BASE_DIR/CLAUDE.md"
+instructions_dest="$CLAUDE_DIR/CLAUDE.md"
 
 # Any checkout's copy counts as ours: a container can hold the Setup script's
 # clone as well as the session's own, and whichever runs last owns the entries.
 is_cloud_settings() {
   [[ "$(readlink -f "$settings_dest" 2>/dev/null)" == */claudecode/settings-cloud.json ]]
 }
+
+# A live link from another checkout of these dotfiles is ours to refresh. A
+# real file or another source's link belongs to the user and stays untouched.
+is_dotfiles_instructions() {
+  local resolved root
+  resolved="$(readlink -f "$instructions_dest" 2>/dev/null)"
+  [ -f "$resolved" ] || return 1
+  root="$(dirname "$resolved")"
+  [ -d "$root/claudecode/rules" ] &&
+    [ "$(readlink -f "$root/CLAUDE.md" 2>/dev/null)" = "$resolved" ]
+}
+
+if { [ -e "$instructions_dest" ] || [ -L "$instructions_dest" ]; } &&
+   ! is_dotfiles_instructions; then
+  echo "[claude-dir] $instructions_dest is not ours; left alone" >&2
+else
+  ln -nsf "$instructions_src" "$instructions_dest"
+fi
 
 ln -nsf "$BASE_DIR/claudecode/rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
@@ -98,6 +118,7 @@ report_skill() {
 }
 
 echo "[claude-dir]"
+report_link "global instructions" "$instructions_dest" "$(readlink -f "$instructions_src")"
 report_rules "rules" "$CLAUDE_DIR/rules/dotfiles"
 if [ "$with_cloud" -eq 1 ]; then
   report_rules "cloud rules" "$cloud_dest"

@@ -104,6 +104,15 @@ teardown() {
   [ "$(readlink -f "$HOME_SANDBOX/.claude/rules/dotfiles")" = "$REPO_ROOT/claudecode/rules" ]
 }
 
+@test "mklink.sh installs and rmworld.sh removes the shared global instructions" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/CLAUDE.md")" = "$REPO_ROOT/AGENTS.md" ]
+
+  HOME="$HOME_SANDBOX" sh "$RMWORLD"
+  [ ! -e "$HOME_SANDBOX/.claude/CLAUDE.md" ]
+  [ ! -L "$HOME_SANDBOX/.claude/CLAUDE.md" ]
+}
+
 @test "mklink.sh leaves rules linked in by another repo alone" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
   ln -s /nonexistent-other-rules "$HOME_SANDBOX/.claude/rules/other"

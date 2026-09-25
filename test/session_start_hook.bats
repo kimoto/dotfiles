@@ -31,6 +31,8 @@ setup() {
   mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/codex" \
     "$TMP/repo/claudecode/rules" \
     "$TMP/repo/claudecode/rules-cloud" "$TMP/repo/claudecode/skills/example-skill"
+  : >"$TMP/repo/AGENTS.md"
+  ln -s AGENTS.md "$TMP/repo/CLAUDE.md"
   : >"$TMP/repo/codex/config.toml"
   : >"$TMP/repo/codex/AGENTS.md"
   : >"$TMP/repo/claudecode/rules/example.md"
@@ -111,6 +113,7 @@ hook() { run env "$@" HOME="$TMP/home" PATH="$SANDBOX_PATH" "$HOOK"; }
 @test "the Claude web bootstrap also installs the Codex cloud configuration" {
   hook -u CODEX_HOME CLAUDE_CODE_REMOTE=true
   [ "$status" -eq 0 ]
+  [ "$(readlink -f "$TMP/home/.claude/CLAUDE.md")" = "$TMP/repo/AGENTS.md" ]
   [ "$(readlink -f "$TMP/home/.codex/config.toml")" = "$TMP/repo/codex/config.toml" ]
   [ "$(readlink -f "$TMP/home/.codex/AGENTS.md")" = "$TMP/repo/codex/AGENTS.md" ]
   [[ "$output" == *"ok   Codex config"* ]]
