@@ -52,13 +52,14 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
   scoop install nerd-fonts/JetBrainsMono-NF
   ```
 
-- **`nikitabobko/tap/aerospace`** — the tiling WM is not actually used, so no
-  Windows counterpart is installed. If that changes, GlazeWM (`glzr-io.glazewm`)
-  is the match: its defaults are already `Alt+H/J/K/L` to focus, `Alt+Shift+…`
-  to move and `Alt+1-0` for workspaces, i.e. `.aerospace.toml`'s bindings
-  without editing anything. komorebi is the more popular choice but needs a
-  separate hotkey daemon (`LGUG2Z.whkd`) and does not follow i3's directional
-  model.
+- **`nikitabobko/tap/aerospace`** — configured and used on macOS
+  (`.aerospace.toml`, the AeroSpace section of `KEYBINDINGS.md`), but has no
+  Windows counterpart installed here yet. If that changes, GlazeWM
+  (`glzr-io.glazewm`) is the match: its defaults are already `Alt+H/J/K/L` to
+  focus, `Alt+Shift+…` to move and `Alt+1-0` for workspaces, i.e.
+  `.aerospace.toml`'s bindings without editing anything. komorebi is the more
+  popular choice but needs a separate hotkey daemon (`LGUG2Z.whkd`) and does
+  not follow i3's directional model.
 - **`gitify`** — no equivalent worth installing; GitHub notifications are read
   in the browser or through `gh`.
 - **`font-bitstream-vera-sans-mono-nerd-font`** — not in the winget catalog.
