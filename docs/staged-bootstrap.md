@@ -100,11 +100,12 @@ still churning the CI cache. It belongs with the staging work, not ahead of it.
 
 ## The first brick, which is worth doing on its own
 
-A CI job that installs **only `Brewfile.basic`** (no fzf, no tmux) and runs
-**only `ci_zsh_loading_test.sh`**.
+**Done:** `zsh_loading_test_basic_only` in `.github/workflows/ci.yml`. It
+installs only `Brewfile.basic` plus the symlinks (`mklink.sh`), skipping fzf
+and the tmux-plugin/Claude-hooks/lefthook work `mkworld.sh` does, and runs
+only `ci_zsh_loading_test.sh`.
 
-Nothing verifies today that the minimal tier alone produces a working shell —
-the existing `zsh_loading_test` job installs fzf and tmux on top and then runs
-the whole e2e set. The new job is fast (no plugin clones, no fzf) and is
-effectively the stage-1 gate in prototype form, so it can land before any of the
-above and keep paying off regardless.
+Before this job existed, nothing verified that the minimal tier alone produces
+a working shell — the existing `zsh_loading_test` job installs fzf and tmux on
+top and then runs the whole e2e set, so a break in `Brewfile.basic` alone could
+still pass it.
