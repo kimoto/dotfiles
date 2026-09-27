@@ -63,3 +63,5 @@ fi
 unlink_if_symlink "./.claude/rules/dotfiles"
 unlink_if_symlink "./.claude/skills/session-resume"
 unlink_if_symlink "./.claude/skills/wrapup"
+unlink_if_symlink "./.claude/settings.json"
+unlink_if_symlink "./.claude/plugins/claude-hud/config.json"

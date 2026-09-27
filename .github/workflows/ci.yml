@@ -43,6 +43,8 @@ jobs:
         run: ./bin/lint_config.sh
       - name: Validate config schemas
         run: ./bin/lint_schema.sh
+      - name: Check Claude settings are safe to publish
+        run: ./bin/check_claude_settings.sh
       - name: Check editorconfig (line length, whitespace, final newline)
         run: ./bin/lint_editorconfig.sh
       - name: Lint YAML style (yamllint)

@@ -67,6 +67,15 @@ if [ "$(readlink -f ./.claude/settings.json 2>/dev/null)" = "$BASE_DIR/claudecod
     rm -f ./.claude/settings.json
 fi
 
+# Claude Code's user settings. Whatever it writes lands in this public repo, so
+# bin/check_claude_settings.sh stands between that and a commit. A real file
+# here is this machine's until someone moves it in by hand.
+if [ ! -e ./.claude/settings.json ] && [ ! -L ./.claude/settings.json ]; then
+    ln -nsf "$BASE_DIR/claudecode/settings.json" ./.claude/settings.json
+elif [ "$(readlink -f ./.claude/settings.json)" != "$BASE_DIR/claudecode/settings.json" ]; then
+    echo "$HOME/.claude/settings.json is not ours; left alone" >&2
+fi
+
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
 # directory. Adding one means a line here and in bin/rmworld.sh (a test fails
@@ -74,3 +83,11 @@ fi
 mkdir -p ./.claude/skills
 ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
 ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
+
+# claude-hud's look. Only the file: the directory also holds its caches.
+mkdir -p ./.claude/plugins/claude-hud
+if [ -e ./.claude/plugins/claude-hud/config.json ] && [ ! -L ./.claude/plugins/claude-hud/config.json ]; then
+    echo "$HOME/.claude/plugins/claude-hud/config.json is not ours; left alone" >&2
+else
+    ln -nsf "$BASE_DIR/claudecode/claude-hud/config.json" ./.claude/plugins/claude-hud/config.json
+fi

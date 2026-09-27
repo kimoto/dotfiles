@@ -203,13 +203,22 @@ teardown() {
   [ -L "$HOME_SANDBOX/.claude/rules/dotfiles" ]
 }
 
-@test "mklink.sh takes the cloud session's settings out of a workstation HOME" {
+@test "mklink.sh swaps the cloud session's settings for the workstation's" {
   mkdir -p "$HOME_SANDBOX/.claude"
   ln -nsf "$REPO_ROOT/claudecode/settings-cloud.json" "$HOME_SANDBOX/.claude/settings.json"
 
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
   [ "$status" -eq 0 ]
-  [ ! -e "$HOME_SANDBOX/.claude/settings.json" ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" = "$REPO_ROOT/claudecode/settings.json" ]
+}
+
+@test "mklink.sh links Claude's settings on a fresh HOME, and rmworld.sh takes it back out" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" = "$REPO_ROOT/claudecode/settings.json" ]
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
   [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
 }
 
@@ -223,6 +232,38 @@ teardown() {
 
   grep -q mine "$HOME_SANDBOX/.claude/settings.json"
   [ -e "$HOME_SANDBOX/elsewhere.json" ]
+}
+
+@test "mklink.sh leaves a settings.json that links somewhere else" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"mine": true}' >"$HOME_SANDBOX/elsewhere.json"
+  ln -nsf "$HOME_SANDBOX/elsewhere.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" = "$(readlink -f "$HOME_SANDBOX/elsewhere.json")" ]
+}
+
+@test "mklink.sh links claude-hud's config, and rmworld.sh takes it back out" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  hud="$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
+  [ "$(readlink -f "$hud")" = "$REPO_ROOT/claudecode/claude-hud/config.json" ]
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$hud" ]
+  [ ! -L "$hud" ]
+}
+
+@test "mklink.sh leaves a claude-hud config that is not ours" {
+  mkdir -p "$HOME_SANDBOX/.claude/plugins/claude-hud"
+  echo '{"mine": true}' >"$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json" ]
+  grep -q mine "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
 }
 
 

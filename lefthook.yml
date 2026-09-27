@@ -52,6 +52,9 @@ pre-commit:
         - "*.yaml"
         - "*.yml"
       run: ./bin/lint_schema.sh {staged_files}
+    claude-settings:
+      glob: "claudecode/settings*.json"
+      run: ./bin/check_claude_settings.sh {staged_files}
     editorconfig:
       run: ./bin/lint_editorconfig.sh {staged_files}
     yaml-lint:
