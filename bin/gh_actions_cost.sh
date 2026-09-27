@@ -23,9 +23,10 @@ set -euo pipefail
 # Pro plan. Change here if the plan changes, never per call: a threshold
 # passed on the command line is a threshold every caller picks differently.
 INCLUDED_MINUTES=3000
-# Warn when the projection passes this share of the included minutes. Linear
-# projection runs low on busy tails, so leave room below 100.
-WARN_PERCENT=80
+# Warn only when the projection says the plan will be paid for. A normal month
+# sits near 90%, so a lower bar warns nearly every day, and a warning that is
+# always on goes unread like the mails did. At 100 it still fired on Sep 7.
+WARN_PERCENT=100
 # Included minutes are counted in Linux-minute equivalents; grossAmount at the
 # Linux rate converts other runners (Windows 2x, macOS 10x) the same way.
 LINUX_RATE=0.006

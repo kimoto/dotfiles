@@ -42,6 +42,14 @@ usage_items() {
     [[ "$output" == *"status: ok"* ]]
 }
 
+@test "forecast: a pace just under the plan stays quiet" {
+    # 90% is a normal month here; warning on it would warn every day.
+    usage_items secret-app:01:90 secret-app:02:90
+    GH_ACTIONS_COST_TODAY=2030-04-03 run "$SCRIPT" forecast someone
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"(90% of included)"* ]]
+}
+
 @test "forecast: a pace that runs out warns with exit 1 and names the day" {
     usage_items secret-app:01:150 secret-app:02:150
     GH_ACTIONS_COST_TODAY=2030-04-03 run "$SCRIPT" forecast someone
