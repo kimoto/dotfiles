@@ -39,6 +39,11 @@ result="$cache_dir/sync_status"
             "$yellow" "$reset" "$1" "$cyan" "$2" "$reset" >>"$tmp"
     }
 
+    # Before the dirty check, so a /config change made on this machine is
+    # reported as uncommitted in the same run, and a pulled one is applied.
+    [ -x "$REPO_DIR/bin/install_claude_settings.sh" ] \
+        && "$REPO_DIR/bin/install_claude_settings.sh" --sync
+
     if [ -n "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ]; then
         note "uncommitted changes" "git -C $REPO_DIR add -A && git -C $REPO_DIR commit"
     fi

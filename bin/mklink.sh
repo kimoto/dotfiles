@@ -74,3 +74,12 @@ fi
 mkdir -p ./.claude/skills
 ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
 ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
+
+# claude-hud's look. Only the file: the directory also holds its caches. A real
+# file there is this machine's until someone moves it in by hand.
+mkdir -p ./.claude/plugins/claude-hud
+if [ -e ./.claude/plugins/claude-hud/config.json ] && [ ! -L ./.claude/plugins/claude-hud/config.json ]; then
+    echo "$HOME/.claude/plugins/claude-hud/config.json is not ours; left alone" >&2
+else
+    ln -nsf "$BASE_DIR/claudecode/claude-hud/config.json" ./.claude/plugins/claude-hud/config.json
+fi

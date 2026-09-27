@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "autoCompactWindow": 500000,
+  "language": "Japanese",
+  "theme": "auto",
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'cols=${COLUMNS:-}; case \"$cols\" in \"\"|*[!0-9]*) read -r _ cols < <(stty size 2>/dev/null </dev/tty) || cols=;; esac; case \"$cols\" in \"\"|*[!0-9]*) cols=120;; esac; export COLUMNS=$(( cols > 4 ? cols - 4 : 1 )); best=; bestk=-1; for d in \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/*/claude-hud/*/; do v=${d%/}; v=${v##*/}; case \"$v\" in \"\"|*[!0-9.]*) continue;; esac; IFS=. read -r a b c _ <<<\"$v\"; k=$(( ${a:-0}*1000000 + ${b:-0}*1000 + ${c:-0} )); if (( k > bestk )); then bestk=$k; best=$d; fi; done; [ -n \"$best\" ] || exit 0; bun=$(command -v bun) || bun=$HOME/.local/share/mise/installs/bun/latest/bin/bun; exec \"$bun\" --env-file /dev/null \"${best}src/index.ts\"'",
+    "refreshInterval": 10
+  },
+  "enabledPlugins": {
+    "claude-hud@claude-hud": true,
+    "clangd-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      }
+    }
+  }
+}
