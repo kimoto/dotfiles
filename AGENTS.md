@@ -72,6 +72,14 @@ truth, so the two never diverge.
 - `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
   session, for a setting that must hold whichever repo the session was opened
   on.
+- `claudecode/settings-shared.json` — the keys of a workstation's
+  `~/.claude/settings.json` that should match on every machine (status line,
+  plugins, compaction). `bin/install_claude_settings.sh` merges them in; the
+  rest of that file stays the machine's, since it holds what a public repo must
+  not. Shared wins, so a `/config` change to one of these keys is reverted on
+  the next `mkworld` — change it here instead.
+- `claudecode/claude-hud/config.json` — claude-hud's look, linked in by
+  `mklink.sh`. A `/claude-hud:configure` run edits this file, not a copy.
 - `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
   git hooks, fzf, the `~/.claude` entries.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
