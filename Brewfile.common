@@ -27,6 +27,8 @@ brew "curlie"
 brew "difftastic"
 # Command-line DNS client (dig replacement) with colored output
 brew "doggo"
+# View disk space usage and delete unwanted data, fast
+brew "dua-cli"
 # More intuitive version of du in rust
 brew "dust"
 # Enforce .editorconfig rules (line length, trailing whitespace, final newline)

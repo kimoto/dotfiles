@@ -51,6 +51,7 @@ _Source: `Brewfile.common`._
 | [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
 | [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
+| [dua-cli](https://formulae.brew.sh/formula/dua-cli) | View disk space usage and delete unwanted data, fast |
 | [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
 | [editorconfig-checker](https://formulae.brew.sh/formula/editorconfig-checker) | Enforce .editorconfig rules (line length, trailing whitespace, final newline) |
 | [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
