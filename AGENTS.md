@@ -30,6 +30,9 @@ truth, so the two never diverge.
   discoverable; tmux also binds it to `prefix + ?`, but tmux-which-key rebinds
   that same key once its plugin loads and wins, so in practice tmux's
   `prefix + ?` opens which-key instead),
+  `gh_actions_cost.sh` (private-repo Actions minutes: `forecast` projects the
+  month-end against the plan and exits 1 when it will not fit; `breakdown`
+  shows billed vs actual per job — each job is billed rounded up to a minute),
   `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
   refuses to run without a terminal; never invoke it from an agent),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
