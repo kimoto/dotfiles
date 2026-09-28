@@ -4,7 +4,9 @@
 # Single source of truth shared by CI (.github/workflows/ci.yml) and the
 # lefthook pre-commit hook (lefthook.yml), so the checks never diverge.
 # Covers every tracked *.sh script (bin/, vscode/, .claude/hooks/, …), not
-# just bin/. Pass files as arguments; with none, all tracked *.sh are checked.
+# just bin/, plus the extensionless `README` (a real `sh` script meant to be
+# piped from `wget -O-`, so its own name can't end in .sh). Pass files as
+# arguments; with none, all tracked *.sh plus README are checked.
 
 set -euo pipefail
 
@@ -21,7 +23,7 @@ if [ "$#" -gt 0 ]; then
 else
     while IFS= read -r f; do
         [ -f "$f" ] && files+=("$f")
-    done < <(git ls-files '*.sh')
+    done < <(git ls-files '*.sh' README)
 fi
 
 [ "${#files[@]}" -eq 0 ] && exit 0
