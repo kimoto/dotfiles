@@ -219,7 +219,15 @@ export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
 export LESS='-M -i -f -Q'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-export EDITOR=nvim
+# A coding agent's shell has no controlling terminal, so launching nvim here
+# would hang a tool call indefinitely instead of erroring (e.g. `git commit`
+# with no -m). $CLAUDECODE is set by Claude Code specifically; -t 0 alone
+# would also misdetect a human's own non-interactive `zsh -c '...'`.
+if [[ -t 0 && -z "$CLAUDECODE" ]]; then
+  export EDITOR=nvim
+else
+  export EDITOR=true
+fi
 export VISUAL="$EDITOR"
 export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
