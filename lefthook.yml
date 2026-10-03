@@ -73,6 +73,12 @@ pre-commit:
         - "TOOLS.md"
         - "bin/gen_tools_list.sh"
       run: ./bin/gen_tools_list.sh --check
+    keybindings:
+      glob:
+        - "KEYBINDINGS.md"
+        - "config/ghostty/config"
+        - "bin/check_keybindings.sh"
+      run: ./bin/check_keybindings.sh
     secret-files:
       run: ./bin/check_secret_files.sh {staged_files}
     gitleaks:
