@@ -15,6 +15,7 @@ cd "$BASE_DIR"
 # it is added here on purpose — notably env and apiKeyHelper (credentials) and
 # permissions (allow rules name paths and commands from wherever they were
 # granted).
+# shellcheck disable=SC2016 # "$schema" is a key name, not a shell variable
 ALLOWED='[
   "$schema", "advisorModel", "agentPushNotifEnabled", "autoCompactWindow",
   "autoMode", "cleanupPeriodDays", "enableWorkflows", "enabledPlugins",

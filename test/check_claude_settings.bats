@@ -7,6 +7,9 @@
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  # shellcheck source=/dev/null
+  . "$REPO_ROOT/bin/git_fixture_helpers.sh"
+  isolate_git_env
   TMP="$(mktemp -d)"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/claudecode"
   cp "$REPO_ROOT/bin/check_claude_settings.sh" "$TMP/repo/bin/"
