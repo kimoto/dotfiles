@@ -51,6 +51,8 @@ brew "gettext"
 brew "gh"
 # Remote repository management made easy
 brew "ghq"
+# Highly customizable changelog generator
+brew "git-cliff"
 # Syntax-highlighting pager for git and diff output
 brew "git-delta"
 # Audit git repos for secrets

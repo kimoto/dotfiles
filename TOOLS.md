@@ -63,6 +63,7 @@ _Source: `Brewfile.common`._
 | [gettext](https://formulae.brew.sh/formula/gettext) | GNU internationalization (i18n) and localization (l10n) library |
 | [gh](https://formulae.brew.sh/formula/gh) | GitHub command-line tool |
 | [ghq](https://formulae.brew.sh/formula/ghq) | Remote repository management made easy |
+| [git-cliff](https://formulae.brew.sh/formula/git-cliff) | Highly customizable changelog generator |
 | [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
 | [gitleaks](https://formulae.brew.sh/formula/gitleaks) | Audit git repos for secrets |
 | [glow](https://formulae.brew.sh/formula/glow) | Render markdown on the CLI |
