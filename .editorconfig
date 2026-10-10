@@ -52,11 +52,7 @@ max_line_length = off
 [.vimrc]
 max_line_length = off
 
-# Tool-installer / hook scripts: long release-download URLs and a long
-# secret-matching regex that cannot be split.
-[bin/install_check_tools.sh]
-max_line_length = off
-
+# Hook scripts: a long secret-matching regex that cannot be split.
 [bin/check_secret_files.sh]
 max_line_length = off
 

@@ -35,7 +35,7 @@ SKIP_HOSTS="starship.rs"
 SKIP_SCHEMAS="https://aka.ms/winget-packages.schema.2.0.json"
 
 if ! command -v check-jsonschema >/dev/null 2>&1; then
-    echo "x check-jsonschema not found (brew install check-jsonschema, or pipx install check-jsonschema)" >&2
+    echo "x check-jsonschema not found (run 'mise install' in this repo)" >&2
     exit 1
 fi
 

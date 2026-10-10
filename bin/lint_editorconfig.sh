@@ -13,11 +13,17 @@ set -euo pipefail
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1
 
-if ! command -v editorconfig-checker >/dev/null 2>&1; then
-    echo "x editorconfig-checker not found; install it (brew install editorconfig-checker)" >&2
+# The release binary mise.toml installs is named `ec`; Homebrew names it
+# editorconfig-checker.
+if command -v editorconfig-checker >/dev/null 2>&1; then
+    checker=editorconfig-checker
+elif command -v ec >/dev/null 2>&1; then
+    checker=ec
+else
+    echo "x editorconfig-checker not found; run 'mise install' in this repo" >&2
     exit 1
 fi
 
 # With explicit files, editorconfig-checker still reads .editorconfig + .editorconfig-checker.json
 # from the repo root, so per-file rules and disabled checks are respected.
-editorconfig-checker "$@"
+"$checker" "$@"

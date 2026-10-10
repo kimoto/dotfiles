@@ -14,8 +14,8 @@ truth, so the two never diverge.
 
 - `bin/` — install scripts + the `lint_*`/`check_*` toolchain (shared by CI and
   lefthook). Key scripts: `mkworld.sh` (full bootstrap), `mklink.sh` (symlinks,
-  `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
-  here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
+  `rmworld.sh` reverses), `install_check_tools.sh` (installs the check toolchain
+  on Linux from `mise.toml`), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
   `claude_idle_recap.sh` + `install_claude_idle_hooks.sh` (on the first prompt
   after a long absence, tell the model the reader lost the thread — it opens
@@ -112,6 +112,13 @@ truth, so the two never diverge.
   `config/nvim`), update it in the same PR. It is also data, not just docs:
   `bin/keys.sh` parses its tables into the on-demand cheatsheet, so keep the
   `| key | action |` table shape and the heading levels intact.
+- `mise.toml` — pinned versions of the lint/check toolchain, the one place they
+  live on every platform: CI and cloud sessions through
+  `install_check_tools.sh`, a workstation through `mise install` (run by
+  `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
+  PR. Tools also used outside this repo (gitleaks, yq, lefthook) stay in
+  `Brewfile.common` too: a mise shim falls through to the brew binary in a
+  directory without this config.
 - `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
   needs at load time (prompt, completion, plugin manager, eval-cache inlines,

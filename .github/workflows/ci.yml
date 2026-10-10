@@ -29,6 +29,10 @@ jobs:
           persist-credentials: false
       - name: Install check tools
         run: ./bin/install_check_tools.sh
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
       - name: Run unit tests (bats)
@@ -76,9 +80,9 @@ jobs:
         shell: pwsh
         run: ./test/link_codex.ps1
 
-  # bin/install_check_tools.sh maps uname -m onto each project's release-asset
-  # naming, and the Claude Code web sandbox that runs it via the SessionStart
-  # hook can be arm64. Every other job covers x86_64 only; this one downloads
+  # mise picks each tool's release asset for the host arch, and the Claude Code
+  # web sandbox that runs bin/install_check_tools.sh via the SessionStart hook
+  # can be arm64. Every other job covers x86_64 only; this one downloads
   # the arm64 assets and exercises each installed binary for real via the lint
   # scripts that depend on it.
   toolchain_arm64:
@@ -90,6 +94,10 @@ jobs:
           persist-credentials: false
       - name: Install check tools (arm64 release assets)
         run: ./bin/install_check_tools.sh
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec)
         run: |
           ./bin/lint_config.sh
@@ -173,6 +181,10 @@ jobs:
         # whole toolchain rather than bats alone: the lint_*.bats cases drive
         # the real binaries and fail rather than skip when one is missing.
         run: ./bin/install_check_tools.sh
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Unit tests (bats) with the dotfiles linked into $HOME
         # Deliberately a second run of the same suite static_checks runs: that

@@ -39,20 +39,16 @@ _Source: `Brewfile.common`._
 
 | Tool | Description |
 | --- | --- |
-| [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
 | [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
 | [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
-| [biome](https://formulae.brew.sh/formula/biome) | Toolchain of the web; parses/validates JSON with comments (JSONC) |
 | [btop](https://formulae.brew.sh/formula/btop) | Resource monitor with a nice TUI (top/htop replacement) |
-| [check-jsonschema](https://formulae.brew.sh/formula/check-jsonschema) | Validate JSON/TOML/YAML against the JSON Schema they declare ($schema) |
 | [cowsay](https://formulae.brew.sh/formula/cowsay) | Apjanke's fork of the classic cowsay project |
 | [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
 | [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
 | [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
-| [editorconfig-checker](https://formulae.brew.sh/formula/editorconfig-checker) | Enforce .editorconfig rules (line length, trailing whitespace, final newline) |
 | [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
 | [fastfetch](https://formulae.brew.sh/formula/fastfetch) | Like neofetch, but much faster because written mostly in C |
@@ -88,7 +84,6 @@ _Source: `Brewfile.common`._
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
 | [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
-| [ratchet](https://formulae.brew.sh/formula/ratchet) | Pin/lint GitHub Actions workflows to immutable commit SHAs |
 | [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
 | [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
 | [rust-analyzer](https://formulae.brew.sh/formula/rust-analyzer) | Experimental Rust compiler front-end for IDEs |
@@ -101,9 +96,7 @@ _Source: `Brewfile.common`._
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
-| [yamllint](https://formulae.brew.sh/formula/yamllint) | Linter for YAML files |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
-| [zizmor](https://formulae.brew.sh/formula/zizmor) | Find security issues in GitHub Actions setups |
 | [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
 ## macOS apps
