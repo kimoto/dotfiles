@@ -2,15 +2,18 @@
 
 # Tests for bin/check_keybindings.sh.
 #
-# First layer of #249: pins KEYBINDINGS.md's "Terminal" table against
-# config/ghostty/config's `keybind = ` lines, so a renamed or removed Ghostty
-# keybind fails here instead of leaving the reference quietly wrong.
+# Two layers of #249: pins KEYBINDINGS.md's "Terminal" table against
+# config/ghostty/config's `keybind = ` lines, and its "AeroSpace" /
+# "Service mode" tables against .aerospace.toml's `key = command` bindings,
+# so a renamed or removed keybind fails here instead of leaving the
+# reference quietly wrong.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/check_keybindings.sh"
   TMP="$(mktemp -d)"
   export CHECK_KEYBINDINGS_GHOSTTY_CONFIG="$TMP/ghostty_config"
+  export CHECK_KEYBINDINGS_AEROSPACE_CONFIG="$TMP/aerospace.toml"
   export CHECK_KEYBINDINGS_DOC="$TMP/KEYBINDINGS.md"
   cat >"$CHECK_KEYBINDINGS_GHOSTTY_CONFIG" <<'EOF'
 keybind = global:f12=toggle_quick_terminal
@@ -21,6 +24,26 @@ keybind = super+alt+arrow_left=text:\x1b[1;3D
 keybind = super+alt+arrow_right=text:\x1b[1;3C
 keybind = super+shift+o=toggle_background_opacity
 keybind = alt+digit_0=unbind
+EOF
+  cat >"$CHECK_KEYBINDINGS_AEROSPACE_CONFIG" <<'EOF'
+[mode.main.binding]
+    alt-h = 'focus left'
+    alt-j = 'focus down'
+    alt-k = 'focus up'
+    alt-l = 'focus right'
+    alt-1 = 'workspace 1'
+    alt-2 = 'workspace 2'
+    alt-slash = 'layout tiles horizontal vertical'
+
+[mode.service.binding]
+    esc = ['reload-config', 'mode main']
+    alt-shift-h = ['join-with left', 'mode main']
+    alt-shift-j = ['join-with down', 'mode main']
+    alt-shift-k = ['join-with up', 'mode main']
+    alt-shift-l = ['join-with right', 'mode main']
+
+[[on-window-detected]]
+  run = 'layout floating'
 EOF
   cat >"$CHECK_KEYBINDINGS_DOC" <<'EOF'
 ## Terminal (intercepts before tmux)
@@ -38,7 +61,22 @@ EOF
 
 ---
 
-## macOS (Mac only)
+## AeroSpace (Mac only, intercepts before apps)
+
+| Key | Action |
+|-----|--------|
+| ⌥+h/j/k/l | Focus window left / down / up / right |
+| ⌥+1~2 | Switch to workspace 1~2 |
+| ⌥+/ | Layout: tiles (horizontal/vertical) |
+
+### Service mode (⌥+⇧+;, then...)
+
+| Key | Action |
+|-----|--------|
+| Esc | Reload config, back to main mode |
+| ⌥+⇧+h/j/k/l | Join with window left / down / up / right, back to main mode |
+
+---
 EOF
 }
 
@@ -91,4 +129,43 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"cmd+shift+o"* ]]
+}
+
+@test "accepts an AeroSpace config and doc that agree" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "expands an unspaced letter-list cell into one key per letter" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"alt+h"* ]]
+  [[ "$output" != *"alt+j"* ]]
+  [[ "$output" != *"alt+k"* ]]
+  [[ "$output" != *"alt+l"* ]]
+}
+
+@test "fails when an AeroSpace main-mode binding is renamed out from under the doc" {
+  sed -i.bak "s/alt-slash = 'layout tiles horizontal vertical'/alt-comma = 'layout tiles horizontal vertical'/" \
+    "$CHECK_KEYBINDINGS_AEROSPACE_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"alt+,"* ]]
+  [[ "$output" == *"alt+/"* ]]
+}
+
+@test "fails when the doc renames an AeroSpace key no binding binds" {
+  sed -i.bak 's/| Esc | Reload config, back to main mode |/| Delete | Reload config, back to main mode |/' \
+    "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"esc"* ]]
+  [[ "$output" == *"delete"* ]]
+}
+
+@test "fails when an AeroSpace service-mode binding is removed with no matching doc edit" {
+  sed -i.bak "/alt-shift-l = \['join-with right', 'mode main'\]/d" "$CHECK_KEYBINDINGS_AEROSPACE_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"shift+alt+l"* ]]
 }
