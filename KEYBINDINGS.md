@@ -223,6 +223,7 @@ While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
 | prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
 | prefix + A | Same, but forking this pane's Claude Code session |
+| prefix + v | `hunk diff --watch` in a split to the right, same cwd |
 | prefix + f | fzf switcher across all panes of all sessions, most recent first |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
