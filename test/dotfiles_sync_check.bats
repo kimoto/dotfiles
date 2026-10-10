@@ -112,6 +112,24 @@ wait_for() {
   [[ "$output" == *"uncommitted changes"* ]]
 }
 
+@test "a Claude setting changed on this machine is reported as uncommitted" {
+  mkdir -p "$REPO/claudecode"
+  cp "$REPO_ROOT/bin/install_claude_settings.sh" "$REPO/bin/"
+  cp "$REPO_ROOT/claudecode/settings-shared.json" "$REPO/claudecode/"
+  git -C "$REPO" add -A
+  git -C "$REPO" commit -qm "feat: shared settings"
+  export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
+  mkdir -p "$HOME/.claude"
+  printf '{"theme": "light"}\n' >"$HOME/.claude/settings.json"
+
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uncommitted changes"* ]]
+  jq -e '.theme == "light"' "$REPO/claudecode/settings-shared.json" >/dev/null
+}
+
 @test "warns about untracked files too" {
   echo new >"$REPO/untracked.txt"
   run "$SCRIPT"

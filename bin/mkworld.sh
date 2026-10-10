@@ -46,6 +46,9 @@ fi
 # warns and skips instead of failing when jq is missing.
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh"
 "$BASE_DIR/bin/install_claude_idle_hooks.sh"
+# Settings meant to match on every machine (claudecode/settings-shared.json).
+# What this machine changed shows up as a diff here instead of being reverted.
+"$BASE_DIR/bin/install_claude_settings.sh" --sync
 
 # Install git hooks (lefthook) and the commit message template
 if command -v lefthook >/dev/null 2>&1; then

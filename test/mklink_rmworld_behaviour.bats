@@ -225,6 +225,29 @@ teardown() {
   [ -e "$HOME_SANDBOX/elsewhere.json" ]
 }
 
+@test "mklink.sh links claude-hud's config, and rmworld.sh takes it back out" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  hud="$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
+  [ "$(readlink -f "$hud")" = "$REPO_ROOT/claudecode/claude-hud/config.json" ]
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -e "$hud" ]
+  [ ! -L "$hud" ]
+}
+
+@test "mklink.sh leaves a claude-hud config that is not ours" {
+  mkdir -p "$HOME_SANDBOX/.claude/plugins/claude-hud"
+  echo '{"mine": true}' >"$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+
+  [ ! -L "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json" ]
+  grep -q mine "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
+}
+
 
 @test "mklink.sh installs Codex defaults without replacing existing files" {
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
