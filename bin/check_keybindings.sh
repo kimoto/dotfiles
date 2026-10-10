@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Pins KEYBINDINGS.md's "Terminal" table against config/ghostty/config's
-# `keybind = ` lines, so a renamed or removed Ghostty keybind fails here
+# Pins KEYBINDINGS.md's "Terminal" and "AeroSpace" tables against
+# config/ghostty/config's `keybind = ` lines and .aerospace.toml's
+# `key = command` bindings, so a renamed or removed keybind fails here
 # instead of leaving the reference quietly wrong — the failure mode
 # claudecode/rules/tooling.md names: a rule held up by remembering.
 #
-# First layer of #249. The other five sources that issue lists (tmux, zsh,
-# Neovim, AeroSpace, Hammerspoon) are not covered yet; each needs its own
-# per-syntax key extraction the same way this one does for Ghostty's.
+# Two layers of #249 so far (Ghostty, AeroSpace). The other three sources
+# that issue lists (tmux, zsh, Neovim, Hammerspoon) are not covered yet;
+# each needs its own per-syntax key extraction the same way these two do.
 
 set -euo pipefail
 
@@ -17,6 +18,7 @@ cd "$BASE_DIR" || exit 1
 # Overridable so the bats tests can point at fixtures instead of the repo's
 # own files.
 GHOSTTY_CONFIG="${CHECK_KEYBINDINGS_GHOSTTY_CONFIG:-config/ghostty/config}"
+AEROSPACE_CONFIG="${CHECK_KEYBINDINGS_AEROSPACE_CONFIG:-.aerospace.toml}"
 DOC="${CHECK_KEYBINDINGS_DOC:-KEYBINDINGS.md}"
 
 # Ghostty keybinds with no row of their own in the Terminal table: they are
@@ -78,12 +80,13 @@ configured_keys() {
     done | sort -u
 }
 
-# One key cell from the table ("⌘+1~9", "⌘+⌥+← / →", "F12", "¥") expanded into
-# its canonical key(s), one per line: "/" alternates (sharing the first
-# alternate's modifiers when the second has none of its own) and "~" ranges
-# on the base key both become separate lines.
+# One key cell from the table ("⌘+1~9", "⌘+⌥+← / →", "⌥+h/j/k/l", "F12", "¥")
+# expanded into its canonical key(s), one per line: "/" alternates (sharing
+# the first alternate's modifiers when the second has none of its own),
+# "~" ranges and letter-list "/" slashes (no surrounding spaces) on the base
+# key all become separate lines.
 expand_cell() {
-  local cell="$1" first second prefix base lo hi n mods_prefix
+  local cell="$1" first second prefix base lo hi n mods_prefix part letters
   if [[ "$cell" == *" / "* ]]; then
     first="${cell%% / *}"
     second="${cell##* / }"
@@ -98,6 +101,20 @@ expand_cell() {
     return
   fi
   base="${cell##*+}"
+  if [[ "$base" == *"/"* && "$base" != "/" ]]; then
+    prefix="${cell%+*}"
+    if [ "$prefix" = "$cell" ]; then
+      prefix=""
+    else
+      prefix="${prefix}+"
+    fi
+    local IFS='/'
+    read -ra letters <<<"$base"
+    for part in "${letters[@]}"; do
+      canon "${prefix}${part}"
+    done
+    return
+  fi
   if [[ "$base" == *"~"* ]]; then
     prefix="${cell%+*}"
     if [ "$prefix" = "$cell" ]; then
@@ -115,47 +132,131 @@ expand_cell() {
   canon "$cell"
 }
 
+# Canonicalize an AeroSpace binding key spec ("alt-shift-h", "alt-slash",
+# "shift-down") the same way canon() does for the doc side: translate
+# AeroSpace's symbol words to the literal character KEYBINDINGS.md uses,
+# then hand the "+"-joined result to canon() so both sides normalize through
+# the same modifier-order logic.
+aerospace_canon() {
+  local raw="$1" seg out="" sep=""
+  local IFS='-'
+  local -a segs
+  read -ra segs <<<"$raw"
+  for seg in "${segs[@]}"; do
+    case "$seg" in
+      slash) seg="/" ;;
+      comma) seg="," ;;
+      minus) seg="-" ;;
+      equal) seg="=" ;;
+      semicolon) seg=";" ;;
+    esac
+    out="${out}${sep}${seg}"
+    sep="+"
+  done
+  canon "$out"
+}
+
+# The bindings actually configured in one [mode.*.binding] table of
+# .aerospace.toml, one canonical key per line. $1 is the exact `[mode...]`
+# header line; extraction stops at the next line starting with "[".
+aerospace_configured_keys() {
+  local section="$1"
+  awk -v start="$section" '
+    $0 == start { insection = 1; next }
+    insection && /^\[/ { exit }
+    insection { print }
+  ' "$AEROSPACE_CONFIG" |
+    grep -E '^[[:space:]]*[A-Za-z0-9_-]+[[:space:]]*=' |
+    sed -E 's/^[[:space:]]*([A-Za-z0-9_-]+)[[:space:]]*=.*/\1/' |
+    while IFS= read -r spec; do
+      aerospace_canon "$spec"
+    done | sort -u
+}
+
+# The Key column of the markdown table between two heading lines, as raw
+# cell text (one per line) — shared by every documented_keys()-style
+# function below. $1/$2 are grep -E patterns matched against whole lines.
+# $3, if given, is a grep -E pattern for whole rows (Key *and* Action
+# columns) to drop before the Key column is extracted — matching against
+# the Key column alone would be too late to see text like "(Windows only)"
+# that lives in Action.
+table_cells() {
+  local start_re="$1" stop_re="$2" exclude_re="${3:-}" rows
+  rows="$(awk -v start="$start_re" -v stop="$stop_re" '
+    $0 ~ start { insection = 1; next }
+    insection && $0 ~ stop { exit }
+    insection && /^\| / { print }
+  ' "$DOC" | grep -v '^| Key ' | grep -v '^|-----')"
+  if [ -n "$exclude_re" ]; then
+    rows="$(grep -v -E "$exclude_re" <<<"$rows")"
+  fi
+  sed -E 's/^\| *([^|]+) *\|.*/\1/' <<<"$rows" | sed -E 's/ *$//'
+}
+
 # The Terminal table's documented keys, one canonical key per line. Rows
 # whose Action names a platform this script has no config for (Windows) are
 # skipped — Ghostty is the macOS side only.
 documented_keys() {
-  awk '
-    /^## Terminal/ { insection = 1; next }
-    insection && /^---$/ { exit }
-    insection && /^\| / { print }
-  ' "$DOC" |
-    grep -v '^| Key ' | grep -v '^|-----' |
-    grep -v '(Windows only)' |
-    sed -E 's/^\| *([^|]+) *\|.*/\1/' |
-    sed -E 's/ *$//' |
+  table_cells '^## Terminal' '^---$' '\(Windows only\)' |
     while IFS= read -r cell; do
       expand_cell "$cell"
     done | sort -u
 }
 
-configured="$(configured_keys)"
-documented="$(documented_keys)"
+# The "## AeroSpace" table's documented keys (main binding mode), one
+# canonical key per line.
+aerospace_documented_keys() {
+  table_cells '^## AeroSpace' '^### Service mode' |
+    while IFS= read -r cell; do
+      expand_cell "$cell"
+    done | sort -u
+}
+
+# The "### Service mode" table's documented keys, one canonical key per
+# line.
+aerospace_service_documented_keys() {
+  table_cells '^### Service mode' '^---$' |
+    while IFS= read -r cell; do
+      expand_cell "$cell"
+    done | sort -u
+}
+
+# Compares a configured key set against a documented key set and prints one
+# line per mismatch in either direction. $1/$3 name the two sides for the
+# message; $2/$4 are their newline-separated canonical key sets.
+compare_keys() {
+  local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
+  local key found=0
+  while IFS= read -r key; do
+    if [ -z "$key" ]; then
+      continue
+    fi
+    if ! grep -qxF "$key" <<<"$doc_keys"; then
+      echo "x $config_name binds '$key' but $doc_name has no row for it"
+      found=1
+    fi
+  done <<<"$config_keys"
+  while IFS= read -r key; do
+    if [ -z "$key" ]; then
+      continue
+    fi
+    if ! grep -qxF "$key" <<<"$config_keys"; then
+      echo "x $doc_name names '$key' but no $config_name binds it"
+      found=1
+    fi
+  done <<<"$doc_keys"
+  return "$found"
+}
 
 rc=0
 
-while IFS= read -r key; do
-  if [ -z "$key" ]; then
-    continue
-  fi
-  if ! grep -qxF "$key" <<<"$documented"; then
-    echo "x Ghostty binds '$key' but KEYBINDINGS.md's Terminal table has no row for it"
-    rc=1
-  fi
-done <<<"$configured"
+compare_keys "Ghostty" "$(configured_keys)" \
+  "KEYBINDINGS.md's Terminal table" "$(documented_keys)" || rc=1
 
-while IFS= read -r key; do
-  if [ -z "$key" ]; then
-    continue
-  fi
-  if ! grep -qxF "$key" <<<"$configured"; then
-    echo "x KEYBINDINGS.md's Terminal table names '$key' but no Ghostty keybind binds it"
-    rc=1
-  fi
-done <<<"$documented"
+compare_keys "AeroSpace's main binding mode" "$(aerospace_configured_keys '[mode.main.binding]')" \
+  "KEYBINDINGS.md's AeroSpace table" "$(aerospace_documented_keys)" || rc=1
+
+compare_keys "AeroSpace's service binding mode" "$(aerospace_configured_keys '[mode.service.binding]')" \
+  "KEYBINDINGS.md's Service mode table" "$(aerospace_service_documented_keys)" || rc=1
 
 exit "$rc"

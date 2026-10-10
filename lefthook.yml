@@ -77,6 +77,7 @@ pre-commit:
       glob:
         - "KEYBINDINGS.md"
         - "config/ghostty/config"
+        - ".aerospace.toml"
         - "bin/check_keybindings.sh"
       run: ./bin/check_keybindings.sh
     secret-files:
