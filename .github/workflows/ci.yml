@@ -234,6 +234,28 @@ jobs:
       - name: Interactive e2e for completion candidate colours (list-colors)
         run: ./bin/ci_completion_colors_test.sh
 
+  # Prototype of the stage-1 gate from docs/staged-bootstrap.md ("the first
+  # brick"): zsh_loading_test above also installs fzf and runs mkworld.sh
+  # (tmux plugins, Claude hooks, lefthook), so a break in Brewfile.basic alone
+  # would still pass it. This job installs nothing beyond Brewfile.basic plus
+  # the symlinks and checks that the shell still loads on its own.
+  zsh_loading_test_basic_only:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install Homebrew + Brewfile.basic only
+        run: SKIP_BREWFILE_COMMON=1 ./bin/setup_homebrew.sh
+
+      - name: Symlink dotfiles (stage 0, no network)
+        run: ./bin/mklink.sh
+
+      - name: Load to test .zshrc (Brewfile.basic only)
+        run: ./bin/ci_zsh_loading_test.sh
+
   vim_guard_test:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
