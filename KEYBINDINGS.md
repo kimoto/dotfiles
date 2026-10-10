@@ -77,7 +77,6 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 | ⌘+⌥+← / → | Previous / next tmux window |
 | ⌘+⌥+↑ / ↓ | Previous / next tmux session |
 | ⇧+Enter / ⌥+Enter | Newline in Claude Code (Windows only) |
-| F12 | Toggle quick terminal (Mac only) |
 | ⌘+⇧+O | Toggle background opacity (Mac only) |
 | ¥ | Insert `\` (Mac only) |
 
