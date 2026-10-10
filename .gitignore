@@ -52,6 +52,7 @@ config/gh/hosts.yml
 claudecode/rules/*
 !claudecode/rules/autonomy.md
 !claudecode/rules/captures.md
+!claudecode/rules/ci-cost.md
 !claudecode/rules/comments.md
 !claudecode/rules/environment.md
 !claudecode/rules/experiments.md
