@@ -35,6 +35,12 @@ truth, so the two never diverge.
   shows billed vs actual per job — each job is billed rounded up to a minute),
   `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
   refuses to run without a terminal; never invoke it from an agent),
+  `check_cloned_repo_hooks.sh` (flags any non-`*.sample` file under a given
+  repo's `.git/hooks/` — a clone ships only samples, so a real file there was
+  added after the clone; run it on a repo from outside before opening it,
+  e.g. one someone else handed you for a project or contract. Human-only, not
+  wired into CI/lefthook, since it targets arbitrary external repos rather
+  than this one),
   `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
 - `claudecode/rules/` — Claude Code user rules, linked in as
