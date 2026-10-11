@@ -108,6 +108,21 @@ done
 [ ! -e "$JETPACK_DIR" ] || die "vim-jetpack tree survived startup ($JETPACK_DIR)"
 echo "== plugin tree present, jetpack tree gone =="
 
+# A lockfile pulled from another machine pins revisions the plugins on disk
+# are not at; the next startup must move them there with nothing run by hand.
+echo "== lockfile follow check =="
+LOCKED_REV=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["plugins"]["telescope.nvim"]["rev"])' \
+  <"$REPO/config/nvim/nvim-pack-lock.json")
+TELESCOPE_DIR="$PACK_DIR/telescope.nvim"
+git -C "$TELESCOPE_DIR" checkout -q --detach HEAD~1
+[ "$(git -C "$TELESCOPE_DIR" rev-parse HEAD)" != "$LOCKED_REV" ] ||
+  die "could not move telescope.nvim off its locked revision"
+run_nvim -c 'qall!' >"$HOME_DIR/follow.log" 2>&1 || {
+  cat "$HOME_DIR/follow.log"; die "startup after a lockfile change exited non-zero"; }
+[ "$(git -C "$TELESCOPE_DIR" rev-parse HEAD)" = "$LOCKED_REV" ] ||
+  die "startup left telescope.nvim off the lockfile's revision $LOCKED_REV"
+echo "== startup moved the plugin to the lockfile's revision =="
+
 # ---------------------------------------------------------------------------
 # Assert 1 (headless): a full init.lua startup produces no error messages and
 # representative plugins really loaded — commands defined, colorscheme
