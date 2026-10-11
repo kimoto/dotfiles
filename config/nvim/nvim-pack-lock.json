@@ -130,9 +130,9 @@
       "src": "https://github.com/nvim-telescope/telescope-frecency.nvim"
     },
     "telescope.nvim": {
-      "rev": "a0bbec21143c7bc5f8bb02e0005fa0b982edc026",
+      "rev": "5255aa27c422de944791318024167ad5d40aad20",
       "src": "https://github.com/nvim-telescope/telescope.nvim",
-      "version": "'0.1.8'"
+      "version": "0.2.0 - 0.3.0"
     },
     "toggleterm.nvim": {
       "rev": "9a88eae817ef395952e08650b3283726786fb5fb",

@@ -33,7 +33,8 @@ vim.pack.add({
   gh('navarasu/onedark.nvim'), -- color theme
 
   -- telescope
-  { src = gh('nvim-telescope/telescope.nvim'), version = '0.1.8' },
+  -- 0.2+: 0.1.x calls nvim-treesitter APIs its main branch no longer has
+  { src = gh('nvim-telescope/telescope.nvim'), version = vim.version.range('0.2') },
   gh('nvim-telescope/telescope-frecency.nvim'),
 
   -- editing

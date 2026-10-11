@@ -124,6 +124,8 @@ set nomore
 redir! > $msgs
 silent messages
 silent echo "TELESCOPE=".(exists(":Telescope")?"loaded":"missing")
+lua _G.tp_ok = pcall(require('telescope.previewers.utils').highlighter, vim.api.nvim_create_buf(false, true), 'lua')
+silent echo "TELESCOPE_PREVIEW=".(luaeval("_G.tp_ok")?"ok":"error")
 silent echo "NVIMTREE=".(exists(":NvimTreeToggle")?"loaded":"missing")
 silent echo "TOGGLETERM=".(exists(":ToggleTerm")?"loaded":"missing")
 silent echo "TREESITTER=".(exists(":TSUpdate")?"loaded":"missing")
@@ -158,6 +160,9 @@ if grep -nE "E[0-9]{2,}:|Error detected|Unknown function|module '.*' not found|a
   die "startup produced errors (see :messages above)"
 fi
 grep -q "TELESCOPE=loaded"    "$msgs" || die "telescope did not load"
+# The previewer highlights through nvim-treesitter, whose main branch dropped
+# APIs older telescope releases call; this fails only once a preview opens.
+grep -q "TELESCOPE_PREVIEW=ok" "$msgs" || die "telescope's previewer cannot highlight a buffer"
 grep -q "NVIMTREE=loaded"     "$msgs" || die "nvim-tree did not load"
 grep -q "TOGGLETERM=loaded"   "$msgs" || die "toggleterm did not load"
 grep -q "TREESITTER=loaded"   "$msgs" || die "nvim-treesitter did not load"
