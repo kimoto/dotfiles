@@ -1,6 +1,7 @@
 -- Native LSP stack: mason manages server installs, nvim-lspconfig supplies the
--- per-server configs consumed by vim.lsp.config (nvim 0.11+), nvim-cmp provides
--- completion, and conform runs the formatters. Builtin LSP maps (0.11+):
+-- per-server configs consumed by vim.lsp.config (nvim 0.11+), the builtin
+-- completion menu shows their items (see kimoto/completion.lua), and conform
+-- runs the formatters. Builtin LSP maps (0.11+):
 -- grn=rename, gra=code action, grr=references, K=hover; gd/gy/gi are added below.
 -- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
 -- update it when adding or changing a map.
@@ -28,45 +29,15 @@ require('mason-lspconfig').setup({
   ensure_installed = vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and servers or {},
 })
 
--- Completion: LSP/buffer/path sources plus snippets.
+-- Snippets for the completion menu (kimoto/completion.lua lists them).
 --
 -- LuaSnip rather than the builtin vim.snippet: the builtin only expands
 -- snippets a language server sends back, so there were no standalone snippets
--- at all. friendly-snippets supplies the bodies (lazy_load reads only the
--- packs for filetypes actually opened) and cmp_luasnip surfaces them as a
--- completion source.
-local cmp = require('cmp')
-local luasnip = require('luasnip')
+-- at all. friendly-snippets supplies the bodies; lazy_load reads only the
+-- packs for filetypes actually opened.
+require('luasnip')
 require('luasnip.loaders.from_vscode').lazy_load()
 
-cmp.setup({
-  snippet = {
-    expand = function(args) luasnip.lsp_expand(args.body) end,
-  },
-  mapping = cmp.mapping.preset.insert({
-    ['<C-Space>'] = cmp.mapping.complete(),
-    ['<CR>'] = cmp.mapping.confirm({ select = false }),
-    -- Tab moves between a snippet's placeholders and is a plain Tab
-    -- everywhere else, so nothing is taken away when no snippet is active.
-    ['<Tab>'] = cmp.mapping(function(fallback)
-      if luasnip.locally_jumpable(1) then luasnip.jump(1) else fallback() end
-    end, { 'i', 's' }),
-    ['<S-Tab>'] = cmp.mapping(function(fallback)
-      if luasnip.locally_jumpable(-1) then luasnip.jump(-1) else fallback() end
-    end, { 'i', 's' }),
-  }),
-  sources = cmp.config.sources({
-    { name = 'nvim_lsp' },
-    { name = 'luasnip' },
-  }, {
-    { name = 'buffer' },
-    { name = 'path' },
-  }),
-})
-
-vim.lsp.config('*', {
-  capabilities = require('cmp_nvim_lsp').default_capabilities(),
-})
 -- solargraph ships with diagnostics off; turn them on.
 vim.lsp.config('solargraph', {
   settings = { solargraph = { diagnostics = true } },
@@ -84,6 +55,14 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('gd', vim.lsp.buf.definition, 'LSP: definition')
     map('gy', vim.lsp.buf.type_definition, 'LSP: type definition')
     map('gi', vim.lsp.buf.implementation, 'LSP: implementation')
+
+    -- Items reach the menu through 'omnifunc' (the `o` in 'complete');
+    -- enabling also applies what accepting an item implies — expanding its
+    -- snippet, adding its import.
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    if client and client:supports_method('textDocument/completion') then
+      vim.lsp.completion.enable(true, client.id, ev.buf)
+    end
   end,
 })
 

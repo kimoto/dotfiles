@@ -75,13 +75,8 @@ vim.pack.add({
   gh('neovim/nvim-lspconfig'),        -- per-server configs for vim.lsp.config
   gh('mason-org/mason.nvim'),         -- language server installer (:Mason)
   gh('mason-org/mason-lspconfig.nvim'),
-  gh('hrsh7th/nvim-cmp'),             -- completion
-  gh('hrsh7th/cmp-nvim-lsp'),
-  gh('hrsh7th/cmp-buffer'),
-  gh('hrsh7th/cmp-path'),
   gh('stevearc/conform.nvim'),        -- format on save (prettier etc.)
   gh('L3MON4D3/LuaSnip'),             -- snippet engine
-  gh('saadparwaiz1/cmp_luasnip'),     -- its cmp source
   gh('rafamadriz/friendly-snippets'), -- the snippet bodies themselves (vscode format)
 
   -- debugger (nvim-dap)

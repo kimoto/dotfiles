@@ -38,5 +38,5 @@ opt.splitright = true -- 縦分割は右へ
 opt.splitbelow = true -- 横分割は下へ
 opt.confirm = true -- 未保存のまま閉じようとしたら E37 で弾かずに聞く
 
--- nvim-cmp が前提にする形。noselect なので <CR> が勝手に確定しない
+-- 候補が 1 つでもメニューを出し、noselect なので勝手に選ばない
 opt.completeopt = 'menu,menuone,noselect'

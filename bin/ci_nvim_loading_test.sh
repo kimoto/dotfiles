@@ -102,7 +102,7 @@ tail -n 20 "$sync_log"
 # representative plugins must exist in vim.pack's directory.
 PACK_DIR="$XDG_DATA_HOME/nvim/site/pack/core/opt"
 [ -d "$PACK_DIR" ] || die "vim.pack dir missing after install ($PACK_DIR)"
-for p in telescope.nvim nvim-tree.lua mason.nvim nvim-cmp onedark.nvim nvim-treesitter; do
+for p in telescope.nvim nvim-tree.lua mason.nvim LuaSnip onedark.nvim nvim-treesitter; do
   [ -d "$PACK_DIR/$p" ] || die "plugin $p not installed under $PACK_DIR (clone failed?)"
 done
 [ ! -e "$JETPACK_DIR" ] || die "vim-jetpack tree survived startup ($JETPACK_DIR)"
@@ -145,7 +145,7 @@ silent echo "NVIMTREE=".(exists(":NvimTreeToggle")?"loaded":"missing")
 silent echo "TOGGLETERM=".(exists(":ToggleTerm")?"loaded":"missing")
 silent echo "TREESITTER=".(exists(":TSUpdate")?"loaded":"missing")
 silent echo "MASON=".(exists(":Mason")?"loaded":"missing")
-silent echo "CMP=".(luaeval("package.loaded['cmp'] ~= nil")?"loaded":"missing")
+silent echo "LUASNIP=".(luaeval("package.loaded['luasnip'] ~= nil")?"loaded":"missing")
 silent echo "CONFORM=".(luaeval("package.loaded['conform'] ~= nil")?"loaded":"missing")
 silent echo "CONFORM_PRE=".luaeval("#vim.api.nvim_get_autocmds({group='Conform',event='BufWritePre'})")
 silent echo "CONFORM_POST=".luaeval("#vim.api.nvim_get_autocmds({group='Conform',event='BufWritePost'})")
@@ -182,7 +182,7 @@ grep -q "NVIMTREE=loaded"     "$msgs" || die "nvim-tree did not load"
 grep -q "TOGGLETERM=loaded"   "$msgs" || die "toggleterm did not load"
 grep -q "TREESITTER=loaded"   "$msgs" || die "nvim-treesitter did not load"
 grep -q "MASON=loaded"        "$msgs" || die "mason did not load"
-grep -q "CMP=loaded"          "$msgs" || die "nvim-cmp did not load"
+grep -q "LUASNIP=loaded"      "$msgs" || die "LuaSnip did not load"
 grep -q "CONFORM=loaded"      "$msgs" || die "conform did not load"
 # conform hooks BufWritePre when it formats synchronously and BufWritePost
 # when it formats after the write. auto-save writes on every InsertLeave, so
@@ -440,5 +440,76 @@ grep -q "VIM_DID_ENTER=1"     "$lsp_out" || die "probe ran before VimEnter (test
 grep -q "LSP_CLIENTS=ts_ls"   "$lsp_out" ||
   die "no LSP client attached to probe.ts (the deferred vim.lsp.enable missed the open buffer)"
 echo "== LSP attached to a .ts file opened on the command line =="
+
+# ---------------------------------------------------------------------------
+# Assert 8 (real terminal): the completion menu opens as you type, and ⌃+Y
+# takes an item from each source — a word in the buffer, the language server,
+# a LuaSnip snippet (expanded, not left as its trigger word), a path — while
+# Telescope's prompt gets no menu at all. Only typed keys open 'autocomplete',
+# so this goes through tmux; calling the sources directly would skip the menu.
+# Every menu that opens is logged with its buffer's filetype.
+# ---------------------------------------------------------------------------
+echo "== completion check =="
+pum_log="$HOME_DIR/pum.log"
+lsp_ready="$HOME_DIR/lsp_ready"
+: >"$pum_log"
+tmux -L "$SOCK" new-session -d -x 180 -y 45 -c "$TS_PROJECT" \
+  "env HOME='$HOME_DIR' PATH='$STUB_BIN:$PATH' XDG_CONFIG_HOME='$XDG_CONFIG_HOME' \
+       XDG_DATA_HOME='$XDG_DATA_HOME' XDG_STATE_HOME='$XDG_STATE_HOME' XDG_CACHE_HOME='$XDG_CACHE_HOME' \
+       TERM=xterm-256color nvim --cmd 'luafile $HOME_DIR/tmux_clipboard.lua' \
+       --cmd \"autocmd CompleteChanged * call writefile([&filetype], '$pum_log', 'a')\" \
+       --cmd \"autocmd LspAttach * call writefile([], '$lsp_ready')\" probe.ts" ||
+  die "failed to start tmux session for the completion check"
+for _ in $(seq 1 75); do [ -f "$lsp_ready" ] && break; sleep 0.2; done
+[ -f "$lsp_ready" ] || die "the stub language server never attached in the completion pane"
+sleep 0.5
+
+# Types $1 on a new line, then takes the first item in the menu.
+complete_on_new_line() {
+  tmux -L "$SOCK" send-keys Escape
+  sleep 0.2
+  tmux -L "$SOCK" send-keys o
+  sleep 0.3
+  tmux -L "$SOCK" send-keys -l "$1"
+  sleep 1
+  tmux -L "$SOCK" send-keys C-n
+  sleep 0.3
+  tmux -L "$SOCK" send-keys C-y
+  sleep 0.8
+  tmux -L "$SOCK" send-keys Escape
+  sleep 0.5
+}
+complete_on_new_line 'ans'
+complete_on_new_line 'stubC'
+complete_on_new_line './tsc'
+complete_on_new_line 'ifac'
+
+completion_out="$HOME_DIR/completion_probe.txt"
+tmux -L "$SOCK" send-keys \
+  ":lua vim.fn.writefile(vim.api.nvim_buf_get_lines(0,0,-1,false), '$completion_out')" Enter
+sleep 0.8
+echo "---- typescript buffer ----"; cat "$completion_out" 2>/dev/null; echo "---------------------------"
+grep -qx 'answer' "$completion_out" 2>/dev/null ||
+  die "a word already in the buffer was not completed"
+grep -qx 'stubCompletionItem' "$completion_out" 2>/dev/null ||
+  die "the language server's item never reached the completion menu"
+grep -q '^interface name {' "$completion_out" 2>/dev/null ||
+  die "accepting the iface snippet did not expand it"
+grep -qx './tsconfig.json' "$completion_out" 2>/dev/null ||
+  die "a path was not completed"
+
+tmux -L "$SOCK" send-keys ':Telescope find_files' Enter
+sleep 1
+tmux -L "$SOCK" send-keys -l 'pro'
+sleep 1.5
+tmux -L "$SOCK" send-keys Escape Escape
+sleep 0.3
+tmux -L "$SOCK" send-keys ':qa!' Enter
+echo "---- menus opened (by filetype) ----"; sort "$pum_log" | uniq -c; echo "------------------------------------"
+grep -qx 'typescript' "$pum_log" || die "no completion menu was logged in the typescript buffer"
+if grep -qx 'TelescopePrompt' "$pum_log"; then
+  die "the completion menu opened in Telescope's prompt"
+fi
+echo "== the menu completes from every source, and stays out of Telescope =="
 
 echo "PASS"
