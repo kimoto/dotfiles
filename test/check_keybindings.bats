@@ -94,6 +94,26 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "a physical punctuation key name matches the symbol the doc shows" {
+  cat >>"$CHECK_KEYBINDINGS_GHOSTTY_CONFIG" <<'EOF'
+keybind = ctrl+alt+bracket_left=csi:91;7u
+keybind = ctrl+alt+bracket_right=csi:93;7u
+keybind = ctrl+alt+quote=csi:39;7u
+keybind = ctrl+alt+backslash=csi:92;7u
+keybind = ctrl+alt+semicolon=csi:59;7u
+keybind = ctrl+alt+minus=csi:45;7u
+EOF
+  cat >"$TMP/rows" <<'EOF'
+| ⌃+⌥+[ / ] | Top-left / top-right quarter |
+| ⌃+⌥+' / \ | Bottom-left / bottom-right quarter |
+| ⌃+⌥+; / - | Larger / smaller |
+EOF
+  # Into the existing Terminal table, after its last row.
+  sed -i.bak "/^| ¥ |/r $TMP/rows" "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
 @test "a Windows-only row needs no Ghostty keybind" {
   run "$SCRIPT"
   [ "$status" -eq 0 ]

@@ -78,6 +78,9 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 | ⌘+⌥+↑ / ↓ | Previous / next tmux session |
 | ⇧+Enter / ⌥+Enter | Newline in Claude Code (Windows only) |
 | ¥ | Insert `\` (Mac only) |
+| ⌃+⌥+[ / ] | Send as CSI u, for tmux's float top-left / top-right quarter (Mac only) |
+| ⌃+⌥+' / \ | Send as CSI u, for tmux's float bottom-left / bottom-right quarter (Mac only) |
+| ⌃+⌥+; / - | Send as CSI u, for tmux's float larger / smaller (Mac only) |
 
 - Mac: ⌥ is Meta; ⌥+0~5 go to AeroSpace.
 - Windows: at a shell prompt, Shift/Alt+Enter run the command. F11 is fullscreen.
@@ -239,6 +242,22 @@ While the prefix is held, status-right shows `? help  g git  v hunk  t shell`.
 | prefix + Tab / ⇧+Tab | Fuzzy-pick a window / session (tmux 3.8+ default binding) |
 | prefix + g, then 1–4 / arrows | Move the floating pane to a corner / edge; ⌥ also resizes it (tmux 3.8+ default binding) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
+
+### Floating pane (no prefix, tmux 3.8+)
+
+Rectangle's keys with ⌃⌥ in place of ⌃⌘, for the active floating pane. On a tiled pane they reach the program.
+
+| Key | Action |
+|-----|--------|
+| ⌃⌥+A / D | Left / right half |
+| ⌃⌥+K / J | Top / bottom half |
+| ⌃⌥+[ / ] | Top-left / top-right quarter |
+| ⌃⌥+' / \ | Bottom-left / bottom-right quarter |
+| ⌃⌥+F | Maximize |
+| ⌃⌥+S | Center (keeps size) |
+| ⌃⌥+X | Center half |
+| ⌃⌥+; / - | Larger / smaller |
+| ⌃⌥+←/↓/↑/→ | Move to left / bottom / top / right edge (keeps size) |
 
 ### Copy mode (vi)
 
