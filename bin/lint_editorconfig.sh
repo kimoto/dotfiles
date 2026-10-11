@@ -13,8 +13,8 @@ set -euo pipefail
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1
 
-# The release binary mise.toml installs is named `ec`; Homebrew names it
-# editorconfig-checker.
+# The release binary mise.toml installs is named `ec`; Homebrew uses the long
+# name.
 if command -v editorconfig-checker >/dev/null 2>&1; then
     checker=editorconfig-checker
 elif command -v ec >/dev/null 2>&1; then

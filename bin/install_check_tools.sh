@@ -53,15 +53,16 @@ mise install
 
 # Links into /usr/local/bin rather than mise's shims: a shim picks the version
 # from the current directory, and the bats suites run these tools from temp
-# directories outside the repo. Every executable of every tool in mise.toml, so
-# adding a tool there needs no edit here. -f so a version bump replaces an
-# older link.
+# directories outside the repo. -f so a version bump replaces an older link.
+# Every executable in each tool's bin dir is linked under its own name, so
+# mise.toml stays the only list of tools; that also links a few harmless
+# extras (an arch-suffixed copy of a binary, uv's uvx). --local keeps out any
+# global mise config on the machine, whose tools are not ours to put on PATH.
 mise ls --local --json | jq -r 'keys[]' | while read -r tool; do
   mise bin-paths "$tool" | while read -r dir; do
-    for f in "$dir"/*; do
-      if [ -f "$f" ] && [ -x "$f" ]; then
-        as_root ln -sf "$f" "/usr/local/bin/${f##*/}"
-      fi
+    for exe in "$dir"/*; do
+      [ -f "$exe" ] && [ -x "$exe" ] || continue
+      as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
     done
   done
 done
