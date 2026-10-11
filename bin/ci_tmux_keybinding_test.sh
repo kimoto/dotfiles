@@ -173,7 +173,7 @@ if switcher_list | grep -qx "$cur_pane"; then
 fi
 echo "== prefix+f ranks the last-used pane first and drops the current one =="
 
-# 9) prefix+Tab (extrakto) opens a floating pane on whichever half of the
+# 9) prefix+y (extrakto) opens a floating pane on whichever half of the
 #    window the cursor is NOT in, so the picker never covers the lines whose
 #    text it is completing. Drive it from both halves of a split window and
 #    check where the float actually lands. Needs the plugin, like case 7.
@@ -183,10 +183,10 @@ tmux -L "$INNER" split-window -v
 sleep 0.3
 win_h="$(tmux -L "$INNER" display-message -p '#{window_height}')"
 float_id() { tmux -L "$INNER" list-panes -a -F '#{pane_floating_flag} #{pane_id}' | awk '$1 == 1 { print $2; exit }'; }
-# Press prefix+Tab and print the row the float opened at.
+# Press prefix+y and print the row the float opened at.
 open_float_top() {
   local i=0 fid
-  keys C-t Tab
+  keys C-t y
   while [ "$i" -lt 80 ]; do
     fid="$(float_id)"
     if [ -n "$fid" ]; then
@@ -195,7 +195,7 @@ open_float_top() {
     fi
     i=$((i + 1)); sleep 0.1
   done
-  die "prefix+Tab created no floating pane"
+  die "prefix+y created no floating pane"
 }
 # Kill the float and wait for it to actually go: polling for "a float" while
 # the previous one is still dying reads the old position and passes by luck.

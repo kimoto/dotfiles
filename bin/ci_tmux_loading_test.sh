@@ -87,6 +87,15 @@ if [ "${1:-0}" -gt 3 ] || { [ "${1:-0}" -eq 3 ] && [ "${2:-0}" -ge 7 ]; }; then
   tmux -L "$BARE_SOCK" list-keys -T prefix a >/dev/null 2>&1 \
     || die "3.7 guard skipped on a bare-PATH server: prefix + a is unbound"
   echo "== bare-PATH server: 3.7 guard applied =="
+  # 3.8's floating-pane move table (g) and switch-mode (Tab) are default
+  # bindings, so a config binding of its own to either key hides them.
+  if [ "${1:-0}" -gt 3 ] || [ "${2:-0}" -ge 8 ]; then
+    tmux -L "$BARE_SOCK" list-keys -T prefix g | grep -q 'switch-client -T move' \
+      || die "prefix + g is rebound; tmux 3.8's move table is unreachable"
+    tmux -L "$BARE_SOCK" list-keys -T prefix Tab | grep -q 'switch-mode' \
+      || die "prefix + Tab is rebound; tmux 3.8's switch-mode is unreachable"
+    echo "== tmux 3.8 defaults reachable: prefix + g (move), prefix + Tab (switch-mode) =="
+  fi
 else
   echo "== tmux $(tmux -V | sed 's/tmux //'): older than 3.7, guard correctly skipped =="
 fi
