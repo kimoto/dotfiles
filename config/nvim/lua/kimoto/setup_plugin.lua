@@ -1,135 +1,83 @@
--- Plugin Maneger を自動でダウンロードする
-local jetpackfile = vim.fn.stdpath('data') .. '/site/pack/jetpack/opt/vim-jetpack/plugin/jetpack.vim'
-local jetpackurl = "https://raw.githubusercontent.com/tani/vim-jetpack/master/plugin/jetpack.vim"
-if vim.fn.filereadable(jetpackfile) == 0 then
-  vim.fn.system(string.format('curl -fsSLo %s --create-dirs %s', jetpackfile, jetpackurl))
+-- Plugins are managed by Neovim's built-in vim.pack. A missing plugin is
+-- cloned on startup, at the revision pinned in nvim-pack-lock.json (committed
+-- next to init.lua). Update with `:lua vim.pack.update()`, review, `:write`,
+-- then commit the lockfile.
+local gh = function(repo) return 'https://github.com/' .. repo end
+
+-- vim-jetpack's plugin tree is also on the packpath, and :packadd loads every
+-- match, so a machine that still has it would load two copies of each plugin.
+local jetpack_dir = vim.fn.stdpath('data') .. '/site/pack/jetpack'
+if vim.uv.fs_stat(jetpack_dir) then
+  vim.fs.rm(jetpack_dir, { recursive = true, force = true })
 end
 
--- Neovim 0.12+ defines vim.list as a table module; the upstream jetpack.vim
--- uses `local list = vim.list or function...` which picks up the table and
--- then fails when cast() tries to call it. Patch the assignment to guard with
--- type() so the fallback identity function is used instead.
-local lines = vim.fn.readfile(jetpackfile)
-local patched = false
-for i, line in ipairs(lines) do
-  local new_line, n = line:gsub(
-    'local list = vim%.list or function',
-    'local list = type(vim.list) == "function" and vim.list or function'
-  )
-  if n > 0 then
-    lines[i] = new_line
-    patched = true
-  end
-end
--- Write back only when the patch actually applied, so an already-patched file
--- isn't rewritten on every startup.
-if patched then
-  vim.fn.writefile(lines, jetpackfile)
-end
-
-vim.cmd('packadd vim-jetpack')
-
-require('jetpack.paq') {
-  {'tani/vim-jetpack', opt = 1}, -- bootstrap
-
+vim.pack.add({
   -- shared dependencies, declared before the plugins that pull them in
-  'nvim-lua/plenary.nvim',
-  'nvim-tree/nvim-web-devicons',
+  gh('nvim-lua/plenary.nvim'),
+  gh('nvim-tree/nvim-web-devicons'),
 
   -- main branch: parsers are managed via require('nvim-treesitter').install()
   -- (see plugins/treesitter.lua), so no :TSUpdate run-hook.
-  'nvim-treesitter/nvim-treesitter',
-  'windwp/nvim-ts-autotag', -- auto close/rename HTML tags (treesitter-based)
+  { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main' },
+  gh('windwp/nvim-ts-autotag'), -- auto close/rename HTML tags (treesitter-based)
 
   -- ui
-  'nvim-tree/nvim-tree.lua', -- file explorer
-  'nvim-lualine/lualine.nvim',
-  'akinsho/bufferline.nvim',
-  'akinsho/toggleterm.nvim',
-  'yamatsum/nvim-cursorline',
-  'folke/which-key.nvim', -- popup listing the keys behind a prefix
-  'folke/trouble.nvim', -- list every diagnostic instead of one line at a time
-  'NvChad/nvim-colorizer.lua', -- highlight color codes like #rrggbb
-  'navarasu/onedark.nvim', -- color theme
+  gh('nvim-tree/nvim-tree.lua'), -- file explorer
+  gh('nvim-lualine/lualine.nvim'),
+  gh('akinsho/bufferline.nvim'),
+  gh('akinsho/toggleterm.nvim'),
+  gh('yamatsum/nvim-cursorline'),
+  gh('folke/which-key.nvim'), -- popup listing the keys behind a prefix
+  gh('folke/trouble.nvim'), -- list every diagnostic instead of one line at a time
+  gh('NvChad/nvim-colorizer.lua'), -- highlight color codes like #rrggbb
+  gh('navarasu/onedark.nvim'), -- color theme
 
   -- telescope
-  {'nvim-telescope/telescope.nvim', tag = '0.1.8'},
-  {'nvim-telescope/telescope-frecency.nvim',
-    config = function() require('telescope').load_extension 'frecency' end,
-  },
+  { src = gh('nvim-telescope/telescope.nvim'), version = '0.1.8' },
+  gh('nvim-telescope/telescope-frecency.nvim'),
 
   -- editing
-  'gbprod/yanky.nvim', -- yank ring
-  {'numToStr/Comment.nvim', config = function() require('Comment').setup() end},
-  'pocco81/auto-save.nvim', -- 自動保存
-  'windwp/nvim-autopairs', -- 括弧・クォートの自動閉じ
-  'tpope/vim-surround', -- text objectの拡張
-  'tpope/vim-endwise', -- Rubyのendなどの自動補完
-  'farmergreg/vim-lastplace', -- 最後の編集地点に移動
-  'pechorin/any-jump.vim', -- grep-based jump to definition
+  gh('gbprod/yanky.nvim'), -- yank ring
+  gh('numToStr/Comment.nvim'),
+  gh('pocco81/auto-save.nvim'), -- 自動保存
+  gh('windwp/nvim-autopairs'), -- 括弧・クォートの自動閉じ
+  gh('tpope/vim-surround'), -- text objectの拡張
+  gh('tpope/vim-endwise'), -- Rubyのendなどの自動補完
+  gh('farmergreg/vim-lastplace'), -- 最後の編集地点に移動
+  gh('pechorin/any-jump.vim'), -- grep-based jump to definition
 
-  'lewis6991/gitsigns.nvim', -- git statusを表示
+  gh('lewis6991/gitsigns.nvim'), -- git statusを表示
 
   -- lsp / completion / formatting
-  'neovim/nvim-lspconfig',        -- per-server configs for vim.lsp.config
-  'mason-org/mason.nvim',         -- language server installer (:Mason)
-  'mason-org/mason-lspconfig.nvim',
-  'hrsh7th/nvim-cmp',             -- completion
-  'hrsh7th/cmp-nvim-lsp',
-  'hrsh7th/cmp-buffer',
-  'hrsh7th/cmp-path',
-  'stevearc/conform.nvim',        -- format on save (prettier etc.)
-  'L3MON4D3/LuaSnip',             -- snippet engine
-  'saadparwaiz1/cmp_luasnip',     -- its cmp source
-  'rafamadriz/friendly-snippets', -- the snippet bodies themselves (vscode format)
+  gh('neovim/nvim-lspconfig'),        -- per-server configs for vim.lsp.config
+  gh('mason-org/mason.nvim'),         -- language server installer (:Mason)
+  gh('mason-org/mason-lspconfig.nvim'),
+  gh('hrsh7th/nvim-cmp'),             -- completion
+  gh('hrsh7th/cmp-nvim-lsp'),
+  gh('hrsh7th/cmp-buffer'),
+  gh('hrsh7th/cmp-path'),
+  gh('stevearc/conform.nvim'),        -- format on save (prettier etc.)
+  gh('L3MON4D3/LuaSnip'),             -- snippet engine
+  gh('saadparwaiz1/cmp_luasnip'),     -- its cmp source
+  gh('rafamadriz/friendly-snippets'), -- the snippet bodies themselves (vscode format)
 
   -- debugger (nvim-dap)
-  'mfussenegger/nvim-dap',
-  'nvim-neotest/nvim-nio',
-  'rcarriga/nvim-dap-ui',
-  'mfussenegger/nvim-dap-python',
-  'suketa/nvim-dap-ruby',
-}
+  gh('mfussenegger/nvim-dap'),
+  gh('nvim-neotest/nvim-nio'),
+  gh('rcarriga/nvim-dap-ui'),
+  gh('mfussenegger/nvim-dap-python'),
+  gh('suketa/nvim-dap-ruby'),
+}, { confirm = false })
 
--- Bootstrap: run JetpackSync (blocking) whenever what is on disk no longer
--- matches the list above, instead of leaving every require erroring — or
--- jetpack's "Some packages are not synchronized" nag on every startup — until
--- someone runs it by hand.
-local function out_of_sync()
-  -- Declared but not installed: jetpack#tap() is false for those.
-  local declared = vim.fn['jetpack#names']()
-  for _, name in ipairs(declared) do
-    if vim.fn['jetpack#tap'](name) == 0 then
-      return true
-    end
-  end
-  -- Installed but no longer declared: jetpack records what it installed in
-  -- available_packages.json next to the package tree.
-  local manifest = vim.fn.stdpath('data') .. '/site/pack/jetpack/opt/available_packages.json'
-  local ok, available = pcall(function()
-    return vim.json.decode(table.concat(vim.fn.readfile(manifest), '\n'))
-  end)
-  if not ok or type(available) ~= 'table' then
-    return false
-  end
-  local is_declared = {}
-  for _, name in ipairs(declared) do
-    is_declared[name] = true
-  end
-  for name in pairs(available) do
-    if not is_declared[name] then
-      return true
-    end
-  end
-  return false
+-- A plugin dropped from the list above stays on disk (and in the lockfile)
+-- until vim.pack.del removes it, so remove whatever this session did not add.
+local stale = vim.iter(vim.pack.get())
+  :filter(function(p) return not p.active end)
+  :map(function(p) return p.spec.name end)
+  :totable()
+if #stale > 0 then
+  vim.pack.del(stale)
 end
 
-if out_of_sync() then
-  vim.notify('[dotfiles] syncing plugins (JetpackSync) ...')
-  local ok, err = pcall(vim.cmd, 'JetpackSync')
-  if ok then
-    vim.notify('[dotfiles] plugin sync finished — restart nvim if anything looks off')
-  else
-    vim.notify('[dotfiles] JetpackSync failed: ' .. tostring(err), vim.log.levels.ERROR)
-  end
-end
+require('telescope').load_extension('frecency')
+require('Comment').setup()

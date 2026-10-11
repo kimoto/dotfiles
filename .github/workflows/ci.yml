@@ -382,8 +382,8 @@ jobs:
 
       - name: Install Neovim (upstream stable tarball)
         # apt ships 0.9.x, but the real environment runs the latest brew nvim
-        # and the config carries 0.10+/0.12+ API usage (vim.uv plugins, the
-        # vim.list jetpack patch in setup_plugin.lua), so test against
+        # and the config carries 0.12+ API usage (vim.pack in
+        # setup_plugin.lua), so test against
         # upstream's stable channel — the same thing brew tracks.
         run: |
           set -e
@@ -398,12 +398,14 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           # ci_nvim_loading_test.sh points XDG_DATA_HOME here (via
-          # NVIM_E2E_DATA_DIR), so this holds the jetpack clones of every
-          # plugin. Keyed on setup_plugin.lua since that is where the plugin
-          # list lives — editing it re-resolves the plugin set. Bump the vN to
+          # NVIM_E2E_DATA_DIR), so this holds the vim.pack clones of every
+          # plugin. Keyed on the plugin list and the lockfile that pins each
+          # revision — changing either re-resolves the plugin set. Bump the vN to
           # evict a bad cache (same manual lever as the brew/tmux keys).
           path: ~/.nvim-e2e-data
-          key: ${{ runner.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua') }}-v1
+          key: >-
+            ${{ runner.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua',
+            'config/nvim/nvim-pack-lock.json') }}-v1
 
       - name: Neovim e2e (install all plugins, assert clean startup)
         run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./bin/ci_nvim_loading_test.sh

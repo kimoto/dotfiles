@@ -4,8 +4,8 @@
 # kimoto/basic_config.lua and keymaps.lua) must load cleanly in a real headless
 # nvim and actually apply the options and maps it sets.
 #
-# Scope note: init.lua's second line, require('kimoto/setup_plugin'), curls
-# vim-jetpack from GitHub and pulls dozens of plugins on first start, and the
+# Scope note: init.lua's require('kimoto/setup_plugin') clones
+# dozens of plugins from GitHub on first start, and the
 # per-plugin requires that follow it (lualine, gitsigns, telescope, ...) all need
 # those plugins present. None of that is hermetic, so the full init.lua startup
 # is covered by ci_nvim_loading_test.sh (its own CI job, with the plugin tree
@@ -47,7 +47,7 @@ export XDG_CACHE_HOME="$HOME_DIR/.cache"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 
 # Minimal init that loads ONLY the plugin-free modules — not init.lua, so the
-# jetpack curl and the per-plugin requires never run. keymaps.lua qualifies
+# plugin clones and the per-plugin requires never run. keymaps.lua qualifies
 # too: it is plain vim.keymap.set with no plugin dependency, and init.lua sets
 # mapleader before requiring it, so the harness does the same.
 INIT="$HOME_DIR/init.lua"
