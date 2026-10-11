@@ -1,8 +1,8 @@
 #!/bin/bash
 # Loads .tmux.conf in a throwaway tmux server and verifies it parses cleanly.
 # Intended to run after `mkworld` so that tpm is present at ~/.tmux/plugins/tpm.
-# Also checks that the tmux 3.6+ version guard behaves correctly for whatever
-# tmux version is on PATH (options applied on >=3.6, skipped on older).
+# Also checks that the version guards still apply when the server was started
+# with a PATH that lacks the tmux binary's directory.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -16,8 +16,13 @@ CONF="$(tmux_conf_path)"
 echo "== loading: $CONF =="
 
 SOCK="ci_tmux_$$"
+BARE_SOCK="${SOCK}_bare"
 err_log="$(mktemp)"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; rm -f "$err_log" 2>/dev/null || true; }
+cleanup() {
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  tmux -L "$BARE_SOCK" kill-server 2>/dev/null || true
+  rm -f "$err_log" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 # Bare server first, then load the real config so parse errors surface.
@@ -65,5 +70,24 @@ if [ "$load_ms" -gt "$LOAD_BUDGET_MS" ]; then
   die ".tmux.conf took ${load_ms}ms to load (budget: ${LOAD_BUDGET_MS}ms)"
 fi
 
-echo "== tmux $(tmux -V | sed 's/tmux //') guard: version check skipped (show-options scope varies by build) =="
+# Version guards must hold on a server started with a bare PATH: Ghostty starts
+# tmux through `zsh -l -c`, which never reads .zshrc, so Homebrew's bin is not
+# on the server's PATH. prefix + a is bound only behind the 3.7 guard.
+TMUX_BIN="$(command -v tmux)"
+# Loaded at startup with -f, as Ghostty's server is: a later source-file runs
+# the guards with the sending client's PATH and passes regardless.
+env -i HOME="$HOME" TERM=xterm-256color PATH=/usr/bin:/bin \
+  "$TMUX_BIN" -L "$BARE_SOCK" -f "$CONF" new-session -d -x 200 -y 50 2>/dev/null \
+  || die "failed to start bare-PATH tmux server"
+disable_continuum_restore "$BARE_SOCK"
+ver="$(tmux -V | sed -En 's/^tmux (next-)?([0-9]+)\.([0-9]+).*/\2 \3/p')"
+# shellcheck disable=SC2086
+set -- $ver
+if [ "${1:-0}" -gt 3 ] || { [ "${1:-0}" -eq 3 ] && [ "${2:-0}" -ge 7 ]; }; then
+  tmux -L "$BARE_SOCK" list-keys -T prefix a >/dev/null 2>&1 \
+    || die "3.7 guard skipped on a bare-PATH server: prefix + a is unbound"
+  echo "== bare-PATH server: 3.7 guard applied =="
+else
+  echo "== tmux $(tmux -V | sed 's/tmux //'): older than 3.7, guard correctly skipped =="
+fi
 echo "PASS"
