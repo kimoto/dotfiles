@@ -11,6 +11,9 @@ vim.loader.enable()
 
 require('kimoto/basic_config')
 require('kimoto/setup_plugin')
+-- Dotted name: 'complete' calls back into it as require'kimoto.completion',
+-- and a slashed name here would load the module a second time.
+require('kimoto.completion')
 require('kimoto/keymaps')
 
 require('kimoto/plugins/lualine')
@@ -29,7 +32,7 @@ require('kimoto/plugins/trouble')
 require('kimoto/plugins/which_key')
 
 -- Deferred: neither of these is needed to paint the first screen, and together
--- they were ~28ms of a ~148ms startup — lsp ~23ms (mason, nvim-cmp, conform),
+-- they were ~28ms of a ~148ms startup — lsp ~23ms,
 -- dap ~5ms — measured warm with nvim 0.12.4 via ./bin/nvim_startuptime.sh.
 -- vim.schedule runs them on the first main-loop tick — the UI is already up and
 -- nothing can have been typed yet, so this is invisible in use.
@@ -51,7 +54,6 @@ vim.api.nvim_create_autocmd('VimEnter', {
     vim.schedule(function()
       require('kimoto/plugins/lsp')
       require('kimoto/plugins/dap')
-      -- after lsp: its cmp hookup requires cmp, which lsp.lua has set up by now
       require('kimoto/plugins/autopairs')
     end)
   end,

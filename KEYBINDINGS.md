@@ -378,8 +378,9 @@ Hold a prefix and which-key shows the rest.
 | gd / gy / gi | Definition / type definition / implementation |
 | grn / gra / grr | Rename / code action / references (nvim builtin) |
 | K | Hover (nvim builtin) |
-| Enter (insert) | Confirm completion (nvim-cmp) |
-| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip) |
+| ⌃+Y (insert) | Accept the selected completion (the menu opens as you type) |
+| ⌃+N / ⌃+P (insert) | Next / previous completion |
+| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip or LSP snippet) |
 
 ### Diagnostics (trouble)
 

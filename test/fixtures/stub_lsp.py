@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""A language server that does nothing except be a language server.
+"""A language server that does almost nothing except be a language server.
 
 Enough of LSP for a real Neovim client to spawn it, complete the initialize
-handshake and stay attached: that is all ci_nvim_loading_test.sh needs to
-assert "opening a .ts file attaches a client". Installing a real server
+handshake and stay attached, which lets ci_nvim_loading_test.sh assert
+"opening a .ts file attaches a client". Every completion request gets the
+same single item, so the test can see a server's items reach the menu. Installing a real server
 (mason/npm) in CI would test npm, not this config, and the e2e run
 deliberately sets DOTFILES_NO_NVIM_AUTO_INSTALL to keep startups
 deterministic.
@@ -14,6 +15,9 @@ than anything else, so nvim resolves lspconfig's real `ts_ls` cmd to this.
 
 import json
 import sys
+
+# Long and unlike any word in the test's buffers, so only the server offers it.
+COMPLETION_ITEM = 'stubCompletionItem'
 
 
 def read_message():
@@ -57,9 +61,15 @@ def main():
                 'jsonrpc': '2.0',
                 'id': message['id'],
                 'result': {
-                    'capabilities': {'textDocumentSync': 1},
+                    'capabilities': {'textDocumentSync': 1, 'completionProvider': {}},
                     'serverInfo': {'name': 'stub-lsp'},
                 },
+            })
+        elif method == 'textDocument/completion':
+            send({
+                'jsonrpc': '2.0',
+                'id': message['id'],
+                'result': [{'label': COMPLETION_ITEM, 'kind': 6}],
             })
         else:
             # Every other request (shutdown included) gets a null result.
