@@ -55,7 +55,7 @@ echo "== status-right shows the clock ($today) =="
 #     branch silently ends the branch, so a hint written inline would truncate
 #     at the first comma with no error anywhere.
 case "$(expand "$(opt status-right)")" in
-  *lazygit*) die "the prefix hint renders even when the prefix is not held" ;;
+  *"v hunk"*) die "the prefix hint renders even when the prefix is not held" ;;
 esac
 # display-message cannot hold the prefix down, so render the configured
 # status-right with its condition forced true — same string, other branch.
@@ -64,7 +64,7 @@ esac
 # lands between them in the raw expansion.
 held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
   sed 's/#\[[^]]*\]//g')"
-for pair in "? help" "g lazygit" "t shell"; do
+for pair in "? help" "g git" "v hunk" "t shell"; do
   case "$held" in
     *"$pair"*) ;;
     *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
