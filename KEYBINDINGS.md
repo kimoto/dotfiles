@@ -114,6 +114,11 @@ Source:
 | ⌃⌘+V | Clipboard history (Mac only) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
+| Ctrl+1 | Open Chrome (Mac only) |
+| Ctrl+2 | Open Ghostty (Mac only) |
+| Ctrl+. | Toggle Raycast Notes (Mac only) |
+| ⌃⌘+H | Search Chrome history (Mac only) |
+| Caps Lock | Hyper Key: ⌃⌥⇧⌘ (Mac only) |
 
 ---
 
