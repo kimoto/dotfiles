@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "One monthly PR per group instead of one per release, and no automerge: a person reads each bump.",
+    "A release ages 7 days before it is proposed, so a freshly published (possibly compromised) version is not pulled in at once."
+  ],
+  "extends": [
+    "config:recommended",
+    "schedule:monthly"
+  ],
+  "minimumReleaseAge": "7 days",
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^bin/install_check_tools\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[A-Z_]+=\"\\$\\{[A-Z_]+:-(?<currentValue>[^}]+)\\}\""
+      ],
+      "description": "mise itself, which bin/install_check_tools.sh downloads before mise.toml can be read.",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "mise",
+        "custom.regex"
+      ],
+      "groupName": "check tools",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "check-tools",
+      "description": "Commit types must pass bin/check_commit_msgs_range.sh."
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions",
+      "semanticCommitType": "ci",
+      "semanticCommitScope": "actions"
+    },
+    {
+      "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
+      "matchDepNames": [
+        "aqua:biomejs/biome"
+      ],
+      "extractVersion": "^@biomejs/biome@(?<version>.+)$"
+    }
+  ]
+}

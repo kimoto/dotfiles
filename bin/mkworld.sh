@@ -50,6 +50,14 @@ fi
 # What this machine changed shows up as a diff here instead of being reverted.
 "$BASE_DIR/bin/install_claude_settings.sh" --sync
 
+# The check toolchain pinned in mise.toml, before the hooks below that run it.
+# Non-fatal: a failed download should not stop the rest of the bootstrap, and
+# each bin/lint_*.sh names the missing tool when a hook runs.
+if command -v mise >/dev/null 2>&1; then
+    (cd "$BASE_DIR" && mise trust --quiet mise.toml && mise install) \
+        || echo "mise install failed; the git hooks will refuse commits until it succeeds" >&2
+fi
+
 # Install git hooks (lefthook) and the commit message template
 if command -v lefthook >/dev/null 2>&1; then
     (cd "$BASE_DIR" && lefthook install && git config --local commit.template .gitmessage)

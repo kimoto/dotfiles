@@ -1,27 +1,18 @@
 #!/bin/bash
-# Single source of truth for the lint/check toolchain (pinned versions + install).
-# Shared by GitHub Actions CI and the Claude Code web SessionStart hook so the
-# versions live in exactly ONE place. Targets Linux (apt + GitHub release
-# binaries); on a real machine use `brew bundle` (Brewfile.*) instead.
+# Install the lint/check toolchain on Linux: GitHub Actions CI and the cloud
+# session setup both call this. Versions live in mise.toml, not here; this
+# script only gets mise, runs it, and puts the tools on PATH. On a workstation
+# mkworld.sh runs `mise install` instead and mise's shims do the PATH part.
 set -euo pipefail
 
-# The one place to bump versions (override via env if needed).
-GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
-RATCHET_VERSION="${RATCHET_VERSION:-0.12.0}"
-ACTIONLINT_VERSION="${ACTIONLINT_VERSION:-1.7.12}"
-YQ_VERSION="${YQ_VERSION:-4.54.1}"
-BIOME_VERSION="${BIOME_VERSION:-2.5.10}"
-EC_VERSION="${EC_VERSION:-3.11.2}"
-CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.38.0}"
-YAMLLINT_VERSION="${YAMLLINT_VERSION:-1.38.0}"
-LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.2.1}"
-ZIZMOR_VERSION="${ZIZMOR_VERSION:-1.30.1}"
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
 
-# Map uname -m onto each project's release-asset arch suffix (projects differ:
-# amd64/arm64 vs x64/arm64 vs x86_64/arm64).
+# renovate: datasource=github-releases depName=jdx/mise
+MISE_VERSION="${MISE_VERSION:-2026.10.6}"
+
 case "$(uname -m)" in
-  x86_64)        ARCH_AMD64=amd64; ARCH_X64=x64; ARCH_X86_64=x86_64 ;;
-  aarch64|arm64) ARCH_AMD64=arm64; ARCH_X64=arm64; ARCH_X86_64=arm64 ;;
+  x86_64)        MISE_ARCH=x64 ;;
+  aarch64|arm64) MISE_ARCH=arm64 ;;
   *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 
@@ -36,86 +27,43 @@ as_root() {
 
 # zsh (zsh-syntax) + shellcheck (shell-lint) + bats (unit tests) + luajit
 # (lua-syntax: parse nvim's Lua with its own runtime) + jq (unit tests:
-# install_claude_tmux_hooks.sh and its bats suite) via apt.
+# install_claude_tmux_hooks.sh and its bats suite) via apt. Unpinned: these
+# follow the distro, as they always have.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
   as_root apt-get install -y -qq zsh shellcheck bats luajit jq >/dev/null
 fi
 
-# mikefarah yq (config-syntax: `yq -p toml|json|yaml`).
-if ! { command -v yq >/dev/null 2>&1 && yq --version 2>/dev/null | grep -qi mikefarah; }; then
-  as_root curl -sSfL -o /usr/local/bin/yq \
-    "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH_AMD64}"
-  as_root chmod +x /usr/local/bin/yq
-fi
-
-# gitleaks (secret scanning).
-if ! command -v gitleaks >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH_X64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin gitleaks
-fi
-
-# ratchet (GitHub Actions pinning check).
-if ! command -v ratchet >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin ratchet
-fi
-
-# actionlint (GitHub Actions workflow checker: expressions, contexts, runner
-# labels, and shellcheck over `run:` blocks).
-if ! command -v actionlint >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin actionlint
-fi
-
-# biome (config-syntax: validates .jsonc, e.g. config/fastfetch/config.jsonc).
-if ! command -v biome >/dev/null 2>&1; then
-  as_root curl -sSfL -o /usr/local/bin/biome \
-    "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-${ARCH_X64}"
-  as_root chmod +x /usr/local/bin/biome
-fi
-
-# editorconfig-checker (editorconfig: max line length, trailing ws, final newline).
-if ! command -v editorconfig-checker >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin --strip-components=1 "bin/ec-linux-${ARCH_AMD64}"
-  as_root mv "/usr/local/bin/ec-linux-${ARCH_AMD64}" /usr/local/bin/editorconfig-checker
-fi
-
-# zizmor (GitHub Actions security auditor, run --offline via bin/lint_actions.sh).
-# Rust target triples use uname -m verbatim on Linux (x86_64/aarch64), unlike
-# the ARCH_* maps above.
-if ! command -v zizmor >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-$(uname -m)-unknown-linux-gnu.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin zizmor
-fi
-
-# lefthook (git hook runner: pre-commit/pre-push run the bin/ checks locally).
-if ! command -v lefthook >/dev/null 2>&1; then
+# A pinned release binary rather than mise.run's installer script, which would
+# install whatever is newest on the day.
+if ! command -v mise >/dev/null 2>&1; then
   tmp="$(mktemp)"
-  curl -sSfL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_${ARCH_X86_64}.gz" \
-    | gunzip > "$tmp"
-  as_root install -m 0755 "$tmp" /usr/local/bin/lefthook
+  curl -sSfL -o "$tmp" \
+    "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}"
+  as_root install -m 0755 "$tmp" /usr/local/bin/mise
   rm -f "$tmp"
 fi
 
-# check-jsonschema (schema-validate: validates files declaring a "$schema").
-if ! command -v check-jsonschema >/dev/null 2>&1; then
-  if command -v pipx >/dev/null 2>&1; then
-    pipx install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-  else
-    pip install --break-system-packages "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" \
-      || pip install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-  fi
-fi
+cd "$BASE_DIR"
+# A fresh container has never trusted this checkout, and mise refuses an
+# untrusted config rather than prompting when there is no terminal.
+export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
+mise install
 
-# yamllint (yaml-lint: style of every tracked .yml/.yaml, per .yamllint.yml).
-if ! command -v yamllint >/dev/null 2>&1; then
-  if command -v pipx >/dev/null 2>&1; then
-    pipx install "yamllint==${YAMLLINT_VERSION}"
-  else
-    pip install --break-system-packages "yamllint==${YAMLLINT_VERSION}" \
-      || pip install "yamllint==${YAMLLINT_VERSION}"
-  fi
-fi
+# Links into /usr/local/bin rather than mise's shims: a shim picks the version
+# from the current directory, and the bats suites run these tools from temp
+# directories outside the repo. -f so a version bump replaces an older link.
+# Every executable in each tool's bin dir is linked under its own name, so
+# mise.toml stays the only list of tools; that also links a few harmless
+# extras (an arch-suffixed copy of a binary, uv's uvx). --local keeps out any
+# global mise config on the machine, whose tools are not ours to put on PATH.
+mise ls --local --json | jq -r 'keys[]' | while read -r tool; do
+  mise bin-paths "$tool" | while read -r dir; do
+    for exe in "$dir"/*; do
+      if [ -f "$exe" ] && [ -x "$exe" ]; then
+        as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
+      fi
+    done
+  done
+done

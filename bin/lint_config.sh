@@ -41,7 +41,7 @@ done
 
 if [ "${#jsonc[@]}" -gt 0 ]; then
     if ! command -v biome >/dev/null 2>&1; then
-        echo "x biome not found; install it (brew install biome)" >&2
+        echo "x biome not found; install it (run 'mise install' in this repo)" >&2
         rc=1
     elif ! biome lint "${jsonc[@]}"; then
         # biome prints its own parse diagnostics; flag the failure for the summary.

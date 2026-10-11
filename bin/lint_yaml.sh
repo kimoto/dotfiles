@@ -14,7 +14,7 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1
 
 if ! command -v yamllint >/dev/null 2>&1; then
-    echo "x yamllint not found; install it (brew install yamllint, or pip install yamllint)" >&2
+    echo "x yamllint not found; install it (run 'mise install' in this repo)" >&2
     exit 1
 fi
 
