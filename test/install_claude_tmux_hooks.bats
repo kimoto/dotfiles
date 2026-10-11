@@ -42,6 +42,18 @@ teardown() {
   done
 }
 
+@test "wires the hunk handler to worktree moves and cd, and nothing else" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -e '.hooks.PostToolUse[] | select(.matcher == "EnterWorktree|ExitWorktree")
+           | .hooks[] | select(.command | contains("claude_tmux_hunk.sh"))' "$SETTINGS" >/dev/null
+  jq -e '.hooks.CwdChanged[].hooks[] | select(.command | contains("claude_tmux_hunk.sh"))' "$SETTINGS" >/dev/null
+  # Every other tool call must not restart hunk.
+  count="$(jq '[.hooks.PostToolUse[] | select((.matcher // "") == "")
+                 | .hooks[] | select(.command | contains("claude_tmux_hunk.sh"))] | length' "$SETTINGS")"
+  [ "$count" -eq 0 ]
+}
+
 @test "registered commands are guarded so a missing script never errors" {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
@@ -131,6 +143,10 @@ EOF
   run "$SCRIPT" --uninstall
   [ "$status" -eq 0 ]
   run jq -e '.. | .command? // empty | select(contains("claude_tmux_indicator.sh"))' "$SETTINGS"
+  [ "$status" -ne 0 ]
+  run jq -e '.. | .command? // empty | select(contains("claude_tmux_hunk.sh"))' "$SETTINGS"
+  [ "$status" -ne 0 ]
+  run jq -e '.hooks.CwdChanged' "$SETTINGS"
   [ "$status" -ne 0 ]
   [ "$(jq -r '.model' "$SETTINGS")" = "opus" ]
   jq -e '.hooks.Stop[].hooks[] | select(.command == "echo custom-stop")' "$SETTINGS" >/dev/null
