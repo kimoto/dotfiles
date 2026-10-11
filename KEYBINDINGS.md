@@ -223,7 +223,7 @@ While the prefix is held, status-right shows `? help  g git  v hunk  t shell`.
 | prefix + r | Reload ~/.tmux.conf |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
-| prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
+| prefix + G | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
 | prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
 | prefix + A | Same, but forking this pane's Claude Code session |
@@ -235,7 +235,9 @@ While the prefix is held, status-right shows `? help  g git  v hunk  t shell`.
 | prefix + ? | tmux-which-key: menu of tmux commands |
 | prefix + Ctrl-s | Save session state, incl. Claude Code (auto every 15 min) |
 | prefix + Ctrl-r | Restore the last saved session state |
-| prefix + Tab | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
+| prefix + y | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
+| prefix + Tab / ⇧+Tab | Fuzzy-pick a window / session (tmux 3.8+ default binding) |
+| prefix + g, then 1–4 / arrows | Move the floating pane to a corner / edge; ⌥ also resizes it (tmux 3.8+ default binding) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
 
 ### Copy mode (vi)
