@@ -1,11 +1,11 @@
 #!/bin/bash
-# End-to-end test for the Neovim config (config/nvim): bootstrap vim-jetpack
-# exactly as setup_plugin.lua does on a fresh machine, install every declared
-# plugin with :JetpackSync, then assert a full init.lua startup is clean.
+# End-to-end test for the Neovim config (config/nvim): let a first startup
+# install every declared plugin through vim.pack, exactly as on a fresh
+# machine, then assert a full init.lua startup is clean.
 #
 # This is the nvim analogue of ci_vim_loading_test.sh and the layer above
 # ci_nvim_guard_test.sh (which loads only the plugin-free basic_config.lua).
-# It needs the network (jetpack bootstrap curl + one clone per plugin), so it
+# It needs the network (one clone per plugin), so it
 # runs as its own CI job with the installed plugin tree cached, instead of
 # inside the hermetic per-push guard.
 #
@@ -45,8 +45,8 @@ cleanup() {
 trap cleanup EXIT
 
 # Isolated HOME + XDG dirs; the repo config is linked in the same shape mklink
-# produces (~/.config -> config/). Only XDG_DATA_HOME (jetpack + plugin
-# clones) is optionally persistent so CI can cache it across runs.
+# produces (~/.config -> config/). Only XDG_DATA_HOME (the plugin clones)
+# is optionally persistent so CI can cache it across runs.
 export XDG_CONFIG_HOME="$HOME_DIR/.config"
 export XDG_DATA_HOME="${NVIM_E2E_DATA_DIR:-$HOME_DIR/.local/share}"
 export XDG_STATE_HOME="$HOME_DIR/.local/state"
@@ -56,8 +56,8 @@ ln -s "$REPO/config/nvim" "$XDG_CONFIG_HOME/nvim"
 
 # Keep startups deterministic: the config's first-run auto-installers (mason
 # servers, treesitter parsers) must not kick off background downloads while
-# the assertions below read :messages / the rendered screen. The jetpack
-# plugin bootstrap itself is NOT gated by this — phase 1 relies on it.
+# the assertions below read :messages / the rendered screen. The vim.pack
+# plugin install itself is NOT gated by this — phase 1 relies on it.
 export DOTFILES_NO_NVIM_AUTO_INSTALL=1
 
 run_nvim() { HOME="$HOME_DIR" nvim --headless "$@" </dev/null; }
@@ -82,28 +82,31 @@ PROVIDER
 
 # ---------------------------------------------------------------------------
 # Install: a plain first startup must bootstrap everything on its own —
-# setup_plugin.lua curls jetpack and, on missing plugins, runs :JetpackSync
-# itself (no manual sync). Errors from init.lua are tolerated on this run —
-# the per-plugin requires can fire before the install finishes — so this
+# vim.pack.add in setup_plugin.lua clones every missing plugin at the
+# lockfile's revision (no manual sync). Errors from init.lua are tolerated on
+# this run — the per-plugin requires can fire before the install finishes — so this
 # phase only has to leave a complete plugin tree behind; correctness of the
 # config is asserted by the startup checks below.
 # ---------------------------------------------------------------------------
 echo "== first-run bootstrap (plain startup must auto-install plugins) =="
+# A vim-jetpack tree left on the packpath would be loaded next to vim.pack's
+# copies, so the first startup must delete it.
+JETPACK_DIR="$XDG_DATA_HOME/nvim/site/pack/jetpack"
+mkdir -p "$JETPACK_DIR/opt/telescope.nvim/plugin"
 sync_log="$HOME_DIR/sync.log"
 run_nvim -c 'qall!' >"$sync_log" 2>&1 || {
   cat "$sync_log"; die "first-run bootstrap exited non-zero"; }
 tail -n 20 "$sync_log"
 
-# The auto-sync reports per-plugin failures only in its progress buffer, so
-# verify the end state directly: representative plugins must exist somewhere
-# under the jetpack pack dir (layout-agnostic: src clone or copied pack tree).
-PACK_DIR="$XDG_DATA_HOME/nvim/site/pack/jetpack"
-[ -d "$PACK_DIR" ] || die "jetpack pack dir missing after sync ($PACK_DIR)"
+# A failed clone is only a notification, so verify the end state directly:
+# representative plugins must exist in vim.pack's directory.
+PACK_DIR="$XDG_DATA_HOME/nvim/site/pack/core/opt"
+[ -d "$PACK_DIR" ] || die "vim.pack dir missing after install ($PACK_DIR)"
 for p in telescope.nvim nvim-tree.lua mason.nvim nvim-cmp onedark.nvim nvim-treesitter; do
-  find "$PACK_DIR" -maxdepth 6 -type d -name "$p" 2>/dev/null | grep -q . ||
-    die "plugin $p not installed under $PACK_DIR (JetpackSync incomplete / clone failed?)"
+  [ -d "$PACK_DIR/$p" ] || die "plugin $p not installed under $PACK_DIR (clone failed?)"
 done
-echo "== plugin tree present =="
+[ ! -e "$JETPACK_DIR" ] || die "vim-jetpack tree survived startup ($JETPACK_DIR)"
+echo "== plugin tree present, jetpack tree gone =="
 
 # ---------------------------------------------------------------------------
 # Assert 1 (headless): a full init.lua startup produces no error messages and
