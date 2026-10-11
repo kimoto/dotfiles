@@ -25,6 +25,7 @@ Same keys on both.
 | ⌃+K | Delete to end of line |
 | ⌘+A/C/F/N/P/R/S/T/V/W/X/Z | Select all, copy, find, new, print, reload, save, new tab, paste, close, cut, undo |
 | ⌘+⇧+Z / T | Redo / reopen closed tab |
+| ⌘+1~9 | Select tab 1~9 |
 
 On Windows these work outside text fields too; close tabs with ⌘+W.
 
