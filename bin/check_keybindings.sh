@@ -47,6 +47,13 @@ canon() {
       arrow_right | '→') base="right" ;;
       arrow_up | '↑') base="up" ;;
       arrow_down | '↓') base="down" ;;
+      # Ghostty's physical key names, shown in the doc by their US symbol.
+      bracket_left) base="[" ;;
+      bracket_right) base="]" ;;
+      quote) base="'" ;;
+      backslash) base="\\" ;;
+      semicolon) base=";" ;;
+      minus) base="-" ;;
       *) base=$(printf '%s' "$part" | tr '[:upper:]' '[:lower:]') ;;
     esac
   done

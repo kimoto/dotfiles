@@ -248,4 +248,66 @@ wait_mode clock-mode
 keys q   # leave clock-mode so the pane is usable again
 echo "== prefix+? opens the which-key menu (Time -> clock-mode) =="
 
+# 11) tmux 3.8+: ⌃⌥ + a Rectangle key places the active float. A letter
+#     arrives as the legacy ESC + control byte; punctuation as the CSI u
+#     bytes config/ghostty/config sends, so both decoders are on the path.
+#     Geometry is read back from the server, not the screen.
+if [ "$(tmux -L "$INNER" show -gv @tmux_3_8 2>/dev/null)" = 1 ]; then
+  keys M-t
+  wait_count 6
+  tmux -L "$INNER" new-pane -x 40 -y 10 -X 60 -Y 20
+  float_geo() {
+    tmux -L "$INNER" list-panes -F '#{pane_floating_flag} #{pane_left} #{pane_top} #{pane_width} #{pane_height}' |
+      awk '$1 == 1 { print $2, $3, $4, $5; exit }'
+  }
+  # Poll until the float's geometry differs from $1, then leave it in $geo.
+  # Not printed: a die inside $(...) would only end the subshell.
+  wait_geo_change() {
+    local before="$1" i=0
+    while [ "$i" -lt 50 ]; do
+      geo="$(float_geo)"
+      [ -n "$geo" ] && [ "$geo" != "$before" ] && return 0
+      i=$((i + 1)); sleep 0.1
+    done
+    die "⌃⌥+${2:-key} left the float at ${geo:-none}"
+  }
+  # Raw bytes as a terminal sends them, not a tmux key name.
+  raw() { tmux -L "$OUTER" send-keys -l "$1"; }
+  win_w="$(tmux -L "$INNER" display-message -p '#{window_width}')"
+  g0="$(float_geo)"
+  [ -n "$g0" ] || die "no floating pane to move"
+
+  raw $'\e\x01'                       # ⌃⌥+A
+  wait_geo_change "$g0" A
+  read -r l _ w _ <<<"$geo"
+  [ "$l" -le 1 ] && [ "$w" -ge $((win_w / 2 - 3)) ] && [ "$w" -le $((win_w / 2)) ] ||
+    die "⌃⌥+A should take the left half of $win_w, got left=$l width=$w"
+
+  # Again cycles ½ → ⅔ → ⅓, as Rectangle does.
+  raw $'\e\x01'
+  wait_geo_change "$geo" "A again"
+  read -r _ _ w23 _ <<<"$geo"
+  [ "$w23" -ge $((win_w * 2 / 3 - 3)) ] && [ "$w23" -le $((win_w * 2 / 3 + 1)) ] ||
+    die "⌃⌥+A again should take ⅔ of $win_w, got width=$w23"
+  raw $'\e\x01'
+  wait_geo_change "$geo" "A a third time"
+  read -r _ _ w13 _ <<<"$geo"
+  [ "$w13" -ge $((win_w / 3 - 3)) ] && [ "$w13" -le $((win_w / 3 + 1)) ] ||
+    die "⌃⌥+A a third time should take ⅓ of $win_w, got width=$w13"
+
+  g1="$geo"
+  raw $'\e[92;7u'                     # ⌃⌥+\, as Ghostty sends it
+  wait_geo_change "$g1" "\\"
+  read -r l _ w _ <<<"$geo"
+  [ "$l" -ge $((win_w / 2)) ] && [ "$w" -le $((win_w / 2)) ] ||
+    die "⌃⌥+\\ should take the bottom-right quarter, got left=$l width=$w"
+
+  g2="$geo"
+  raw $'\e[59;7u'                     # ⌃⌥+;
+  wait_geo_change "$g2" ';'
+  read -r _ _ w2 _ <<<"$geo"
+  [ "$w2" -gt "$w" ] || die "⌃⌥+; did not grow the float ($w -> $w2)"
+  echo "== ⌃⌥+A / \\ / ; place and grow the float like Rectangle (left=$l width $w -> $w2) =="
+fi
+
 echo "PASS"
