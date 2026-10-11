@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "One monthly PR per group instead of one per release, and no automerge: a person reads each bump.",
+    "One PR a month carrying every update, majors included, and no automerge: a person reads each bump.",
     "A release ages 7 days before it is proposed, so a freshly published (possibly compromised) version is not pulled in at once."
   ],
   "extends": [
@@ -25,22 +25,14 @@
   ],
   "packageRules": [
     {
-      "matchManagers": [
-        "mise",
-        "custom.regex"
+      "description": "Commit types must pass bin/check_commit_msgs_range.sh.",
+      "matchPackageNames": [
+        "*"
       ],
-      "groupName": "check tools",
+      "groupName": "all dependencies",
+      "groupSlug": "all",
       "semanticCommitType": "chore",
-      "semanticCommitScope": "check-tools",
-      "description": "Commit types must pass bin/check_commit_msgs_range.sh."
-    },
-    {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "github actions",
-      "semanticCommitType": "ci",
-      "semanticCommitScope": "actions"
+      "semanticCommitScope": "deps"
     },
     {
       "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
@@ -49,5 +41,6 @@
       ],
       "extractVersion": "^@biomejs/biome@(?<version>.+)$"
     }
-  ]
+  ],
+  "separateMajorMinor": false
 }
