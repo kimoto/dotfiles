@@ -1,8 +1,9 @@
 #!/bin/bash
-# End-to-end test for the hook that keeps a hunk pane on Claude's repo: runs
+# End-to-end test for the hook that keeps hunk panes on Claude's repo: runs
 # the real handler (bin/claude_tmux_hunk.sh) against a real tmux server loaded
 # with the repo .tmux.conf, with a stub `hunk` that only sleeps — the test is
-# about which directory the pane is restarted in, not about hunk.
+# about which directory a pane is restarted in, and with which command, not
+# about hunk.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -16,6 +17,7 @@ echo "== $(tmux -V) =="
 
 CONF="$(tmux_conf_path)"
 HUNK_CMD="hunk diff --watch"
+BRANCH_CMD="hunk_branch_diff.sh"
 
 TMP="$(mktemp -d)"
 SOCK="ci_claude_hunk_$$"
@@ -38,11 +40,14 @@ PATH="$TMP/stub:$PATH" tmux -L "$SOCK" -f "$CONF" new-session -d -s HUNK -c "$A"
 disable_continuum_restore "$SOCK"
 tmux -L "$SOCK" list-keys -T prefix v | grep -qF "$HUNK_CMD" \
   || die "prefix + v no longer runs '$HUNK_CMD'; update HUNK_CMD in claude_tmux_hunk.sh"
-echo "== prefix + v still runs '$HUNK_CMD' =="
+tmux -L "$SOCK" list-keys -T prefix V | grep -qF "$BRANCH_CMD" \
+  || die "prefix + V no longer runs $BRANCH_CMD; update the match in claude_tmux_hunk.sh"
+echo "== prefix + v / V still run what the handler looks for =="
 
 SOCK_PATH="$(tmux -L "$SOCK" display-message -p '#{socket_path}')"
 CLAUDE="$(tmux -L "$SOCK" display-message -p '#{pane_id}')"
 HUNK="$(tmux -L "$SOCK" split-window -h -P -F '#{pane_id}' -c "$A" "$HUNK_CMD")"
+BRANCH="$(tmux -L "$SOCK" split-window -v -P -F '#{pane_id}' -c "$A" "$DIR/$BRANCH_CMD")"
 OTHER="$(tmux -L "$SOCK" new-window -d -P -F '#{pane_id}' -c "$A" "$HUNK_CMD")"
 
 # Run the handler the way Claude Code does: hook JSON on stdin, tmux only
@@ -60,13 +65,18 @@ wait_path() { # <pane> <expected> <label>
 }
 
 wait_path "$HUNK" "$A" "setup"
+wait_path "$BRANCH" "$A" "setup (V)"
+start_of() { tmux -L "$SOCK" display-message -p -t "$1" '#{pane_start_command}'; }
 
 # 1) EnterWorktree: PostToolUse carries the new directory in `cwd`.
 hook "{\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"EnterWorktree\",\"cwd\":\"$B\"}"
 wait_path "$HUNK" "$B" "EnterWorktree"
-tmux -L "$SOCK" display-message -p -t "$HUNK" '#{pane_start_command}' | grep -qF "$HUNK_CMD" \
-  || die "EnterWorktree: the respawned pane no longer runs '$HUNK_CMD'"
-echo "== EnterWorktree moves the hunk pane to the new repo =="
+start_of "$HUNK" | grep -qF "$HUNK_CMD" \
+  || die "EnterWorktree: the respawned v pane no longer runs '$HUNK_CMD'"
+wait_path "$BRANCH" "$B" "EnterWorktree (V)"
+start_of "$BRANCH" | grep -qF "$BRANCH_CMD" \
+  || die "EnterWorktree: the respawned V pane runs '$(start_of "$BRANCH")', not $BRANCH_CMD"
+echo "== EnterWorktree moves both hunk panes, each keeping its own command =="
 
 # 2) A hunk pane in another window is not Claude's and stays put.
 [ "$(path_of "$OTHER")" = "$A" ] || die "other window: hunk pane moved to '$(path_of "$OTHER")'"
