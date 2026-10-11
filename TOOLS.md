@@ -39,6 +39,7 @@ _Source: `Brewfile.common`._
 
 | Tool | Description |
 | --- | --- |
+| [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
 | [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
 | [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
