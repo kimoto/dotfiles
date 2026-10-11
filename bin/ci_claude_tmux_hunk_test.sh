@@ -27,6 +27,9 @@ trap cleanup EXIT
 mkdir -p "$TMP/stub" "$TMP/plain"
 printf '#!/bin/sh\nexec sleep 300\n' >"$TMP/stub/hunk"
 chmod +x "$TMP/stub/hunk"
+# Exported, not set on the server: a new pane takes PATH from the client that
+# asked for it, and the respawns come from the handler, as they do for Claude.
+export PATH="$TMP/stub:$PATH"
 for r in A B; do
   git init -q "$TMP/$r"
   mkdir -p "$TMP/$r/sub"
@@ -35,7 +38,7 @@ A="$(cd -P "$TMP/A" && pwd)"
 B="$(cd -P "$TMP/B" && pwd)"
 
 # 0) prefix + v / V must still start exactly what the handler looks for.
-PATH="$TMP/stub:$PATH" tmux -L "$SOCK" -f "$CONF" new-session -d -s HUNK -c "$A" -x 200 -y 50 \
+tmux -L "$SOCK" -f "$CONF" new-session -d -s HUNK -c "$A" -x 200 -y 50 \
   || die "failed to start tmux"
 disable_continuum_restore "$SOCK"
 binding() { tmux -L "$SOCK" list-keys -T prefix | grep -E "^bind-key +-T prefix +$1 " || true; }
@@ -48,6 +51,9 @@ case "$(binding V)" in
   *) die "prefix + V is now '$(binding V)', not $BRANCH_CMD; update the match in claude_tmux_hunk.sh" ;;
 esac
 echo "== prefix + v / V still run what the handler looks for =="
+
+# A pane that dies stays, so a failure can say why.
+tmux -L "$SOCK" set-option -g remain-on-exit on
 
 SOCK_PATH="$(tmux -L "$SOCK" display-message -p '#{socket_path}')"
 CLAUDE="$(tmux -L "$SOCK" display-message -p '#{pane_id}')"
@@ -66,11 +72,21 @@ wait_path() { # <pane> <expected> <label>
     [ "$(path_of "$1")" = "$2" ] && return 0
     i=$((i + 1)); sleep 0.1
   done
-  die "$3: expected $1 in '$2', got '$(path_of "$1")'"
+  die "$3: expected $1 in '$2', got '$(path_of "$1")'" \
+    "($(tmux -L "$SOCK" display-message -p -t "$1" 'dead=#{pane_dead} status=#{pane_dead_status}'))"
 }
 
 wait_path "$HUNK" "$A" "setup"
 wait_path "$BRANCH" "$A" "setup (V)"
+for p in "$HUNK" "$BRANCH"; do
+  i=0
+  until [ "$(tmux -L "$SOCK" display-message -p -t "$p" '#{pane_current_command}')" = sleep ]; do
+    i=$((i + 1))
+    [ "$i" -lt 50 ] || die "setup: $p runs" \
+      "'$(tmux -L "$SOCK" display-message -p -t "$p" '#{pane_current_command}')', not the stub hunk"
+    sleep 0.1
+  done
+done
 start_of() { tmux -L "$SOCK" display-message -p -t "$1" '#{pane_start_command}'; }
 
 # 1) EnterWorktree: PostToolUse carries the new directory in `cwd`.
