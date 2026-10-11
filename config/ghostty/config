@@ -24,7 +24,6 @@ keybind = super+alt+arrow_left=text:\x1b[1;3D
 keybind = super+alt+arrow_right=text:\x1b[1;3C
 keybind = super+alt+arrow_up=text:\x1b[1;3A
 keybind = super+alt+arrow_down=text:\x1b[1;3B
-keybind = super+shift+o=toggle_background_opacity
 
 # Alt+数字はAeroSpaceのワークスペース切り替えに使うため素通しさせる
 keybind = alt+digit_0=unbind
@@ -39,5 +38,4 @@ shell-integration-features = no-cursor,ssh-env,ssh-terminfo
 clipboard-write = allow
 cursor-opacity = 0.5
 cursor-style-blink = true
-background-opacity = 0.6
 custom-shader = ./shaders/cursor_sweep.glsl
