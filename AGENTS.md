@@ -116,7 +116,7 @@ truth, so the two never diverge.
   live on every platform: CI and cloud sessions through
   `install_check_tools.sh`, a workstation through `mise install` (run by
   `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
-  PR. Tools also used outside this repo (gitleaks, yq, lefthook) stay in
+  PR. Tools also used outside this repo (gitleaks, yq, lefthook, shellcheck) stay in
   `Brewfile.common` too: a mise shim falls through to the brew binary in a
   directory without this config.
 - `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
