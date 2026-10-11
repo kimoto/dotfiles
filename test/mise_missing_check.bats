@@ -15,7 +15,15 @@ setup() {
   PATH="$STUB_DIR:$PATH"
 }
 
+# Each run leaves a detached job that writes a temp file and renames it into
+# the cache after the test has returned; removing $TMP under it fails with
+# "Directory not empty". The temp file exists from before mise runs until the
+# rename, so its absence means the job has nothing left to write.
 teardown() {
+  for _ in $(seq 1 50); do
+    compgen -G "$CACHE/mise_missing.tmp.*" >/dev/null || break
+    sleep 0.1
+  done
   rm -rf "$TMP"
 }
 
