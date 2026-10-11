@@ -4,8 +4,8 @@
 # Each tool names its backend explicitly so Renovate can map it to a
 # datasource without relying on mise's registry aliases.
 [tools]
-"aqua:biomejs/biome" = "2.5.10"
-"aqua:editorconfig-checker/editorconfig-checker" = "3.11.2"
+"aqua:biomejs/biome" = "2.5.15"
+"aqua:editorconfig-checker/editorconfig-checker" = "3.11.3"
 "aqua:evilmartians/lefthook" = "2.2.1"
 "aqua:gitleaks/gitleaks" = "8.30.1"
 "aqua:mikefarah/yq" = "4.54.1"
@@ -14,6 +14,6 @@
 "aqua:zizmorcore/zizmor" = "1.30.1"
 # Runs the pipx: tools below (mise's pipx backend uses uvx when uv is present),
 # so they do not depend on whether the host ships pipx.
-"aqua:astral-sh/uv" = "0.12.22"
-"pipx:check-jsonschema" = "0.38.0"
+"aqua:astral-sh/uv" = "0.12.23"
+"pipx:check-jsonschema" = "0.38.2"
 "pipx:yamllint" = "1.38.0"
