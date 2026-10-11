@@ -112,7 +112,7 @@ grep -q "SPLITRIGHT=on"    "$msgs" || die "expected splitright on"
 grep -q "SPLITBELOW=on"    "$msgs" || die "expected splitbelow on"
 grep -q "BREAKINDENT=on"   "$msgs" || die "expected breakindent on"
 grep -q "CONFIRM=on"       "$msgs" || die "expected confirm on"
-grep -q "COMPLETEOPT=menu,menuone,noselect" "$msgs" || die "expected completeopt for nvim-cmp"
+grep -q "COMPLETEOPT=menu,menuone,noselect" "$msgs" || die "expected completeopt for the completion menu"
 # keymaps.lua is now in scope for this guard too.
 grep -q "ESC_MAP=mapped"   "$msgs" || die "expected <Esc> to clear the search highlight"
 

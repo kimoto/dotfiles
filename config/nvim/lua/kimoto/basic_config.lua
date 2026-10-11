@@ -38,5 +38,5 @@ opt.splitright = true -- 縦分割は右へ
 opt.splitbelow = true -- 横分割は下へ
 opt.confirm = true -- 未保存のまま閉じようとしたら E37 で弾かずに聞く
 
--- 候補が 1 つでもメニューを出し、noselect なので勝手に選ばない。popup は選んだ候補の説明を横に出す
-opt.completeopt = 'menu,menuone,noselect,popup'
+-- 候補が 1 つでもメニューを出し、noselect なので勝手に選ばない
+opt.completeopt = 'menu,menuone,noselect'

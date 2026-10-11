@@ -65,6 +65,10 @@ function M.paths(findstart, base)
 end
 
 vim.o.autocomplete = true
+-- popup shows the selected item's documentation beside the menu. Added here,
+-- not in basic_config.lua: that file must also load on the older nvim the
+-- guard test runs, which rejects the flag.
+vim.opt.completeopt:append('popup')
 vim.o.complete = table.concat({
   'o',
   "Fv:lua.require'kimoto.completion'.snippets",
