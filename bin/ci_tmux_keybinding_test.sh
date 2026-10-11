@@ -283,6 +283,18 @@ if [ "$(tmux -L "$INNER" show -gv @tmux_3_8 2>/dev/null)" = 1 ]; then
   [ "$l" -le 1 ] && [ "$w" -ge $((win_w / 2 - 3)) ] && [ "$w" -le $((win_w / 2)) ] ||
     die "⌃⌥+A should take the left half of $win_w, got left=$l width=$w"
 
+  # Again cycles ½ → ⅔ → ⅓, as Rectangle does.
+  raw $'\e\x01'
+  wait_geo_change "$geo" "A again"
+  read -r _ _ w23 _ <<<"$geo"
+  [ "$w23" -ge $((win_w * 2 / 3 - 3)) ] && [ "$w23" -le $((win_w * 2 / 3 + 1)) ] ||
+    die "⌃⌥+A again should take ⅔ of $win_w, got width=$w23"
+  raw $'\e\x01'
+  wait_geo_change "$geo" "A a third time"
+  read -r _ _ w13 _ <<<"$geo"
+  [ "$w13" -ge $((win_w / 3 - 3)) ] && [ "$w13" -le $((win_w / 3 + 1)) ] ||
+    die "⌃⌥+A a third time should take ⅓ of $win_w, got width=$w13"
+
   g1="$geo"
   raw $'\e[92;7u'                     # ⌃⌥+\, as Ghostty sends it
   wait_geo_change "$g1" "\\"

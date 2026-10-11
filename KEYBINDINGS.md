@@ -249,8 +249,8 @@ Rectangle's keys with ⌃⌥ in place of ⌃⌘, for the active floating pane. O
 
 | Key | Action |
 |-----|--------|
-| ⌃⌥+A / D | Left / right half |
-| ⌃⌥+K / J | Top / bottom half |
+| ⌃⌥+A / D | Left / right half; again for ⅔, then ⅓ |
+| ⌃⌥+K / J | Top / bottom half; again for ⅔, then ⅓ |
 | ⌃⌥+[ / ] | Top-left / top-right quarter |
 | ⌃⌥+' / \ | Bottom-left / bottom-right quarter |
 | ⌃⌥+F | Maximize |
