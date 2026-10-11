@@ -23,7 +23,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -73,7 +73,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Test Codex config merge
@@ -89,7 +89,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Install check tools (arm64 release assets)
@@ -111,7 +111,7 @@ jobs:
   zsh_loading_test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -122,7 +122,7 @@ jobs:
         # test whatever Homebrew served on the day the cache was last built,
         # not today's.
         if: github.event_name != 'schedule'
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             /opt/homebrew
@@ -137,7 +137,7 @@ jobs:
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
         if: github.event_name != 'schedule'
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           # tpm clones every @tpm_plugins entry into here; cache them so later
           # runs skip the clones. Keyed on .tmux.conf since that is where the
@@ -161,7 +161,7 @@ jobs:
         # Also skipped on schedule: the restore above never ran, so this would
         # otherwise overwrite the push-triggered cache with the cold run's own.
         if: github.event_name != 'schedule' && steps.cache-brew.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             /opt/homebrew
@@ -170,7 +170,7 @@ jobs:
 
       - name: Save tmux plugins cache
         if: github.event_name != 'schedule' && steps.cache-tmux-plugins.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.tmux/plugins
           key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
@@ -255,7 +255,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -272,7 +272,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -292,7 +292,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -317,7 +317,7 @@ jobs:
 
       - name: Restore nvim plugins cache
         id: cache-nvim-plugins
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           # ci_nvim_loading_test.sh points XDG_DATA_HOME here (via
           # NVIM_E2E_DATA_DIR), so this holds the jetpack clones of every
@@ -335,7 +335,7 @@ jobs:
         # half-installed tree never poisons the cache; skip on hit because
         # saving over the same key fails with "Cache already exists".
         if: steps.cache-nvim-plugins.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.nvim-e2e-data
           key: ${{ steps.cache-nvim-plugins.outputs.cache-primary-key }}
