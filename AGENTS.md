@@ -141,12 +141,15 @@ truth, so the two never diverge.
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
   local half only exists where `lefthook install` ran; a checkout without it
   commits unchecked, CI green the whole way.
-- `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
+- `.claude/settings.json` wires these hooks: `SessionStart` (`session-start.sh`,
   which checks this is the web sandbox and hands the rest to
-  `bin/setup_cloud_session.sh`), `SessionEnd` (`auto-main-sync.sh` — after a PR
-  merges, switches back to `main`, pulls, and deletes the merged branch; a
-  dirty tree, a still-open PR, or a linked worktree just prints a reminder
-  instead — a worktree is told to remove itself, never switched to `main`), and
+  `bin/setup_cloud_session.sh`; and `merged-branch-notice.sh` — when the
+  checked-out branch's PR has merged, tells the starting session how to return
+  to `main`, or in a worktree how to remove it. ⚠️ It only tells, never
+  switches: several sessions can share one checkout and a hook cannot tell whose
+  branch is checked out, so the session does the switch itself, in front of the
+  person. Which is also why a session works in its own worktree, not in the main
+  checkout), and
   `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
   reminds to update the PR description to match what was just pushed; a command
   that only quotes a push stays silent). It also allow-lists the repo's own read-only check
@@ -210,6 +213,9 @@ truth, so the two never diverge.
 
 - Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.
   lefthook and GitHub branch protection both block it.
+- Work in your own worktree (`claude --worktree`, or the EnterWorktree tool), not
+  in the main checkout. Other sessions share that checkout, and a branch switched
+  there moves under all of them.
 - One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
   with `gh pr edit --body-file`. How to write one is in the shared rules.
 - An auto-created PR (web/remote) starts with an empty body — the template is

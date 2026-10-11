@@ -1,20 +1,19 @@
 #!/usr/bin/env bats
 
-# Behavioural tests for .claude/hooks/auto-main-sync.sh, the SessionEnd hook that
-# returns a clean feature branch to main once its PR has merged.
+# Behavioural tests for .claude/hooks/merged-branch-notice.sh, the SessionStart
+# hook that tells the agent a merged branch is still checked out.
 #
-# The hook inspects $CLAUDE_PROJECT_DIR, talks to `gh`, and mutates the checkout
-# (switch/pull/branch -d). Each test runs the real hook against a throwaway git
-# repo wired to a local bare "remote" (no network) and a stub `gh` on PATH whose
-# answer is driven by $FAKE_PR_OUTPUT. Hook output goes to stdout, folded into
-# $output by bats.
+# The hook must never change the checkout: other sessions may be working in it.
+# Each test runs the real hook against a throwaway git repo wired to a local
+# bare "remote" (no network) and a stub `gh` on PATH whose answer is driven by
+# $FAKE_PR_OUTPUT. Hook output goes to stdout, folded into $output by bats.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
-  HOOK="$REPO_ROOT/.claude/hooks/auto-main-sync.sh"
+  HOOK="$REPO_ROOT/.claude/hooks/merged-branch-notice.sh"
   TMP="$(mktemp -d)"
 
   # Stub gh: prints $FAKE_PR_OUTPUT, or fails (no PR) when it is empty.
@@ -57,30 +56,28 @@ on_merged_feature_branch() {
   git -C "$REPO" push -q origin feature:main   # advance remote main -> merged
 }
 
-@test "merged PR on a clean tree: switches to main, pulls, deletes the branch" {
-  on_merged_feature_branch
-  FAKE_PR_OUTPUT="#1 MERGED" run "$HOOK"
-  [ "$status" -eq 0 ]
-  [ "$(git -C "$REPO" branch --show-current)" = "main" ]
-  git -C "$REPO" merge-base --is-ancestor HEAD origin/main   # main pulled up to the merge
-  run git -C "$REPO" rev-parse --verify feature              # branch deleted
-  [ "$status" -ne 0 ]
+# Everything a session sharing the checkout would notice moving under it.
+snapshot() {
+  git -C "$REPO" rev-parse HEAD
+  git -C "$REPO" branch --show-current
+  git -C "$REPO" for-each-ref --format='%(refname) %(objectname)' refs/heads
 }
 
-@test "merged PR but dirty tree: only reminds, never touches the checkout" {
+@test "merged PR in the main checkout: tells the agent, never touches the checkout" {
   on_merged_feature_branch
-  echo dirty >>"$REPO/file.txt"
+  before=$(snapshot)
   FAKE_PR_OUTPUT="#1 MERGED" run "$HOOK"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"dirty"* ]]
-  [ "$(git -C "$REPO" branch --show-current)" = "feature" ]
+  [[ "$output" == *"git switch main"* ]]
+  [[ "$output" == *"git branch -d feature"* ]]
+  [ "$(snapshot)" = "$before" ]
 }
 
-@test "open PR: reminds and stays on the branch" {
+@test "open PR: silent and stays on the branch" {
   on_merged_feature_branch
   FAKE_PR_OUTPUT="#1 OPEN" run "$HOOK"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"open"* ]]
+  [ -z "$output" ]
   [ "$(git -C "$REPO" branch --show-current)" = "feature" ]
 }
 
@@ -98,17 +95,14 @@ on_merged_feature_branch() {
   [ "$(git -C "$REPO" branch --show-current)" = "feature" ]
 }
 
-@test "merged PR in a linked worktree: reminds, never switches or deletes" {
+@test "merged PR in a linked worktree: points at worktree removal, changes nothing" {
   on_merged_feature_branch
-  # Sessions often run in a linked worktree; switching it to main would pin main
-  # there and block the primary checkout from ever checking main out.
   WT="$TMP/wt"
   git -C "$REPO" switch -q -c other
   git -C "$REPO" worktree add -q "$WT" feature
   CLAUDE_PROJECT_DIR="$WT" FAKE_PR_OUTPUT="#1 MERGED" run "$HOOK"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"worktree"* ]]
+  [[ "$output" == *"git worktree remove"* ]]
   [ "$(git -C "$WT" branch --show-current)" = "feature" ]
   git -C "$REPO" rev-parse --verify feature   # branch survives
-  git -C "$REPO" switch -q main               # main still free for the primary checkout
 }
