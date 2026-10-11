@@ -33,6 +33,7 @@ config/*
 !config/gh/
 !config/ghostty/
 !config/glow/
+!config/hunk/
 !config/k9s/
 !config/lazygit/
 !config/mise/
@@ -43,6 +44,7 @@ config/*
 !config/starship_sub.toml
 # Inner ignores within allowed directories (preserve previous behavior)
 config/gh/hosts.yml
+config/hunk/state.json
 
 # claudecode/rules/: whitelist model, same reason as config/ above. Everything
 # under ~/.claude/rules/ loads into every Claude Code session, and other repos

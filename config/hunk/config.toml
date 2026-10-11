@@ -1,0 +1,12 @@
+# Always follow the working tree: hunk is kept open beside an agent
+# (tmux prefix + v) to watch its edits land, and a stale view defeats that.
+watch = true
+
+# Spelled out so the diff keeps Ghostty's Solarized palette, matching delta.
+theme = "terminal"
+
+# Let Ghostty's background opacity show through, like every other pane.
+transparent_background = true
+
+# The prefix + v pane is narrow; truncated lines would hide the end of a change.
+wrap_lines = true
