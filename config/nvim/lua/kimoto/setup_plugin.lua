@@ -1,6 +1,6 @@
--- Plugins are managed by Neovim's built-in vim.pack. A missing plugin is
--- cloned on startup, at the revision pinned in nvim-pack-lock.json (committed
--- next to init.lua). Update with `:lua vim.pack.update()`, review, `:write`,
+-- Plugins are managed by Neovim's built-in vim.pack. On startup every plugin
+-- is cloned or moved to the revision pinned in nvim-pack-lock.json (committed
+-- next to init.lua), so a pulled lockfile needs nothing run by hand. Update with `:lua vim.pack.update()`, review, `:write`,
 -- then commit the lockfile.
 local gh = function(repo) return 'https://github.com/' .. repo end
 
@@ -9,6 +9,28 @@ local gh = function(repo) return 'https://github.com/' .. repo end
 local jetpack_dir = vim.fn.stdpath('data') .. '/site/pack/jetpack'
 if vim.uv.fs_stat(jetpack_dir) then
   vim.fs.rm(jetpack_dir, { recursive = true, force = true })
+end
+
+-- vim.pack.add never revisits a plugin already on disk, so a lockfile pulled
+-- from another machine would otherwise be ignored until someone updated by
+-- hand. Move every plugin whose checkout differs from its locked revision
+-- before anything loads. Reads .git/HEAD directly: no git process per plugin.
+local function checked_out(path)
+  local f = io.open(path .. '/.git/HEAD')
+  if not f then return nil end
+  local head = f:read('*l')
+  f:close()
+  return head
+end
+local drifted = vim.iter(vim.pack.get(nil, { info = false }))
+  :filter(function(p)
+    local head = checked_out(p.path)
+    return head ~= nil and head:match('^%x+$') ~= nil and head ~= p.rev
+  end)
+  :map(function(p) return p.spec.name end)
+  :totable()
+if #drifted > 0 then
+  vim.pack.update(drifted, { target = 'lockfile', force = true })
 end
 
 vim.pack.add({
