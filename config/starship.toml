@@ -80,7 +80,8 @@ style = "hidden"
 disabled = false
 pipestatus = true
 symbol = ""
-format = "[$symbol$status( $signal_name)]($style) "
+# A single failed command is already said by the red `$`; only a signal adds something.
+format = "[($signal_name )]($style)"
 pipestatus_format = '[\[$pipestatus\]]($style) '
 pipestatus_segment_format = "$status"
 style = "red"
