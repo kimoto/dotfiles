@@ -79,9 +79,8 @@ style = "hidden"
 [status]
 disabled = false
 pipestatus = true
-symbol = ""
-# A single failed command is already said by the red `$`; only a signal adds something.
-format = "[($signal_name )]($style)"
+# Empty: a single failed command is already said by the red `$`. Only a pipeline adds something.
+format = ""
 pipestatus_format = '[\[$pipestatus\]]($style) '
 pipestatus_segment_format = "$status"
 style = "red"
