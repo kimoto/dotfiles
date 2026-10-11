@@ -149,7 +149,9 @@ truth, so the two never diverge.
   switches: several sessions can share one checkout and a hook cannot tell whose
   branch is checked out, so the session does the switch itself, in front of the
   person. Which is also why a session works in its own worktree, not in the main
-  checkout), and
+  checkout),
+  `PreToolUse` on Bash (`worktree-guard.sh` — refuses `git worktree add` and
+  `worktree_new.sh` and points at EnterWorktree, see the branch workflow below), and
   `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
   reminds to update the PR description to match what was just pushed; a command
   that only quotes a push stays silent). It also allow-lists the repo's own read-only check
@@ -215,7 +217,10 @@ truth, so the two never diverge.
   lefthook and GitHub branch protection both block it.
 - Work in your own worktree (`claude --worktree`, or the EnterWorktree tool), not
   in the main checkout. Other sessions share that checkout, and a branch switched
-  there moves under all of them.
+  there moves under all of them. ⚠️ Not one made in Bash and reached by `cd`:
+  Bash resets its directory after every command, so the session never leaves
+  the main checkout and the hunk pane beside it (`prefix + v` / `V`) stays empty.
+  A hook refuses it.
 - One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
   with `gh pr edit --body-file`. How to write one is in the shared rules.
 - An auto-created PR (web/remote) starts with an empty body — the template is
