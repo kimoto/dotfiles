@@ -34,14 +34,19 @@ done
 A="$(cd -P "$TMP/A" && pwd)"
 B="$(cd -P "$TMP/B" && pwd)"
 
-# 0) prefix + v must still start exactly what the handler looks for.
+# 0) prefix + v / V must still start exactly what the handler looks for.
 PATH="$TMP/stub:$PATH" tmux -L "$SOCK" -f "$CONF" new-session -d -s HUNK -c "$A" -x 200 -y 50 \
   || die "failed to start tmux"
 disable_continuum_restore "$SOCK"
-tmux -L "$SOCK" list-keys -T prefix v | grep -qF "$HUNK_CMD" \
-  || die "prefix + v no longer runs '$HUNK_CMD'; update HUNK_CMD in claude_tmux_hunk.sh"
-tmux -L "$SOCK" list-keys -T prefix V | grep -qF "$BRANCH_CMD" \
-  || die "prefix + V no longer runs $BRANCH_CMD; update the match in claude_tmux_hunk.sh"
+binding() { tmux -L "$SOCK" list-keys -T prefix | grep -E "^bind-key +-T prefix +$1 " || true; }
+case "$(binding v)" in
+  *"$HUNK_CMD"*) ;;
+  *) die "prefix + v is now '$(binding v)', not '$HUNK_CMD'; update the match in claude_tmux_hunk.sh" ;;
+esac
+case "$(binding V)" in
+  *"$BRANCH_CMD"*) ;;
+  *) die "prefix + V is now '$(binding V)', not $BRANCH_CMD; update the match in claude_tmux_hunk.sh" ;;
+esac
 echo "== prefix + v / V still run what the handler looks for =="
 
 SOCK_PATH="$(tmux -L "$SOCK" display-message -p '#{socket_path}')"
