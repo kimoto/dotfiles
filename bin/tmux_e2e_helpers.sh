@@ -59,12 +59,14 @@ zsh_pane_cmd() {
   printf '%s' "$cmd '$ZSH_BIN' -i"
 }
 
-# tmux_conf_path: echo the .tmux.conf under test — TMUX_CONF override, else
-# $HOME/.tmux.conf, else the repo copy in $PWD.
+# tmux_conf_path: echo the .tmux.conf under test — TMUX_CONF override, else the
+# copy in the checkout these scripts came from. Not $HOME/.tmux.conf: from a
+# worktree that links to the main checkout, and a run would test main instead
+# of the branch. In CI the two are the same file.
+_TMUX_E2E_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmux_conf_path() {
-  local conf="${TMUX_CONF:-$HOME/.tmux.conf}"
-  [ -f "$conf" ] || conf="$PWD/.tmux.conf"
-  [ -f "$conf" ] || die "no .tmux.conf found"
+  local conf="${TMUX_CONF:-$_TMUX_E2E_REPO/.tmux.conf}"
+  [ -f "$conf" ] || die "no .tmux.conf at $conf"
   printf '%s\n' "$conf"
 }
 

@@ -96,3 +96,24 @@ setup() {
     fi
   done
 }
+
+@test "tmux_conf_path picks the checkout's .tmux.conf over the one in \$HOME" {
+  # From a worktree, ~/.tmux.conf links to the main checkout, so testing it
+  # would test main and say nothing about the branch (#360).
+  local home
+  home="$(mktemp -d)"
+  : >"$home/.tmux.conf"
+  HOME="$home" run tmux_conf_path
+  rm -rf "$home"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$REPO_ROOT/.tmux.conf" ]
+}
+
+@test "tmux_conf_path still lets TMUX_CONF override it" {
+  local conf
+  conf="$(mktemp)"
+  TMUX_CONF="$conf" run tmux_conf_path
+  rm -f "$conf"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$conf" ]
+}
