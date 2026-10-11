@@ -77,6 +77,19 @@
 #x::Send("^x")
 #z::Send("^z")
 
+; ⌘+1..9 picks a tab, as on the mac, by sending the Ctrl+1..9 that Windows apps
+; bind for it. That frees the physical ⌃+1..9 for the app launcher, as Raycast
+; has it on the mac.
+#1::Send("^1")
+#2::Send("^2")
+#3::Send("^3")
+#4::Send("^4")
+#5::Send("^5")
+#6::Send("^6")
+#7::Send("^7")
+#8::Send("^8")
+#9::Send("^9")
+
 #+z::Send("^y")        ; ⇧⌘+Z  redo
 #+t::Send("^+t")       ; ⇧⌘+T  reopen the tab just closed
 
