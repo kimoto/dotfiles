@@ -108,9 +108,6 @@ To restore after a wipe, merge the `schemes` key of
 the profile's `"colorScheme": "iTerm2 Solarized Dark"`. It has to be a copy, not
 a symlink — see above.
 
-Still unmatched: Ghostty runs at `background-opacity = 0.6`; Windows Terminal's
-equivalent is `"opacity": 60` with `"useAcrylic": false` on the profile.
-
 ## Window management (the `rectangle` layer)
 
 `autohotkey/mac-keys.ahk` implements the customized Rectangle keys listed in

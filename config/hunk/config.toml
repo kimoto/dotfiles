@@ -5,7 +5,7 @@ watch = true
 # Spelled out so the diff keeps Ghostty's Solarized palette, matching delta.
 theme = "terminal"
 
-# Let Ghostty's background opacity show through, like every other pane.
+# Paint the terminal's own background, like every other pane.
 transparent_background = true
 
 # The prefix + v pane is narrow; truncated lines would hide the end of a change.
