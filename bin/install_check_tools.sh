@@ -61,8 +61,9 @@ mise install
 mise ls --local --json | jq -r 'keys[]' | while read -r tool; do
   mise bin-paths "$tool" | while read -r dir; do
     for exe in "$dir"/*; do
-      [ -f "$exe" ] && [ -x "$exe" ] || continue
-      as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
+      if [ -f "$exe" ] && [ -x "$exe" ]; then
+        as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
+      fi
     done
   done
 done
