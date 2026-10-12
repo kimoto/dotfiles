@@ -387,8 +387,12 @@ bindkey "^\\" undo
 # read files shipped in the repo (e.g. `keys` -> KEYBINDINGS.md).
 DOTFILES_ROOT="${${(%):-%x}:A:h}"
 
+# Nothing else creates ~/tmp, so a new machine would otherwise fail here.
 temp(){
-  builtin cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX)"
+  local dir
+  mkdir -p "$HOME/tmp" &&
+    dir="$(mktemp -d "$HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX")" &&
+    builtin cd "$dir"
 }
 
 # lazygit: chase into the directory it was left in (newdir file), if any.
