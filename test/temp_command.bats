@@ -14,12 +14,14 @@ teardown() {
 }
 
 run_temp() {
+  # HOME moves only after .zshrc is loaded: the startup writes into HOME in
+  # the background, and would still be writing when teardown removes it.
   run zsh -f -c "
-    export HOME='$FAKE_HOME'
     export ZDOTDIR='$REPO_ROOT'
     export DOTFILES_NO_SYNC_CHECK=1
     export DOTFILES_NO_BREW_CHECK=1
     source '$REPO_ROOT/.zshrc' >/dev/null 2>&1
+    HOME='$FAKE_HOME'
     temp $1 && print -r -- \$PWD
   "
 }
