@@ -27,6 +27,7 @@ jobs:
     # would block every update. A skipped job still satisfies a required check.
     if: github.event.pull_request.user.login != 'renovate[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # runs in seconds; only a hang reaches this
     steps:
       # requireChecklist: false — a checklist is optional; if one is present,
       # every box in it must be ticked. Mutually-exclusive choices (e.g. a
