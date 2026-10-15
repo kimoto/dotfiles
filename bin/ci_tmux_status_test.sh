@@ -74,13 +74,20 @@ done
 # KEYBINDINGS.md can agree with each other and both be wrong: lazygit moved to
 # G while the hint kept saying g, which tmux 3.8 binds to something else.
 # Only the live binding table can tell, so ask it rather than another copy.
-# `?` is which-key once its plugin loads, keys.sh where plugins are absent.
+# `?` is which-key once its plugin loads (a display-menu where it inlines its
+# root menu), keys.sh where plugins are absent. The key is picked out of the
+# whole table by field, so a failure can print what the table really holds.
+prefix_table="$(tmux -L "$SOCK" list-keys -T prefix)"
 while read -r key pattern; do
-  bound="$(tmux -L "$SOCK" list-keys -T prefix -- "$key" 2>/dev/null || true)"
+  bound="$(printf '%s\n' "$prefix_table" |
+    awk -v k="$key" '{
+      for (i = 1; i < NF; i++)
+        if ($i == "-T" && $(i + 1) == "prefix") { if ($(i + 2) == k) print; break }
+    }')"
   printf '%s\n' "$bound" | grep -Eq "$pattern" \
     || die "the prefix hint names '$key', but prefix + $key is not /$pattern/ (bound: ${bound:-nothing})"
 done <<'EOF'
-? show-wk-menu-root|keys\.sh
+? show-wk-menu|display-menu|keys\.sh
 G lazygit
 v hunk
 t new-pane|display-popup
