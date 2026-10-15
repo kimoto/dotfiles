@@ -63,10 +63,11 @@ if command -v lefthook >/dev/null 2>&1; then
     (cd "$BASE_DIR" && lefthook install && git config --local commit.template .gitmessage)
 fi
 
-# macOS: enable weekly background brew auto-upgrade (formulae; casks stay manual).
-# Non-fatal so a hiccup here never aborts the bootstrap.
+# macOS: daily background install/upgrade of homebrew/core formulae (casks and
+# third-party taps stay manual). Non-fatal so a hiccup here never aborts the
+# bootstrap.
 if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ]; then
-    "$BASE_DIR/bin/setup_brew_autoupdate.sh" || true
+    "$BASE_DIR/bin/setup_brew_auto_upgrade.sh" || true
 fi
 
 # macOS: apply system preferences (Finder, key repeat, startup mute — needs
