@@ -32,7 +32,12 @@ as_root() {
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
-  as_root apt-get install -y -qq zsh bats luajit jq >/dev/null
+  # The cloud image ships its own /etc/zsh/zshrc without the zsh package, so
+  # dpkg stops at a conffile prompt; with no terminal that aborts the install.
+  # Keep the file already there: it belongs to the image, not to us.
+  as_root apt-get install -y -qq \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+    zsh bats luajit jq >/dev/null
 fi
 
 # A pinned release binary rather than mise.run's installer script, which would
