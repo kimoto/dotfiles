@@ -1,0 +1,15 @@
+# Feature hints: when a command line inside tmux matches a pattern, the next
+# prompt prints a one-line reminder of the tmux key that does the same job
+# better. Each hint shows at most once a day (see _feature_hint in .zshrc),
+# because a reminder printed on every match stops being read within a week.
+#
+# Format, tab-separated: <zsh glob matched against the whole command line>
+# <tmux prefix key> <ERE the key's binding must match> <what that key opens>.
+# test/feature_hints.bats checks each key against tmux's own binding table with
+# that ERE: "is bound" alone is not enough, since tmux 3.8 binds g by default
+# and a hint that kept saying g after lazygit moved to G would still pass.
+git diff*	v	hunk diff --watch	hunk diff --watch beside this pane, live as files change
+git log*	V	hunk_branch_diff	hunk for the whole branch since it left main
+lazygit*	G	lazygit	lazygit in a floating pane, same cwd
+tmux a*	f	fzf	fzf switcher across every pane, most recent first
+tmux ls*	f	fzf	fzf switcher across every pane, most recent first

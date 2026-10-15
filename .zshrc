@@ -643,6 +643,43 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
+# Feature hints: a tmux key gets forgotten unless it is named at the moment it
+# would have helped, so a matching command (config/zsh/hints) leaves a one-line
+# reminder for the next prompt. Printed from precmd, not preexec: a pager
+# (git diff, git log) would take the screen and bury it. Once a day per key,
+# stamped under XDG_STATE_HOME; the key is stored as its character code
+# because macOS's filesystem would treat g and G as one file. The table is read
+# once at load, so a match costs no fork and no file read.
+typeset -ga _feature_hints
+if [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/zsh/hints ]]; then
+  _feature_hints=(${${(f)"$(<"${XDG_CONFIG_HOME:-$HOME/.config}/zsh/hints")"}:#\#*})
+fi
+_feature_hint_pending=
+_feature_hint_match() {
+  [[ -n "$TMUX" ]] || return 0
+  local row
+  for row in "${_feature_hints[@]}"; do
+    [[ "$1" == ${~${row%%$'\t'*}} ]] || continue
+    row="${row#*$'\t'}"
+    _feature_hint_pending="${row%%$'\t'*}"$'\t'"${row#*$'\t'*$'\t'}"
+    break
+  done
+  return 0
+}
+_feature_hint() {
+  [[ -n "$_feature_hint_pending" ]] || return 0
+  local key="${_feature_hint_pending%%$'\t'*}" what="${_feature_hint_pending#*$'\t'}"
+  _feature_hint_pending=
+  local dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/hints" today
+  local stamp="$dir/key-$(( #key ))"
+  today="${(%):-%D{%F}}"
+  [[ -r "$stamp" && "$(<"$stamp")" == "$today" ]] && return 0
+  mkdir -p "$dir" && print -r -- "$today" >| "$stamp"
+  print -r -- $'\e[2m'"hint: prefix + $key → $what"$'\e[0m'
+}
+add-zsh-hook preexec _feature_hint_match
+add-zsh-hook precmd _feature_hint
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
