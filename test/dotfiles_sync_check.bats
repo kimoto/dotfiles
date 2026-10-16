@@ -150,24 +150,73 @@ wait_for() {
   [[ "$output" != *"behind upstream"* ]]
 }
 
-@test "warns when behind upstream" {
-  add_upstream
-  # Advance the remote from a second clone, then refresh our remote-tracking
-  # ref (the script itself won't fetch — stamp is fresh), leaving HEAD behind.
-  git clone -q -b main "$TMP/remote.git" "$TMP/other"
+# Push a commit to branch $1 from a second clone, then refresh our
+# remote-tracking ref (the script itself won't fetch — stamp is fresh), leaving
+# HEAD behind.
+advance_upstream() {
+  local branch="${1:-main}"
+  [ -d "$TMP/other" ] || git clone -q "$TMP/remote.git" "$TMP/other"
   git -C "$TMP/other" config user.email other@example.com
   git -C "$TMP/other" config user.name "Other"
+  git -C "$TMP/other" fetch -q origin
+  git -C "$TMP/other" checkout -q -B "$branch" "origin/$branch"
   echo upstream >>"$TMP/other/seed.txt"
   git -C "$TMP/other" commit -qam "feat: upstream change"
-  git -C "$TMP/other" push -q origin main
+  git -C "$TMP/other" push -q origin "$branch"
   git -C "$REPO" fetch -q origin
+}
 
+@test "fast-forwards a clean main that is behind, and says so" {
+  add_upstream
+  advance_upstream
   run "$SCRIPT"
   wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse origin/main)" ]
   run "$SCRIPT"
   [ "$status" -eq 0 ]
+  [[ "$output" == *"pulled 1 commit"* ]]
+  [[ "$output" != *"behind upstream"* ]]
+}
+
+@test "a dirty tree is not fast-forwarded, only warned about" {
+  add_upstream
+  advance_upstream
+  echo new >"$REPO/untracked.txt"
+  before=$(git -C "$REPO" rev-parse HEAD)
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$before" ]
+  run "$SCRIPT"
   [[ "$output" == *"behind upstream"* ]]
-  [[ "$output" != *"unpushed commit"* ]]
+  [[ "$output" != *"pulled"* ]]
+}
+
+@test "a branch other than main is not fast-forwarded" {
+  add_upstream
+  git -C "$REPO" switch -qc topic
+  git -C "$REPO" push -q -u origin topic
+  advance_upstream topic
+  before=$(git -C "$REPO" rev-parse HEAD)
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$before" ]
+  run "$SCRIPT"
+  [[ "$output" == *"behind upstream"* ]]
+}
+
+@test "main with unpushed commits is not merged into" {
+  add_upstream
+  advance_upstream
+  echo mine >"$REPO/mine.txt"
+  git -C "$REPO" add mine.txt
+  git -C "$REPO" commit -qm "feat: local"
+  before=$(git -C "$REPO" rev-parse HEAD)
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$before" ]
+  run "$SCRIPT"
+  [[ "$output" == *"behind upstream"* ]]
+  [[ "$output" == *"unpushed commit"* ]]
 }
 
 @test "stale warning clears one run after the repo becomes clean" {

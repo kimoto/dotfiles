@@ -39,13 +39,32 @@ setup() {
   cat >"$STUB/brew" <<'STUBEOF'
 #!/bin/bash
 if [ "$1" = "bundle" ] && [ "$2" = "check" ]; then
+  [ -n "${BREW_CHECK_OUT:-}" ] && printf '%s\n' "$BREW_CHECK_OUT"
   exit "${BREW_CHECK_RC:-0}"
 fi
 exit 0
 STUBEOF
   chmod +x "$STUB/brew"
   PATH="$STUB:$PATH"
+  # No auto-upgrade agent unless a test installs one.
+  export HOME="$TMP/home"
+  AUTO_PLIST="$HOME/Library/LaunchAgents/local.dotfiles.brew-auto-upgrade.plist"
+  AUTO_STAMP="$CACHE/brew_auto_upgrade_ok"
 }
+
+# Pretend the agent is installed and last succeeded $1 seconds ago (omit $1
+# for "never").
+install_agent() {
+  mkdir -p "${AUTO_PLIST%/*}" "$CACHE"
+  : >"$AUTO_PLIST"
+  if [ -n "${1:-}" ]; then
+    echo "$(( $(date +%s) - $1 ))" >"$AUTO_STAMP"
+  fi
+}
+
+FORMULA_DRIFT=$'Satisfy missing dependencies.\n→ Formula jq needs to be installed or updated.'
+CASK_DRIFT=$'→ Formula jq needs to be installed or updated.\n→ Cask stats needs to be installed or updated.'
+TAP_FORMULA_DRIFT='→ Formula owner/tap/thing needs to be installed or updated.'
 
 teardown() {
   # The detached background refresh may still be creating the lock dir / cache
@@ -194,4 +213,56 @@ STUBEOF
   PATH="$STUB2:$PATH" "$SCRIPT" >/dev/null 2>&1
   elapsed=$(( $(date +%s) - start ))
   [ "$elapsed" -lt 3 ]
+}
+
+@test "formula-only drift is left to a working auto-upgrade agent" {
+  install_agent 60
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  wait_for '[ -f "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  [ -z "$output" ]
+}
+
+@test "cask drift is still reported while the agent works" {
+  install_agent 60
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
+  wait_for '[ -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
+  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" == *"brew_bundle_install.sh"* ]]
+  [[ "$output" != *"auto-upgrade"* ]]
+}
+
+@test "a third-party tap formula is still reported while the agent works" {
+  install_agent 60
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
+  wait_for '[ -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
+  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+}
+
+@test "an agent that has not succeeded for days is reported, with its drift" {
+  install_agent $(( 4 * 86400 ))
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  wait_for '[ -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  [[ "$output" == *"auto-upgrade has not succeeded since 20"* ]]
+  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+}
+
+@test "an agent that never succeeded is reported even with nothing to install" {
+  install_agent
+  BREW_CHECK_RC=0 run "$SCRIPT"
+  wait_for '[ -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=0 run "$SCRIPT"
+  [[ "$output" == *"auto-upgrade has not succeeded since never"* ]]
+  [[ "$output" != *"install all at once"* ]]
+}
+
+@test "without the agent, formula drift is reported as before" {
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  wait_for '[ -s "$CACHE/brew_missing" ]'
+  BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
+  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" != *"auto-upgrade"* ]]
 }
