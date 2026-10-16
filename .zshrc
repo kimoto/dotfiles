@@ -643,6 +643,38 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
+# Feature hints: a tmux key gets forgotten unless it is named when it would
+# have helped. Inside tmux, a command below leaves a one-line reminder of its
+# key at the next prompt, once per key per shell. The text is the binding's own
+# -N note from .tmux.conf, so a rebind changes the hint with it. Printed from
+# precmd, not preexec: a pager (git diff, git log) would bury it.
+typeset -gA _feature_hint_shown
+_feature_hint_key=
+_feature_hint_match() {
+  [[ -n "$TMUX" ]] || return 0
+  case "$1" in
+    'git diff'*) _feature_hint_key=v ;;
+    'git log'*) _feature_hint_key=V ;;
+    lazygit*) _feature_hint_key=G ;;
+    'tmux a'*|'tmux ls'*) _feature_hint_key=f ;;
+  esac
+  return 0
+}
+_feature_hint() {
+  local key=$_feature_hint_key
+  _feature_hint_key=
+  [[ -n "$key" && -z "${_feature_hint_shown[$key]}" ]] || return 0
+  _feature_hint_shown[$key]=1
+  # list-keys prints "[C-t] v note": drop words up to the key itself, as tmux
+  # versions differ on whether the prefix comes first.
+  local -a note=(${=$(tmux list-keys -N -T prefix -- "$key" 2>/dev/null)})
+  note=("${(@)note[${note[(i)$key]}+1,-1]}")
+  (( $#note )) && print -r -- $'\e[2m'"hint: prefix + $key → ${note[*]}"$'\e[0m'
+  return 0
+}
+add-zsh-hook preexec _feature_hint_match
+add-zsh-hook precmd _feature_hint
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
