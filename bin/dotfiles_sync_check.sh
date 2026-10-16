@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Warns at shell startup that this repo needs syncing between machines.
+# Warns at shell startup that this repo needs syncing between machines, and
+# fast-forwards main when that cannot lose anything.
 #
 # ⚠ What it prints is the previous shell's answer, and "behind" lags up to one
 # 24h fetch window on top of that — never read it as the state right now.
@@ -39,8 +40,26 @@ result="$cache_dir/sync_status"
             "$yellow" "$reset" "$1" "$cyan" "$2" "$reset" >>"$tmp"
     }
 
-    # Before the dirty check, so a /config change made on this machine is
-    # reported as uncommitted in the same run, and a pulled one is applied.
+    # Catch up with what the last fetch brought, but only where nothing can be
+    # lost: on main, tracking origin/main, clean, nothing unpushed. A branch or
+    # a dirty tree belongs to whoever is working in this checkout, so those
+    # stay a "behind" note below. Local refs only, no network: the fetch at
+    # the end feeds the next shell. A merge that loses a race with another
+    # shell for index.lock simply leaves the note for next time.
+    if [ "$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)" = main ] \
+        && [ "$(git -C "$REPO_DIR" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)" = origin/main ] \
+        && [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ] \
+        && [ "$(git -C "$REPO_DIR" rev-list --count '@{upstream}..HEAD' 2>/dev/null)" = 0 ]; then
+        pulled=$(git -C "$REPO_DIR" rev-list --count 'HEAD..@{upstream}' 2>/dev/null || echo 0)
+        if [ "${pulled:-0}" -gt 0 ] 2>/dev/null \
+            && git -C "$REPO_DIR" merge --ff-only --quiet '@{upstream}' >/dev/null 2>&1; then
+            note "pulled ${pulled} commit(s)" "git -C $REPO_DIR log --oneline -${pulled}"
+        fi
+    fi
+
+    # After the pull, so pulled settings are applied in this same run; before
+    # the dirty check, so a /config change made on this machine is reported as
+    # uncommitted in the same run.
     [ -x "$REPO_DIR/bin/install_claude_settings.sh" ] \
         && "$REPO_DIR/bin/install_claude_settings.sh" --sync
 

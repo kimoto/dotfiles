@@ -213,7 +213,7 @@ Source:
 
 ### With prefix (C-t)
 
-While the prefix is held, status-right shows `? help  g git  v hunk  t shell`.
+While the prefix is held, status-right shows `? help  G git  v hunk  t shell`.
 
 | Key | Action |
 |-----|--------|

@@ -8,6 +8,11 @@
 # `brew bundle install` fixes either, which is what the printed command does.
 # Notify-only: this script never installs anything.
 #
+# Where the brew_auto_upgrade.sh agent is installed and has succeeded recently,
+# drift made only of homebrew/core formulae is left to it and not reported;
+# casks and third-party taps still are, since those stay manual. Once the agent
+# has not succeeded for a while, the nag is about the agent instead.
+#
 # `brew bundle check` is comparatively slow, so startup never waits for it: the
 # foreground only prints the cached result of the previous check, then a
 # detached background job refreshes the cache. An "all satisfied" result is
@@ -40,6 +45,9 @@ resolve_repo_dir() {
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
 stamp="$cache_dir/last_brew_check"
 result="$cache_dir/brew_missing"
+auto_stamp="$cache_dir/brew_auto_upgrade_ok"
+auto_plist="$HOME/Library/LaunchAgents/local.dotfiles.brew-auto-upgrade.plist"
+auto_log="$HOME/Library/Logs/dotfiles/brew_auto_upgrade.log"
 
 #---------------------------------------------------------------
 # foreground: print the cached result and get out of the way
@@ -52,14 +60,26 @@ if [ -s "$result" ]; then
     reset=$'\033[0m'
 
     # One line per unsatisfied Brewfile, with a ready-to-run install command.
+    listed=0
     while IFS= read -r f; do
-        [ -n "$f" ] || continue
-        printf '%s[brew]%s %s has missing or outdated packages -> %sbrew bundle install --file=%s/%s%s\n' \
-            "$yellow" "$reset" "$f" "$cyan" "$REPO_DIR" "$f" "$reset" >&2
+        case "$f" in
+            '') ;;
+            '!stale '*)
+                printf '%s[brew]%s daily formula auto-upgrade has not succeeded since %s -> %stail %s%s\n' \
+                    "$yellow" "$reset" "${f#!stale }" "$cyan" "$auto_log" "$reset" >&2
+                ;;
+            *)
+                listed=1
+                printf '%s[brew]%s %s has missing or outdated packages -> %sbrew bundle install --file=%s/%s%s\n' \
+                    "$yellow" "$reset" "$f" "$cyan" "$REPO_DIR" "$f" "$reset" >&2
+                ;;
+        esac
     done <"$result"
     # One-shot alternative that installs everything and batches the prompts.
-    printf '%s[brew]%s or install all at once -> %s%s/bin/brew_bundle_install.sh%s\n' \
-        "$yellow" "$reset" "$cyan" "$REPO_DIR" "$reset" >&2
+    if [ "$listed" -eq 1 ]; then
+        printf '%s[brew]%s or install all at once -> %s%s/bin/brew_bundle_install.sh%s\n' \
+            "$yellow" "$reset" "$cyan" "$REPO_DIR" "$reset" >&2
+    fi
 fi
 
 #---------------------------------------------------------------
@@ -121,10 +141,39 @@ fi
     fi
     trap 'rmdir "$lock" 2>/dev/null' EXIT
 
+    # The agent counts as working for 3 days after its last success: it runs
+    # daily, and a machine left off over a weekend has not missed anything.
+    auto_fresh=0
+    stale_since=""
+    if [ -f "$auto_plist" ]; then
+        auto_last=$(cat "$auto_stamp" 2>/dev/null || echo 0)
+        case "$auto_last" in
+            '' | *[!0-9]*) auto_last=0 ;;
+        esac
+        if [ "$(( $(date +%s) - auto_last ))" -lt 259200 ]; then
+            auto_fresh=1
+        elif [ "$auto_last" -eq 0 ]; then
+            stale_since="never"
+        else
+            stale_since=$(date -r "$auto_last" '+%Y-%m-%d' 2>/dev/null \
+                || date -d "@$auto_last" '+%Y-%m-%d' 2>/dev/null || echo "$auto_last")
+        fi
+    fi
+
     missing=()
+    [ -n "$stale_since" ] && missing+=("!stale $stale_since")
     for f in "${files[@]}"; do
         [ -f "$REPO_DIR/$f" ] || continue
-        brew bundle check --file="$REPO_DIR/$f" >/dev/null 2>&1 || missing+=("$f")
+        out=$(brew bundle check --verbose --file="$REPO_DIR/$f" 2>&1) && continue
+        # --verbose lists every unmet entry as "→ <Type> <name> needs ...".
+        # Only homebrew/core formulae (no slash in the name) are the agent's;
+        # an empty list means the check failed for some other reason.
+        unmet=$(printf '%s\n' "$out" | grep '^→ ')
+        if [ "$auto_fresh" -eq 1 ] && [ -n "$unmet" ] \
+            && ! printf '%s\n' "$unmet" | grep -qv '^→ Formula [^/ ]* needs'; then
+            continue
+        fi
+        missing+=("$f")
     done
 
     # Persist the unsatisfied Brewfiles (one per line) + a stamp so later logins
