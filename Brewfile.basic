@@ -19,6 +19,8 @@ brew "expect"
 brew "eza"
 # Distributed revision control system
 brew "git"
+# Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh)
+brew "hyperfine"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
 # Search tool like grep and The Silver Searcher

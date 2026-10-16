@@ -267,18 +267,27 @@ PROBE
   require_grep "carapace completion not registered (installed path)" "$carapace_out" "CARAPACE_COMP=_"
 fi
 
-# Startup time gate: prevent regressions from the startup-perf pass.
-# Measures a bare interactive-exit (loads .zshrc then quits) using GNU date
-# +%s%N, which is available on ubuntu-latest.  5s is generous enough to absorb
-# Linuxbrew/CI overhead while still catching a serious regression — re-enabling
-# hook-env or loading a heavy plugin synchronously typically adds 30-200ms on a
-# developer machine and compounds to 500ms+ on CI.
+# Startup time gate: prevent regressions from the startup-perf pass. Measures
+# a bare interactive-exit (loads .zshrc then quits) with hyperfine — several
+# warmed-up runs reduced to a mean ± stdev, instead of one GNU-date-diff
+# sample. A single sample can swing 100ms+ on a shared CI runner with no code
+# change, which is exactly the false-positive/false-negative risk a one-shot
+# wall-clock reading carries. 5s is generous enough to absorb Linuxbrew/CI
+# overhead while still catching a serious regression — re-enabling hook-env or
+# loading a heavy plugin synchronously typically adds 30-200ms on a developer
+# machine and compounds to 500ms+ on CI.
 echo "== zsh startup time budget =="
-_t0=$(date +%s%N)
-env CI= "$ZSH_BIN" -ic exit >/dev/null 2>&1 || true
-_t1=$(date +%s%N)
-startup_ms=$(( (_t1 - _t0) / 1000000 ))
-printf 'Startup time: %dms (budget: 5000ms)\n' "$startup_ms"
+if ! command -v hyperfine >/dev/null 2>&1; then
+  die "hyperfine not found; install it (it's in Brewfile.basic)"
+fi
+hf_json="$(mktemp)"
+hyperfine --warmup 2 --min-runs 10 --ignore-failure \
+  --export-json "$hf_json" \
+  "env CI= $ZSH_BIN -ic exit"
+mean_s=$(grep -o '"mean"[[:space:]]*:[[:space:]]*[0-9.eE+-]*' "$hf_json" | head -1 | sed 's/.*:[[:space:]]*//')
+rm -f "$hf_json"
+startup_ms=$(awk -v s="$mean_s" 'BEGIN { printf "%d", (s * 1000) + 0.5 }')
+printf 'Startup time (hyperfine mean, >=10 runs): %dms (budget: 5000ms)\n' "$startup_ms"
 if [ "$startup_ms" -gt 5000 ]; then
   die "zsh startup too slow: ${startup_ms}ms exceeds 5000ms budget"
 fi
