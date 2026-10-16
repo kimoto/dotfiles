@@ -64,12 +64,34 @@ esac
 # lands between them in the raw expansion.
 held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
   sed 's/#\[[^]]*\]//g')"
-for pair in "? help" "g git" "v hunk" "t shell"; do
+for pair in "? help" "G git" "v hunk" "t shell"; do
   case "$held" in
     *"$pair"*) ;;
     *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
   esac
 done
+# Each key the hint names must open what its label promises. The hint and
+# KEYBINDINGS.md can agree with each other and both be wrong: lazygit moved to
+# G while the hint kept saying g, which tmux 3.8 binds to something else.
+# Only the live binding table can tell, so ask it rather than another copy.
+# `?` is which-key once its plugin loads (a display-menu where it inlines its
+# root menu), keys.sh where plugins are absent. The key is picked out of the
+# whole table by field, so a failure can print what the table really holds.
+prefix_table="$(tmux -L "$SOCK" list-keys -T prefix)"
+while read -r key pattern; do
+  bound="$(printf '%s\n' "$prefix_table" |
+    awk -v k="$key" '{
+      for (i = 1; i < NF; i++)
+        if ($i == "-T" && $(i + 1) == "prefix") { if ($(i + 2) == k) print; break }
+    }')"
+  printf '%s\n' "$bound" | grep -Eq "$pattern" \
+    || die "the prefix hint names '$key', but prefix + $key is not /$pattern/ (bound: ${bound:-nothing})"
+done <<'EOF'
+? show-wk-menu|display-menu|keys\.sh
+G lazygit
+v hunk
+t new-pane|display-popup
+EOF
 case "$held" in
   *"$today"*) die "the prefix hint stacked in front of the clock instead of replacing it" ;;
 esac
