@@ -16,7 +16,7 @@ pre-commit:
       glob:
         - "bin/*.sh"
         - "test/*.bats"
-      run: ./bin/run_tests.sh
+      run: ./bin/run_tests.sh {staged_files}
     zsh-syntax:
       glob:
         - ".zshrc"
