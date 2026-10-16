@@ -80,7 +80,11 @@ truth, so the two never diverge.
   a container first would otherwise keep telling it `cat` is cat.
 - `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
   session, for a setting that must hold whichever repo the session was opened
-  on.
+  on. Its `ask` rules on the rule files are the gate for unattended routines:
+  every routine reads these rules and several hold this repo as a source, so a
+  rule edit must stop at a prompt nobody answers there, while a person in a web
+  session just approves it. ⚠️ Not a wall: a Bash write does not match an
+  `Edit(...)` rule.
 - `claudecode/settings-shared.json` — the keys of a workstation's
   `~/.claude/settings.json` that should match on every machine (status line,
   plugins, compaction). `bin/install_claude_settings.sh --sync` keeps the two
