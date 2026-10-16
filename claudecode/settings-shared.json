@@ -26,5 +26,8 @@
         "repo": "openai/codex-plugin-cc"
       }
     }
+  },
+  "attribution": {
+    "pr": ""
   }
 }
