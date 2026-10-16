@@ -84,7 +84,10 @@ truth, so the two never diverge.
   every routine reads these rules and several hold this repo as a source, so a
   rule edit must stop at a prompt nobody answers there, while a person in a web
   session just approves it. ⚠️ Not a wall: a Bash write does not match an
-  `Edit(...)` rule.
+  `Edit(...)` rule. Its `SessionStart` hook fast-forwards the checkout it is
+  linked from: a cloud environment restores the setup script's result from a
+  cache instead of re-running it, so without the pull every session reads the
+  rules as they were when that cache was built.
 - `claudecode/settings-shared.json` — the keys of a workstation's
   `~/.claude/settings.json` that should match on every machine (status line,
   plugins, compaction). `bin/install_claude_settings.sh --sync` keeps the two
