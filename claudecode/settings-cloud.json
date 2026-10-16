@@ -1,5 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "outputStyle": "Concise",
-  "autoCompactWindow": 500000
+  "autoCompactWindow": 500000,
+  "permissions": {
+    "ask": [
+      "Edit(//**/claudecode/rules/**)",
+      "Edit(//**/claudecode/rules-cloud/**)",
+      "Edit(//**/claudecode/settings-cloud.json)",
+      "Edit(~/.claude/rules/**)"
+    ]
+  }
 }
