@@ -10,8 +10,11 @@
 
 [core]
   excludesfile = ~/.gitignore
-  pager = delta
-  editor = nvim
+  # delta when installed, plain less otherwise: a fresh clone has no delta yet,
+  # and git would print "cannot run delta" on every diff. No editor here:
+  # git falls back to $VISUAL/$EDITOR, which .zshrc points at the best one
+  # installed, so a machine without nvim can still commit.
+  pager = "if command -v delta >/dev/null 2>&1; then delta; else less; fi"
   autoCRLF = false
 
 [commit]
@@ -30,7 +33,7 @@
   encoding = utf-8
 
 [interactive]
-  diffFilter = delta --color-only
+  diffFilter = "if command -v delta >/dev/null 2>&1; then delta --color-only; else cat; fi"
 
 [merge]
   ff = false

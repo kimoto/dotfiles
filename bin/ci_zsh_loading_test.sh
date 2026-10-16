@@ -190,8 +190,13 @@ refute_grep "an alias shadows a command with a missing tool" "$env_out" "SHADOW_
 require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
 
 # environment variables
-require_grep "EDITOR is not nvim"   "$env_out" "EDITOR=nvim"
-require_grep "VISUAL is not nvim"   "$env_out" "VISUAL=nvim"
+# EDITOR falls back to vim/vi where nvim is absent (Brewfile.basic has none).
+if command -v nvim >/dev/null 2>&1; then
+  require_grep "EDITOR is not nvim"   "$env_out" "EDITOR=nvim"
+  require_grep "VISUAL is not nvim"   "$env_out" "VISUAL=nvim"
+else
+  require_grep "EDITOR is not vim/vi" "$env_out" "EDITOR=vi"
+fi
 require_grep "PAGER does not use less" "$env_out" "PAGER=less"
 
 # brew shellenv: exported via the _evalcache inline in sheldon's plugins.toml,
