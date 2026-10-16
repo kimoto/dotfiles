@@ -281,10 +281,26 @@ if ! command -v hyperfine >/dev/null 2>&1; then
   die "hyperfine not found; install it (it's in Brewfile.basic)"
 fi
 hf_json="$(mktemp)"
-hyperfine --warmup 2 --min-runs 10 --ignore-failure \
+hyperfine --warmup 2 --min-runs 10 --ignore-failure --metrics time_wall_clock \
   --export-json "$hf_json" \
   "env CI= $ZSH_BIN -ic exit"
-mean_s=$(grep -o '"mean"[[:space:]]*:[[:space:]]*[0-9.eE+-]*' "$hf_json" | head -1 | sed 's/.*:[[:space:]]*//')
+# hyperfine's --export-json always reports every metric (memory_peak_resident,
+# time_cpu, time_system, time_user, time_wall_clock), each with its own "mean"
+# key, under results[0].summary — so a plain `grep -o "mean" | head -1` picks
+# whichever metric happens to serialize first (memory, alphabetically), not
+# the wall-clock time. Anchor on "summary" then "time_wall_clock" so the right
+# one is the one taken. Values are always in base units (seconds here),
+# regardless of the --metrics display option above.
+mean_s=$(awk '
+  /"summary"/ { insummary=1 }
+  insummary && /"time_wall_clock"/ { want=1 }
+  want && /"mean"/ {
+    sub(/.*"mean"[[:space:]]*:[[:space:]]*/, "")
+    sub(/,.*/, "")
+    print
+    exit
+  }
+' "$hf_json")
 rm -f "$hf_json"
 startup_ms=$(awk -v s="$mean_s" 'BEGIN { printf "%d", (s * 1000) + 0.5 }')
 printf 'Startup time (hyperfine mean, >=10 runs): %dms (budget: 5000ms)\n' "$startup_ms"
