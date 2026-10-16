@@ -24,3 +24,7 @@ can be looked up. ★**Being unable to name anything is the finding**, and
 a box that survives is an admission that nothing automates it yet. What is left
 is what the author is known to forget. Every box ends up ticked — one still
 empty at merge cannot be told apart from one ignored.
+
+★**On a public repo, write nothing a stranger shouldn't read** — no repo they
+cannot open, no server layout, nothing on where secrets live. Check
+`gh api repos/OWNER/REPO --jq .visibility` first: an edit does not unpublish.
