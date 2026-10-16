@@ -10,11 +10,11 @@
 
 [core]
   excludesfile = ~/.gitignore
-  # delta when installed, plain less otherwise: a fresh clone has no delta yet,
-  # and git would print "cannot run delta" on every diff. No editor here:
+  # delta when installed, then less, then cat: a fresh clone has no delta yet,
+  # and a slim container has no less either. No editor here:
   # git falls back to $VISUAL/$EDITOR, which .zshrc points at the best one
   # installed, so a machine without nvim can still commit.
-  pager = "if command -v delta >/dev/null 2>&1; then delta; else less; fi"
+  pager = "if command -v delta >/dev/null 2>&1; then delta; elif command -v less >/dev/null 2>&1; then less; else cat; fi"
   autoCRLF = false
 
 [commit]
