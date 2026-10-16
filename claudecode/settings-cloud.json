@@ -4,5 +4,13 @@
   "autoCompactWindow": 500000,
   "attribution": {
     "pr": ""
+  },
+  "permissions": {
+    "ask": [
+      "Edit(//**/claudecode/rules/**)",
+      "Edit(//**/claudecode/rules-cloud/**)",
+      "Edit(//**/claudecode/settings-cloud.json)",
+      "Edit(~/.claude/rules/**)"
+    ]
   }
 }
