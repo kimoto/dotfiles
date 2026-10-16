@@ -14,7 +14,7 @@
   # and a slim container has no less either. No editor here:
   # git falls back to $VISUAL/$EDITOR, which .zshrc points at the best one
   # installed, so a machine without nvim can still commit.
-  pager = "if command -v delta >/dev/null 2>&1; then delta; elif command -v less >/dev/null 2>&1; then less; else cat; fi"
+  pager = "for p in delta less cat; do command -v $p >/dev/null && exec $p; done"
   autoCRLF = false
 
 [commit]
