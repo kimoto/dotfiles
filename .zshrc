@@ -643,39 +643,34 @@ _tmux_prompt_mark() {
 }
 add-zsh-hook precmd _tmux_prompt_mark
 
-# Feature hints: a tmux key gets forgotten unless it is named at the moment it
-# would have helped, so a matching command (config/zsh/hints) leaves a one-line
-# reminder for the next prompt. Printed from precmd, not preexec: a pager
-# (git diff, git log) would take the screen and bury it. Once a day per key,
-# stamped under XDG_STATE_HOME; the key is stored as its character code
-# because macOS's filesystem would treat g and G as one file. The table is read
-# once at load, so a match costs no fork and no file read.
-typeset -ga _feature_hints
-if [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/zsh/hints ]]; then
-  _feature_hints=(${${(f)"$(<"${XDG_CONFIG_HOME:-$HOME/.config}/zsh/hints")"}:#\#*})
-fi
-_feature_hint_pending=
+# Feature hints: a tmux key gets forgotten unless it is named when it would
+# have helped. Inside tmux, a command below leaves a one-line reminder of its
+# key at the next prompt, once per key per shell. The text is the binding's own
+# -N note from .tmux.conf, so a rebind changes the hint with it. Printed from
+# precmd, not preexec: a pager (git diff, git log) would bury it.
+typeset -gA _feature_hint_shown
+_feature_hint_key=
 _feature_hint_match() {
   [[ -n "$TMUX" ]] || return 0
-  local row
-  for row in "${_feature_hints[@]}"; do
-    [[ "$1" == ${~${row%%$'\t'*}} ]] || continue
-    row="${row#*$'\t'}"
-    _feature_hint_pending="${row%%$'\t'*}"$'\t'"${row#*$'\t'*$'\t'}"
-    break
-  done
+  case "$1" in
+    'git diff'*) _feature_hint_key=v ;;
+    'git log'*) _feature_hint_key=V ;;
+    lazygit*) _feature_hint_key=G ;;
+    'tmux a'*|'tmux ls'*) _feature_hint_key=f ;;
+  esac
   return 0
 }
 _feature_hint() {
-  [[ -n "$_feature_hint_pending" ]] || return 0
-  local key="${_feature_hint_pending%%$'\t'*}" what="${_feature_hint_pending#*$'\t'}"
-  _feature_hint_pending=
-  local dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/hints" today
-  local stamp="$dir/key-$(( #key ))"
-  today="${(%):-%D{%F}}"
-  [[ -r "$stamp" && "$(<"$stamp")" == "$today" ]] && return 0
-  mkdir -p "$dir" && print -r -- "$today" >| "$stamp"
-  print -r -- $'\e[2m'"hint: prefix + $key → $what"$'\e[0m'
+  local key=$_feature_hint_key
+  _feature_hint_key=
+  [[ -n "$key" && -z "${_feature_hint_shown[$key]}" ]] || return 0
+  _feature_hint_shown[$key]=1
+  # list-keys prints "[C-t] v note": drop words up to the key itself, as tmux
+  # versions differ on whether the prefix comes first.
+  local -a note=(${=$(tmux list-keys -N -T prefix -- "$key" 2>/dev/null)})
+  note=("${(@)note[${note[(i)$key]}+1,-1]}")
+  (( $#note )) && print -r -- $'\e[2m'"hint: prefix + $key → ${note[*]}"$'\e[0m'
+  return 0
 }
 add-zsh-hook preexec _feature_hint_match
 add-zsh-hook precmd _feature_hint
