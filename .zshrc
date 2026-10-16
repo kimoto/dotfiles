@@ -218,13 +218,17 @@ zle_highlight+=(paste:none)
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
 export LESS='-M -i -f -Q'
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+(( $+commands[bat] )) && export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 # A coding agent's shell has no controlling terminal, so launching nvim here
 # would hang a tool call indefinitely instead of erroring (e.g. `git commit`
 # with no -m). $CLAUDECODE is set by Claude Code specifically; -t 0 alone
 # would also misdetect a human's own non-interactive `zsh -c '...'`.
+# The best editor that exists: a machine without nvim still gets one that
+# opens, instead of `git commit` failing on a missing binary.
 if [[ -t 0 && -z "$CLAUDECODE" ]]; then
-  export EDITOR=nvim
+  export EDITOR=vi
+  for _e in vim nvim; do (( $+commands[$_e] )) && EDITOR=$_e; done
+  unset _e
 else
   export EDITOR=true
 fi
@@ -265,8 +269,12 @@ zstyle -e ':completion:*' list-colors 'reply=( ${(s.:.)LS_COLORS} )'
 # --hyperlinkはeza側にauto相当の指定がなく常時有効になるため、パイプ/リダイレクト時に
 # OSC8エスケープシーケンスがterminal/tmux側で正しく解釈されず表示が乱れることがある。
 # TTY出力時のみ有効化する。
+# Without eza (a machine that has only the basics) ls stays the system ls, and
+# ll falls back to the same listing in plain ls flags.
 ls() {
-  if [[ -t 1 ]]; then
+  if (( ! $+commands[eza] )); then
+    if [[ $OSTYPE == linux* ]]; then command ls --color=auto "$@"; else command ls -G "$@"; fi
+  elif [[ -t 1 ]]; then
     eza --hyperlink --icons auto "$@"
   else
     eza --icons auto "$@"
@@ -279,9 +287,13 @@ ls() {
 # `ll`, and as an alias it reached them as a bare unresolvable word in every
 # shell but the first one on a machine (`command not found: ll` on every cd).
 ll() {
-  ls --long --all --git-repos-no-status --time-style=relative --sort=modified "$@"
+  if (( $+commands[eza] )); then
+    ls --long --all --git-repos-no-status --time-style=relative --sort=modified "$@"
+  else
+    ls -lAtr "$@"
+  fi
 }
-alias tree='ll -T'
+(( $+commands[eza] )) && alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
@@ -292,7 +304,7 @@ alias reload="exec zsh"
 # reaches them depends on which of the two load paths ran. Nothing is lost:
 # zoxide records the jump from its own chpwd hook, however the directory
 # changed.
-[[ $- == *i* ]] && alias cd="z"
+[[ $- == *i* ]] && (( $+commands[zoxide] )) && alias cd="z"
 # Guarded because each shadows a command that works without the dotfiles: an
 # unguarded alias does not replace `cat`, it takes it away.
 (( $+commands[bat] ))    && alias cat='bat'
@@ -476,8 +488,10 @@ l() {
   else
     if [[ -d "$1" ]]; then
       ll $@
-    else
+    elif (( $+commands[bat] )); then
       bat $@
+    else
+      less $@
     fi
   fi
 }

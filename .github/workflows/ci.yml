@@ -354,6 +354,29 @@ jobs:
       - name: Load to test .zshrc (Brewfile.basic only)
         run: ./bin/ci_zsh_loading_test.sh
 
+  # The minimal and basic phases: distro bash, zsh and vim only, as a non-root
+  # user, so the config must work before any extra tool is installed.
+  plain_shell_test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: debian:stable-slim
+    steps:
+      - name: Install the distro shells only
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git zsh vim
+          useradd --create-home tester
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: bash and zsh start clean without the rich tools
+        run: |
+          chown -R tester "$GITHUB_WORKSPACE"
+          runuser -u tester -- ./bin/ci_plain_shell_test.sh
+
   vim_guard_test:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest

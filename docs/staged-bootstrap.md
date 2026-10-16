@@ -26,7 +26,7 @@ wiring between them.
 
 | Stage | Installs | Gate (existing script) |
 |---|---|---|
-| 0 | `mklink.sh` — symlinks only, no network | symlinks resolve |
+| 0 | `mklink.sh` — symlinks only, no network | `ci_plain_shell_test.sh` (distro bash/zsh/vim, no rich tools) |
 | 1 | `Brewfile.basic` | `ci_zsh_loading_test.sh` |
 | 2 | `Brewfile.common` + platform Brewfile | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set |
 | 3 | tpm plugins, nvim plugins, mise runtimes, NeoBundle | `ci_nvim_loading_test.sh`, `ci_vim_loading_test.sh` |
