@@ -12,7 +12,7 @@ cd "$BASE_DIR" || exit 1
 
 files=("$@")
 if [ "${#files[@]}" -eq 0 ]; then
-    files=(Brewfile.basic Brewfile.common Brewfile.linux Brewfile.macos)
+    files=(Brewfile.standard Brewfile.full Brewfile.linux Brewfile.macos)
 fi
 
 rc=0

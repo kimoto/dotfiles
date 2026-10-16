@@ -92,7 +92,7 @@ fi
     mkdir -p "$cache_dir" 2>/dev/null || true
 
     # Brewfiles to check: shell-load essentials + full workstation + this platform.
-    files=(Brewfile.basic Brewfile.common)
+    files=(Brewfile.standard Brewfile.full)
     case "$(uname)" in
         Darwin) files+=(Brewfile.macos) ;;
         Linux) files+=(Brewfile.linux) ;;

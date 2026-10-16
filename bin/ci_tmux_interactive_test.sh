@@ -21,7 +21,7 @@ DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 need tmux
 need zsh
-# step 5 asserts on what `ll` renders, and `ll` is eza (Brewfile.basic).
+# step 5 asserts on what `ll` renders, and `ll` is eza (Brewfile.standard).
 need eza
 ZSH_BIN="$(command -v zsh)"
 REPO="$PWD"

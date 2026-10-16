@@ -7,7 +7,7 @@ export COLORTERM="truecolor"
 # Don't run the dotfiles sync reminder during the load test: it would touch the
 # network (background fetch) and print reminder noise unrelated to this check.
 export DOTFILES_NO_SYNC_CHECK=1
-# Likewise skip the Brewfile drift reminder: CI installs only Brewfile.basic, so
+# Likewise skip the Brewfile drift reminder: CI installs only Brewfile.standard, so
 # a check would always report common/* missing, and `brew bundle check` is slow.
 export DOTFILES_NO_BREW_CHECK=1
 export DOTFILES_NO_MISE_CHECK=1
@@ -183,14 +183,14 @@ printf '%s\n' "$env_out"
 # an alias would not survive .zshrc's own wordcode cache into the function
 # bodies that list with it (chpwd, l), so only the body proves the flags.
 require_grep "ll missing --long flags"          "$env_out" "ls --long --all"
-# CI installs only Brewfile.basic, so these aliases are absent here and present
-# on a workstation; the dangling case is what must hold on both.
+# Whether a tool is installed differs between machines and between the CI jobs;
+# the dangling case is what must hold on all of them.
 require_grep "shadowing-alias probe did not run" "$env_out" "SHADOW_CHECKED"
 refute_grep "an alias shadows a command with a missing tool" "$env_out" "SHADOW_DANGLING:"
 require_grep "reload is not aliased to exec zsh" "$env_out" "reload=.*exec zsh"
 
 # environment variables
-# EDITOR falls back to vim/vi where nvim is absent (Brewfile.basic has none).
+# EDITOR falls back to vim/vi where nvim is absent.
 if command -v nvim >/dev/null 2>&1; then
   require_grep "EDITOR is not nvim"   "$env_out" "EDITOR=nvim"
   require_grep "VISUAL is not nvim"   "$env_out" "VISUAL=nvim"
@@ -255,7 +255,7 @@ fi
 require_grep "livegrep not bound to ^G" "$env_out" "livegrep"
 require_grep "snippet widget not bound to ^X^N" "$env_out" "search_snippet_and_replace_lbuffer"
 
-# carapace completion: carapace ships in Brewfile.basic, so it's present in CI.
+# carapace completion: carapace ships in Brewfile.standard, so it's present in CI.
 # Confirms the eval-cache inline actually registers a completer for `carapace`,
 # checked via zsh's _comps map (command -> completion function) so the assertion
 # doesn't depend on carapace's internal function name. Gated on presence so the

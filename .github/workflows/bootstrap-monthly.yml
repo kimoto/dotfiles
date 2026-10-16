@@ -2,7 +2,7 @@
 # Monthly, no-cache, full-workstation bootstrap on Ubuntu.
 #
 # ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
-# slice of it: ci_prepare.sh asks setup_homebrew.sh to leave Brewfile.common out,
+# slice of it: ci_prepare.sh asks setup_homebrew.sh to leave Brewfile.full out,
 # ci_prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
 # suite never links the dotfiles into $HOME. So the parts of the bootstrap a
 # human actually executes are the parts CI never touches, and a run of bugs
@@ -42,7 +42,7 @@ jobs:
         run: sudo locale-gen ja_JP.UTF-8
 
       - name: Install a tmux to bootstrap from
-        # Only needed to *host* the bootstrap; Brewfile.basic installs the tmux
+        # Only needed to *host* the bootstrap; Brewfile.standard installs the tmux
         # everything afterwards actually uses.
         run: |
           set -e
@@ -50,13 +50,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends tmux
 
       - name: Bootstrap from scratch, from inside a tmux session
-        # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_COMMON is set, so
-        # this is the first place `brew bundle` sees Brewfile.common and
+        # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_FULL is set, so
+        # this is the first place `brew bundle` sees Brewfile.full and
         # Brewfile.linux, and the first place mkworld runs its own helper
         # scripts for real. Both are opt-in for exactly this reason -- the
         # earlier $CI test could not be opted out of, since Actions sets CI=true
         # in every step including this one, and the run that proved it installed
-        # Brewfile.basic and then failed the check below.
+        # Brewfile.standard and then failed the check below.
         #
         # Inside tmux on purpose. $TMUX is then inherited all the way down to
         # tpm, which resolves its server from it like any bare tmux client —
@@ -90,7 +90,7 @@ jobs:
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          for f in Brewfile.basic Brewfile.common Brewfile.linux; do
+          for f in Brewfile.standard Brewfile.full Brewfile.linux; do
             echo "== $f =="
             brew bundle check --verbose --file="$f"
           done
@@ -102,16 +102,16 @@ jobs:
         # every fresh checkout is.
         #
         # Each step is a fresh shell, so brew has to go back on PATH: bats comes
-        # from Brewfile.common, as do the linters the suite shells out to.
+        # from Brewfile.full, as do the linters the suite shells out to.
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           ./bin/run_tests.sh
 
       - name: Interactive e2e that only bite with the full toolchain installed
-        # ci.yml runs these too, but with Brewfile.common absent. `g` stubs ghq
+        # ci.yml runs these too, but with Brewfile.full absent. `g` stubs ghq
         # on PATH, and a real ghq is only here to shadow that stub once
-        # Brewfile.common is in.
+        # Brewfile.full is in.
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

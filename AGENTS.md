@@ -124,15 +124,16 @@ truth, so the two never diverge.
   `install_check_tools.sh`, a workstation through `mise install` (run by
   `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
   PR. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
-  `Brewfile.common` too: a mise shim falls through to the brew binary in a
+  `Brewfile.full` too: a mise shim falls through to the brew binary in a
   directory without this config.
-- `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
-  section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
-  needs at load time (prompt, completion, plugin manager, eval-cache inlines,
-  startup aliases/`LS_COLORS`) — litmus test: if removing it breaks
-  `ci_zsh_loading_test.sh`/`ci_tmux_loading_test.sh`, it's `basic`; CI installs
-  only `basic`. `common` = full-workstation tooling not required to start the
-  shell. `macos`/`linux` = platform-specific additions.
+- `Brewfile.{standard,full,macos,linux}` — Homebrew bundles, sorted A–Z per
+  section (`check_brewfile_sort.sh`). Split rule: `standard` = a tool that
+  changes everyday use once installed, with no other step (prompt, completion,
+  plugin manager, and the replacements the config switches to: eza, bat,
+  zoxide, delta, fzf, nvim); CI installs only `standard`. `full` = tools you
+  run by typing their name. `macos`/`linux` = platform-specific additions.
+  Nothing in the config may break when a tool is missing — see the phases in
+  `docs/staged-bootstrap.md`.
 - `TOOLS.md` — generated catalog of every installed tool, built from the
   `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
   Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile

@@ -1,28 +1,20 @@
-# Brewfile.common — full-workstation tooling that the shell does NOT need to
-# start (editors, git / k8s / security utilities, etc.). Installed on real
-# machines; skipped in CI, which installs only Brewfile.basic. Anything the
-# shell depends on at load time belongs in Brewfile.basic — see its header.
+# Brewfile.full — tools you reach for by typing their name (git / k8s /
+# security utilities, linters, toys). Installing one changes nothing about
+# everyday use, so nothing in the config may break without it. Installed on
+# real machines; skipped in CI. Phases: docs/staged-bootstrap.md.
 # NOTE: Keep entries sorted A-Z within this file.
 # Static checker for GitHub Actions workflow files
 brew "actionlint"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
 brew "ast-grep"
-# Clone of cat(1) with syntax highlighting and Git integration
-brew "bat"
 # Bash Automated Testing System (bin/run_tests.sh)
 brew "bats-core"
 # Searches a binary image for embedded files and executable code
 brew "binwalk"
-# Resource monitor with a nice TUI (top/htop replacement)
-brew "btop"
 # Apjanke's fork of the classic cowsay project
 brew "cowsay"
-# Power of curl, ease of use of httpie
-brew "curlie"
 # Structural diff that understands syntax (on-demand via `git dft`)
 brew "difftastic"
-# Command-line DNS client (dig replacement) with colored output
-brew "doggo"
 # More intuitive version of du in rust
 brew "dust"
 # Run arbitrary commands when files change
@@ -31,22 +23,16 @@ brew "entr"
 brew "exiftool"
 # Like neofetch, but much faster because written mostly in C
 brew "fastfetch"
-# Simple, fast and user-friendly alternative to find
-brew "fd"
 # Banner-like program prints strings as ASCII art
 brew "figlet"
 # Infamous electronic fortune-cookie generator
 brew "fortune"
-# Command-line fuzzy finder written in Go
-brew "fzf"
 # GNU internationalization (i18n) and localization (l10n) library
 brew "gettext"
 # GitHub command-line tool
 brew "gh"
 # Remote repository management made easy
 brew "ghq"
-# Syntax-highlighting pager for git and diff output
-brew "git-delta"
 # Audit git repos for secrets
 brew "gitleaks"
 # Render markdown on the CLI
@@ -55,8 +41,6 @@ brew "glow"
 brew "gnu-sed"
 # GNU Privacy Guard (OpenPGP)
 brew "gnupg"
-# Ping, but with a graph (ping replacement)
-brew "gping"
 # Review-first terminal diff viewer for agent-authored changesets
 brew "hunk"
 # Enhanced version of john, a UNIX password cracker
@@ -85,8 +69,6 @@ brew "luajit"
 brew "mysql-client"
 # Text-based UI library
 brew "ncurses"
-# Ambitious Vim-fork focused on extensibility and agility
-brew "neovim"
 # Utility for managing network connections
 brew "netcat"
 # Port scanning utility for large networks
@@ -121,5 +103,3 @@ brew "watch"
 brew "wget"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
-# Additional completion definitions for zsh
-brew "zsh-completions"

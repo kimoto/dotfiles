@@ -3,7 +3,7 @@ name: ci
 on:
   push: {}
   workflow_dispatch: {}
-  # A push only ever restores the Homebrew cache keyed on Brewfile.basic's
+  # A push only ever restores the Homebrew cache keyed on Brewfile.standard's
   # hash, so a green push proves nothing about whether that cached tmux/zsh
   # still matches what Homebrew serves today (#272). This weekly run skips
   # the restore in zsh_loading_test to force a real install, and every other
@@ -134,12 +134,10 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The -fzf-v3 suffix is part of the key on purpose: fzf is installed
-          # into this cache below but is not in Brewfile.basic, so the suffix
-          # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
-          # or when the set of extra brew installs changes. (tmux IS in
-          # Brewfile.basic, so the hash already covers it.)
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v3
+          # Everything this cache holds comes from Brewfile.standard (tmux and
+          # fzf included), so its hash covers the contents. Bump the vN to
+          # evict a bad cache.
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-v4
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -154,7 +152,7 @@ jobs:
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
       - name: Prepare world (cache phase)
-        # One entry point owns the installs (Homebrew + Brewfile.basic, then fzf,
+        # One entry point owns the installs (Homebrew + Brewfile.standard,
         # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
         # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
         run: ./bin/ci_prepare.sh
@@ -183,8 +181,8 @@ jobs:
           key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
 
       - name: Install check tools
-        # This job installs Brewfile.basic only, and bats-core is in
-        # Brewfile.common — so the suite below has no runner without this. The
+        # This job installs Brewfile.standard only, and bats-core is in
+        # Brewfile.full — so the suite below has no runner without this. The
         # whole toolchain rather than bats alone: the lint_*.bats cases drive
         # the real binaries and fail rather than skip when one is missing.
         run: ./bin/install_check_tools.sh
@@ -257,7 +255,7 @@ jobs:
         run: ./bin/ci_completion_colors_test.sh
 
   # zsh_loading_test runs whatever tmux the brew cache holds, and that cache only
-  # rebuilds when Brewfile.basic changes, so it stays on an old release for
+  # rebuilds when Brewfile.standard changes, so it stays on an old release for
   # months. That old one is worth keeping: it catches config an older tmux cannot
   # parse. This job runs the tmux suite again on Homebrew's current release,
   # where the newer-only bindings are actually live. Its own job rather than a
@@ -279,7 +277,7 @@ jobs:
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
           # Same key as zsh_loading_test, which owns saving it.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v3
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-v4
 
       - name: Restore tmux plugins cache
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
@@ -331,12 +329,12 @@ jobs:
       - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
         run: ./bin/ci_keys_command_test.sh
 
-  # Prototype of the stage-1 gate from docs/staged-bootstrap.md ("the first
-  # brick"): zsh_loading_test above also installs fzf and runs mkworld.sh
-  # (tmux plugins, Claude hooks, lefthook), so a break in Brewfile.basic alone
-  # would still pass it. This job installs nothing beyond Brewfile.basic plus
-  # the symlinks and checks that the shell still loads on its own.
-  zsh_loading_test_basic_only:
+  # The standard-phase gate from docs/staged-bootstrap.md: zsh_loading_test
+  # above also runs mkworld.sh (tmux plugins, Claude hooks, lefthook), so a
+  # break in Brewfile.standard alone would still pass it. This job installs
+  # nothing beyond Brewfile.standard plus the symlinks and checks that the
+  # shell still loads on its own.
+  zsh_loading_test_standard_only:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -345,13 +343,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Homebrew + Brewfile.basic only
-        run: SKIP_BREWFILE_COMMON=1 ./bin/setup_homebrew.sh
+      - name: Install Homebrew + Brewfile.standard only
+        run: SKIP_BREWFILE_FULL=1 ./bin/setup_homebrew.sh
 
       - name: Symlink dotfiles (stage 0, no network)
         run: ./bin/mklink.sh
 
-      - name: Load to test .zshrc (Brewfile.basic only)
+      - name: Load to test .zshrc (Brewfile.standard only)
         run: ./bin/ci_zsh_loading_test.sh
 
   # The minimal and basic phases: distro bash, zsh and vim only, as a non-root

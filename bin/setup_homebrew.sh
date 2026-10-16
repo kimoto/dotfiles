@@ -37,14 +37,14 @@ if [ -z "${BREW_BIN:-}" ]; then
     exit 1
 fi
 
-"$BREW_BIN" bundle install --file=Brewfile.basic
+"$BREW_BIN" bundle install --file=Brewfile.standard
 
-# Brewfile.common is the expensive half, and a caller that only needs a shell to
+# Brewfile.full is the expensive half, and a caller that only needs a shell to
 # start says so itself. Deliberately not keyed on $CI: Actions exports CI=true
 # into every step, so the one job built to bootstrap with nothing skipped could
-# not opt back in, and installed nothing but Brewfile.basic.
-if [ "${SKIP_BREWFILE_COMMON:-0}" != "1" ]; then
-    "$BREW_BIN" bundle install --file=Brewfile.common
+# not opt back in, and installed nothing but Brewfile.standard.
+if [ "${SKIP_BREWFILE_FULL:-0}" != "1" ]; then
+    "$BREW_BIN" bundle install --file=Brewfile.full
 fi
 
 case "$(uname)" in
