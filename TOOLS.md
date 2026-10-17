@@ -22,6 +22,7 @@ _Source: `Brewfile.basic`._
 | [expect](https://formulae.brew.sh/formula/expect) | Program that can automate interactive applications |
 | [eza](https://formulae.brew.sh/formula/eza) | Modern, maintained replacement for ls |
 | [git](https://formulae.brew.sh/formula/git) | Distributed revision control system |
+| [hyperfine](https://formulae.brew.sh/formula/hyperfine) | Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh) |
 | [mise](https://formulae.brew.sh/formula/mise) | Polyglot runtime manager (asdf rust clone) |
 | [ripgrep](https://formulae.brew.sh/formula/ripgrep) | Search tool like grep and The Silver Searcher |
 | [sheldon](https://formulae.brew.sh/formula/sheldon) | Fast, configurable, shell plugin manager |
