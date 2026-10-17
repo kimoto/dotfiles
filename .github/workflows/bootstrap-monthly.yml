@@ -42,7 +42,7 @@ jobs:
         run: sudo locale-gen ja_JP.UTF-8
 
       - name: Install a tmux to bootstrap from
-        # Only needed to *host* the bootstrap; Brewfile.standard installs the tmux
+        # Only needed to *host* the bootstrap; Brewfile.full installs the tmux
         # everything afterwards actually uses.
         run: |
           set -e
