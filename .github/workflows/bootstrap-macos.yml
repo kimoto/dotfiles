@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/Library/Caches/Homebrew
-          key: macos-brew-dl-${{ hashFiles('Brewfile.standard', 'Brewfile.full', 'Brewfile.macos') }}-v1
+          key: macos-brew-dl-${{ hashFiles('Brewfile.standard', 'Brewfile.full', 'Brewfile.macos') }}-v2
           restore-keys: macos-brew-dl-
 
       - name: Restore tmux plugins
@@ -63,9 +63,11 @@ jobs:
         run: MKWORLD_EXPECT=full ./bin/mkworld.sh
 
       # Saved even when mkworld failed: a partial download set still spares the
-      # next run, and nothing installed is in it.
+      # next run, and nothing installed is in it. Not when cancelled, though: an
+      # exact key hit is never saved over, so a set cut short would stick until
+      # a Brewfile changes.
       - name: Save Homebrew downloads
-        if: always() && steps.cache-brew.outputs.cache-hit != 'true'
+        if: (success() || failure()) && steps.cache-brew.outputs.cache-hit != 'true'
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/Library/Caches/Homebrew
