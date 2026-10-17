@@ -98,8 +98,12 @@ truth, so the two never diverge.
   public repo must not.
 - `claudecode/claude-hud/config.json` — claude-hud's look, linked in by
   `mklink.sh`. A `/claude-hud:configure` run edits this file, not a copy.
-- `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
-  git hooks, fzf, the `~/.claude` entries.
+- `bin/setup_agent.sh` — any container an agent works in, whichever repos it
+  opened: the check toolchain and the Claude and Codex user configuration. The
+  one line in every cloud environment's Setup script calls it, so changing what
+  a container gets is a change here, not in each environment.
+- `bin/setup_cloud_session.sh` — a container working on this repo:
+  `setup_agent.sh` plus this checkout's git hooks and fzf.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
   script because those entries must also be takeable back out (`mklink.sh`).
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
@@ -123,19 +127,23 @@ truth, so the two never diverge.
   live on every platform: CI and cloud sessions through
   `install_check_tools.sh`, a workstation through `mise install` (run by
   `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
-  PR. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
-  `Brewfile.full` too: a mise shim falls through to the brew binary in a
+  PR. `mise.lock` pins each tool's download URL and sha256 per platform
+  (linux-x64, linux-arm64, macos-arm64) and `install_check_tools.sh` installs
+  with `--locked`, so a bump needs `mise lock` in the same PR or CI fails;
+  the lock is also what lets a container whose GitHub API quota is spent still
+  install. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
+  `Brewfile.extra` too: a mise shim falls through to the brew binary in a
   directory without this config.
 - `tmux-plugins.lock`, and the `rev =` lines in `config/sheldon/plugins.toml` —
   the commit every tmux and zsh plugin is checked out at, bumped by the same
   monthly Renovate PR. A plugin added without a pin fails
   `install_tmux_plugins.sh` (tmux) or clones the branch head (sheldon), so add
   the pin in the same change.
-- `Brewfile.{standard,full,macos,linux}` — Homebrew bundles, sorted A–Z per
+- `Brewfile.{standard,extra,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `standard` = a tool that
   changes everyday use once installed, with no other step (prompt, completion,
   plugin manager, and the replacements the config switches to: eza, bat,
-  zoxide, delta, fzf, nvim); CI installs only `standard`. `full` = tools you
+  zoxide, delta, fzf, nvim); CI installs only `standard`. `extra` = tools you
   run by typing their name. `macos`/`linux` = platform-specific additions.
   Nothing in the config may break when a tool is missing — see the phases in
   `docs/staged-bootstrap.md`.

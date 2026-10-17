@@ -1,4 +1,4 @@
-# Brewfile.full — tools you reach for by typing their name (git / k8s /
+# Brewfile.extra — tools you reach for by typing their name (git / k8s /
 # security utilities, linters, toys). Installing one changes nothing about
 # everyday use, so nothing in the config may break without it. Installed on
 # real machines; skipped in CI. Phases: docs/staged-bootstrap.md.

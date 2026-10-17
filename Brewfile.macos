@@ -1,7 +1,7 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Tap for AeroSpace
 tap "nikitabobko/tap"
-# macOS-only, not in Brewfile.full: Homebrew has no Linux bottle for telnet
+# macOS-only, not in Brewfile.extra: Homebrew has no Linux bottle for telnet
 # (Tier 3, "no bottle available"). On Linux the distro package supplies
 # /usr/bin/telnet instead — see Brewfile.linux.
 # User interface to the TELNET protocol

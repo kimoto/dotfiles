@@ -23,7 +23,7 @@ usage() {
 Usage: brew_bundle_install.sh [--help]
 
 Interactively install every Brewfile bundle for this machine
-(Brewfile.standard, Brewfile.full, plus the platform Brewfile).
+(Brewfile.standard, Brewfile.extra, plus the platform Brewfile).
 
 Phase 1 runs unattended after a single Y/n confirmation; anything that
 needs a human (sudo password, untrusted tap, cask overwritten by a
@@ -91,7 +91,7 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 
 # Same Brewfile selection as brew_bundle_check.sh.
-files=(Brewfile.standard Brewfile.full)
+files=(Brewfile.standard Brewfile.extra)
 case "$(uname)" in
   Darwin) files+=(Brewfile.macos) ;;
   Linux) files+=(Brewfile.linux) ;;

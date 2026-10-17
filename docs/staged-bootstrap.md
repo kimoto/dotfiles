@@ -10,34 +10,37 @@ its own.
 | minimal | nothing can be installed | nothing: the OS's bash, vim and git | `ci_mkworld_phase_test.sh minimal`, `ci_plain_shell_test.sh` (bash half) |
 | basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `ci_mkworld_phase_test.sh basic`, `ci_plain_shell_test.sh` (zsh half), `vim_guard_test` |
 | standard | tools can be installed | `Brewfile.standard` | `ci_zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
-| full | your own machine | `Brewfile.full` + platform Brewfile (macOS casks, Linux stand-ins), tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
+| extra | your own machine | `Brewfile.extra`, tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
+| platform | this OS | `Brewfile.macos` + `setup_macosx.sh`, or `Brewfile.linux` | `bootstrap-macos`, `bootstrap-monthly` |
 
 ## Where a tool goes
 
 - **basic | standard: does it need a separate binary?** sheldon is one, so the
   zsh plugins it loads are standard, while NeoBundle (cloned by `.vimrc`
   itself) stays basic.
-- **standard | full: does installing it change everyday use, with no other
+- **standard | extra: does installing it change everyday use, with no other
   step?** eza (`ls`), bat (`cat`), zoxide (`cd`), delta (`git diff`), fzf
-  (^R) do. kubectl, lazygit, jq, tmux and GUI apps do not: they run only when
-  typed or launched, even when the config carries a completion or a key binding
-  for them.
+  (^R) do. kubectl, lazygit, jq, tmux do not: they run only when typed, even
+  when the config carries a completion or a key binding for them.
+- **extra | platform: does only one OS get it?** GUI casks, macOS system
+  settings and Linux stand-ins go last: they fail most often, and a failure
+  there should not cost extra.
 
-Cloud sessions sit outside the phases: they link only `~/.claude`
-(`bin/link_claude_dir.sh --cloud`), since an agent, not a person, uses that
-shell.
+Agent containers sit outside the phases, since an agent, not a person, uses
+that shell: `bin/setup_agent.sh` installs the check binaries and links the
+Claude and Codex configuration, nothing a person types with.
 
 ## When a phase cannot be reached
 
 `bin/mkworld.sh` climbs the phases in order and stops at the first one it
 cannot reach (no zsh, no sudo for Homebrew, a failed `brew bundle`). Its last
 line says `mkworld: reached <phase>` and why; it exits 0 unless even minimal
-failed. `brew bundle check` decides standard and full, so a caller that
+failed. `brew bundle check` decides standard and extra, so a caller that
 installed the bundles itself (`SKIP_BREW=1`) is judged the same way.
 
 A caller that knows how far it should get sets `MKWORLD_EXPECT=<phase>`, and a
-lower result exits 1: CI's brew jobs expect standard, the monthly bootstrap
-expects full.
+lower result exits 1: CI's brew jobs expect standard, the bootstrap jobs
+expect platform.
 
 Steps that are not a phase (tpm plugins, the Claude Code hooks, mise, lefthook)
 run after the climb whenever their own tool is present, and only warn on

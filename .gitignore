@@ -53,6 +53,7 @@ config/hunk/state.json
 #   !claudecode/rules/<name>.md
 claudecode/rules/*
 !claudecode/rules/autonomy.md
+!claudecode/rules/backups.md
 !claudecode/rules/captures.md
 !claudecode/rules/ci-cost.md
 !claudecode/rules/comments.md

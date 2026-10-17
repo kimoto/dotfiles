@@ -24,7 +24,8 @@ setup() {
   : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
 
   # The real linker, not a stub: a stub tests the call, not the result.
-  cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/"
+  cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/setup_agent.sh" \
+    "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/"
   SETUP="$TMP/repo/bin/setup_cloud_session.sh"
 
   for stub in lefthook sudo apt-get; do

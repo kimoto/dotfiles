@@ -54,21 +54,36 @@ cd "$BASE_DIR"
 # A fresh container has never trusted this checkout, and mise refuses an
 # untrusted config rather than prompting when there is no terminal.
 export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
-mise install
+# A tool that fails to install must not cost the ones that did: a shared egress
+# IP can spend api.github.com's unauthenticated quota before we arrive, and an
+# early exit here would leave every tool off PATH, installed or not.
+# --locked downloads from the URL and checks the sha256 in mise.lock, with no
+# GitHub API call: on a shared egress IP the unauthenticated API quota is often
+# already spent. A version bumped in mise.toml without `mise lock` fails here.
+# Only this repo's tools (--local) are installed and linked: a global mise
+# config (CI links config/ into ~/.config) asks for unpinned tools the lockfile
+# cannot hold, and they are not ours to put on PATH.
+mapfile -t tools < <(mise ls --local --json | jq -r 'keys[]')
+failed=0
+mise install --locked "${tools[@]}" || failed=1
 
 # Links into /usr/local/bin rather than mise's shims: a shim picks the version
 # from the current directory, and the bats suites run these tools from temp
 # directories outside the repo. -f so a version bump replaces an older link.
 # Every executable in each tool's bin dir is linked under its own name, so
 # mise.toml stays the only list of tools; that also links a few harmless
-# extras (an arch-suffixed copy of a binary, uv's uvx). --local keeps out any
-# global mise config on the machine, whose tools are not ours to put on PATH.
-mise ls --local --json | jq -r 'keys[]' | while read -r tool; do
-  mise bin-paths "$tool" | while read -r dir; do
+# extras (an arch-suffixed copy of a binary, uv's uvx).
+# CHECK_TOOLS_BIN_DIR exists for the tests, which cannot write /usr/local/bin.
+bin_dir="${CHECK_TOOLS_BIN_DIR:-/usr/local/bin}"
+for tool in "${tools[@]}"; do
+  # A tool the install above skipped may have no bin path to report; it is
+  # already counted in $failed.
+  { mise bin-paths "$tool" 2>/dev/null || true; } | while read -r dir; do
     for exe in "$dir"/*; do
       if [ -f "$exe" ] && [ -x "$exe" ]; then
-        as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
+        as_root ln -sf "$exe" "$bin_dir/${exe##*/}"
       fi
     done
   done
 done
+exit "$failed"

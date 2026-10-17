@@ -40,7 +40,7 @@ setup() {
 
   # The real scripts, not stubs: a stub tests the call, not the result — the
   # half that was silently missing before.
-  cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
+  cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/setup_agent.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
     "$TMP/repo/bin/"
   for stub in lefthook sudo apt-get; do
     cat >"$TMP/bin/$stub" <<EOF

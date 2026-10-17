@@ -41,11 +41,11 @@ _Source: `Brewfile.standard`._
 | [zsh](https://formulae.brew.sh/formula/zsh) | UNIX shell (command interpreter) |
 | [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
-## Full — tools you run by name
+## Extra — tools you run by name
 
 Installing one changes nothing about everyday use.
 
-_Source: `Brewfile.full`._
+_Source: `Brewfile.extra`._
 
 | Tool | Description |
 | --- | --- |

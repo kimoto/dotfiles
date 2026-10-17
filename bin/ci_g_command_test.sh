@@ -129,7 +129,7 @@ tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd "PATH=$STUB_BIN:$PAT
 # ...and re-prepend it once the shell is up, because .zshrc rebuilds $path with
 # the Homebrew bin directories *ahead* of whatever it inherited. On a machine
 # that has the real ghq installed (any full workstation — ghq is in
-# Brewfile.full) that real ghq shadows the stub and the fixture silently
+# Brewfile.extra) that real ghq shadows the stub and the fixture silently
 # stops being hermetic: `ghq root` answers with the developer's own ~/ghq.
 # CI never noticed because it installs Brewfile.standard only, so there is no real
 # ghq there to win.

@@ -2,7 +2,7 @@
 
 # Behavioural tests for which Brewfiles bin/setup_homebrew.sh installs.
 #
-# Brewfile.full is the expensive half of a bootstrap, and CI wants the cheap
+# Brewfile.extra is the expensive half of a bootstrap, and CI wants the cheap
 # one. That choice used to be made by sniffing $CI, which meant the *one* job
 # built to run the bootstrap with nothing skipped could not opt back in: GitHub
 # Actions exports CI=true into every step, so the full-bootstrap job installed
@@ -23,7 +23,7 @@ setup() {
   mkdir -p "$REPO/bin"
   cp "$REPO_ROOT/bin/setup_homebrew.sh" "$REPO/bin/setup_homebrew.sh"
   chmod +x "$REPO/bin/setup_homebrew.sh"
-  for f in standard full macos linux; do : >"$REPO/Brewfile.$f"; done
+  for f in standard extra macos linux; do : >"$REPO/Brewfile.$f"; done
 
   # Stub brew: records the bundle files it is handed. `command -v brew` has to
   # find it, or the script tries to install Homebrew over the network.
@@ -52,21 +52,21 @@ teardown() {
 # these tests are about — assert on the two that are always in play.
 bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
 
-@test "by default both Brewfile.standard and Brewfile.full are installed" {
+@test "by default both Brewfile.standard and Brewfile.extra are installed" {
   run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -eq 0 ]
   [[ "$(bundles)" == *"Brewfile.standard"* ]]
-  [[ "$(bundles)" == *"Brewfile.full"* ]]
+  [[ "$(bundles)" == *"Brewfile.extra"* ]]
 }
 
-@test "SKIP_BREWFILE_FULL=1 installs Brewfile.standard alone" {
-  SKIP_BREWFILE_FULL=1 run "$REPO/bin/setup_homebrew.sh"
+@test "SKIP_BREWFILE_EXTRA=1 installs Brewfile.standard alone" {
+  SKIP_BREWFILE_EXTRA=1 run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -eq 0 ]
   [ "$(bundles)" = "Brewfile.standard " ]
 }
 
-# The platform bundle (macOS casks, Linux stand-ins) belongs to the full phase.
-@test "the platform bundle comes with Brewfile.full" {
+# The platform bundle (macOS casks, Linux stand-ins) belongs to the extra phase.
+@test "the platform bundle comes with Brewfile.extra" {
   case "$(uname)" in
     Darwin) want="Brewfile.macos" ;;
     Linux) want="Brewfile.linux" ;;
@@ -80,5 +80,5 @@ bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
 @test "CI=true alone skips nothing: a CI job must ask for it" {
   CI=true run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -eq 0 ]
-  [[ "$(bundles)" == *"Brewfile.full"* ]]
+  [[ "$(bundles)" == *"Brewfile.extra"* ]]
 }
