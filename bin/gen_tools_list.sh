@@ -39,7 +39,7 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 if [ "${#files[@]}" -eq 0 ]; then
-    files=(Brewfile.standard Brewfile.full Brewfile.macos Brewfile.linux)
+    files=(Brewfile.standard Brewfile.extra Brewfile.macos Brewfile.linux)
 fi
 
 # Human-friendly heading and blurb per known Brewfile layer. Unknown fixture
@@ -47,7 +47,7 @@ fi
 layer_title() {
     case "$(basename "$1")" in
         Brewfile.standard) echo "Standard — changes everyday use once installed" ;;
-        Brewfile.full) echo "Full — tools you run by name" ;;
+        Brewfile.extra) echo "Extra — tools you run by name" ;;
         Brewfile.macos) echo "macOS apps" ;;
         Brewfile.linux) echo "Linux" ;;
         Brewfile.*) echo "${1##*Brewfile.}" ;;
@@ -57,7 +57,7 @@ layer_title() {
 layer_blurb() {
     case "$(basename "$1")" in
         Brewfile.standard) echo "Prompt, completion, and the replacements the config uses; CI installs only this." ;;
-        Brewfile.full) echo "Installing one changes nothing about everyday use." ;;
+        Brewfile.extra) echo "Installing one changes nothing about everyday use." ;;
         Brewfile.macos) echo "Platform-specific desktop apps (Homebrew casks)." ;;
         Brewfile.linux) echo "Linux-specific additions." ;;
         *) echo "" ;;

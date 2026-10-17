@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bootstrap this machine by climbing the phases in docs/staged-bootstrap.md:
-# minimal -> basic -> standard -> full -> platform. A phase that cannot be reached (no zsh,
+# minimal -> basic -> standard -> extra -> platform. A phase that cannot be reached (no zsh,
 # no sudo for Homebrew, a failed `brew bundle`) ends the climb there instead of
 # the whole run: the phases below it already work on their own, so the machine
 # is left usable one step down. The last line names the phase reached and why
@@ -14,7 +14,7 @@ set -x
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
-PHASES=(minimal basic standard full platform)
+PHASES=(minimal basic standard extra platform)
 phase_rank() {
     local i
     for i in "${!PHASES[@]}"; do
@@ -66,7 +66,7 @@ climb() {
     # SKIP_BREW=1 means the caller already installed them; that is checked
     # below like any other install.
     if [ "${SKIP_BREW:-0}" = "0" ]; then
-        if ! SKIP_BREWFILE_FULL=1 "$BASE_DIR/bin/setup_homebrew.sh"; then
+        if ! SKIP_BREWFILE_EXTRA=1 "$BASE_DIR/bin/setup_homebrew.sh"; then
             stop "Homebrew or Brewfile.standard failed to install"; return
         fi
     fi
@@ -79,10 +79,10 @@ climb() {
     fi
     reached=standard
 
-    # full: Brewfile.full, tools that only run when typed. SKIP_BREWFILE_FULL=1
+    # extra: Brewfile.extra, tools that only run when typed. SKIP_BREWFILE_EXTRA=1
     # leaves it and the platform Brewfile to the caller too.
-    bundle_phase Brewfile.full || return 0
-    reached=full
+    bundle_phase Brewfile.extra || return 0
+    reached=extra
 
     # platform: what only this OS gets, and the likeliest to fail (GUI casks,
     # system settings that need sudo), hence last.
@@ -103,7 +103,7 @@ climb() {
 
 # Install (unless the caller did) and check one Brewfile; a miss ends the climb.
 bundle_phase() {
-    if [ "${SKIP_BREW:-0}" = "0" ] && [ "${SKIP_BREWFILE_FULL:-0}" != "1" ]; then
+    if [ "${SKIP_BREW:-0}" = "0" ] && [ "${SKIP_BREWFILE_EXTRA:-0}" != "1" ]; then
         if ! brew bundle install --file="$BASE_DIR/$1"; then
             stop "$1 failed to install"; return 1
         fi
@@ -118,7 +118,7 @@ load_brew
 
 # What follows is not a phase: each step runs when its own tool is present,
 # whatever phase was reached, and a failure only warns. CI installs tmux without
-# the rest of Brewfile.full and still needs the tmux plugins.
+# the rest of Brewfile.extra and still needs the tmux plugins.
 
 # tpm and its plugins, headlessly (idempotent).
 if command -v tmux >/dev/null 2>&1; then

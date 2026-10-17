@@ -29,7 +29,7 @@ setup() {
   chmod +x "$REPO/bin/brew_bundle_check.sh"
   SCRIPT="$REPO/bin/brew_bundle_check.sh"
   # The script checks these by name; their contents are irrelevant to the stub.
-  for f in Brewfile.standard Brewfile.full Brewfile.macos Brewfile.linux; do
+  for f in Brewfile.standard Brewfile.extra Brewfile.macos Brewfile.linux; do
     echo "brew \"placeholder\"" >"$REPO/$f"
   done
 
