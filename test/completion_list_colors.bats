@@ -13,7 +13,7 @@
 # This file covers the style value only — it is a unit test and runs in the
 # plain static_checks job. That the candidates are then *drawn* coloured needs
 # a real terminal, so it lives with the other interactive e2e tests:
-# bin/ci_completion_colors_test.sh.
+# test/e2e/completion_colors_test.sh.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"

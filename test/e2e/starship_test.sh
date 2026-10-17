@@ -13,7 +13,7 @@
 #   2. the [directory] module reflects $PWD: started in a uniquely-named dir, the
 #      prompt shows that dir name.
 #
-# Like ci_tmux_interactive_test.sh, this needs a Starship install and the
+# Like test/e2e/tmux_interactive_test.sh, this needs a Starship install and the
 # repo's ~/.config (symlinked by mkworld); it runs in the same CI job, after the
 # loading tests.
 set -euo pipefail

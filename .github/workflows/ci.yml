@@ -139,7 +139,7 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The cache holds Brewfile.standard plus tmux, which ci_prepare.sh
+          # The cache holds Brewfile.standard plus tmux, which .github/scripts/prepare.sh
           # installs on demand because it lives in Brewfile.extra; the -tmux
           # suffix forces a rebuild that bakes it in. Bump the vN to evict a
           # bad cache or when the set of extra brew installs changes.
@@ -161,7 +161,7 @@ jobs:
         # One entry point owns the installs (Homebrew + Brewfile.standard,
         # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
         # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
-        run: ./bin/ci_prepare.sh
+        run: ./.github/scripts/prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
@@ -207,7 +207,7 @@ jobs:
         run: ./bin/run_tests.sh
 
       - name: Load to test .zshrc
-        run: ./bin/ci_zsh_loading_test.sh
+        run: ./test/e2e/zsh_loading_test.sh
 
       # ~1 min per run, so not on every branch push: record on main (one data
       # point per merged commit, comparable over time) and on manual dispatch.
@@ -215,7 +215,7 @@ jobs:
       # future check.
       - name: Benchmark zsh startup (timing loop -> job summary + artifact)
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: ./bin/ci_zsh_bench.sh
+        run: ./.github/scripts/zsh_bench.sh
 
       - name: Upload zsh startup bench results
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -225,40 +225,40 @@ jobs:
           path: ${{ runner.temp }}/zsh-startup-bench.txt
 
       - name: Load to test .tmux.conf
-        run: ./bin/ci_tmux_loading_test.sh
+        run: ./test/e2e/tmux_loading_test.sh
 
       - name: Interactive e2e (drive a real terminal, assert on rendered screen)
-        run: ./bin/ci_tmux_interactive_test.sh
+        run: ./test/e2e/tmux_interactive_test.sh
 
       - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
-        run: ./bin/ci_tmux_keybinding_test.sh
+        run: ./test/e2e/tmux_keybinding_test.sh
 
       - name: Interactive e2e for tmux copy-mode (select + yank)
-        run: ./bin/ci_tmux_copymode_test.sh
+        run: ./test/e2e/tmux_copymode_test.sh
 
       - name: e2e for the status bar and dynamic window/pane formats
-        run: ./bin/ci_tmux_status_test.sh
+        run: ./test/e2e/tmux_status_test.sh
 
       - name: e2e for the Claude Code tmux state indicator (hook script + formats)
-        run: ./bin/ci_claude_tmux_indicator_test.sh
+        run: ./test/e2e/claude_tmux_indicator_test.sh
 
       - name: e2e for the hook that keeps a hunk pane on Claude's repo
-        run: ./bin/ci_claude_tmux_hunk_test.sh
+        run: ./test/e2e/claude_tmux_hunk_test.sh
 
       - name: Starship prompt e2e (render in a real terminal, assert segments)
-        run: ./bin/ci_starship_test.sh
+        run: ./test/e2e/starship_test.sh
 
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
-        run: ./bin/ci_g_command_test.sh
+        run: ./test/e2e/g_command_test.sh
 
       - name: Interactive e2e for the w worktree-jump command (git worktree -> fzf -> cd)
-        run: ./bin/ci_w_command_test.sh
+        run: ./test/e2e/w_command_test.sh
 
       - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
-        run: ./bin/ci_keys_command_test.sh
+        run: ./test/e2e/keys_command_test.sh
 
       - name: Interactive e2e for completion candidate colours (list-colors)
-        run: ./bin/ci_completion_colors_test.sh
+        run: ./test/e2e/completion_colors_test.sh
 
   # zsh_loading_test runs whatever tmux the brew cache holds, and that cache only
   # rebuilds when Brewfile.standard changes, so it stays on an old release for
@@ -292,7 +292,7 @@ jobs:
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
       - name: Prepare world (cache phase)
-        run: ./bin/ci_prepare.sh
+        run: ./.github/scripts/prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
@@ -312,28 +312,28 @@ jobs:
           fi
 
       - name: Load to test .tmux.conf
-        run: ./bin/ci_tmux_loading_test.sh
+        run: ./test/e2e/tmux_loading_test.sh
 
       - name: Interactive e2e (drive a real terminal, assert on rendered screen)
-        run: ./bin/ci_tmux_interactive_test.sh
+        run: ./test/e2e/tmux_interactive_test.sh
 
       - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
-        run: ./bin/ci_tmux_keybinding_test.sh
+        run: ./test/e2e/tmux_keybinding_test.sh
 
       - name: Interactive e2e for tmux copy-mode (select + yank)
-        run: ./bin/ci_tmux_copymode_test.sh
+        run: ./test/e2e/tmux_copymode_test.sh
 
       - name: e2e for the status bar and dynamic window/pane formats
-        run: ./bin/ci_tmux_status_test.sh
+        run: ./test/e2e/tmux_status_test.sh
 
       - name: e2e for the Claude Code tmux state indicator (hook script + formats)
-        run: ./bin/ci_claude_tmux_indicator_test.sh
+        run: ./test/e2e/claude_tmux_indicator_test.sh
 
       - name: e2e for the hook that keeps a hunk pane on Claude's repo
-        run: ./bin/ci_claude_tmux_hunk_test.sh
+        run: ./test/e2e/claude_tmux_hunk_test.sh
 
       - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
-        run: ./bin/ci_keys_command_test.sh
+        run: ./test/e2e/keys_command_test.sh
 
   # The standard-phase gate from docs/staged-bootstrap.md: zsh_loading_test
   # above also runs mkworld.sh (tmux plugins, Claude hooks, lefthook), so a
@@ -356,7 +356,7 @@ jobs:
         run: ./bin/mklink.sh
 
       - name: Load to test .zshrc (Brewfile.standard only)
-        run: ./bin/ci_zsh_loading_test.sh
+        run: ./test/e2e/zsh_loading_test.sh
 
   # The minimal and basic phases: distro bash, zsh and vim only, as a non-root
   # user, so the config must work before any extra tool is installed.
@@ -381,11 +381,11 @@ jobs:
       - name: mkworld stops at minimal without zsh, and at basic without sudo
         run: |
           chown -R tester "$GITHUB_WORKSPACE"
-          runuser -u tester -- ./bin/ci_mkworld_phase_test.sh minimal
-          runuser -u tester -- ./bin/ci_mkworld_phase_test.sh basic
+          runuser -u tester -- ./test/e2e/mkworld_phase_test.sh minimal
+          runuser -u tester -- ./test/e2e/mkworld_phase_test.sh basic
 
       - name: bash and zsh start clean without the rich tools
-        run: runuser -u tester -- ./bin/ci_plain_shell_test.sh
+        run: runuser -u tester -- ./test/e2e/plain_shell_test.sh
 
   vim_guard_test:
     if: github.event_name != 'schedule'
@@ -403,10 +403,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends vim neovim tmux
 
       - name: Legacy .vimrc guard (no-plugin startup must be clean)
-        run: ./bin/ci_vim_guard_test.sh
+        run: ./test/e2e/vim_guard_test.sh
 
       - name: Neovim config guard (pure-Lua config loads clean, no plugins)
-        run: ./bin/ci_nvim_guard_test.sh
+        run: ./test/e2e/nvim_guard_test.sh
 
   nvim_loading_test:
     if: github.event_name != 'schedule'
@@ -440,7 +440,7 @@ jobs:
         id: cache-nvim-plugins
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
-          # ci_nvim_loading_test.sh points XDG_DATA_HOME here (via
+          # test/e2e/nvim_loading_test.sh points XDG_DATA_HOME here (via
           # NVIM_E2E_DATA_DIR), so this holds the vim.pack clones of every
           # plugin. Keyed on the plugin list and the lockfile that pins each
           # revision — changing either re-resolves the plugin set. Bump the vN to
@@ -451,7 +451,7 @@ jobs:
             'config/nvim/nvim-pack-lock.json') }}-v1
 
       - name: Neovim e2e (install all plugins, assert clean startup)
-        run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./bin/ci_nvim_loading_test.sh
+        run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./test/e2e/nvim_loading_test.sh
 
       - name: Save nvim plugins cache
         # Runs only when the e2e passed (a failed step stops the job), so a

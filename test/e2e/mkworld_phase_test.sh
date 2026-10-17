@@ -2,8 +2,8 @@
 # mkworld.sh on a machine that cannot climb past <phase> must stop there, say
 # so, and exit 0 — not abort at the first install it cannot do.
 #
-#   ci_mkworld_phase_test.sh minimal   # zsh hidden from PATH
-#   ci_mkworld_phase_test.sh basic     # zsh present, Homebrew not installable
+#   test/e2e/mkworld_phase_test.sh minimal   # zsh hidden from PATH
+#   test/e2e/mkworld_phase_test.sh basic     # zsh present, Homebrew not installable
 #
 # Each run gets its own empty $HOME, the way a fresh account would.
 set -euo pipefail
@@ -16,7 +16,7 @@ case "$want" in
   *) die "usage: $0 minimal|basic" ;;
 esac
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir "$WORK/home"

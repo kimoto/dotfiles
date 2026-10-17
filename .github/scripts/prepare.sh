@@ -12,7 +12,7 @@
 # (idempotent), which also populates the ~/.tmux/plugins cache on a miss.
 set -euo pipefail
 
-BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1
 
 # 1. Homebrew + Brewfile.standard — this is what populates the brew cache, so it

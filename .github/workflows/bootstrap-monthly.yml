@@ -2,8 +2,8 @@
 # Monthly, no-cache, full-workstation bootstrap on Ubuntu.
 #
 # ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
-# slice of it: ci_prepare.sh asks setup_homebrew.sh to leave Brewfile.extra out,
-# ci_prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
+# slice of it: .github/scripts/prepare.sh asks setup_homebrew.sh to leave Brewfile.extra out,
+# .github/scripts/prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
 # suite never links the dotfiles into $HOME. So the parts of the bootstrap a
 # human actually executes are the parts CI never touches, and a run of bugs
 # escaped that way — a `sh <bash script>` that only dash rejects, a formula with
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          ./bin/ci_zsh_loading_test.sh
-          ./bin/ci_tmux_loading_test.sh
-          ./bin/ci_g_command_test.sh
-          ./bin/ci_w_command_test.sh
+          ./test/e2e/zsh_loading_test.sh
+          ./test/e2e/tmux_loading_test.sh
+          ./test/e2e/g_command_test.sh
+          ./test/e2e/w_command_test.sh

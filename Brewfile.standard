@@ -37,7 +37,7 @@ brew "git"
 brew "git-delta"
 # Ping, but with a graph (ping replacement)
 brew "gping"
-# Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh)
+# Command-line benchmarking tool (required by test/e2e/zsh_loading_test.sh)
 brew "hyperfine"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"

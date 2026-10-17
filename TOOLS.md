@@ -30,7 +30,7 @@ _Source: `Brewfile.standard`._
 | [git](https://formulae.brew.sh/formula/git) | Distributed revision control system |
 | [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
 | [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
-| [hyperfine](https://formulae.brew.sh/formula/hyperfine) | Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh) |
+| [hyperfine](https://formulae.brew.sh/formula/hyperfine) | Command-line benchmarking tool (required by test/e2e/zsh_loading_test.sh) |
 | [mise](https://formulae.brew.sh/formula/mise) | Polyglot runtime manager (asdf rust clone) |
 | [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [ripgrep](https://formulae.brew.sh/formula/ripgrep) | Search tool like grep and The Silver Searcher |

@@ -8,7 +8,7 @@
 # dozens of plugins from GitHub on first start, and the
 # per-plugin requires that follow it (lualine, gitsigns, telescope, ...) all need
 # those plugins present. None of that is hermetic, so the full init.lua startup
-# is covered by ci_nvim_loading_test.sh (its own CI job, with the plugin tree
+# is covered by test/e2e/nvim_loading_test.sh (its own CI job, with the plugin tree
 # cached), not here. What this guards cheaply is the
 # pure-config layer we actually hand-edit: basic_config.lua and keymaps.lua are
 # plain vim.opt/keymap Lua with no plugin dependency. This loads exactly those
@@ -16,7 +16,7 @@
 # and sets mapleader the way init.lua does before them) and asserts
 # both that it produces no Lua/Vim errors AND that its options really took effect
 # — a typo'd option name would otherwise fail silently. This is the nvim analogue
-# of ci_vim_guard_test.sh.
+# of test/e2e/vim_guard_test.sh.
 set -euo pipefail
 
 die() { echo "CI error: $*" >&2; exit 1; }

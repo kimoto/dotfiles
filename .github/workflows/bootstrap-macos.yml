@@ -87,7 +87,7 @@ jobs:
 
       - name: Unpack the restored formulae
         if: steps.cache-cellar.outputs.cache-matched-key != ''
-        run: ./bin/ci_brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
+        run: ./.github/scripts/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
 
       - name: List the formulae the image ships
         run: brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
@@ -111,7 +111,7 @@ jobs:
             tar -tf "$RUNNER_TEMP/cellar.tar" | sed -n 's|^Cellar/\([^/]*\)/.*|\1|p' >>"$added"
           fi
           sort -u -o "$added" "$added"
-          ./bin/ci_brew_cellar_cache.sh save "$RUNNER_TEMP/cellar.tar" "$added"
+          ./.github/scripts/brew_cellar_cache.sh save "$RUNNER_TEMP/cellar.tar" "$added"
 
       - name: Save installed formulae
         if: steps.pack.outcome == 'success'
