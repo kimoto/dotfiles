@@ -3,6 +3,13 @@
 # Run the bats unit-test suite (test/*.bats).
 # Single source of truth shared by CI and the lefthook pre-commit hook, so the
 # tests never diverge between local checks and CI.
+#
+# No arguments runs the whole suite (CI). Given paths (pre-commit's staged
+# files), it runs only the .bats files those paths reach: a staged .bats file
+# itself, and every .bats file that names a staged script. The whole suite
+# takes over a minute, and a pre-commit that slow gets skipped with
+# --no-verify; CI still runs all of it. RUN_TESTS_LIST=1 prints the selection
+# instead of running it, so the selection itself can be tested.
 
 set -euo pipefail
 
@@ -21,4 +28,37 @@ if ! command -v bats >/dev/null 2>&1; then
     exit 1
 fi
 
-bats --print-output-on-failure test/
+if [ "$#" -eq 0 ]; then
+    targets=(test/)
+else
+    targets=()
+    for path in "$@"; do
+        case "$path" in
+            test/*.bats) [ -f "$path" ] && targets+=("$path") ;;
+            *.sh)
+                # Matches the basename, so a test that calls the script by
+                # $REPO_ROOT/bin/<name> or sources it is found either way.
+                while IFS= read -r bats_file; do
+                    targets+=("$bats_file")
+                done < <(grep -l -F "$(basename "$path")" test/*.bats || true)
+                ;;
+        esac
+    done
+    if [ "${#targets[@]}" -eq 0 ]; then
+        echo "no .bats file covers the given paths; skipping"
+        exit 0
+    fi
+    # No mapfile: macOS's /bin/bash is 3.2.
+    unique=()
+    while IFS= read -r bats_file; do
+        unique+=("$bats_file")
+    done < <(printf '%s\n' "${targets[@]}" | sort -u)
+    targets=("${unique[@]}")
+fi
+
+if [ -n "${RUN_TESTS_LIST:-}" ]; then
+    printf '%s\n' "${targets[@]}"
+    exit 0
+fi
+
+bats --print-output-on-failure "${targets[@]}"
