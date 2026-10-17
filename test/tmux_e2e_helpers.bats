@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Guards the shared e2e pane conventions in bin/tmux_e2e_helpers.sh.
+# Guards the shared e2e pane conventions in test/e2e/tmux_e2e_helpers.sh.
 # zsh_pane_cmd is the single source of truth for how the interactive-zsh e2e
 # tests spawn their pane (CI cleared, sync/brew startup checks silenced, TERM
 # pinned). These tests pin down every flag it must carry, and — like the
@@ -11,7 +11,7 @@
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   # shellcheck source=/dev/null
-  . "$REPO_ROOT/bin/tmux_e2e_helpers.sh"
+  . "$REPO_ROOT/test/e2e/tmux_e2e_helpers.sh"
 }
 
 @test "zsh_pane_cmd carries every CI pane convention" {
@@ -72,7 +72,8 @@ setup() {
 
 @test "every e2e test that loads the real .tmux.conf disarms continuum restore" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_tmux_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/tmux_*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'tmux_conf_path' "$f" || continue   # doesn't load the real config
     if ! grep -q 'disable_continuum_restore' "$f"; then
       echo "$f loads .tmux.conf but never calls disable_continuum_restore (issue #207)" >&2
@@ -83,7 +84,8 @@ setup() {
 
 @test "every e2e test that spawns an interactive zsh pane uses zsh_pane_cmd" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'ZSH_BIN' "$f" || continue       # doesn't launch zsh
     grep -q 'new-session' "$f" || continue   # doesn't spawn a pane
     if ! grep -q 'zsh_pane_cmd' "$f"; then

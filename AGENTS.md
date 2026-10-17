@@ -49,8 +49,9 @@ before changing or calling the script.
   `./bin/gen_tools_list.sh` after touching a Brewfile.
 - `docs/` — design notes: why, and the change list. A note whose work is built
   stays as the reference for that behaviour (`staged-bootstrap.md` is one).
-- `test/` — bats unit tests; `test/fixtures/` holds what the `ci_*_test.sh`
-  e2e checks need but do not test.
+- `test/` — bats unit tests. `test/e2e/` holds the end-to-end checks CI runs
+  against a real shell/tmux/vim; `test/fixtures/` what they need but do not
+  test. `ci/` is CI-only plumbing (prepare, bench, caches).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
   local half only exists where `lefthook install` ran.
 
@@ -65,7 +66,7 @@ before changing or calling the script.
 - Config files with a top-level `$schema` are validated against it
   (`lint_schema.sh`) — keep the key accurate.
 - TDD: when adding or changing a test, see it fail first (red), then pass.
-  Especially for the `ci_*_test.sh` e2e checks, where a typo'd assertion can
+  Especially for the `test/e2e/` checks, where a typo'd assertion can
   silently pass forever.
 
 ### Conventions

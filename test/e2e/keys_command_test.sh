@@ -14,7 +14,7 @@
 # popup finds the script through ~/bin at all, which is a path the config can
 # only get wrong at runtime.
 #
-# The tmux half nests tmux the way ci_tmux_keybinding_test.sh does (an OUTER
+# The tmux half nests tmux the way test/e2e/tmux_keybinding_test.sh does (an OUTER
 # vanilla server whose pane runs an INNER server with the real config), because
 # send-keys into a plain pane is delivered to the program inside it, never
 # interpreted as a tmux binding. HOME is redirected to a sandbox whose bin/ is a
@@ -23,7 +23,7 @@
 # test/mklink_rmworld_behaviour.bats.
 #
 # ⚠ FAKE_HOME has no ~/.tmux/plugins, so tmux-which-key never loads to win `?`
-# back — see .tmux.conf and ci_tmux_keybinding_test.sh for the real-machine path.
+# back — see .tmux.conf and test/e2e/tmux_keybinding_test.sh for the real-machine path.
 #
 # shellcheck disable=SC2016  # send-keys strings are single-quoted on purpose:
 # every `$PWD`/`$(...)` must be evaluated by the zsh inside the pane, not here.

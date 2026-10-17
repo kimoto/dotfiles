@@ -2,8 +2,8 @@
 # Pack or unpack the formulae one CI run installed into the Homebrew prefix,
 # so a later run on the same image restores them instead of installing again.
 #
-#   ci_brew_cellar_cache.sh save <archive> <added-list>
-#   ci_brew_cellar_cache.sh restore <archive>
+#   ci/brew_cellar_cache.sh save <archive> <added-list>
+#   ci/brew_cellar_cache.sh restore <archive>
 #
 # <added-list> names one formula per line: the ones this run installed, i.e.
 # the diff of `brew list --formula` before and after. For each, the archive

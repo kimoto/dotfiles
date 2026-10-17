@@ -17,8 +17,8 @@
       "Bash(./bin/gen_tools_list.sh --check)",
       "Bash(./bin/run_tests.sh:*)",
       "Bash(bats test/:*)",
-      "Bash(./bin/ci_zsh_loading_test.sh:*)",
-      "Bash(./bin/ci_tmux_loading_test.sh:*)"
+      "Bash(./test/e2e/zsh_loading_test.sh:*)",
+      "Bash(./test/e2e/tmux_loading_test.sh:*)"
     ]
   },
   "hooks": {

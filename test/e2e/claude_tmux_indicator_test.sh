@@ -7,6 +7,7 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+BIN="$(cd "$DIR/../../bin" && pwd)"
 # shellcheck source=/dev/null
 . "$DIR/tmux_e2e_helpers.sh"
 
@@ -37,7 +38,7 @@ PANE1="$(tmux -L "$SOCK" display-message -p '#{pane_id}')"
 
 # Run the hook script the way Claude Code does: a plain child process that
 # only knows it is inside tmux via $TMUX / $TMUX_PANE.
-ind() { TMUX="$SOCK_PATH,0,0" TMUX_PANE="$2" "$DIR/claude_tmux_indicator.sh" "$1"; }
+ind() { TMUX="$SOCK_PATH,0,0" TMUX_PANE="$2" "$BIN/claude_tmux_indicator.sh" "$1"; }
 
 opt() { tmux -L "$SOCK" show-options -gqv "$1"; }
 pane_state() { tmux -L "$SOCK" show-options -pqv -t "$1" @claude_state; }
@@ -120,7 +121,7 @@ ind clear "$PANE1" || die "clear: repeated clear should stay exit 0"
 echo "== clear restores the default colors =="
 
 # 6) outside tmux the hook is a silent no-op.
-out="$(env -u TMUX -u TMUX_PANE "$DIR/claude_tmux_indicator.sh" waiting 2>&1)" \
+out="$(env -u TMUX -u TMUX_PANE "$BIN/claude_tmux_indicator.sh" waiting 2>&1)" \
   || die "outside tmux: expected exit 0"
 [ -z "$out" ] || die "outside tmux: expected no output, got '$out'"
 echo "== outside tmux it is a silent no-op =="

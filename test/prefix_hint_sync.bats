@@ -4,7 +4,7 @@
 # .tmux.conf (what tmux actually draws while the prefix is held) and once as
 # prose in KEYBINDINGS.md telling the reader what to expect there.
 #
-# Nothing else pins those two together. bin/ci_tmux_status_test.sh renders the
+# Nothing else pins those two together. test/e2e/tmux_status_test.sh renders the
 # configured hint and asserts every key pair, so the config and that test cannot
 # drift apart unnoticed — but the document can, and a keybinding reference that
 # misquotes what is on screen is worse than one that says nothing. This is that

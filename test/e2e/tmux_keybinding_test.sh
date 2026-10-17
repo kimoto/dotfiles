@@ -2,7 +2,7 @@
 # Interactive end-to-end test for tmux's OWN key bindings (prefix tables) —
 # the everyday operations send-keys-into-a-pane cannot reach.
 #
-# ci_tmux_interactive_test.sh drives the program *inside* a pane (zsh), so a sent
+# test/e2e/tmux_interactive_test.sh drives the program *inside* a pane (zsh), so a sent
 # `M-t` reaches that program, not tmux: send-keys bypasses tmux's key
 # interpretation. To exercise bindings we nest tmux: an OUTER tmux (vanilla, so
 # its own bindings never interfere) runs a pane whose program is an INNER tmux

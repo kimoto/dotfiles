@@ -4,13 +4,13 @@
 # binary such as eza, bat, starship or sheldon). Both shells must start clean
 # and the everyday commands, git included, must still work, without tmux.
 #
-# ci_zsh_loading_test.sh cannot cover this: its "basic" set already brings the
+# test/e2e/zsh_loading_test.sh cannot cover this: its "basic" set already brings the
 # rich tools, so a .zshrc that only works with them still passes there.
 set -euo pipefail
 
 die() { echo "CI error: $*" >&2; exit 1; }
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # The test means nothing if a rich tool is on PATH: the fallback paths it guards
 # would never run.

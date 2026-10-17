@@ -7,6 +7,7 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+BIN="$(cd "$DIR/../../bin" && pwd)"
 # shellcheck source=/dev/null
 . "$DIR/tmux_e2e_helpers.sh"
 
@@ -58,12 +59,12 @@ tmux -L "$SOCK" set-option -g remain-on-exit on
 SOCK_PATH="$(tmux -L "$SOCK" display-message -p '#{socket_path}')"
 CLAUDE="$(tmux -L "$SOCK" display-message -p '#{pane_id}')"
 HUNK="$(tmux -L "$SOCK" split-window -h -P -F '#{pane_id}' -c "$A" "$HUNK_CMD")"
-BRANCH="$(tmux -L "$SOCK" split-window -v -P -F '#{pane_id}' -c "$A" "$DIR/$BRANCH_CMD")"
+BRANCH="$(tmux -L "$SOCK" split-window -v -P -F '#{pane_id}' -c "$A" "$BIN/$BRANCH_CMD")"
 OTHER="$(tmux -L "$SOCK" new-window -d -P -F '#{pane_id}' -c "$A" "$HUNK_CMD")"
 
 # Run the handler the way Claude Code does: hook JSON on stdin, tmux only
 # known through $TMUX / $TMUX_PANE.
-hook() { printf '%s' "$1" | TMUX="$SOCK_PATH,0,0" TMUX_PANE="$CLAUDE" "$DIR/claude_tmux_hunk.sh"; }
+hook() { printf '%s' "$1" | TMUX="$SOCK_PATH,0,0" TMUX_PANE="$CLAUDE" "$BIN/claude_tmux_hunk.sh"; }
 path_of() { tmux -L "$SOCK" display-message -p -t "$1" '#{pane_current_path}'; }
 pid_of() { tmux -L "$SOCK" display-message -p -t "$1" '#{pane_pid}'; }
 wait_path() { # <pane> <expected> <label>
@@ -120,7 +121,7 @@ wait_path "$HUNK" "$A" "CwdChanged"
 echo "== CwdChanged into another repo moves hunk to that repo's root =="
 
 # 6) Outside tmux the handler is a silent no-op.
-out="$(printf '{"cwd":"%s"}' "$B" | env -u TMUX -u TMUX_PANE "$DIR/claude_tmux_hunk.sh" 2>&1)" \
+out="$(printf '{"cwd":"%s"}' "$B" | env -u TMUX -u TMUX_PANE "$BIN/claude_tmux_hunk.sh" 2>&1)" \
   || die "outside tmux: exited non-zero"
 [ -z "$out" ] || die "outside tmux: printed '$out'"
 echo "== outside tmux it is a silent no-op =="

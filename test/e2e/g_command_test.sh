@@ -17,7 +17,7 @@
 #      exercises the `$(ghq root)/{}/README.*` path construction; and
 #   3. selecting cd's into `$(ghq root)/<dir>`, while aborting leaves $PWD put.
 #
-# Like ci_tmux_interactive_test.sh this drives a real terminal via tmux
+# Like test/e2e/tmux_interactive_test.sh this drives a real terminal via tmux
 # send-keys + capture-pane (the TUI analogue of a browser e2e). fzf is real;
 # the external `ghq` and `bat` are stubbed on PATH so the test is hermetic and
 # needs no network, no real checkouts, and no bat install.

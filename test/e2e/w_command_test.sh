@@ -15,7 +15,7 @@
 #      slice); and
 #   3. aborting (no match, or Esc) leaves $PWD put.
 #
-# Like ci_g_command_test.sh this drives a real terminal via tmux send-keys +
+# Like test/e2e/g_command_test.sh this drives a real terminal via tmux send-keys +
 # capture-pane (the TUI analogue of a browser e2e). fzf and git are real; a
 # throwaway git repo with two linked worktrees is the hermetic fixture, so the
 # test needs no network and no external checkouts.
@@ -78,7 +78,7 @@ echo "== shell live =="
 # and `z` is defined by `zoxide init zsh` via sheldon. In CI the real zoxide is
 # present (Brewfile.standard). For a minimal local run without the sheldon/zoxide
 # bootstrap, define a cd-equivalent `z` fallback so w's `cd "$dir"` still
-# changes directory (mirrors ci_g_command_test.sh).
+# changes directory (mirrors test/e2e/g_command_test.sh).
 tmux -L "$SOCK" send-keys 'command -v z >/dev/null 2>&1 || z() { builtin cd "$@"; }' Enter
 
 # Move into the fixture repo (builtin cd bypasses the z alias) so the

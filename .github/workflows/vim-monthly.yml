@@ -1,7 +1,7 @@
 ---
 # Monthly, no-cache end-to-end test of the legacy NeoBundle-based .vimrc.
 #
-# Runs bin/ci_vim_loading_test.sh, which installs every plugin from scratch and
+# Runs test/e2e/vim_loading_test.sh, which installs every plugin from scratch and
 # asserts Vim then starts with zero errors. The full clone is deliberately
 # uncached so this doubles as a link-rot canary for the deprecated upstreams:
 # if one of the old GitHub repos disappears, the install — and this job — fails
@@ -31,4 +31,4 @@ jobs:
           sudo apt-get install -y --no-install-recommends vim tmux
 
       - name: Legacy vim e2e (install all plugins, assert clean startup)
-        run: ./bin/ci_vim_loading_test.sh
+        run: ./test/e2e/vim_loading_test.sh

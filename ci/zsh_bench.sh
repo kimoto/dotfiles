@@ -22,7 +22,7 @@ die() {
   exit 1
 }
 
-# Same startup toggles as ci_zsh_loading_test.sh: keep the sync/brew reminders
+# Same startup toggles as test/e2e/zsh_loading_test.sh: keep the sync/brew reminders
 # (network + noise) out of the measured startup.
 export DOTFILES_NO_SYNC_CHECK=1
 export DOTFILES_NO_BREW_CHECK=1
@@ -36,7 +36,7 @@ if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
 fi
 command -v zsh >/dev/null || die "zsh not found"
 
-# One timed startup. CI= (empty) for the same reason ci_zsh_loading_test.sh
+# One timed startup. CI= (empty) for the same reason test/e2e/zsh_loading_test.sh
 # runs every probe with it: CI=true switches .zshrc into strict mode
 # (err_exit), which is not how an interactive shell runs for real. The
 # per-run timeout turns any regression into a hang into a fast, attributable

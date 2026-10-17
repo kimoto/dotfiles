@@ -2,7 +2,7 @@
 """A language server that does almost nothing except be a language server.
 
 Enough of LSP for a real Neovim client to spawn it, complete the initialize
-handshake and stay attached, which lets ci_nvim_loading_test.sh assert
+handshake and stay attached, which lets test/e2e/nvim_loading_test.sh assert
 "opening a .ts file attaches a client". Every completion request gets the
 same single item, so the test can see a server's items reach the menu. Installing a real server
 (mason/npm) in CI would test npm, not this config, and the e2e run

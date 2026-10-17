@@ -15,6 +15,8 @@ pre-commit:
     unit-tests:
       glob:
         - "bin/*.sh"
+        - "test/e2e/*.sh"
+        - "ci/*.sh"
         - "test/*.bats"
       run: ./bin/run_tests.sh {staged_files}
     zsh-syntax:

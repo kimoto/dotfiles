@@ -2,7 +2,7 @@
 # Interactive end-to-end test: drives a real terminal by sending keystrokes into
 # a tmux pane and asserting on the rendered screen (capture-pane) — the TUI
 # equivalent of a browser e2e (Playwright). This is deliberately distinct from
-# ci_zsh_loading_test.sh: that one only checks that .zshrc *loads* (via a
+# test/e2e/zsh_loading_test.sh: that one only checks that .zshrc *loads* (via a
 # `script` pty), whereas this drives an interactive zsh rendered in a real
 # terminal and verifies it responds correctly to typed input and zle key
 # presses — the line editor, history recall, and aliases-in-a-real-tty path that
@@ -12,7 +12,7 @@
 # way. `send-keys` feeds the pane's program directly and bypasses tmux's key
 # interpretation, so a sent `M-t` reaches zsh rather than triggering a binding.
 # Driving tmux bindings would require attaching a real client, which is not
-# available headless; .tmux.conf parsing is covered by ci_tmux_loading_test.sh.
+# available headless; .tmux.conf parsing is covered by test/e2e/tmux_loading_test.sh.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"

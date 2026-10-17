@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shared helpers for the tmux e2e tests (bin/ci_tmux_*_test.sh). This file is
+# Shared helpers for the tmux e2e tests (test/e2e/tmux_*_test.sh). This file is
 # *sourced*, not executed — it only defines functions and, as a side effect of
 # sourcing, puts a Homebrew tmux/zsh on PATH when available. Keep it dependency-
 # free so every test can source it the same way:
@@ -63,7 +63,7 @@ zsh_pane_cmd() {
 # copy in the checkout these scripts came from. Not $HOME/.tmux.conf: from a
 # worktree that links to the main checkout, and a run would test main instead
 # of the branch. In CI the two are the same file.
-_TMUX_E2E_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_TMUX_E2E_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 tmux_conf_path() {
   local conf="${TMUX_CONF:-$_TMUX_E2E_REPO/.tmux.conf}"
   [ -f "$conf" ] || die "no .tmux.conf at $conf"
@@ -79,7 +79,7 @@ tmux_conf_path() {
 # asynchronous and off the startup path, so disabling the option the instant the
 # server is up disarms it before it can trigger. CI runners have no
 # ~/.tmux/resurrect state, so the restore is a no-op there; this guards the local
-# `./bin/ci_tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
+# `./test/e2e/tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
 # e2e server started with the real config must call this right after new-session.
 disable_continuum_restore() {
   [ -n "${1:-}" ] || die "disable_continuum_restore needs a socket"
@@ -96,7 +96,7 @@ disable_continuum_restore() {
 # init (fast-syntax-highlighting, autosuggestions, carapace) AFTER the first
 # prompt renders, so the shell can be busy for several seconds past the point it
 # first looks live — a 5s budget flaked on loaded runners (see the vi-alias step
-# in ci_tmux_interactive_test.sh). A step that needs longer still passes an
+# in test/e2e/tmux_interactive_test.sh). A step that needs longer still passes an
 # explicit larger value.
 wait_for_pane() {
   local sock="$1" pattern="$2" tries="${3:-150}" i=0

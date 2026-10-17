@@ -6,7 +6,7 @@
 # This exercises the degrade-gracefully path of .vimrc's bootstrap: with
 # $VIM_NO_BOOTSTRAP set, the auto-install of neobundle is skipped, so the whole
 # plugin block is guarded out. It installs nothing and touches no network, so
-# unlike ci_vim_loading_test.sh (the full monthly install) this is cheap enough
+# unlike test/e2e/vim_loading_test.sh (the full monthly install) this is cheap enough
 # to run on every push.
 set -euo pipefail
 
