@@ -7,7 +7,7 @@
 # A cache-hit signal comes from the workflow as an env var so the expensive,
 # cache-populating Homebrew work runs only on a miss:
 #   BREW_CACHE_HIT  - skip Homebrew + `brew bundle` when 'true'
-# fzf comes in via `brew bundle`; tmux is in Brewfile.full, which CI skips, so
+# fzf comes in via `brew bundle`; tmux is in Brewfile.extra, which CI skips, so
 # it is installed on demand below. The tpm plugins are installed by mkworld
 # (idempotent), which also populates the ~/.tmux/plugins cache on a miss.
 set -euo pipefail
@@ -21,7 +21,7 @@ if [ "${BREW_CACHE_HIT:-}" = "true" ]; then
   echo "== brew cache hit: skipping Homebrew install =="
 else
   echo "== brew cache miss: installing Homebrew + Brewfile.standard =="
-  SKIP_BREWFILE_FULL=1 ./bin/setup_homebrew.sh
+  SKIP_BREWFILE_EXTRA=1 ./bin/setup_homebrew.sh
 fi
 
 # Put brew on PATH for the rest of this script, whichever path ran above.
@@ -31,7 +31,7 @@ elif [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. tmux: in Brewfile.full (it runs only when typed), but every tmux e2e test
+# 2. tmux: in Brewfile.extra (it runs only when typed), but every tmux e2e test
 #    needs it. Baked into the brew cache (key suffix -tmux), so this touches
 #    the network at most once.
 if command -v brew >/dev/null 2>&1; then

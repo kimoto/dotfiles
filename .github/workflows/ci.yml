@@ -138,7 +138,7 @@ jobs:
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
           # The cache holds Brewfile.standard plus tmux, which ci_prepare.sh
-          # installs on demand because it lives in Brewfile.full; the -tmux
+          # installs on demand because it lives in Brewfile.extra; the -tmux
           # suffix forces a rebuild that bakes it in. Bump the vN to evict a
           # bad cache or when the set of extra brew installs changes.
           key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
@@ -186,7 +186,7 @@ jobs:
 
       - name: Install check tools
         # This job installs Brewfile.standard only, and bats-core is in
-        # Brewfile.full — so the suite below has no runner without this. The
+        # Brewfile.extra — so the suite below has no runner without this. The
         # whole toolchain rather than bats alone: the lint_*.bats cases drive
         # the real binaries and fail rather than skip when one is missing.
         run: ./bin/install_check_tools.sh
@@ -348,7 +348,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Homebrew + Brewfile.standard only
-        run: SKIP_BREWFILE_FULL=1 ./bin/setup_homebrew.sh
+        run: SKIP_BREWFILE_EXTRA=1 ./bin/setup_homebrew.sh
 
       - name: Symlink dotfiles (stage 0, no network)
         run: ./bin/mklink.sh

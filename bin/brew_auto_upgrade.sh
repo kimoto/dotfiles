@@ -32,7 +32,7 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-files=(Brewfile.standard Brewfile.full)
+files=(Brewfile.standard Brewfile.extra)
 case "$(uname)" in
     Darwin) files+=(Brewfile.macos) ;;
     Linux) files+=(Brewfile.linux) ;;

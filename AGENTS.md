@@ -132,13 +132,13 @@ truth, so the two never diverge.
   with `--locked`, so a bump needs `mise lock` in the same PR or CI fails;
   the lock is also what lets a container whose GitHub API quota is spent still
   install. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
-  `Brewfile.full` too: a mise shim falls through to the brew binary in a
+  `Brewfile.extra` too: a mise shim falls through to the brew binary in a
   directory without this config.
-- `Brewfile.{standard,full,macos,linux}` — Homebrew bundles, sorted A–Z per
+- `Brewfile.{standard,extra,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `standard` = a tool that
   changes everyday use once installed, with no other step (prompt, completion,
   plugin manager, and the replacements the config switches to: eza, bat,
-  zoxide, delta, fzf, nvim); CI installs only `standard`. `full` = tools you
+  zoxide, delta, fzf, nvim); CI installs only `standard`. `extra` = tools you
   run by typing their name. `macos`/`linux` = platform-specific additions.
   Nothing in the config may break when a tool is missing — see the phases in
   `docs/staged-bootstrap.md`.

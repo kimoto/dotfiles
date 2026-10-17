@@ -53,8 +53,8 @@ teardown() {
 }
 
 @test "leaves third-party (slashed) formula names unlinked" {
-  printf '# Homebrew formula\nbrew "owner/tap/thing"\n' >"$TMP/Brewfile.full"
-  run "$SCRIPT" --stdout "$TMP/Brewfile.full"
+  printf '# Homebrew formula\nbrew "owner/tap/thing"\n' >"$TMP/Brewfile.extra"
+  run "$SCRIPT" --stdout "$TMP/Brewfile.extra"
   [ "$status" -eq 0 ]
   [[ "$output" == *'`owner/tap/thing`'* ]]
   [[ "$output" != *"formulae.brew.sh/formula/owner"* ]]

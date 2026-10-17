@@ -5,7 +5,7 @@
 # installing it, does `ls`, `cd` or the prompt feel different with no other
 # step? If yes, it goes here, along with the zsh, git and coreutils they run
 # on. CI installs ONLY this file. Everything you only reach for by typing its
-# name -> Brewfile.full. Phases: docs/staged-bootstrap.md.
+# name -> Brewfile.extra. Phases: docs/staged-bootstrap.md.
 # NOTE: Keep entries sorted A-Z within this file.
 # Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
