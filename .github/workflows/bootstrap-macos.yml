@@ -1,5 +1,5 @@
 ---
-# mkworld.sh on a Mac, all the way to full: Brewfile.macos's casks and
+# mkworld.sh on a Mac, all the way to platform: Brewfile.macos's casks and
 # setup_macosx.sh run nowhere else in CI. The runner image ships Homebrew
 # already, so this proves the bundles and the climb, not the Homebrew install.
 #
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  full:
+  platform:
     runs-on: macos-latest
     # A cold run downloads every bottle and cask; a few times that.
     timeout-minutes: 90
@@ -59,8 +59,8 @@ jobs:
           path: ~/.tmux/plugins
           key: macos-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
-      - name: mkworld reaches full
-        run: MKWORLD_EXPECT=full ./bin/mkworld.sh
+      - name: mkworld reaches platform
+        run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
 
       # Saved even when mkworld failed: a partial download set still spares the
       # next run, and nothing installed is in it. Not when cancelled, though: an
