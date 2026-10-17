@@ -3,10 +3,9 @@
 # install every declared plugin through vim.pack, exactly as on a fresh
 # machine, then assert a full init.lua startup is clean.
 #
-# This is the nvim analogue of test/e2e/vim_loading_test.sh and the layer above
-# test/e2e/nvim_guard_test.sh (which loads only the plugin-free basic_config.lua).
-# It needs the network (one clone per plugin), so it
-# runs as its own CI job with the installed plugin tree cached, instead of
+# This is the layer above test/e2e/nvim_guard_test.sh (which loads only the
+# plugin-free basic_config.lua). It needs the network (one clone per plugin), so
+# it runs as its own CI job with the installed plugin tree cached, instead of
 # inside the hermetic per-push guard.
 #
 # Set NVIM_E2E_DATA_DIR to a persistent directory to reuse the installed

@@ -402,7 +402,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends vim neovim tmux
 
-      - name: Legacy .vimrc guard (no-plugin startup must be clean)
+      - name: .vimrc guard (startup must be clean)
         run: ./test/e2e/vim_guard_test.sh
 
       - name: Neovim config guard (pure-Lua config loads clean, no plugins)
