@@ -54,7 +54,11 @@ cd "$BASE_DIR"
 # A fresh container has never trusted this checkout, and mise refuses an
 # untrusted config rather than prompting when there is no terminal.
 export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
-mise install
+# A tool that fails to install must not cost the ones that did: a shared egress
+# IP can spend api.github.com's unauthenticated quota before we arrive, and an
+# early exit here would leave every tool off PATH, installed or not.
+failed=0
+mise install || failed=1
 
 # Links into /usr/local/bin rather than mise's shims: a shim picks the version
 # from the current directory, and the bats suites run these tools from temp
@@ -63,12 +67,17 @@ mise install
 # mise.toml stays the only list of tools; that also links a few harmless
 # extras (an arch-suffixed copy of a binary, uv's uvx). --local keeps out any
 # global mise config on the machine, whose tools are not ours to put on PATH.
+# CHECK_TOOLS_BIN_DIR exists for the tests, which cannot write /usr/local/bin.
+bin_dir="${CHECK_TOOLS_BIN_DIR:-/usr/local/bin}"
 mise ls --local --json | jq -r 'keys[]' | while read -r tool; do
-  mise bin-paths "$tool" | while read -r dir; do
+  # A tool the install above skipped may have no bin path to report; it is
+  # already counted in $failed.
+  { mise bin-paths "$tool" 2>/dev/null || true; } | while read -r dir; do
     for exe in "$dir"/*; do
       if [ -f "$exe" ] && [ -x "$exe" ]; then
-        as_root ln -sf "$exe" "/usr/local/bin/${exe##*/}"
+        as_root ln -sf "$exe" "$bin_dir/${exe##*/}"
       fi
     done
   done
 done
+exit "$failed"
