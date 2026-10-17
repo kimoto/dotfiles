@@ -5,6 +5,9 @@
 #
 # A macOS runner costs nothing on a public repo but is slow, so this runs only
 # when a change can move the result, plus weekly for Homebrew drifting under us.
+# That weekly run is the one that installs every formula for real; a PR run
+# restores the formulae a previous run installed (see the Cellar cache below)
+# and only installs what the Brewfiles changed since, plus the casks.
 name: bootstrap-macos
 on:
   pull_request:
@@ -59,8 +62,57 @@ jobs:
           path: ~/.tmux/plugins
           key: macos-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
+      # The installed formulae themselves (Cellar directories plus their
+      # links), not just the downloads: with the downloads cached, the ~4
+      # minutes a run spends are unpacking and installing. Keyed per week so
+      # outdated formulae are reinstalled from scratch at most a week late,
+      # and per Brewfile so an edit falls back (restore-keys) to the previous
+      # set and installs only the difference. Never on the weekly schedule:
+      # that run is what proves the install path still works.
+      - name: Week, for the Cellar cache key
+        id: week
+        run: echo "week=$(date -u +%G-%V)" >>"$GITHUB_OUTPUT"
+
+      - name: Restore installed formulae
+        id: cache-cellar
+        if: github.event_name != 'schedule'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ runner.temp }}/cellar.tar
+          key: macos-cellar-${{ steps.week.outputs.week }}-${{ hashFiles('Brewfile.standard', 'Brewfile.extra') }}-v1
+          restore-keys: |
+            macos-cellar-${{ steps.week.outputs.week }}-
+
+      - name: Unpack the restored formulae
+        if: steps.cache-cellar.outputs.cache-matched-key != ''
+        run: ./bin/ci_brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
+
+      - name: List the formulae the image ships
+        run: brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
+
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
+
+      # Everything mkworld added on top of the image and of what was restored,
+      # together with what was restored, so the archive is the full set.
+      - name: Pack the installed formulae
+        if: steps.cache-cellar.outputs.cache-hit != 'true' && github.event_name != 'schedule'
+        run: |
+          brew list --formula | sort >"$RUNNER_TEMP/formulae-after.txt"
+          added="$RUNNER_TEMP/formulae-added.txt"
+          comm -13 "$RUNNER_TEMP/formulae-before.txt" "$RUNNER_TEMP/formulae-after.txt" >"$added"
+          if [ -s "$RUNNER_TEMP/cellar.tar" ]; then
+            tar -tf "$RUNNER_TEMP/cellar.tar" | sed -n 's|^Cellar/\([^/]*\)/.*|\1|p' >>"$added"
+          fi
+          sort -u -o "$added" "$added"
+          ./bin/ci_brew_cellar_cache.sh save "$RUNNER_TEMP/cellar.tar" "$added"
+
+      - name: Save installed formulae
+        if: steps.cache-cellar.outputs.cache-hit != 'true' && github.event_name != 'schedule'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ runner.temp }}/cellar.tar
+          key: ${{ steps.cache-cellar.outputs.cache-primary-key }}
 
       # Saved even when mkworld failed: a partial download set still spares the
       # next run, and nothing installed is in it. Not when cancelled, though: an
