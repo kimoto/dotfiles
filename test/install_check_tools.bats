@@ -10,6 +10,10 @@ setup() {
   printf '#!/bin/sh\n' >"$TMP/installs/good/good-tool"
   chmod +x "$TMP/installs/good/good-tool"
 
+  # CI runs as a regular user, so the script reaches for sudo to link.
+  printf '#!/bin/sh\nexec "$@"\n' >"$TMP/sysbin/sudo"
+  chmod +x "$TMP/sysbin/sudo"
+
   for real in id uname dirname readlink jq ln cat; do
     real_path="$(command -v "$real")" || return 1
     ln -s "$real_path" "$TMP/sysbin/$real"
