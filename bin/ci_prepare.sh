@@ -7,8 +7,8 @@
 # A cache-hit signal comes from the workflow as an env var so the expensive,
 # cache-populating Homebrew work runs only on a miss:
 #   BREW_CACHE_HIT  - skip Homebrew + `brew bundle` when 'true'
-# tmux and fzf are in Brewfile.standard, so both come in via `brew bundle`.
-# The tpm plugins are installed by mkworld
+# fzf comes in via `brew bundle`; tmux is in Brewfile.full, which CI skips, so
+# it is installed on demand below. The tpm plugins are installed by mkworld
 # (idempotent), which also populates the ~/.tmux/plugins cache on a miss.
 set -euo pipefail
 
@@ -31,7 +31,14 @@ elif [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. Symlinks, lefthook, and tpm plugins (mkworld installs the plugins, which
+# 2. tmux: in Brewfile.full (it runs only when typed), but every tmux e2e test
+#    needs it. Baked into the brew cache (key suffix -tmux), so this touches
+#    the network at most once.
+if command -v brew >/dev/null 2>&1; then
+  brew list tmux >/dev/null 2>&1 || brew install tmux
+fi
+
+# 3. Symlinks, lefthook, and tpm plugins (mkworld installs the plugins, which
 #    populates the ~/.tmux/plugins cache on a miss). brew is handled above.
 SKIP_BREW=1 ./bin/mkworld.sh
 

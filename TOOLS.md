@@ -36,7 +36,6 @@ _Source: `Brewfile.standard`._
 | [ripgrep](https://formulae.brew.sh/formula/ripgrep) | Search tool like grep and The Silver Searcher |
 | [sheldon](https://formulae.brew.sh/formula/sheldon) | Fast, configurable, shell plugin manager |
 | [starship](https://formulae.brew.sh/formula/starship) | Cross-shell prompt for astronauts |
-| [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer (required by bin/ci_tmux_loading_test.sh) |
 | [vivid](https://formulae.brew.sh/formula/vivid) | Generator for LS_COLORS with support for multiple color themes |
 | [zoxide](https://formulae.brew.sh/formula/zoxide) | Shell extension to navigate your filesystem faster |
 | [zsh](https://formulae.brew.sh/formula/zsh) | UNIX shell (command interpreter) |
@@ -93,6 +92,7 @@ _Source: `Brewfile.full`._
 | [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
 | [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
+| [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |

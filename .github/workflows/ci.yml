@@ -134,10 +134,11 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # Everything this cache holds comes from Brewfile.standard (tmux and
-          # fzf included), so its hash covers the contents. Bump the vN to
-          # evict a bad cache.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-v4
+          # The cache holds Brewfile.standard plus tmux, which ci_prepare.sh
+          # installs on demand because it lives in Brewfile.full; the -tmux
+          # suffix forces a rebuild that bakes it in. Bump the vN to evict a
+          # bad cache or when the set of extra brew installs changes.
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -277,7 +278,7 @@ jobs:
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
           # Same key as zsh_loading_test, which owns saving it.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-v4
+          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
 
       - name: Restore tmux plugins cache
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
