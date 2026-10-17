@@ -28,6 +28,8 @@ if [ "$want" = minimal ]; then
   IFS=: read -ra dirs <<<"$PATH"
   for d in "${dirs[@]}"; do
     for f in "$d"/*; do
+      # An empty or missing PATH entry leaves the glob as a literal "*".
+      [ -e "$f" ] || continue
       b="${f##*/}"
       [ "$b" = zsh ] && continue
       [ -e "$WORK/bin/$b" ] || ln -s "$f" "$WORK/bin/$b"
