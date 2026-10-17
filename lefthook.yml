@@ -16,7 +16,7 @@ pre-commit:
       glob:
         - "bin/*.sh"
         - "test/e2e/*.sh"
-        - ".github/scripts/*.sh"
+        - "ci/*.sh"
         - "test/*.bats"
       run: ./bin/run_tests.sh {staged_files}
     zsh-syntax:

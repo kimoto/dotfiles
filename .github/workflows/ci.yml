@@ -139,7 +139,7 @@ jobs:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The cache holds Brewfile.standard plus tmux, which .github/scripts/prepare.sh
+          # The cache holds Brewfile.standard plus tmux, which ci/prepare.sh
           # installs on demand because it lives in Brewfile.extra; the -tmux
           # suffix forces a rebuild that bakes it in. Bump the vN to evict a
           # bad cache or when the set of extra brew installs changes.
@@ -161,7 +161,7 @@ jobs:
         # One entry point owns the installs (Homebrew + Brewfile.standard,
         # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
         # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
-        run: ./.github/scripts/prepare.sh
+        run: ./ci/prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
@@ -215,7 +215,7 @@ jobs:
       # future check.
       - name: Benchmark zsh startup (timing loop -> job summary + artifact)
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: ./.github/scripts/zsh_bench.sh
+        run: ./ci/zsh_bench.sh
 
       - name: Upload zsh startup bench results
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -292,7 +292,7 @@ jobs:
           key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
       - name: Prepare world (cache phase)
-        run: ./.github/scripts/prepare.sh
+        run: ./ci/prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 

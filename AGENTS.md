@@ -51,7 +51,7 @@ before changing or calling the script.
   stays as the reference for that behaviour (`staged-bootstrap.md` is one).
 - `test/` — bats unit tests. `test/e2e/` holds the end-to-end checks CI runs
   against a real shell/tmux/vim; `test/fixtures/` what they need but do not
-  test. `.github/scripts/` is CI-only plumbing (prepare, bench, caches).
+  test. `ci/` is CI-only plumbing (prepare, bench, caches).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
   local half only exists where `lefthook install` ran.
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 
-# Tests for .github/scripts/brew_cellar_cache.sh against a fake Homebrew prefix: save
+# Tests for ci/brew_cellar_cache.sh against a fake Homebrew prefix: save
 # takes only the added formulae's Cellar directories and the links into them,
 # and restore brings both back as they were.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  SCRIPT="$REPO_ROOT/.github/scripts/brew_cellar_cache.sh"
+  SCRIPT="$REPO_ROOT/ci/brew_cellar_cache.sh"
   TMP="$(mktemp -d)"
   export BREW_PREFIX="$TMP/prefix"
   # Two formulae: eza (added by the run) and jq (the image's own).
