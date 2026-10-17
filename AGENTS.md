@@ -98,8 +98,12 @@ truth, so the two never diverge.
   public repo must not.
 - `claudecode/claude-hud/config.json` — claude-hud's look, linked in by
   `mklink.sh`. A `/claude-hud:configure` run edits this file, not a copy.
-- `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
-  git hooks, fzf, the `~/.claude` entries.
+- `bin/setup_agent.sh` — any container an agent works in, whichever repos it
+  opened: the check toolchain and the Claude and Codex user configuration. The
+  one line in every cloud environment's Setup script calls it, so changing what
+  a container gets is a change here, not in each environment.
+- `bin/setup_cloud_session.sh` — a container working on this repo:
+  `setup_agent.sh` plus this checkout's git hooks and fzf.
 - `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
   script because those entries must also be takeable back out (`mklink.sh`).
 - `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/

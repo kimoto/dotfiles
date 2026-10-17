@@ -26,9 +26,9 @@ its own.
   settings and Linux stand-ins go last: they fail most often, and a failure
   there should not cost full.
 
-Cloud sessions sit outside the phases: they link only `~/.claude`
-(`bin/link_claude_dir.sh --cloud`), since an agent, not a person, uses that
-shell.
+Agent containers sit outside the phases, since an agent, not a person, uses
+that shell: `bin/setup_agent.sh` installs the check binaries and links the
+Claude and Codex configuration, nothing a person types with.
 
 ## When a phase cannot be reached
 

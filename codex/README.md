@@ -35,7 +35,7 @@ A non-empty `~/.codex/AGENTS.override.md` takes precedence over `AGENTS.md`. Sta
 
 ## Cloud environments
 
-Use `./bin/setup_cloud_session.sh` as the setup script for this repository's Codex cloud environment. The same entry point remains the Claude Code web setup: it installs the check toolchain and hooks, links the Claude rules and cloud-only guidance, and now also links `codex/config.toml` and the instruction bridge into `${CODEX_HOME:-$HOME/.codex}`. Existing destinations owned by another setup are preserved and reported as `MISS`.
+Use `./bin/setup_cloud_session.sh` as the setup script for this repository's Codex cloud environment; an environment opened on other repos uses `bin/setup_agent.sh` from a clone of this one. The same entry point remains the Claude Code web setup: it installs the check toolchain and hooks, links the Claude rules and cloud-only guidance, and also links `codex/config.toml` and the instruction bridge into `${CODEX_HOME:-$HOME/.codex}`. Existing destinations owned by another setup are preserved and reported as `MISS`.
 
 Codex cloud environment setup is configured outside the repository, so checking in the script does not select it automatically. Set the environment's setup command to `./bin/setup_cloud_session.sh`; Codex invalidates its environment cache when that configured script changes.
 
