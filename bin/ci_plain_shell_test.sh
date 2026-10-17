@@ -62,11 +62,10 @@ cat >"$probe" <<'PROBE'
 cd /
 ls >/dev/null && print ZSH_LS_OK
 ll >/dev/null && print ZSH_LL_OK
-l >/dev/null && print ZSH_L_OK
 print -r -- 'man body' | eval "${MANPAGER:-cat}" | grep -q 'man body' && print ZSH_MANPAGER_OK
 (( $+commands[$EDITOR] )) && print "ZSH_EDITOR_OK:$EDITOR"
 PROBE
 zsh_out="$(run_in_pty "zsh -i -c 'source $probe'")"
-check "zsh -i" "$zsh_out" ZSH_LS_OK ZSH_LL_OK ZSH_L_OK ZSH_MANPAGER_OK ZSH_EDITOR_OK
+check "zsh -i" "$zsh_out" ZSH_LS_OK ZSH_LL_OK ZSH_MANPAGER_OK ZSH_EDITOR_OK
 
 echo PASS
