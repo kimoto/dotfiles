@@ -15,7 +15,7 @@
 # value alone is checked by test/completion_list_colors.bats, but the drawing
 # happens in zsh/complist against a tty. So this drives a real pane via tmux
 # send-keys + capture-pane -e (`-e` keeps the escape sequences that ARE the
-# assertion), the same way the other bin/ci_*_test.sh e2e tests do.
+# assertion), the same way the other test/e2e/ tests do.
 #
 # shellcheck disable=SC2016  # send-keys strings are single-quoted on purpose:
 # every `$LS_COLORS`/`$(...)` must be evaluated by the zsh inside the pane.

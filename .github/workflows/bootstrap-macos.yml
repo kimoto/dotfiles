@@ -18,6 +18,7 @@ on:
       - "bin/setup_homebrew.sh"
       - "bin/setup_macosx.sh"
       - "bin/setup_brew_auto_upgrade.sh"
+      - "ci/brew_cellar_cache.sh"
       - ".github/workflows/bootstrap-macos.yml"
   schedule:
     - cron: "37 7 * * 1"

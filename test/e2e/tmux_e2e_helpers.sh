@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shared helpers for the tmux e2e tests (bin/ci_tmux_*_test.sh). This file is
+# Shared helpers for the tmux e2e tests (test/e2e/tmux_*_test.sh). This file is
 # *sourced*, not executed — it only defines functions and, as a side effect of
 # sourcing, puts a Homebrew tmux/zsh on PATH when available. Keep it dependency-
 # free so every test can source it the same way:
@@ -79,7 +79,7 @@ tmux_conf_path() {
 # asynchronous and off the startup path, so disabling the option the instant the
 # server is up disarms it before it can trigger. CI runners have no
 # ~/.tmux/resurrect state, so the restore is a no-op there; this guards the local
-# `./bin/ci_tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
+# `./test/e2e/tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
 # e2e server started with the real config must call this right after new-session.
 disable_continuum_restore() {
   [ -n "${1:-}" ] || die "disable_continuum_restore needs a socket"

@@ -72,7 +72,8 @@ setup() {
 
 @test "every e2e test that loads the real .tmux.conf disarms continuum restore" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_tmux_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/tmux_*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'tmux_conf_path' "$f" || continue   # doesn't load the real config
     if ! grep -q 'disable_continuum_restore' "$f"; then
       echo "$f loads .tmux.conf but never calls disable_continuum_restore (issue #207)" >&2
@@ -83,7 +84,8 @@ setup() {
 
 @test "every e2e test that spawns an interactive zsh pane uses zsh_pane_cmd" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'ZSH_BIN' "$f" || continue       # doesn't launch zsh
     grep -q 'new-session' "$f" || continue   # doesn't spawn a pane
     if ! grep -q 'zsh_pane_cmd' "$f"; then
