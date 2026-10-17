@@ -74,7 +74,12 @@ climb() {
     if ! command -v brew >/dev/null 2>&1; then
         stop "brew not installed"; return
     fi
-    if ! brew bundle check --file="$BASE_DIR/Brewfile.standard"; then
+    # --no-upgrade: a phase is reached when its tools are installed. Without
+    # it `brew bundle check` also fails on a formula that is merely outdated,
+    # and `brew bundle` updates Homebrew first, so CI's cached install stops
+    # satisfying the same Brewfile the moment upstream publishes a release.
+    # Outdated tools are brew_bundle_check.sh's job at shell startup.
+    if ! brew bundle check --no-upgrade --file="$BASE_DIR/Brewfile.standard"; then
         stop "Brewfile.standard not satisfied"; return
     fi
     reached=standard
@@ -108,7 +113,8 @@ bundle_phase() {
             stop "$1 failed to install"; return 1
         fi
     fi
-    if ! brew bundle check --file="$BASE_DIR/$1"; then
+    # --no-upgrade: installed is enough, see the standard check above.
+    if ! brew bundle check --no-upgrade --file="$BASE_DIR/$1"; then
         stop "$1 not satisfied"; return 1
     fi
 }
