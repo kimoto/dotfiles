@@ -51,17 +51,29 @@ save() {
         echo "Cellar/$name" >>"$list"
     done
     # Links of the added formulae only: a link target carries Cellar/<name>/,
-    # relative (../Cellar/eza/0.20.0/bin/eza) or absolute.
-    local pattern
-    pattern=$(printf 'Cellar/%s/\n' "${names[@]}")
+    # relative (../Cellar/eza/0.20.0/bin/eza) or absolute. One perl process
+    # over all links, not a readlink per link: a prefix holds ~10,000 of them,
+    # and a fork each took over two minutes on the macOS runner.
+    local dirs=()
     for d in "${link_dirs[@]}"; do
-        [ -d "$prefix/$d" ] || continue
-        find "$prefix/$d" -type l | while IFS= read -r link; do
-            if readlink "$link" | grep -qF -f <(printf '%s\n' "$pattern"); then
-                printf '%s\n' "${link#"$prefix"/}"
-            fi
-        done >>"$list"
+        [ -d "$prefix/$d" ] && dirs+=("$prefix/$d")
     done
+    if [ "${#dirs[@]}" -gt 0 ]; then
+        find "${dirs[@]}" -type l -print0 \
+            | perl -0 -ne 'BEGIN { %n = map { $_ => 1 } @ARGV; @ARGV = () }
+                           chomp; my $t = readlink($_) // next;
+                           print "$_\n" if $t =~ m{Cellar/([^/]+)/} && $n{$1}' "${names[@]}" \
+            | sed "s|^$prefix/||" >>"$list"
+    fi
+    # Only what still exists: a link that vanished since the listing would
+    # stop tar, and losing one link is cheaper than losing the whole archive.
+    local kept
+    kept=$(mktemp)
+    while IFS= read -r p; do
+        [ -e "$prefix/$p" ] || [ -L "$prefix/$p" ] || { echo "skipping vanished $p" >&2; continue; }
+        printf '%s\n' "$p"
+    done <"$list" >"$kept"
+    mv -f "$kept" "$list"
     # Plain tar: actions/cache compresses the file it saves, so compressing
     # here would only cost a second pass over the same bytes.
     tar -C "$prefix" -cf "$archive" -T "$list"
