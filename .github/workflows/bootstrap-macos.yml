@@ -95,8 +95,12 @@ jobs:
 
       # Everything mkworld added on top of the image and of what was restored,
       # together with what was restored, so the archive is the full set.
+      # The cache is a bonus on top of a bootstrap that already passed, so a
+      # pack that fails must not turn the job red; it only costs the next run.
       - name: Pack the installed formulae
+        id: pack
         if: steps.cache-cellar.outputs.cache-hit != 'true' && github.event_name != 'schedule'
+        continue-on-error: true
         run: |
           brew list --formula | sort >"$RUNNER_TEMP/formulae-after.txt"
           added="$RUNNER_TEMP/formulae-added.txt"
@@ -108,7 +112,7 @@ jobs:
           ./bin/ci_brew_cellar_cache.sh save "$RUNNER_TEMP/cellar.tar" "$added"
 
       - name: Save installed formulae
-        if: steps.cache-cellar.outputs.cache-hit != 'true' && github.event_name != 'schedule'
+        if: steps.pack.outcome == 'success'
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ runner.temp }}/cellar.tar
