@@ -127,7 +127,11 @@ truth, so the two never diverge.
   live on every platform: CI and cloud sessions through
   `install_check_tools.sh`, a workstation through `mise install` (run by
   `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
-  PR. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
+  PR. `mise.lock` pins each tool's download URL and sha256 per platform
+  (linux-x64, linux-arm64, macos-arm64) and `install_check_tools.sh` installs
+  with `--locked`, so a bump needs `mise lock` in the same PR or CI fails;
+  the lock is also what lets a container whose GitHub API quota is spent still
+  install. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
   `Brewfile.full` too: a mise shim falls through to the brew binary in a
   directory without this config.
 - `Brewfile.{standard,full,macos,linux}` — Homebrew bundles, sorted A–Z per

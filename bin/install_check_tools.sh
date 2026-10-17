@@ -57,8 +57,11 @@ export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
 # A tool that fails to install must not cost the ones that did: a shared egress
 # IP can spend api.github.com's unauthenticated quota before we arrive, and an
 # early exit here would leave every tool off PATH, installed or not.
+# --locked downloads from the URL and checks the sha256 in mise.lock, with no
+# GitHub API call: on a shared egress IP the unauthenticated API quota is often
+# already spent. A version bumped in mise.toml without `mise lock` fails here.
 failed=0
-mise install || failed=1
+mise install --locked || failed=1
 
 # Links into /usr/local/bin rather than mise's shims: a shim picks the version
 # from the current directory, and the bats suites run these tools from temp
