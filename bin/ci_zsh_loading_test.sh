@@ -283,7 +283,7 @@ fi
 # machine and compounds to 500ms+ on CI.
 echo "== zsh startup time budget =="
 if ! command -v hyperfine >/dev/null 2>&1; then
-  die "hyperfine not found; install it (it's in Brewfile.basic)"
+  die "hyperfine not found; install it (it's in Brewfile.standard)"
 fi
 hf_json="$(mktemp)"
 hyperfine --warmup 2 --min-runs 10 --ignore-failure --metrics time_wall_clock \

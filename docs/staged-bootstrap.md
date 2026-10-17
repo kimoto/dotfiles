@@ -91,17 +91,14 @@ other side of the line.
 
 ### What moving `brew "tmux"` to `Brewfile.full` touches
 
-- `Brewfile.standard` header — drop the `ci_tmux_loading_test.sh` clause from the
-  litmus test.
-- `AGENTS.md` — restates the same split rule, same edit.
-- `bin/ci_prepare.sh` — must install tmux on demand. There is an exact precedent
-  three lines above: fzf is already handled this way ("not in Brewfile.standard, so
-  install on demand"). The comment there claiming "tmux already came in via
-  Brewfile.standard" becomes wrong.
+- The split rule needs no edit: tmux runs only when typed, so the phase
+  boundary already puts it in full.
+- `bin/ci_prepare.sh` — must install tmux on demand, since CI installs only
+  `Brewfile.standard`.
 - `.github/workflows/ci.yml` — the Homebrew cache key is
-  `...-${{ hashFiles('Brewfile.standard') }}-fzf-v3`, and its comment says "tmux IS
-  in Brewfile.standard, so the hash already covers it". Both stop being true: bump
-  the suffix (`-fzf-tmux-v4`) so the cache is rebuilt with tmux baked in.
+  `...-${{ hashFiles('Brewfile.standard') }}-v4`, and its comment says the
+  hash covers everything the cache holds. Both stop being true: add a tmux
+  suffix and bump the version so the cache is rebuilt with tmux baked in.
 
 ### Sequencing
 
