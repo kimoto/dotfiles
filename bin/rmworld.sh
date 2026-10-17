@@ -62,6 +62,7 @@ if [ "$(readlink -f ./.codex/AGENTS.md 2>/dev/null)" = "$BASE_DIR/codex/AGENTS.m
     unlink_if_symlink "./.codex/AGENTS.md"
 fi
 unlink_if_symlink "./.claude/rules/dotfiles"
+unlink_if_symlink "./.claude/skills/issue-sweep"
 unlink_if_symlink "./.claude/skills/session-resume"
 unlink_if_symlink "./.claude/skills/wrapup"
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"

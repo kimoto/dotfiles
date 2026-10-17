@@ -72,6 +72,7 @@ fi
 # directory. Adding one means a line here and in bin/rmworld.sh (a test fails
 # if the two lists drift).
 mkdir -p ./.claude/skills
+ln -nsf "$BASE_DIR/claudecode/skills/issue-sweep" ./.claude/skills/issue-sweep
 ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
 ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
 
