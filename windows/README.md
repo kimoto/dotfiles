@@ -22,7 +22,7 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
 | `Brewfile.macos` | Windows | winget ID | Why this one |
 |---|---|---|---|
 | `rectangle` | PowerToys (FancyZones) | `Microsoft.PowerToys` | Snap-to-region window management. FancyZones is the direct analogue and PowerToys carries Run + Keyboard Manager too. |
-| `raycast` | ueli | `OliverSchwendener.ueli` | Cross-platform launcher in the Alfred/Raycast mould. PowerToys Run is the fallback if one launcher is enough. |
+| `raycast` | PowerToys (Command Palette, Advanced Paste) | `Microsoft.PowerToys` | Command Palette is the closest launcher to Raycast, and Advanced Paste in the same suite covers the searchable clipboard history that Raycast supplied on the mac. One install instead of a separate launcher. |
 | `hammerspoon` | AutoHotkey v2 | `AutoHotkey.AutoHotkey` | The Hammerspoon config is global emacs-style text remaps that exclude one app (Ghostty). PowerToys Keyboard Manager can remap but cannot *exclude* an app, which is the whole trick — AHK's `#HotIf not WinActive(...)` can. |
 | `cleanshot` | ShareX | `ShareX.ShareX` | Region/window/scrolling capture, annotation, upload. The usual CleanShot answer on Windows. |
 | `monitorcontrol` | Twinkle Tray | `xanderfrangos.twinkletray` | DDC/CI brightness for external displays from the tray, same job. |
@@ -141,10 +141,12 @@ Hammerspoon remaps that carry over; inside it, it reproduces the Ghostty
 keybinds that reach tmux.
 
 The second half is not a preference. A Mac keyboard sends Win where the mac
-sends Command, and Windows reserves every `Win+<key>` for the shell — so
-`Win+1` launches the first taskbar app and no application may bind it, Windows
-Terminal included. Its `settings.json` cannot express these at all, which is
-what puts them here rather than beside the rest of the terminal's config.
+sends Command, and Windows reserves `Win+<key>` for the shell, so no
+application may bind it, Windows Terminal included. Its `settings.json` cannot
+express these at all, which is what puts them here rather than beside the rest
+of the terminal's config. (On this machine the shell's own `Win+<key>`
+shortcuts are also turned off, see `NoWinKeys` below, but that does not let
+Windows Terminal bind them.)
 
 It is config for an off-the-shelf tool rather than a program, but it *is*
 something to maintain, so the alternatives, and why they were not taken:
@@ -163,3 +165,66 @@ an Emacs kill ring. These apply outside Windows Terminal even when focus is not
 in a text field, replacing the apps' native Ctrl shortcuts. Use Command/Win+A/F/N/P/W
 for select-all, find, new, print, and close-tab instead. Terminal retains native
 shell/editor bindings. Reload the copied AHK script after changing it.
+
+## Restoring this machine's arrangement
+
+`winget import` brings the apps back, but not how they are set up. These are
+the steps a wipe has to repeat by hand, in order.
+
+### 1. Turn off the shell's `Win+<key>` shortcuts (`NoWinKeys`)
+
+```powershell
+New-Item -Force 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer' |
+  New-ItemProperty -Name NoWinKeys -PropertyType DWord -Value 1 -Force
+```
+
+Sign out and back in to apply. This is what lets ⌘ (Win on a Mac keyboard)
+act as Ctrl everywhere without Windows taking the key first.
+
+What it turns off depends on who registers the hotkey, not on whether it
+contains `Win`:
+
+- **Off:** anything the shell itself handles: `Win+1..9` (taskbar apps),
+  `Win+V` (clipboard history), `Win+E`, `Win+R`, `Win+<arrow>` (snap).
+  Clipboard history can show as enabled in Settings and still never open.
+- **Still fires:** hotkeys AutoHotkey and PowerToys register through their own
+  keyboard hooks, `Win` combos included. Avoiding `Win` in every binding is
+  stricter than needed.
+- **Exception:** `Win+L` locks the workstation regardless. `NoWinKeys` does not
+  disable it and AutoHotkey cannot intercept it, so a remap of it never fires.
+
+### 2. PowerToys
+
+- **Turn on "Run at startup" after every reinstall.** An uninstall and install
+  (which winget needs to cross a large version gap) resets it to off, and every
+  hotkey below then silently stops working after the next reboot.
+- Hotkeys, set in each module's settings:
+
+  | Module | Hotkey | Why |
+  |---|---|---|
+  | Command Palette | `Ctrl+Space` | The launcher, same key as Raycast on the mac. |
+  | Advanced Paste | `Ctrl+Win+V` | ⌃⌘+V on a Mac keyboard, Raycast's clipboard history key. |
+  | Peek | `Win+Shift+P` | Ships on `Ctrl+Space`; moved so Command Palette can have it. |
+  | PowerToys Run | `Alt+Space` (default) | Left as shipped. |
+
+- **Collisions to expect.** PowerToys' defaults assume `Win+<key>` belongs to
+  Windows. Here it does not, so its defaults compete with the AutoHotkey
+  bindings, and each newly enabled module is a chance to collide. Known one:
+  Text Extractor ships on `Win+Shift+T`, which is ⇧⌘+T (reopen tab) here. It is
+  harmless only while Text Extractor stays disabled.
+- **Not enabled, but available:** Alt Window Cycle is the counterpart of ⌘+`
+  (switch windows within an app).
+- The upgrade from 0.51 to 0.101 lost nothing: FancyZones had no custom
+  layouts or app history, Keyboard Manager had no remaps, and PowerToys Run was
+  on its default hotkey. winget still refuses that upgrade in place, so it
+  takes an uninstall and install.
+
+### 3. Start the AutoHotkey script at login
+
+The script cannot be linked (see "Two things this list cannot do"), so:
+
+1. Copy `autohotkey/mac-keys.ahk` to `%USERPROFILE%\bin\`.
+2. In the Startup folder (`shell:startup`), create a shortcut whose target is
+   `AutoHotkey64.exe` with the copied script as its argument.
+
+After changing the script in this repo, copy it again and reload it.

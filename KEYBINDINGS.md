@@ -109,12 +109,12 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 Source:
 - Mac: Raycast, in-app
-- Windows: PowerToys Command Palette, in-app
+- Windows: PowerToys Command Palette and Advanced Paste, in-app
 
 | Key | Action |
 |-----|--------|
 | Ctrl+Space | Open launcher |
-| ⌃⌘+V | Clipboard history (Mac only) |
+| ⌃⌘+V | Clipboard history (Windows: Advanced Paste) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
 | Ctrl+1 | Open Chrome (Mac only) |
