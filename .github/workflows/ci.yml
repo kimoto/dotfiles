@@ -364,17 +364,23 @@ jobs:
       - name: Install the distro shells only
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git zsh vim
+          # curl so mkworld really tries the Homebrew installer and is refused
+          # for want of sudo, the way a locked-down account refuses it.
+          apt-get install -y --no-install-recommends ca-certificates curl git zsh vim
           useradd --create-home tester
 
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
 
-      - name: bash and zsh start clean without the rich tools
+      - name: mkworld stops at minimal without zsh, and at basic without sudo
         run: |
           chown -R tester "$GITHUB_WORKSPACE"
-          runuser -u tester -- ./bin/ci_plain_shell_test.sh
+          runuser -u tester -- ./bin/ci_mkworld_phase_test.sh minimal
+          runuser -u tester -- ./bin/ci_mkworld_phase_test.sh basic
+
+      - name: bash and zsh start clean without the rich tools
+        run: runuser -u tester -- ./bin/ci_plain_shell_test.sh
 
   vim_guard_test:
     if: github.event_name != 'schedule'

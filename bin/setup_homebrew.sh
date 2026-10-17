@@ -39,19 +39,19 @@ fi
 
 "$BREW_BIN" bundle install --file=Brewfile.standard
 
-# Brewfile.full is the expensive half, and a caller that only needs a shell to
-# start says so itself. Deliberately not keyed on $CI: Actions exports CI=true
-# into every step, so the one job built to bootstrap with nothing skipped could
-# not opt back in, and installed nothing but Brewfile.standard.
+# Brewfile.full and the platform Brewfile are the full phase: the expensive
+# half, and a caller that only needs a shell to start says so itself.
+# Deliberately not keyed on $CI: Actions exports CI=true into every step, so the
+# one job built to bootstrap with nothing skipped could not opt back in, and
+# installed nothing but Brewfile.standard.
 if [ "${SKIP_BREWFILE_FULL:-0}" != "1" ]; then
     "$BREW_BIN" bundle install --file=Brewfile.full
+    case "$(uname)" in
+        Darwin)
+            "$BREW_BIN" bundle install --file=Brewfile.macos
+            ;;
+        Linux)
+            "$BREW_BIN" bundle install --file=Brewfile.linux
+            ;;
+    esac
 fi
-
-case "$(uname)" in
-    Darwin)
-        "$BREW_BIN" bundle install --file=Brewfile.macos
-        ;;
-    Linux)
-        "$BREW_BIN" bundle install --file=Brewfile.linux
-        ;;
-esac
