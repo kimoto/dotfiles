@@ -1,199 +1,58 @@
 ## Dotfiles Agent Notes
 
 Shared instructions for AI assistants in this repo. `CLAUDE.md` is a symlink to
-this file — edit `AGENTS.md`, never break the symlink.
+this file — edit `AGENTS.md`, never break the symlink. This file is an index:
+every session reads all of it, so the why of each entry lives in the file the
+entry points at (`bin/check_agents_size.sh` caps the size).
 
 ### What this repo is
 
 Personal macOS/Linux dotfiles, symlinked into `$HOME` by `bin/mklink.sh`, tools
-installed via Homebrew (`Brewfile.*`). It's also a CI-tested project: the same
-`bin/` lint scripts run locally (lefthook) and in GitHub Actions — one source of
-truth, so the two never diverge.
+installed via Homebrew (`Brewfile.*`). The same `bin/` lint scripts run locally
+(lefthook) and in GitHub Actions — one source of truth, so the two never diverge.
 
 ### Repository map
 
-- `bin/` — install scripts + the `lint_*`/`check_*` toolchain (shared by CI and
-  lefthook). Key scripts: `mkworld.sh` (bootstrap, climbing the phases in `docs/staged-bootstrap.md`), `mklink.sh` (symlinks,
-  `rmworld.sh` reverses), `install_check_tools.sh` (installs the check toolchain
-  on Linux from `mise.toml`), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
-  `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
-  `claude_idle_recap.sh` + `install_claude_idle_hooks.sh` (on the first prompt
-  after a long absence, tell the model the reader lost the thread — it opens
-  with the problem instead of a diff; see `claudecode/skills/session-resume`).
-  ⚠️ The gap is measured from the end of the last assistant turn, never wall
-  clock: a 40-minute tool run leaves the same hole as someone leaving the desk,
-  and only one of those is an absence. ⚠️ Nothing fires when a person merely
-  looks at a terminal that stayed open — Claude Code has no such event — so the
-  notice rides the first prompt after the gap,
-  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` — it
-  reads `KEYBINDINGS.md`, so adding a row there is what makes a binding
-  discoverable; tmux also binds it to `prefix + ?`, but tmux-which-key rebinds
-  that same key once its plugin loads and wins, so in practice tmux's
-  `prefix + ?` opens which-key instead),
-  `gh_actions_cost.sh` (private-repo Actions minutes: `forecast` projects the
-  month-end against the plan and exits 1 when it will not fit; `breakdown`
-  shows billed vs actual per job — each job is billed rounded up to a minute),
-  `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
-  refuses to run without a terminal; never invoke it from an agent),
-  `check_cloned_repo_hooks.sh` (flags any non-`*.sample` file under a given
-  repo's `.git/hooks/` — a clone ships only samples, so a real file there was
-  added after the clone; run it on a repo from outside before opening it,
-  e.g. one someone else handed you for a project or contract. Human-only, not
-  wired into CI/lefthook, since it targets arbitrary external repos rather
-  than this one),
-  `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
+Each script's header says what it is for and why it is shaped that way; read it
+before changing or calling the script.
+
+- `bin/` — install scripts and the `lint_*`/`check_*` toolchain (CI + lefthook).
+  Bootstrap: `mkworld.sh` (climbs the phases in `docs/staged-bootstrap.md`),
+  `mklink.sh` / `rmworld.sh`, `install_check_tools.sh`, `setup_agent.sh` (any
+  agent container), `setup_cloud_session.sh` (a container on this repo),
+  `link_claude_dir.sh`. Startup reminders: `dotfiles_sync_check.sh`,
+  `brew_bundle_check.sh`, `mise_missing_check.sh`. Generated files:
+  `gen_tools_list.sh` (`TOOLS.md`), `keys.sh` (reads `KEYBINDINGS.md`).
+  Human-only, never from an agent: `brew_bundle_install.sh`,
+  `check_cloned_repo_hooks.sh`, `vscode/install_vscode.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
-- `claudecode/rules/` — Claude Code user rules, linked in as
-  `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
-  every session on the machine; no frontmatter needed (add `paths:` only to
-  scope a rule to matching files). A rule belongs here when it holds on every
-  machine regardless of what is being built: a quirk this setup creates — shell
-  aliases and functions that shadow standard commands, zsh options that change
-  how redirects behave — or a standing judgement short enough that always
-  loading it costs nothing. ⚠️ Both are acted on by the session that reads
-  them; guidance for the person supervising it costs every session and moves
-  none — that goes to the person directly, or to an issue, never here.
-  Machine-specific instructions go in another repo's own `~/.claude/rules/`
-  entry; project-specific ones go in that project's `CLAUDE.md`. It is a conf.d: each source repo links its
-  own subdirectory into `~/.claude/rules/`, so another repo can keep its rules
-  there without this one ever seeing them — which is why mklink/rmworld touch
-  only our own entry, and why `claudecode/rules/` is an allow-list in
-  `.gitignore`. `~/.claude` itself is never symlinked: it also holds runtime state
-  (transcripts, sessions, plugin caches). The directory name avoids `claude/`,
-  which is both too close to this repo's own `.claude/` and, via
-  `core.excludesfile = ~/.gitignore`, would make `claude/*` ignore rules apply
-  in every repo on the machine.
-- `claudecode/skills/` — Claude Code user skills, linked in one by one as
-  `~/.claude/skills/<name>`. A rule costs every session; a skill costs only the
-  session that invokes it, so anything procedural belongs here rather than in
-  `rules/`. Two entries share a machine with skills other tools install, which
-  is why the link is per skill and the `.gitignore` allow-list names each one.
-  ⚠️ These are written in Japanese, against the language rule below, for two
-  reasons: the `description` is what a request is matched against and the
-  requests arrive in Japanese, and a skill is also read by the person deciding
-  whether it says the right thing.
-- `claudecode/rules-cloud/` — linked in as `~/.claude/rules/dotfiles-cloud` only
-  by `bin/link_claude_dir.sh --cloud`. It says what a container lacks, so every
-  line of it is false on a workstation and it must never reach one. Which is
-  why a run *without* the flag, and `mklink.sh`, take the entry back out rather
-  than merely not make it: those two are the workstation, and a `$HOME` that was
-  a container first would otherwise keep telling it `cat` is cat.
-- `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
-  session, for a setting that must hold whichever repo the session was opened
-  on. Its `ask` rules on the rule files are the gate for unattended routines:
-  every routine reads these rules and several hold this repo as a source, so a
-  rule edit must stop at a prompt nobody answers there, while a person in a web
-  session just approves it. ⚠️ Not a wall: a Bash write does not match an
-  `Edit(...)` rule. Its `SessionStart` hook fast-forwards the checkout it is
-  linked from: a cloud environment restores the setup script's result from a
-  cache instead of re-running it, so without the pull every session reads the
-  rules as they were when that cache was built.
-- `claudecode/settings-shared.json` — the keys of a workstation's
-  `~/.claude/settings.json` that should match on every machine (status line,
-  plugins, compaction). `bin/install_claude_settings.sh --sync` keeps the two
-  in step per key, on every shell start (from `dotfiles_sync_check.sh`) and in
-  `mkworld`: a `/config` change made on a machine is copied into this file and
-  shows up as uncommitted, and a value pulled from another machine is applied.
-  The rest of that settings file stays the machine's, since it holds what a
-  public repo must not.
-- `claudecode/claude-hud/config.json` — claude-hud's look, linked in by
-  `mklink.sh`. A `/claude-hud:configure` run edits this file, not a copy.
-- `bin/setup_agent.sh` — any container an agent works in, whichever repos it
-  opened: the check toolchain and the Claude and Codex user configuration. The
-  one line in every cloud environment's Setup script calls it, so changing what
-  a container gets is a change here, not in each environment.
-- `bin/setup_cloud_session.sh` — a container working on this repo:
-  `setup_agent.sh` plus this checkout's git hooks and fzf.
-- `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
-  script because those entries must also be takeable back out (`mklink.sh`).
-- `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
-  `keybindings.json` to this repo (replacing any existing file) and
-  installs/overwrites the `extensions` list. Manual, human-only setup step —
-  not called from `mkworld.sh`, CI, or lefthook; never invoke it from an agent.
+- `claudecode/` — Claude Code user configuration (rules, skills, settings).
+  What belongs where: `claudecode/README.md`.
+- `codex/`, `.codex/skills/` — Codex user defaults and the shared skills
+  (`.claude/skills/<name>/SKILL.md` symlinks to the `.codex/` copy). See
+  `codex/README.md`.
+- `.claude/settings.json`, `.claude/hooks/` — this repo's Claude Code hooks and
+  the allow-list for the read-only check toolchain. Each hook's header says
+  what it does and what it never does. `git-leftovers-reminder.sh` is the
+  exception: registered per machine, not by this file.
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
-- `windows/` — the Windows half of the same workstation, for the WSL host: the
-  `Brewfile.macos` → winget mapping, a winget manifest, the Windows Terminal
-  scheme and the AutoHotkey port of `hammerspoon/init.lua`. Reference and
-  manual `winget import` only — nothing in `bin/` reads it, because a symlink
-  made from WSL under `/mnt/c` is not one Windows follows, so every file here
-  is a copy someone applies by hand.
+- `windows/` — the Windows half of the same workstation; manual copies, nothing
+  in `bin/` reads it. See `windows/README.md`.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
-  tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
-  rebind a key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh,
-  `config/nvim`), update it in the same PR. It is also data, not just docs:
-  `bin/keys.sh` parses its tables into the on-demand cheatsheet, so keep the
-  `| key | action |` table shape and the heading levels intact.
-- `mise.toml` — pinned versions of the lint/check toolchain, the one place they
-  live on every platform: CI and cloud sessions through
-  `install_check_tools.sh`, a workstation through `mise install` (run by
-  `mkworld.sh`). Renovate bumps it (`renovate.json`), grouped into one monthly
-  PR. `mise.lock` pins each tool's download URL and sha256 per platform
-  (linux-x64, linux-arm64, macos-arm64) and `install_check_tools.sh` installs
-  with `--locked`, so a bump needs `mise lock` in the same PR or CI fails;
-  the lock is also what lets a container whose GitHub API quota is spent still
-  install. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
-  `Brewfile.extra` too: a mise shim falls through to the brew binary in a
-  directory without this config.
+  tmux → zsh → nvim). Update it in the same PR as any binding change. It is
+  data: `bin/keys.sh` parses its tables, so keep the table shape and headings.
+- `mise.toml` / `mise.lock` — the pinned check toolchain on every platform;
+  Renovate bumps it monthly. A bump needs `mise lock` in the same PR.
 - `Brewfile.{standard,extra,macos,linux}` — Homebrew bundles, sorted A–Z per
-  section (`check_brewfile_sort.sh`). Split rule: `standard` = a tool that
-  changes everyday use once installed, with no other step (prompt, completion,
-  plugin manager, and the replacements the config switches to: eza, bat,
-  zoxide, delta, fzf, nvim); CI installs only `standard`. `extra` = tools you
-  run by typing their name. `macos`/`linux` = platform-specific additions.
-  Nothing in the config may break when a tool is missing — see the phases in
-  `docs/staged-bootstrap.md`.
-- `TOOLS.md` — generated catalog of every installed tool, built from the
-  `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
-  Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
-  (CI + lefthook run `--check` to enforce it stays in sync).
-- `docs/` — design notes for work that is planned but not built. They record
-  *why* and the change list, so the work starts from a list rather than from
-  scratch; each says so at the top. Nothing here describes current behaviour —
-  that lives next to the code it describes.
-- `test/fixtures/` — helpers the `ci_*_test.sh` e2e checks need but that are
-  not themselves under test: `stub_lsp.py` is a language server that only
-  completes the handshake, so CI can assert "opening a .ts file attaches a
-  client" without installing a real one (which would test npm, not this repo).
+  section. Where a tool goes: `docs/staged-bootstrap.md`.
+- `TOOLS.md` — generated from the Brewfiles. Never hand-edit; run
+  `./bin/gen_tools_list.sh` after touching a Brewfile.
+- `docs/` — design notes: why, and the change list. A note whose work is built
+  stays as the reference for that behaviour (`staged-bootstrap.md` is one).
+- `test/` — bats unit tests; `test/fixtures/` holds what the `ci_*_test.sh`
+  e2e checks need but do not test.
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
-  local half only exists where `lefthook install` ran; a checkout without it
-  commits unchecked, CI green the whole way.
-- `.claude/settings.json` wires these hooks: `SessionStart` (`session-start.sh`,
-  which checks this is the web sandbox and hands the rest to
-  `bin/setup_cloud_session.sh`; and `merged-branch-notice.sh` — when the
-  checked-out branch's PR has merged, tells the starting session how to return
-  to `main`, or in a worktree how to remove it. ⚠️ It only tells, never
-  switches: several sessions can share one checkout and a hook cannot tell whose
-  branch is checked out, so the session does the switch itself, in front of the
-  person. Which is also why a session works in its own worktree, not in the main
-  checkout),
-  `PreToolUse` on Bash (`worktree-guard.sh` — refuses `git worktree add` and
-  `worktree_new.sh` and points at EnterWorktree, see the branch workflow below), and
-  `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
-  reminds to update the PR description to match what was just pushed; a command
-  that only quotes a push stays silent). It also allow-lists the repo's own read-only check
-  toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`,
-  `bin/ci_zsh_loading_test.sh`, `bin/ci_tmux_loading_test.sh`,
-  `bin/gen_tools_list.sh --check`, `bats test/…`) so running a check the way CI
-  runs it needs no prompt; anything that writes (`gen_tools_list.sh` without
-  `--check`, `mklink.sh`, `brew bundle`) stays out.
-- `.claude/hooks/git-leftovers-reminder.sh` — a `Stop` hook that reports how
-  much is uncommitted, untracked, or unpushed as context the agent sees rather
-  than output the user reads, and stays quiet until those counts change.
-  Unlike every other hook here it is **not wired by `.claude/settings.json`**:
-  it is registered per machine in `~/.claude/settings.json` and reached by a
-  symlink nothing in `bin/` creates, so `mkworld.sh` installs the script
-  without enabling it.
-- `codex/` — Codex user defaults and an `AGENTS.md` bridge that reads the
-  current host's `~/.claude/CLAUDE.md` and `~/.claude/rules/`. `mklink.sh`
-  links the config and bridge only when absent; `rmworld.sh` removes only our
-  links. Windows merges config values and uses native Windows symlinks for
-  the bridge and rules; see `codex/README.md`.
-- `.codex/skills/` — the skills, and the single source for both agents:
-  `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
-  is written once. A real directory holding a symlinked `SKILL.md` (not a
-  symlinked directory) keeps discovery working regardless of how each agent
-  walks the tree. `dotfiles-pr-flow` is deliberately Codex-only — it restates
-  the PR rules Claude already reads from this file.
+  local half only exists where `lefthook install` ran.
 
 ### Hooks & CI
 
@@ -205,16 +64,14 @@ truth, so the two never diverge.
 - GitHub Actions `uses:` must be pinned to a full commit SHA, not a tag.
 - Config files with a top-level `$schema` are validated against it
   (`lint_schema.sh`) — keep the key accurate.
-- TDD: when adding or changing a test, prove it fails first (red), then make it
-  pass (green) — never ship a test you've only seen pass. Break the thing under
-  test (or the assertion) so the test actually fails for the expected reason,
-  then revert and confirm green. Especially for the `ci_*_test.sh` e2e checks,
-  where a typo'd assertion can silently pass forever.
+- TDD: when adding or changing a test, see it fail first (red), then pass.
+  Especially for the `ci_*_test.sh` e2e checks, where a typo'd assertion can
+  silently pass forever.
 
 ### Conventions
 
 - `~/.config` must be a symlink to this repo's `config/` (mklink backs up a real
-  one first). Reason: macOS CI runners ship a real `~/.config` that blocks it.
+  one first).
 - `.editorconfig` (enforced): ≤120 cols, no trailing whitespace, final newline.
   Indentation is advisory; Markdown is exempt from line length — don't hard-wrap.
 - Zsh/CI: set `ZDOTDIR` to the repo root; skip `.zshrc` sections in CI via an env
@@ -223,28 +80,23 @@ truth, so the two never diverge.
 
 ### Interaction
 
-- When offering the user a choice between options (next step, approach, where to
-  put something), prefer the `AskUserQuestion` tool over free-text questions —
-  use it whenever the options are discrete enough to enumerate.
+- When offering the user a choice between options, prefer the `AskUserQuestion`
+  tool over free-text questions whenever the options can be enumerated.
 
 ### Branch & PR workflow
 
 - Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.
   lefthook and GitHub branch protection both block it.
 - Work in your own worktree (`claude --worktree`, or the EnterWorktree tool), not
-  in the main checkout. Other sessions share that checkout, and a branch switched
-  there moves under all of them. ⚠️ Not one made in Bash and reached by `cd`:
-  Bash resets its directory after every command, so the session never leaves
-  the main checkout and the hunk pane beside it (`prefix + v` / `V`) stays empty.
-  A hook refuses it.
+  in the main checkout: other sessions share it. ⚠️ Not one reached by `cd` in
+  Bash — the session never leaves the main checkout. A hook refuses it.
 - One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
   with `gh pr edit --body-file`. How to write one is in the shared rules.
-- An auto-created PR (web/remote) starts with an empty body — the template is
-  only injected by the GitHub UI; backfill it from the template before anything.
+- An auto-created PR (web/remote) starts with an empty body; backfill it from
+  the template before anything.
 - Claude Code auto-appends its PR-body / commit trailers — don't remove them.
 - After creating a PR from a session that can receive PR events, subscribe to
-  its activity (`subscribe_pr_activity`) right away without asking — watch CI
-  and review comments and act on them until the PR is merged or closed.
+  its activity (`subscribe_pr_activity`) right away without asking.
 
 ### Language
 

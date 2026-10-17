@@ -73,6 +73,11 @@ pre-commit:
         - "TOOLS.md"
         - "bin/gen_tools_list.sh"
       run: ./bin/gen_tools_list.sh --check
+    agents-size:
+      glob:
+        - "AGENTS.md"
+        - "bin/check_agents_size.sh"
+      run: ./bin/check_agents_size.sh
     keybindings:
       glob:
         - "KEYBINDINGS.md"

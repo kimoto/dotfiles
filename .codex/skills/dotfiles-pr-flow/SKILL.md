@@ -5,6 +5,8 @@ description: DotfilesリポジトリのPR作成フローを、ローカル変更
 
 # Dotfiles PR Flow
 
+Codex-only on purpose: it restates the PR rules Claude already reads from `AGENTS.md`, so `.claude/skills/` carries no link to it.
+
 ## Overview
 
 dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更、チェック、コミット、push、PR作成までを順に行う。
