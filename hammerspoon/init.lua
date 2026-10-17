@@ -56,6 +56,9 @@ appWatcher:start()
 local frontmost = hs.application.frontmostApplication()
 setHotkeysEnabled(not frontmost or isRemapTarget(frontmost:name()))
 
+-- ===== Per-monitor-set display arrangement =====
+require("displays").start()
+
 -- Auto-reload this config whenever a file in ~/.hammerspoon changes.
 configWatcher = hs.pathwatcher.new(hs.configdir, hs.reload)
 configWatcher:start()
