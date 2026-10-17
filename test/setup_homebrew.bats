@@ -59,20 +59,20 @@ bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
   [[ "$(bundles)" == *"Brewfile.full"* ]]
 }
 
-@test "SKIP_BREWFILE_FULL=1 drops the expensive bundle and keeps the rest" {
+@test "SKIP_BREWFILE_FULL=1 installs Brewfile.standard alone" {
   SKIP_BREWFILE_FULL=1 run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -eq 0 ]
-  [[ "$(bundles)" == *"Brewfile.standard"* ]]
-  [[ "$(bundles)" != *"Brewfile.full"* ]]
+  [ "$(bundles)" = "Brewfile.standard " ]
 }
 
-@test "the platform bundle is installed either way" {
+# The platform bundle (macOS casks, Linux stand-ins) belongs to the full phase.
+@test "the platform bundle comes with Brewfile.full" {
   case "$(uname)" in
     Darwin) want="Brewfile.macos" ;;
     Linux) want="Brewfile.linux" ;;
     *) skip "no platform bundle on $(uname)" ;;
   esac
-  SKIP_BREWFILE_FULL=1 run "$REPO/bin/setup_homebrew.sh"
+  run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -eq 0 ]
   [[ "$(bundles)" == *"$want"* ]]
 }

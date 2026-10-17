@@ -9,8 +9,8 @@ its own.
 |---|---|---|---|
 | minimal | nothing can be installed | nothing: the OS's bash, vim and git | `ci_mkworld_phase_test.sh minimal`, `ci_plain_shell_test.sh` (bash half) |
 | basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `ci_mkworld_phase_test.sh basic`, `ci_plain_shell_test.sh` (zsh half), `vim_guard_test` |
-| standard | tools can be installed | `Brewfile.standard` (plus the platform Brewfile) | `ci_zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
-| full | your own machine | `Brewfile.full`, tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
+| standard | tools can be installed | `Brewfile.standard` | `ci_zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
+| full | your own machine | `Brewfile.full` + platform Brewfile (macOS casks, Linux stand-ins), tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
 
 ## Where a tool goes
 
@@ -19,8 +19,9 @@ its own.
   itself) stays basic.
 - **standard | full: does installing it change everyday use, with no other
   step?** eza (`ls`), bat (`cat`), zoxide (`cd`), delta (`git diff`), fzf
-  (^R) do. kubectl, lazygit, jq, tmux do not: they run only when typed, even
-  when the config carries a completion or a key binding for them.
+  (^R) do. kubectl, lazygit, jq, tmux and GUI apps do not: they run only when
+  typed or launched, even when the config carries a completion or a key binding
+  for them.
 
 Cloud sessions sit outside the phases: they link only `~/.claude`
 (`bin/link_claude_dir.sh --cloud`), since an agent, not a person, uses that

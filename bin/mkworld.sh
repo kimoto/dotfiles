@@ -62,7 +62,7 @@ climb() {
     fi
     reached=basic
 
-    # standard: Homebrew and Brewfile.standard (plus the platform Brewfile).
+    # standard: Homebrew and Brewfile.standard.
     # SKIP_BREW=1 means the caller already installed them; that is checked
     # below like any other install.
     if [ "${SKIP_BREW:-0}" = "0" ]; then
@@ -79,15 +79,24 @@ climb() {
     fi
     reached=standard
 
-    # full: Brewfile.full. SKIP_BREWFILE_FULL=1 leaves it to the caller too.
-    if [ "${SKIP_BREW:-0}" = "0" ] && [ "${SKIP_BREWFILE_FULL:-0}" != "1" ]; then
-        if ! brew bundle install --file="$BASE_DIR/Brewfile.full"; then
-            stop "Brewfile.full failed to install"; return
+    # full: Brewfile.full and the platform Brewfile (macOS casks, Linux
+    # stand-ins), which only run when launched or typed. SKIP_BREWFILE_FULL=1
+    # leaves them to the caller too.
+    local f files=(Brewfile.full)
+    case "$(uname)" in
+        Darwin) files+=(Brewfile.macos) ;;
+        Linux) files+=(Brewfile.linux) ;;
+    esac
+    for f in "${files[@]}"; do
+        if [ "${SKIP_BREW:-0}" = "0" ] && [ "${SKIP_BREWFILE_FULL:-0}" != "1" ]; then
+            if ! brew bundle install --file="$BASE_DIR/$f"; then
+                stop "$f failed to install"; return
+            fi
         fi
-    fi
-    if ! brew bundle check --file="$BASE_DIR/Brewfile.full"; then
-        stop "Brewfile.full not satisfied"; return
-    fi
+        if ! brew bundle check --file="$BASE_DIR/$f"; then
+            stop "$f not satisfied"; return
+        fi
+    done
     reached=full
 }
 
