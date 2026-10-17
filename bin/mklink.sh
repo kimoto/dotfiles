@@ -7,6 +7,8 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
 cd "$HOME"
 ln -nsf "$BASE_DIR/bin/" ./bin
+# ~/.config must be the repo's config/, not a real directory: macOS CI runners
+# ship a real one, so an existing directory is moved aside first.
 if [ -d "$HOME/.config" ] && [ ! -L "$HOME/.config" ]; then
     backup_path="$HOME/.config.bak.$(date +%Y%m%d%H%M%S)"
     mv "$HOME/.config" "$backup_path"

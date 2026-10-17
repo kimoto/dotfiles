@@ -63,6 +63,8 @@ jobs:
         run: ./bin/gen_tools_list.sh --check
       - name: Check KEYBINDINGS.md against config/ghostty/config and .aerospace.toml
         run: ./bin/check_keybindings.sh
+      - name: Check AGENTS.md stays an index (size cap)
+        run: ./bin/check_agents_size.sh
       - name: Check for sensitive filenames
         run: ./bin/check_secret_files.sh
       - name: Scan for secrets (gitleaks)

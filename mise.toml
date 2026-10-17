@@ -3,6 +3,9 @@
 # (CI, cloud sessions); on a workstation `mise install` here does the same.
 # Each tool names its backend explicitly so Renovate can map it to a
 # datasource without relying on mise's registry aliases.
+# Tools also used outside this repo (actionlint, gitleaks, yq, lefthook,
+# shellcheck) stay in Brewfile.extra too: a mise shim falls through to the brew
+# binary in a directory without this config.
 [tools]
 "aqua:biomejs/biome" = "2.5.10"
 "aqua:editorconfig-checker/editorconfig-checker" = "3.11.2"

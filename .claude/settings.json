@@ -13,6 +13,7 @@
       "Bash(./bin/lint_yaml.sh:*)",
       "Bash(./bin/check_brewfile_sort.sh:*)",
       "Bash(./bin/check_secret_files.sh:*)",
+      "Bash(./bin/check_agents_size.sh:*)",
       "Bash(./bin/gen_tools_list.sh --check)",
       "Bash(./bin/run_tests.sh:*)",
       "Bash(bats test/:*)",
