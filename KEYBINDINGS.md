@@ -213,7 +213,7 @@ Source:
 
 ### With prefix (C-t)
 
-While the prefix is held, status-right shows `? help  G git  v hunk  t shell`.
+While the prefix is held, status-right shows `? help  v hunk  t shell`.
 
 | Key | Action |
 |-----|--------|
@@ -227,7 +227,6 @@ While the prefix is held, status-right shows `? help  G git  v hunk  t shell`.
 | prefix + r | Reload ~/.tmux.conf |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
-| prefix + G | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
 | prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
 | prefix + A | Same, but forking this pane's Claude Code session |
@@ -321,14 +320,9 @@ Source:
 | Command | Action |
 |---------|--------|
 | `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
-| `lg [args]` | lazygit; cd to where you left it |
-| `b [query]` | Switch git branch (fzf; last-15-commits preview) |
-| `B` | GitHub branch browser (`gh branch` extension) |
 | `w [query]` | Jump to a git worktree (fzf) |
 | `W <type>/<short-desc>` | New worktree for that branch off the default branch, and cd into it |
 | `c` | Switch Kubernetes context (`kubectx`) |
-| `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
-| `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a snippet; bare `snip` edits them |
 | `keys [query]` | Search these tables (same as ⌃+X ?) |

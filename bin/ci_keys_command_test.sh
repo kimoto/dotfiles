@@ -126,8 +126,8 @@ wait_for_pane "$OUTER" '\[tmux '
 if tmux -L "$OUTER" capture-pane -p | grep -qE '\[Neovim'; then
   die "prefix + ? did not pre-filter to the tmux layer"
 fi
-tmux -L "$OUTER" send-keys 'lazygit'
-wait_for_pane "$OUTER" '\[tmux .*lazygit'
+tmux -L "$OUTER" send-keys 'hunk'
+wait_for_pane "$OUTER" '\[tmux .*hunk'
 echo "== prefix + ? opened the cheatsheet popup, filtered to tmux =="
 
 # 5) Esc closes the popup and hands the pane back.

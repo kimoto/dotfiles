@@ -163,7 +163,7 @@ print "ZSHRC_ZWC_TMP=$([[ -e ${ZDOTDIR:-$HOME}/.zshrc.new.zwc ]] && echo left-be
 for o in autocd autopushd share_history interactivecomments noclobber; do
   [[ -o $o ]] && print "OPT_ON:$o"
 done
-for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
+for fn in ll temp g livegrep snip keys source-if-exist; do
   whence -w "$fn"
 done
 # macOS parity shims: functions off macOS, the real binaries on it. Printing
@@ -220,7 +220,7 @@ for opt in autocd autopushd share_history interactivecomments noclobber; do
 done
 
 # utility functions defined in .zshrc
-for fn in ll temp lg g l px livegrep snip keys source-if-exist; do
+for fn in ll temp g livegrep snip keys source-if-exist; do
   require_grep "function not defined: $fn" "$env_out" "$fn: function"
 done
 
