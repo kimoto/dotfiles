@@ -73,7 +73,7 @@ jobs:
           cat >"$RUNNER_TEMP/bootstrap.sh" <<'EOF'
           #!/bin/sh
           cd "$GITHUB_WORKSPACE" || exit 1
-          MKWORLD_EXPECT=full ./bin/mkworld.sh
+          MKWORLD_EXPECT=platform ./bin/mkworld.sh
           echo $? >"$RUNNER_TEMP/mkworld.rc"
           tmux wait-for -S bootstrapped
           EOF
