@@ -36,13 +36,36 @@ end
 
 -- The set's key: sorted model names, so plugging the same monitors into
 -- different ports still matches. Two identical monitors appear twice.
+function M.setKey(names)
+   local sorted = {}
+   for i, name in ipairs(names) do
+      sorted[i] = name
+   end
+   table.sort(sorted)
+   return table.concat(sorted, " + ")
+end
+
 local function currentSetKey()
    local names = {}
    for _, screen in ipairs(hs.screen.allScreens()) do
       table.insert(names, screen:name() or "unknown")
    end
-   table.sort(names)
-   return table.concat(names, " + ")
+   return M.setKey(names)
+end
+
+-- What a settled screen change calls for. Kept free of hs.* so the tests can
+-- run it without a Mac or any monitors.
+--   "apply": a different set was plugged in and has a saved arrangement.
+--   "save":  the arrangement in use is not the one remembered for this set.
+--   "none":  already matches.
+function M.decide(lastSetKey, setKey, saved, current)
+   if setKey ~= lastSetKey and saved and saved ~= current then
+      return "apply"
+   end
+   if saved ~= current then
+      return "save"
+   end
+   return "none"
 end
 
 -- The last line of `displayplacer list` is a ready-made command that recreates
@@ -87,9 +110,10 @@ function M.start()
       end
       local arrangements = load()
       local saved = arrangements[setKey]
+      local action = M.decide(lastSetKey, setKey, saved, arrangement)
+      lastSetKey = setKey
 
-      if setKey ~= lastSetKey and saved and saved ~= arrangement then
-         lastSetKey = setKey
+      if action == "apply" then
          -- The saved line starts with "displayplacer"; run it by full path,
          -- since Hammerspoon does not inherit the shell's PATH.
          local _, ok = hs.execute(bin .. saved:sub(#"displayplacer" + 1))
@@ -103,8 +127,7 @@ function M.start()
          return
       end
 
-      lastSetKey = setKey
-      if saved ~= arrangement then
+      if action == "save" then
          arrangements[setKey] = arrangement
          store(arrangements)
       end
