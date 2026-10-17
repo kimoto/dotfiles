@@ -40,6 +40,6 @@ fi
 
 # 3. Symlinks, lefthook, and tpm plugins (mkworld installs the plugins, which
 #    populates the ~/.tmux/plugins cache on a miss). brew is handled above.
-SKIP_BREW=1 ./bin/mkworld.sh
+SKIP_BREW=1 MKWORLD_EXPECT=standard ./bin/mkworld.sh
 
 echo "== cache phase complete =="

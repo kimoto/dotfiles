@@ -1,12 +1,12 @@
 # Staged bootstrap — design note
 
-Status: **planned, not implemented.** Written up so the work can start from a
-list instead of from scratch. Nothing in `bin/` implements this yet.
+Status: **the climb is implemented** in `bin/mkworld.sh`; resumability and the
+recovery hint below are not.
 
 ## The problem
 
-`bin/mkworld.sh` is all-or-nothing. It runs under `set -e`, so the first
-non-zero exit anywhere aborts every remaining step, and `set -x` buries that
+`bin/mkworld.sh` was all-or-nothing. It ran under `set -e`, so the first
+non-zero exit anywhere aborted every remaining step, and `set -x` buried that
 fact in several hundred lines of trace.
 
 This is not hypothetical. `mkworld.sh` died at the Homebrew step on Ubuntu: it
@@ -26,8 +26,8 @@ phase's tools are missing. CI checks each one on its own.
 
 | Phase | Assumes | May install | Gate |
 |---|---|---|---|
-| minimal | nothing can be installed | nothing: the OS's bash, vim and git | `ci_plain_shell_test.sh` (bash half) |
-| basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `ci_plain_shell_test.sh` (zsh half), `vim_guard_test` |
+| minimal | nothing can be installed | nothing: the OS's bash, vim and git | `ci_mkworld_phase_test.sh minimal`, `ci_plain_shell_test.sh` (bash half) |
+| basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `ci_mkworld_phase_test.sh basic`, `ci_plain_shell_test.sh` (zsh half), `vim_guard_test` |
 | standard | tools can be installed | `Brewfile.standard` | `ci_zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
 | full | your own machine | `Brewfile.full` (tmux included) + platform Brewfile, tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
 
@@ -47,21 +47,26 @@ shell.
 
 ## Design decisions
 
-**1. Record and continue, do not `set -e` the whole run.** Today "this stage
-failed" and "abort everything" are the same thing. Instead: run each stage,
-record pass/fail, keep going wherever the dependency allows, print a summary,
-exit non-zero if anything failed. `bin/brew_bundle_install.sh` already works
-this way (unattended pass → collect failures → interactive phase at the end),
-so there is a precedent in-tree to copy rather than invent.
+**1. Climb, and stop one phase down instead of aborting.** `mkworld.sh` tries
+the phases in order. The first one it cannot reach ends the climb, and the
+machine is left at the phase below, which works on its own. The last line says
+`mkworld: reached <phase>` and why it stopped; the exit status is 0 unless even
+minimal failed. A caller that knows how far it should get sets
+`MKWORLD_EXPECT=<phase>`, and a lower result exits 1: CI's brew jobs expect
+standard, the monthly bootstrap expects full.
 
-**2. Gate on the self-test, not on the installer's exit code.** A `brew bundle
-install` that exits non-zero because one cask failed does not mean the shell is
-broken. The only question that decides whether to continue is "does the shell
-still load", and `ci_zsh_loading_test.sh` already answers exactly that.
+Steps that are not a phase (tpm plugins, the Claude Code hooks, mise, lefthook)
+run after the climb whenever their own tool is present, and only warn on
+failure.
 
-**3. Reorder while we are in there.** `mkworld.sh` currently runs `lefthook
-install` and the Claude tmux hooks *last*, after the slowest and most
-network-dependent work. Cheap, local, high-value steps should come first.
+**2. A phase is reached when its Brewfile is satisfied, and CI proves its shell
+works.** `brew bundle check` decides standard and full, so a caller that
+installed the bundle itself (`SKIP_BREW=1`) is judged the same way. Whether the
+shell still loads at that phase is the self-tests' job, per the table above.
+
+**3. Climb in phase order.** The NeoBundle submodule is basic, so it runs before
+Homebrew; it used to run after, and a failed Homebrew install left even basic
+unfinished.
 
 Wanted alongside: resumability (`--from=full`, or a stamp file per completed
 phase), and an escape hatch printed when standard fails ("you are in bash, here

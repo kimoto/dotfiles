@@ -13,7 +13,7 @@ truth, so the two never diverge.
 ### Repository map
 
 - `bin/` — install scripts + the `lint_*`/`check_*` toolchain (shared by CI and
-  lefthook). Key scripts: `mkworld.sh` (full bootstrap), `mklink.sh` (symlinks,
+  lefthook). Key scripts: `mkworld.sh` (bootstrap, climbing the phases in `docs/staged-bootstrap.md`), `mklink.sh` (symlinks,
   `rmworld.sh` reverses), `install_check_tools.sh` (installs the check toolchain
   on Linux from `mise.toml`), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
   `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
