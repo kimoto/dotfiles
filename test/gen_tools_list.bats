@@ -12,7 +12,7 @@ setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/gen_tools_list.sh"
   TMP="$(mktemp -d)"
-  cat >"$TMP/Brewfile.basic" <<'EOF'
+  cat >"$TMP/Brewfile.standard" <<'EOF'
 # NOTE: Keep entries sorted A-Z within this file.
 # Additional Homebrew tap
 tap "some/tap"
@@ -33,14 +33,14 @@ teardown() {
 }
 
 @test "renders each entry with its preceding description" {
-  run "$SCRIPT" --stdout "$TMP/Brewfile.basic"
+  run "$SCRIPT" --stdout "$TMP/Brewfile.standard"
   [ "$status" -eq 0 ]
   [[ "$output" == *"| [eza](https://formulae.brew.sh/formula/eza) | Modern, maintained replacement for ls |"* ]]
   [[ "$output" == *"| [starship](https://formulae.brew.sh/formula/starship) | Cross-shell prompt for astronauts |"* ]]
 }
 
 @test "drops tap entries from the catalog" {
-  run "$SCRIPT" --stdout "$TMP/Brewfile.basic"
+  run "$SCRIPT" --stdout "$TMP/Brewfile.standard"
   [ "$status" -eq 0 ]
   [[ "$output" != *"some/tap"* ]]
 }
@@ -53,8 +53,8 @@ teardown() {
 }
 
 @test "leaves third-party (slashed) formula names unlinked" {
-  printf '# Homebrew formula\nbrew "owner/tap/thing"\n' >"$TMP/Brewfile.common"
-  run "$SCRIPT" --stdout "$TMP/Brewfile.common"
+  printf '# Homebrew formula\nbrew "owner/tap/thing"\n' >"$TMP/Brewfile.full"
+  run "$SCRIPT" --stdout "$TMP/Brewfile.full"
   [ "$status" -eq 0 ]
   [[ "$output" == *'`owner/tap/thing`'* ]]
   [[ "$output" != *"formulae.brew.sh/formula/owner"* ]]
@@ -76,20 +76,20 @@ teardown() {
 
 @test "--check passes on a freshly written file and fails after it drifts" {
   export TOOLS_OUTPUT="$TMP/TOOLS.md"
-  run "$SCRIPT" "$TMP/Brewfile.basic"
+  run "$SCRIPT" "$TMP/Brewfile.standard"
   [ "$status" -eq 0 ]
-  run "$SCRIPT" --check "$TMP/Brewfile.basic"
+  run "$SCRIPT" --check "$TMP/Brewfile.standard"
   [ "$status" -eq 0 ]
   echo "hand edit" >>"$TMP/TOOLS.md"
-  run "$SCRIPT" --check "$TMP/Brewfile.basic"
+  run "$SCRIPT" --check "$TMP/Brewfile.standard"
   [ "$status" -eq 1 ]
   [[ "$output" == *"out of sync"* ]]
 }
 
 @test "renders no tool counts, so adding one tool is a one-line diff" {
-  run "$SCRIPT" --stdout "$TMP/Brewfile.basic"
+  run "$SCRIPT" --stdout "$TMP/Brewfile.standard"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'_Source: `Brewfile.basic`._'* ]]
+  [[ "$output" == *'_Source: `Brewfile.standard`._'* ]]
   [[ "$output" != *" tools._"* ]]
   [[ "$output" != *" tool._"* ]]
   [[ "$output" != *"across"* ]]

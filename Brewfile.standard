@@ -1,0 +1,61 @@
+# Brewfile.standard — tools that change everyday use the moment they are
+# installed: the prompt, completion, the plugin manager, and the replacements
+# that .zshrc / .gitconfig switch to on their own (ls -> eza, cat -> bat,
+# cd -> z, git diff -> delta, vi -> nvim, ^R -> fzf, ...). Litmus test: after
+# installing it, does `ls`, `cd` or the prompt feel different with no other
+# step? If yes, it goes here, along with the zsh, git and coreutils they run
+# on. CI installs ONLY this file. Everything you only reach for by typing its
+# name -> Brewfile.full. Phases: docs/staged-bootstrap.md.
+# NOTE: Keep entries sorted A-Z within this file.
+# Clone of cat(1) with syntax highlighting and Git integration
+brew "bat"
+# Resource monitor with a nice TUI (top/htop replacement)
+brew "btop"
+# Multi-shell completion engine with specs for 1000+ commands
+brew "carapace"
+# GNU File, Shell, and Text utilities
+brew "coreutils"
+# Get a file from an HTTP, HTTPS or FTP server
+brew "curl"
+# Power of curl, ease of use of httpie
+brew "curlie"
+# Load/unload environment variables based on $PWD
+brew "direnv"
+# Command-line DNS client (dig replacement) with colored output
+brew "doggo"
+# Program that can automate interactive applications
+brew "expect"
+# Modern, maintained replacement for ls
+brew "eza"
+# Simple, fast and user-friendly alternative to find
+brew "fd"
+# Command-line fuzzy finder written in Go
+brew "fzf"
+# Distributed revision control system
+brew "git"
+# Syntax-highlighting pager for git and diff output
+brew "git-delta"
+# Ping, but with a graph (ping replacement)
+brew "gping"
+# Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh)
+brew "hyperfine"
+# Polyglot runtime manager (asdf rust clone)
+brew "mise"
+# Ambitious Vim-fork focused on extensibility and agility
+brew "neovim"
+# Search tool like grep and The Silver Searcher
+brew "ripgrep"
+# Fast, configurable, shell plugin manager
+brew "sheldon"
+# Cross-shell prompt for astronauts
+brew "starship"
+# Terminal multiplexer (required by bin/ci_tmux_loading_test.sh)
+brew "tmux"
+# Generator for LS_COLORS with support for multiple color themes
+brew "vivid"
+# Shell extension to navigate your filesystem faster
+brew "zoxide"
+# UNIX shell (command interpreter)
+brew "zsh"
+# Additional completion definitions for zsh
+brew "zsh-completions"

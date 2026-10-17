@@ -29,7 +29,7 @@ setup() {
   chmod +x "$REPO/bin/brew_bundle_check.sh"
   SCRIPT="$REPO/bin/brew_bundle_check.sh"
   # The script checks these by name; their contents are irrelevant to the stub.
-  for f in Brewfile.basic Brewfile.common Brewfile.macos Brewfile.linux; do
+  for f in Brewfile.standard Brewfile.full Brewfile.macos Brewfile.linux; do
     echo "brew \"placeholder\"" >"$REPO/$f"
   done
 
@@ -129,8 +129,8 @@ wait_for() {
   BREW_CHECK_RC=1 run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"[brew]"* ]]
-  [[ "$output" == *"Brewfile.basic"* ]]
-  [[ "$output" == *"brew bundle install --file=$REPO/Brewfile.basic"* ]]
+  [[ "$output" == *"Brewfile.standard"* ]]
+  [[ "$output" == *"brew bundle install --file=$REPO/Brewfile.standard"* ]]
   # `brew bundle check` fails for outdated packages too, so the nag must not
   # claim they are merely uninstalled.
   [[ "$output" == *"missing or outdated"* ]]
@@ -145,7 +145,7 @@ wait_for() {
   # Bundles are satisfied now: this shell still shows the cached nag, but the
   # background re-check runs despite the fresh 24h stamp and clears it.
   BREW_CHECK_RC=0 run "$SCRIPT"
-  [[ "$output" == *"Brewfile.basic"* ]]
+  [[ "$output" == *"Brewfile.standard"* ]]
   wait_for '[ ! -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=0 run "$SCRIPT"
   [ -z "$output" ]
@@ -171,7 +171,7 @@ wait_for() {
   # only for the *next* shell — this session still shows the stale nag.
   echo "$(( $(date +%s) - 90000 ))" >"$CACHE/last_brew_check"
   BREW_CHECK_RC=0 run "$SCRIPT"
-  [[ "$output" == *"Brewfile.basic"* ]]
+  [[ "$output" == *"Brewfile.standard"* ]]
   wait_for '[ ! -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=0 run "$SCRIPT"
   [ -z "$output" ]
@@ -228,7 +228,7 @@ STUBEOF
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
   [[ "$output" == *"brew_bundle_install.sh"* ]]
   [[ "$output" != *"auto-upgrade"* ]]
 }
@@ -238,7 +238,7 @@ STUBEOF
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
 }
 
 @test "an agent that has not succeeded for days is reported, with its drift" {
@@ -247,7 +247,7 @@ STUBEOF
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
   [[ "$output" == *"auto-upgrade has not succeeded since 20"* ]]
-  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
 }
 
 @test "an agent that never succeeded is reported even with nothing to install" {
@@ -263,6 +263,6 @@ STUBEOF
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.basic has missing or outdated"* ]]
+  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
   [[ "$output" != *"auto-upgrade"* ]]
 }

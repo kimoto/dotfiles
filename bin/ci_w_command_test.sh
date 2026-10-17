@@ -76,7 +76,7 @@ echo "== shell live =="
 
 # `cd` is aliased to `z` (zoxide) in interactive shells (.zshrc: `alias cd=z`),
 # and `z` is defined by `zoxide init zsh` via sheldon. In CI the real zoxide is
-# present (Brewfile.basic). For a minimal local run without the sheldon/zoxide
+# present (Brewfile.standard). For a minimal local run without the sheldon/zoxide
 # bootstrap, define a cd-equivalent `z` fallback so w's `cd "$dir"` still
 # changes directory (mirrors ci_g_command_test.sh).
 tmux -L "$SOCK" send-keys 'command -v z >/dev/null 2>&1 || z() { builtin cd "$@"; }' Enter

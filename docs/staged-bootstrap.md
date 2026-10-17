@@ -19,20 +19,31 @@ The goal: **bring the machine up in tiers, and prove each tier works before
 installing the next one.** If a later tier stumbles, the earlier ones still hold
 and the machine stays operable.
 
-## The stages
+## The phases
 
-The layering and the self-tests both already exist — what is missing is the
-wiring between them.
+Each phase adds to the one before, and no phase may break because a later
+phase's tools are missing. CI checks each one on its own.
 
-| Stage | Installs | Gate (existing script) |
-|---|---|---|
-| 0 | `mklink.sh` — symlinks only, no network | `ci_plain_shell_test.sh` (distro bash/zsh/vim, no rich tools) |
-| 1 | `Brewfile.basic` | `ci_zsh_loading_test.sh` |
-| 2 | `Brewfile.common` + platform Brewfile | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set |
-| 3 | tpm plugins, nvim plugins, mise runtimes, NeoBundle | `ci_nvim_loading_test.sh`, `ci_vim_loading_test.sh` |
+| Phase | Assumes | May install | Gate |
+|---|---|---|---|
+| minimal | nothing can be installed | nothing: the OS's bash, vim and git | `ci_plain_shell_test.sh` (bash half) |
+| basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `ci_plain_shell_test.sh` (zsh half), `vim_guard_test` |
+| standard | tools can be installed | `Brewfile.standard` | `ci_zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
+| full | your own machine | `Brewfile.full` + platform Brewfile, tpm/nvim plugins, mise runtimes | `ci_tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `ci_nvim_loading_test.sh` |
 
-Stage 1 green means "the shell works" — the whole point. Stage 3 holds the
-flakiest work (third-party clones, network) and the least essential.
+Two boundaries decide where a tool goes:
+
+- **basic | standard: does it need a separate binary?** sheldon is one, so the
+  zsh plugins it loads are standard, while NeoBundle (cloned by `.vimrc`
+  itself) stays basic.
+- **standard | full: does installing it change everyday use, with no other
+  step?** eza (`ls`), bat (`cat`), zoxide (`cd`), delta (`git diff`), fzf
+  (^R) do. kubectl, lazygit, jq do not: they run only when typed, even when
+  the config carries a completion or a key binding for them.
+
+Cloud sessions sit outside the phases: they link only `~/.claude`
+(`bin/link_claude_dir.sh --cloud`), since an agent, not a person, uses that
+shell.
 
 ## Design decisions
 
@@ -52,14 +63,14 @@ still load", and `ci_zsh_loading_test.sh` already answers exactly that.
 install` and the Claude tmux hooks *last*, after the slowest and most
 network-dependent work. Cheap, local, high-value steps should come first.
 
-Wanted alongside: resumability (`--from=2`, or a stamp file per completed
-stage), and an escape hatch printed when stage 1 fails ("you are in bash, here
+Wanted alongside: resumability (`--from=full`, or a stamp file per completed
+phase), and an escape hatch printed when standard fails ("you are in bash, here
 is how to recover").
 
-## tmux belongs in stage 2, not stage 1
+## tmux belongs in full, not standard
 
-Today `brew "tmux"` sits in `Brewfile.basic`. The justification is circular: the
-split rule says a package is `basic` if removing it breaks
+Today `brew "tmux"` sits in `Brewfile.standard`. The justification is circular: the
+old split rule said a package belonged there if removing it broke
 `ci_zsh_loading_test.sh` *or* `ci_tmux_loading_test.sh` — and the only thing the
 second test needs tmux for is tmux itself. That is a different kind of reason
 from starship's, which `.zshrc` genuinely calls while loading.
@@ -74,38 +85,35 @@ Two findings say the boundary is right where tmux sits:
   `ci_zsh_loading_test.sh` (it takes its pty from `script`, not from tmux) and
   `ci_nvim_guard_test.sh`. Every other one drives a real terminal through tmux.
 
-So the stage-1 gate is tmux-free by construction — it does not depend on what
-stage 2 installs — and everything that does need tmux already lives on the
+So the standard gate is tmux-free by construction — it does not depend on what
+full installs — and everything that does need tmux already lives on the
 other side of the line.
 
-### What moving `brew "tmux"` to `Brewfile.common` touches
+### What moving `brew "tmux"` to `Brewfile.full` touches
 
-- `Brewfile.basic` header — drop the `ci_tmux_loading_test.sh` clause from the
-  litmus test; `basic` becomes "what `.zshrc` calls at load time".
-- `AGENTS.md` — restates the same split rule, same edit.
-- `bin/ci_prepare.sh` — must install tmux on demand. There is an exact precedent
-  three lines above: fzf is already handled this way ("not in Brewfile.basic, so
-  install on demand"). The comment there claiming "tmux already came in via
-  Brewfile.basic" becomes wrong.
+- The split rule needs no edit: tmux runs only when typed, so the phase
+  boundary already puts it in full.
+- `bin/ci_prepare.sh` — must install tmux on demand, since CI installs only
+  `Brewfile.standard`.
 - `.github/workflows/ci.yml` — the Homebrew cache key is
-  `...-${{ hashFiles('Brewfile.basic') }}-fzf-v3`, and its comment says "tmux IS
-  in Brewfile.basic, so the hash already covers it". Both stop being true: bump
-  the suffix (`-fzf-tmux-v4`) so the cache is rebuilt with tmux baked in.
+  `...-${{ hashFiles('Brewfile.standard') }}-v4`, and its comment says the
+  hash covers everything the cache holds. Both stop being true: add a tmux
+  suffix and bump the version so the cache is rebuilt with tmux baked in.
 
 ### Sequencing
 
 Doing this move *before* the stages exist buys nothing operationally —
-`mkworld.sh` installs basic + common + platform in one shot either way — while
+`mkworld.sh` installs standard + full + platform in one shot either way — while
 still churning the CI cache. It belongs with the staging work, not ahead of it.
 
 ## The first brick, which is worth doing on its own
 
-**Done:** `zsh_loading_test_basic_only` in `.github/workflows/ci.yml`. It
-installs only `Brewfile.basic` plus the symlinks (`mklink.sh`), skipping fzf
+**Done:** `zsh_loading_test_standard_only` in `.github/workflows/ci.yml`. It
+installs only `Brewfile.standard` plus the symlinks (`mklink.sh`), skipping fzf
 and the tmux-plugin/Claude-hooks/lefthook work `mkworld.sh` does, and runs
 only `ci_zsh_loading_test.sh`.
 
 Before this job existed, nothing verified that the minimal tier alone produces
 a working shell — the existing `zsh_loading_test` job installs fzf and tmux on
-top and then runs the whole e2e set, so a break in `Brewfile.basic` alone could
+top and then runs the whole e2e set, so a break in `Brewfile.standard` alone could
 still pass it.

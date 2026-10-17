@@ -7,23 +7,32 @@ Every CLI tool and app this repo installs via Homebrew, catalogued straight from
 `Brewfile.*` bundles. Descriptions are Homebrew's own (`brew bundle dump --describe`),
 so this page never drifts from what actually gets installed. Grouped by bundle layer.
 
-## Basic — shell startup layer
+## Standard — changes everyday use once installed
 
-The minimal layer the shell depends on at load time; CI installs only this bundle.
+Prompt, completion, and the replacements the config uses; CI installs only this.
 
-_Source: `Brewfile.basic`._
+_Source: `Brewfile.standard`._
 
 | Tool | Description |
 | --- | --- |
+| [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
+| [btop](https://formulae.brew.sh/formula/btop) | Resource monitor with a nice TUI (top/htop replacement) |
 | [carapace](https://formulae.brew.sh/formula/carapace) | Multi-shell completion engine with specs for 1000+ commands |
 | [coreutils](https://formulae.brew.sh/formula/coreutils) | GNU File, Shell, and Text utilities |
 | [curl](https://formulae.brew.sh/formula/curl) | Get a file from an HTTP, HTTPS or FTP server |
+| [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
 | [direnv](https://formulae.brew.sh/formula/direnv) | Load/unload environment variables based on $PWD |
+| [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
 | [expect](https://formulae.brew.sh/formula/expect) | Program that can automate interactive applications |
 | [eza](https://formulae.brew.sh/formula/eza) | Modern, maintained replacement for ls |
+| [fd](https://formulae.brew.sh/formula/fd) | Simple, fast and user-friendly alternative to find |
+| [fzf](https://formulae.brew.sh/formula/fzf) | Command-line fuzzy finder written in Go |
 | [git](https://formulae.brew.sh/formula/git) | Distributed revision control system |
+| [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
+| [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
 | [hyperfine](https://formulae.brew.sh/formula/hyperfine) | Command-line benchmarking tool (required by bin/ci_zsh_loading_test.sh) |
 | [mise](https://formulae.brew.sh/formula/mise) | Polyglot runtime manager (asdf rust clone) |
+| [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [ripgrep](https://formulae.brew.sh/formula/ripgrep) | Search tool like grep and The Silver Searcher |
 | [sheldon](https://formulae.brew.sh/formula/sheldon) | Fast, configurable, shell plugin manager |
 | [starship](https://formulae.brew.sh/formula/starship) | Cross-shell prompt for astronauts |
@@ -31,42 +40,35 @@ _Source: `Brewfile.basic`._
 | [vivid](https://formulae.brew.sh/formula/vivid) | Generator for LS_COLORS with support for multiple color themes |
 | [zoxide](https://formulae.brew.sh/formula/zoxide) | Shell extension to navigate your filesystem faster |
 | [zsh](https://formulae.brew.sh/formula/zsh) | UNIX shell (command interpreter) |
+| [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
-## Common — full workstation toolkit
+## Full — tools you run by name
 
-Full-workstation tooling not required to start the shell.
+Installing one changes nothing about everyday use.
 
-_Source: `Brewfile.common`._
+_Source: `Brewfile.full`._
 
 | Tool | Description |
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
 | [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
-| [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
-| [btop](https://formulae.brew.sh/formula/btop) | Resource monitor with a nice TUI (top/htop replacement) |
 | [cowsay](https://formulae.brew.sh/formula/cowsay) | Apjanke's fork of the classic cowsay project |
-| [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
-| [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
 | [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
 | [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
 | [fastfetch](https://formulae.brew.sh/formula/fastfetch) | Like neofetch, but much faster because written mostly in C |
-| [fd](https://formulae.brew.sh/formula/fd) | Simple, fast and user-friendly alternative to find |
 | [figlet](https://formulae.brew.sh/formula/figlet) | Banner-like program prints strings as ASCII art |
 | [fortune](https://formulae.brew.sh/formula/fortune) | Infamous electronic fortune-cookie generator |
-| [fzf](https://formulae.brew.sh/formula/fzf) | Command-line fuzzy finder written in Go |
 | [gettext](https://formulae.brew.sh/formula/gettext) | GNU internationalization (i18n) and localization (l10n) library |
 | [gh](https://formulae.brew.sh/formula/gh) | GitHub command-line tool |
 | [ghq](https://formulae.brew.sh/formula/ghq) | Remote repository management made easy |
-| [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
 | [gitleaks](https://formulae.brew.sh/formula/gitleaks) | Audit git repos for secrets |
 | [glow](https://formulae.brew.sh/formula/glow) | Render markdown on the CLI |
 | [gnu-sed](https://formulae.brew.sh/formula/gnu-sed) | GNU implementation of the famous stream editor |
 | [gnupg](https://formulae.brew.sh/formula/gnupg) | GNU Privacy Guard (OpenPGP) |
-| [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
 | [hunk](https://formulae.brew.sh/formula/hunk) | Review-first terminal diff viewer for agent-authored changesets |
 | [john-jumbo](https://formulae.brew.sh/formula/john-jumbo) | Enhanced version of john, a UNIX password cracker |
 | [jq](https://formulae.brew.sh/formula/jq) | Lightweight and flexible command-line JSON processor |
@@ -81,7 +83,6 @@ _Source: `Brewfile.common`._
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
-| [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
 | [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
@@ -99,7 +100,6 @@ _Source: `Brewfile.common`._
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
-| [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
 ## macOS apps
 

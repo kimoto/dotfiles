@@ -129,9 +129,9 @@ tmux -L "$SOCK" new-session -d -x 200 -y 50 "$(zsh_pane_cmd "PATH=$STUB_BIN:$PAT
 # ...and re-prepend it once the shell is up, because .zshrc rebuilds $path with
 # the Homebrew bin directories *ahead* of whatever it inherited. On a machine
 # that has the real ghq installed (any full workstation — ghq is in
-# Brewfile.common) that real ghq shadows the stub and the fixture silently
+# Brewfile.full) that real ghq shadows the stub and the fixture silently
 # stops being hermetic: `ghq root` answers with the developer's own ~/ghq.
-# CI never noticed because it installs Brewfile.basic only, so there is no real
+# CI never noticed because it installs Brewfile.standard only, so there is no real
 # ghq there to win.
 tmux -L "$SOCK" send-keys "export PATH=$STUB_BIN:\$PATH" Enter
 
@@ -142,7 +142,7 @@ echo "== shell live; stub ghq on PATH =="
 
 # `cd` is aliased to `z` (zoxide) in interactive shells (.zshrc line: `alias
 # cd=z`), and `z` is defined by `zoxide init zsh` via sheldon. In CI the real
-# zoxide is present (Brewfile.basic) and used as-is. For a minimal local run
+# zoxide is present (Brewfile.standard) and used as-is. For a minimal local run
 # without the sheldon plugin bootstrap, define a cd-equivalent `z` fallback so
 # g's `cd "$(ghq root)/$dir"` still changes directory.
 tmux -L "$SOCK" send-keys 'command -v z >/dev/null 2>&1 || z() { builtin cd "$@"; }' Enter
