@@ -79,9 +79,11 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ runner.temp }}/cellar.tar
-          key: macos-cellar-${{ steps.week.outputs.week }}-${{ hashFiles('Brewfile.standard', 'Brewfile.extra') }}-v1
+          # The archive format version sits before the week: restore-keys
+          # match by prefix, so a version at the end would never invalidate.
+          key: macos-cellar-v2-${{ steps.week.outputs.week }}-${{ hashFiles('Brewfile.standard', 'Brewfile.extra') }}
           restore-keys: |
-            macos-cellar-${{ steps.week.outputs.week }}-
+            macos-cellar-v2-${{ steps.week.outputs.week }}-
 
       - name: Unpack the restored formulae
         if: steps.cache-cellar.outputs.cache-matched-key != ''
