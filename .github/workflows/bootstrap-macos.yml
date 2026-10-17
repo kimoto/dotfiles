@@ -1,0 +1,92 @@
+---
+# mkworld.sh on a Mac, all the way to full: Brewfile.macos's casks and
+# setup_macosx.sh run nowhere else in CI. The runner image ships Homebrew
+# already, so this proves the bundles and the climb, not the Homebrew install.
+#
+# A macOS runner costs nothing on a public repo but is slow, so this runs only
+# when a change can move the result, plus weekly for Homebrew drifting under us.
+name: bootstrap-macos
+on:
+  pull_request:
+    paths:
+      - "Brewfile.*"
+      - "bin/mkworld.sh"
+      - "bin/mklink.sh"
+      - "bin/setup_homebrew.sh"
+      - "bin/setup_macosx.sh"
+      - "bin/setup_brew_auto_upgrade.sh"
+      - ".github/workflows/bootstrap-macos.yml"
+  schedule:
+    - cron: "37 7 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full:
+    runs-on: macos-latest
+    # A cold run downloads every bottle and cask; a few times that.
+    timeout-minutes: 90
+    env:
+      # Keep the downloads the cache below saves: brew prunes them after an
+      # install otherwise.
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      # The download cache, not /opt/homebrew: the image's own prefix is large
+      # and not ours to snapshot. A hit skips the network, not the install, so
+      # the install path still runs for real every time.
+      - name: Restore Homebrew downloads
+        id: cache-brew
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: macos-brew-dl-${{ hashFiles('Brewfile.standard', 'Brewfile.full', 'Brewfile.macos') }}-v1
+          restore-keys: macos-brew-dl-
+
+      - name: Restore tmux plugins
+        id: cache-tmux-plugins
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.tmux/plugins
+          key: macos-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
+
+      - name: mkworld reaches full
+        run: MKWORLD_EXPECT=full ./bin/mkworld.sh
+
+      # Saved even when mkworld failed: a partial download set still spares the
+      # next run, and nothing installed is in it.
+      - name: Save Homebrew downloads
+        if: always() && steps.cache-brew.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: ${{ steps.cache-brew.outputs.cache-primary-key }}
+
+      - name: Save tmux plugins
+        if: steps.cache-tmux-plugins.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.tmux/plugins
+          key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
+
+      - name: zsh starts clean with the full toolchain
+        env:
+          DOTFILES_NO_SYNC_CHECK: "1"
+          DOTFILES_NO_BREW_CHECK: "1"
+          DOTFILES_NO_MISE_CHECK: "1"
+        run: |
+          out="$(zsh -i -c 'ls >/dev/null && ll >/dev/null && print ZSH_OK' 2>&1)"
+          printf '%s\n' "$out"
+          if printf '%s\n' "$out" | grep -E 'command not found|not found:|No such file|parse error'; then
+            exit 1
+          fi
+          printf '%s\n' "$out" | grep -q ZSH_OK
