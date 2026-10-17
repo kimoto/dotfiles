@@ -21,6 +21,28 @@
       ],
       "description": "mise itself, which bin/install_check_tools.sh downloads before mise.toml can be read.",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^config/sheldon/plugins\\.toml$/"
+      ],
+      "matchStrings": [
+        "github = ['\"](?<depName>[^'\"]+)['\"]\\nrev = '(?<currentDigest>[0-9a-f]{40})' # (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-digest",
+      "description": "zsh plugins, pinned to a commit on the branch the trailing comment names. github-digest, not git-refs: it dates each commit, so minimumReleaseAge applies (measured from the commit date, not from when it reached the branch)."
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^tmux-plugins\\.lock$/"
+      ],
+      "matchStrings": [
+        "(?<depName>[\\w.-]+/[\\w.-]+) (?<currentValue>\\S+) (?<currentDigest>[0-9a-f]{40})"
+      ],
+      "datasourceTemplate": "github-digest",
+      "description": "tmux plugins, same pinning as the zsh plugins above."
     }
   ],
   "packageRules": [

@@ -126,6 +126,11 @@ truth, so the two never diverge.
   PR. Tools also used outside this repo (actionlint, gitleaks, yq, lefthook, shellcheck) stay in
   `Brewfile.full` too: a mise shim falls through to the brew binary in a
   directory without this config.
+- `tmux-plugins.lock`, and the `rev =` lines in `config/sheldon/plugins.toml` —
+  the commit every tmux and zsh plugin is checked out at, bumped by the same
+  monthly Renovate PR. A plugin added without a pin fails
+  `install_tmux_plugins.sh` (tmux) or clones the branch head (sheldon), so add
+  the pin in the same change.
 - `Brewfile.{standard,full,macos,linux}` — Homebrew bundles, sorted A–Z per
   section (`check_brewfile_sort.sh`). Split rule: `standard` = a tool that
   changes everyday use once installed, with no other step (prompt, completion,

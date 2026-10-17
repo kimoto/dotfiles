@@ -1,15 +1,22 @@
 shell = "zsh"
 
+# Every github plugin is pinned to a commit: sheldon would otherwise clone
+# whatever the branch head is at install time. The trailing comment names the
+# branch Renovate follows to propose a bump (renovate.json).
+
 [plugins.zsh-defer]
 github = 'romkatv/zsh-defer'
+rev = '53a26e287fbbe2dcebb3aa1801546c6de32416fa' # master
 apply = ['source']
 
 [plugins.fzf]
 github = 'junegunn/fzf'
+rev = 'c8c2d0828a94a00879ceb6f95112a42e3ea322cf' # master
 apply = ['fzf-install', 'fzf-source']
 
 [plugins.evalcache]
 github = 'mroth/evalcache'
+rev = 'd6973f8c3ecde3eabd75c17b47e2222e24ab3e87' # master
 apply = ['source']
 
 # Replace _evalcache with a no-fork variant (upstream forks md5 per call just
@@ -30,10 +37,12 @@ inline = 'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/abbr.zsh"'
 #================
 [plugins.zsh-completions]
 github = 'zsh-users/zsh-completions'
+rev = '989b23277ab33e8d5e82df6aed936e846db9d8b8' # master
 apply = ['defer']
 
 [plugins.fast-syntax-highlighting]
 github = 'zdharma-continuum/fast-syntax-highlighting'
+rev = '4672ad5dd9ad68a7effc1476d65afb7c584ce2b3' # master
 apply = ['defer']
 
 [plugins.fast-syntax-highlighting.hooks]
@@ -43,6 +52,7 @@ post = "test -e ~/.cache/fsh/current_theme.zsh || { command -v fast-theme >/dev/
 # only safe when no plugin defines widgets after this one loads.
 [plugins.zsh-autosuggestions]
 github = "zsh-users/zsh-autosuggestions"
+rev = '85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5' # master
 apply = ['defer']
 
 [plugins.zsh-autosuggestions.hooks]
