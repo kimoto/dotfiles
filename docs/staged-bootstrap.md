@@ -20,7 +20,7 @@ its own.
   itself) stays basic.
 - **standard | extra: does installing it change everyday use, with no other
   step?** eza (`ls`), bat (`cat`), zoxide (`cd`), delta (`git diff`), fzf
-  (^R) do. kubectl, lazygit, jq, tmux do not: they run only when typed, even
+  (^R) do. kubectl, jq, tmux do not: they run only when typed, even
   when the config carries a completion or a key binding for them.
 - **extra | platform: does only one OS get it?** GUI casks, macOS system
   settings and Linux stand-ins go last: they fail most often, and a failure

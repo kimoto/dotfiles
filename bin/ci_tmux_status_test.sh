@@ -64,15 +64,15 @@ esac
 # lands between them in the raw expansion.
 held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
   sed 's/#\[[^]]*\]//g')"
-for pair in "? help" "G git" "v hunk" "t shell"; do
+for pair in "? help" "v hunk" "t shell"; do
   case "$held" in
     *"$pair"*) ;;
     *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
   esac
 done
 # Each key the hint names must open what its label promises. The hint and
-# KEYBINDINGS.md can agree with each other and both be wrong: lazygit moved to
-# G while the hint kept saying g, which tmux 3.8 binds to something else.
+# KEYBINDINGS.md can agree with each other and both be wrong: a binding can
+# move to another key while the hint keeps naming the old one.
 # Only the live binding table can tell, so ask it rather than another copy.
 # `?` is which-key once its plugin loads (a display-menu where it inlines its
 # root menu), keys.sh where plugins are absent. The key is picked out of the
@@ -88,7 +88,6 @@ while read -r key pattern; do
     || die "the prefix hint names '$key', but prefix + $key is not /$pattern/ (bound: ${bound:-nothing})"
 done <<'EOF'
 ? show-wk-menu|display-menu|keys\.sh
-G lazygit
 v hunk
 t new-pane|display-popup
 EOF

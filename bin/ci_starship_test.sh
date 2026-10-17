@@ -5,16 +5,13 @@
 #
 # .zshrc only sets a *fallback* zsh PROMPT; the real prompt is Starship, brought
 # up by sheldon as `_evalcache starship init zsh` (config/sheldon/plugins.toml).
-# Three things can only be proven by rendering it for real:
+# Two things can only be proven by rendering it for real:
 #   1. Starship — not the fallback PROMPT — is what reaches the screen. The
 #      fallback has no date; config/starship.toml enables the [time] module
 #      (format '%Y-%m-%d %T'), so a rendered timestamp is an unambiguous
 #      "Starship is live" signal.
 #   2. the [directory] module reflects $PWD: started in a uniquely-named dir, the
 #      prompt shows that dir name.
-#   3. the `px` helper in .zshrc round-trips STARSHIP_CONFIG between the main and
-#      sub configs (starship.toml <-> starship_sub.toml), the documented way to
-#      switch prompt layouts.
 #
 # Like ci_tmux_interactive_test.sh, this needs a Starship install and the
 # repo's ~/.config (symlinked by mkworld); it runs in the same CI job, after the
@@ -33,7 +30,6 @@ ZSH_BIN="$(command -v zsh)"
 REPO="$PWD"
 [ -f "$REPO/.zshrc" ] || die "no .zshrc in $REPO"
 [ -f "$REPO/config/starship.toml" ] || die "no config/starship.toml in $REPO"
-[ -f "$REPO/config/starship_sub.toml" ] || die "no config/starship_sub.toml in $REPO"
 echo "== $(tmux -V), $("$ZSH_BIN" --version), $(starship --version | head -1) =="
 
 SOCK="ci_starship_e2e_$$"
@@ -81,21 +77,6 @@ echo "== Starship prompt is live (time module rendered) =="
 # 2) The [directory] module reflects $PWD — the marker dir name is on screen.
 wait_for 'starship_e2e_zone'
 echo "== directory module reflects \$PWD =="
-
-# 3) `px` round-trips STARSHIP_CONFIG main <-> sub. STARSHIP_CONFIG starts unset,
-#    so the first px selects the sub config and the second returns to the main
-#    one. Each value is printed with a unique marker so the assertion can only
-#    match the line we just produced, not earlier scrollback.
-# shellcheck disable=SC2016  # single-quoted on purpose: zsh in the pane must
-# expand $STARSHIP_CONFIG and run px, not this shell.
-tmux -L "$SOCK" send-keys 'px; print "__CFG1__${STARSHIP_CONFIG}"' Enter
-wait_for '__CFG1__.*/starship_sub\.toml'
-echo "== px (1st) selected the sub config =="
-
-# shellcheck disable=SC2016
-tmux -L "$SOCK" send-keys 'px; print "__CFG2__${STARSHIP_CONFIG}"' Enter
-wait_for '__CFG2__.*/starship\.toml'
-echo "== px (2nd) returned to the main config =="
 
 tmux -L "$SOCK" send-keys C-c
 echo "PASS"

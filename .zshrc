@@ -293,7 +293,6 @@ ll() {
     ls -lAtr "$@"
   fi
 }
-(( $+commands[eza] )) && alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
@@ -314,12 +313,9 @@ alias reload="exec zsh"
 (( $+commands[gping] ))  && alias ping='gping'
 (( $+commands[doggo] ))  && alias dig='doggo'
 alias grep='grep --color=auto'
-# egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
-# route through the grep alias above, so they get color and skip the warning.
+# egrep is obsolescent (grep >=3.8 warns): keep the muscle memory but route
+# through the grep alias above, so it gets color and skips the warning.
 alias egrep='grep -E'
-alias fgrep='grep -F'
-alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
-alias gist='gh gist create --web'
 
 #=====================
 # macOS parity shims
@@ -407,36 +403,13 @@ temp(){
     builtin cd "$dir"
 }
 
-# lazygit: chase into the directory it was left in (newdir file), if any.
-lg() {
-  export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
-  lazygit "$@"
-  if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
-    builtin cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
-    rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
-  fi
-}
-
 # ghq + fzf: jump to a cloned repo.
 g() {
   local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
   [ -n "$dir" ] && builtin cd "$(ghq root)/$dir" || return
 }
 
-# git branch switch via fzf.
-b() {
-  local preview='git log --color=always --oneline -15 {}'
-  local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview "$preview" --query="$*")
-  test -z "$branch" || git switch "$branch"
-}
-
-# Requires a gh CLI extension providing `branch` (e.g. `gh extension install
-# mislav/gh-branch`) — not installed by bin/mkworld.sh; install it manually.
-B() {
-  gh branch
-}
-
-# git worktree jump via fzf (in the style of b/g): cd into a chosen worktree.
+# git worktree jump via fzf (in the style of g): cd into a chosen worktree.
 w() {
   local dir=$(git worktree list | fzf --preview '' --query="$*" | awk '{print $1}')
   test -z "$dir" || builtin cd "$dir"
@@ -479,34 +452,6 @@ snip() {
 # tmux's `prefix + ?` popup and the ⌃+X ? widget below all show one list.
 keys() {
   "$DOTFILES_ROOT/bin/keys.sh" "$@"
-}
-
-# ls if no arg / directory arg, otherwise bat the file.
-l() {
-  if [[ "$#" == 0 ]]; then
-    ll
-  else
-    if [[ -d "$1" ]]; then
-      ll $@
-    elif (( $+commands[bat] )); then
-      bat $@
-    else
-      less $@
-    fi
-  fi
-}
-
-# test: switch starship main / sub prompt
-starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
-starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
-px() {
-  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  elif [ "$STARSHIP_CONFIG" = "" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  else
-    export STARSHIP_CONFIG="$starship_conf_main"
-  fi
 }
 
 #=====================
@@ -669,7 +614,6 @@ _feature_hint_match() {
   case "$1" in
     'git diff'*) _feature_hint_key=v ;;
     'git log'*) _feature_hint_key=V ;;
-    lazygit*) _feature_hint_key=G ;;
     'tmux a'*|'tmux ls'*) _feature_hint_key=f ;;
   esac
   return 0
