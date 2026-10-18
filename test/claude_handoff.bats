@@ -41,10 +41,11 @@ start() { run sh -c "printf '{\"cwd\":\"%s\",\"source\":\"%s\"}' '$WORK' '$1' | 
   [ -z "$output" ]
 }
 
-@test "/clear without a saved prompt still points at the old transcript" {
+@test "/clear without a saved prompt stays a plain reset" {
   end_ clear
+  [ -z "$(ls -A "$CLAUDE_HANDOFF_STATE" 2>/dev/null)" ]
   start clear
-  printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("/t/old.jsonl")' >/dev/null
+  [ -z "$output" ]
 }
 
 @test "a fresh start in the same directory inherits nothing" {
@@ -54,6 +55,7 @@ start() { run sh -c "printf '{\"cwd\":\"%s\",\"source\":\"%s\"}' '$WORK' '$1' | 
   end_ prompt_input_exit
   start clear
   printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("/t/old.jsonl") | not' >/dev/null
+  printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("目的: X")' >/dev/null
 }
 
 @test "another directory's handoff is not handed over" {
@@ -62,7 +64,7 @@ start() { run sh -c "printf '{\"cwd\":\"%s\",\"source\":\"%s\"}' '$WORK' '$1' | 
   mkdir -p "$WORK"
   end_ clear
   start clear
-  printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("目的: X") | not' >/dev/null
+  [ -z "$output" ]
 }
 
 @test "a handoff older than a day is dropped" {

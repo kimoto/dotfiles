@@ -8,6 +8,8 @@
 #
 # So the person only types /clear: no copy, no paste. The old transcript is
 # passed by path, not content, so the new session reads only what it needs.
+# ★A /clear with no parked handoff stays a plain reset: nothing is recorded or
+#  injected, so Claude Code's own /clear behaves exactly as it always did.
 #
 # Keyed by working directory: /clear keeps it, and the hook payloads carry it.
 # ⚠️ Two sessions in one directory share the slot; the last /clear takes it.
@@ -51,6 +53,7 @@ base="$STATE_DIR/$(key_for "$cwd")"
 
 if [ "$MODE" = end ]; then
   [ "$(field reason)" = clear ] || exit 0
+  [ -s "$base.md" ] || exit 0
   transcript=$(field transcript_path)
   [ -n "$transcript" ] || exit 0
   mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
@@ -65,17 +68,12 @@ prev=
 handoff=
 [ -r "$base.md" ] && handoff=$(cat "$base.md")
 rm -f "$base.prev" "$base.md"
-[ -n "$prev$handoff" ] || exit 0
+[ -n "$handoff" ] || exit 0
 
-if [ -n "$handoff" ]; then
-  user="前のセッションの引き継ぎを読み込んだ"
-  model="★直前のセッションが /clear の前に残した引き継ぎ。これを今回の作業の出発点にする:
+user="前のセッションの引き継ぎを読み込んだ"
+model="★直前のセッションが /clear の前に残した引き継ぎ。これを今回の作業の出発点にする:
 
 $handoff"
-else
-  user="前のセッションの transcript を参照できる"
-  model="★このセッションは /clear の直後。"
-fi
 if [ -n "$prev" ]; then
   model="$model
 
