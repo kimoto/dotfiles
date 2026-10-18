@@ -40,13 +40,15 @@ jobs:
       - name: Generate the ja_JP locale
         run: sudo locale-gen ja_JP.UTF-8
 
-      - name: Install a tmux to bootstrap from
-        # Only needed to *host* the bootstrap; Brewfile.extra installs the tmux
-        # everything afterwards actually uses.
+      - name: Install the OS packages a person installs first
+        # zsh is what the basic phase means by "the OS has zsh": the runner
+        # image ships without it, and mkworld stops at minimal rather than
+        # install a shell itself. tmux only *hosts* the bootstrap;
+        # Brewfile.extra installs the tmux everything afterwards actually uses.
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tmux
+          sudo apt-get install -y --no-install-recommends tmux zsh
 
       - name: Bootstrap from scratch, from inside a tmux session
         # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_EXTRA is set, so
