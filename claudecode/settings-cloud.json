@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ \"$(git -C \"$d\" branch --show-current 2>/dev/null)\" = main ] && timeout 10 git -C \"$d\" pull -q --ff-only >/dev/null 2>&1; exit 0",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ \"$(git -C \"$d\" branch --show-current 2>/dev/null)\" = main ] && timeout 10 git -C \"$d\" pull -q --ff-only >/dev/null 2>&1; [ ! -x \"$d/bin/link_claude_dir.sh\" ] || \"$d/bin/link_claude_dir.sh\" --cloud >/dev/null 2>&1; exit 0",
             "timeout": 15
           }
         ]

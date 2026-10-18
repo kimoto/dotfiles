@@ -33,8 +33,9 @@ ignore rule would apply in every repo on the machine.
   unattended routines: a rule edit must stop at a prompt nobody answers there,
   while a person in a web session just approves it. ⚠️ Not a wall: a Bash write
   does not match an `Edit(...)` rule. Its `SessionStart` hook fast-forwards the
-  checkout it is linked from, because a cloud environment restores the setup
-  script's result from a cache and would otherwise read stale rules. Its
+  checkout it is linked from and re-runs `link_claude_dir.sh --cloud`, because a
+  cloud environment restores the setup script's result from a cache and would
+  otherwise read stale rules and never see a skill added since. Its
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
   because a container never runs `mkworld.sh`.
