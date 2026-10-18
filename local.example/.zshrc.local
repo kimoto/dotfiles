@@ -1,0 +1,12 @@
+# ~/.zshrc.local: this machine's zsh layer, sourced last by .zshrc.
+# Copy to ~/.zshrc.local and fill in. It never enters the repo (.gitignore).
+#
+# Belongs here: what is true of this machine only, or must not be public.
+#   - environment variables for this machine's tools and accounts
+#   - PATH entries for software installed only here
+#   - proxy settings
+#   - aliases and functions that only make sense here
+#
+# Not here: anything every machine wants (put it in .zshrc), and settings
+# shared by every machine with the same hostname
+# (~/.config/hosts/<hostname>.zshrc, sourced just before this file).
