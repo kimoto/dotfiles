@@ -21,6 +21,16 @@
       ],
       "description": "mise itself, which bin/install_check_tools.sh downloads before mise.toml can be read.",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^bin/setup_homebrew\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) branch=(?<currentValue>\\S+)\\n[A-Z_]+=\"(?<currentDigest>[0-9a-f]{40})\""
+      ],
+      "description": "The Homebrew installer, which has no releases: pinned to a commit on its default branch, aged by the commit date."
     }
   ],
   "packageRules": [

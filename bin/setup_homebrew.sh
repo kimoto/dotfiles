@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+# The installer is piped straight into bash, so it runs from a commit a person
+# has read rather than whatever HEAD holds that minute. Renovate proposes a
+# newer one in its monthly PR once the commit is a week old.
+# renovate: datasource=github-digest depName=Homebrew/install branch=main
+HOMEBREW_INSTALL_REF="7a3f48c7e498d7df3237fd41c30f4d492857edf4"
+
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1;
 
@@ -13,7 +19,8 @@ if [ -z "${BREW_BIN:-}" ]; then
     if ! command -v brew >/dev/null 2>&1; then
         os="$(uname)"
         if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            installer="https://raw.githubusercontent.com/Homebrew/install/$HOMEBREW_INSTALL_REF/install.sh"
+            /bin/bash -c "$(curl -fsSL "$installer")"
         fi
     fi
 
