@@ -7,14 +7,6 @@
 # (__)________|_______/    |__|  |__| | _| `._____| \______|
 #
 # Author: kimoto
-#
-# Load order matters in a few places (kept intentionally):
-#   - compinit runs before `sheldon source` so plugin compdefs (e.g. carapace)
-#     can register against an initialized completion system.
-#   - the completion list-colors style is registered with `zstyle -e`, because
-#     LS_COLORS only arrives later (deferred vivid plugin) - see below.
-#   - CI strict mode (err_exit) is enabled after plugins load, so a missing
-#     optional plugin doesn't abort the interactive load test.
 #===============================================================
 
 #=====================
@@ -33,8 +25,6 @@ PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red
 # completion system
 #=====================
 # Initialized before plugins so plugin-provided compdefs register correctly.
-# Rebuild the dump only when missing or older than a day; otherwise trust the
-# cache (-C) to keep startup fast.
 autoload -Uz compinit
 _zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
 # Rebuild the dump when it's missing or out of date, otherwise load it with
@@ -172,32 +162,32 @@ fi
 #=====================
 # setopts
 #=====================
-setopt autocd # cd不要
-setopt autopushd # cdの履歴に残す
-setopt nocorrectall # correctallの無効化
-setopt histignoredups # 重複を記録しない
-setopt histignorealldups # 古い方を削除
-setopt pushdignoredups # 重複を記録しない
-setopt interactivecomments # コメントを有効化
-setopt share_history # historyを共有
-setopt incappendhistory # incrementalに追加
+setopt autocd # ディレクトリ名だけ打てば cd する
+setopt autopushd # cd のたびに移動元を積む（cd -<Tab> で戻れる）
+setopt nocorrectall # 引数のスペル訂正を聞いてこない
+setopt histignoredups # 直前と同じコマンドは履歴に積まない
+setopt histignorealldups # 同じコマンドを打つと古い方を履歴から消す
+setopt pushdignoredups # 同じディレクトリを重ねて積まない
+setopt interactivecomments # コマンドラインでも # 以降をコメントにする
+setopt share_history # 他のシェルで打ったコマンドも履歴に出てくる
+setopt incappendhistory # シェルの終了を待たず、実行のたびに履歴へ書く
 setopt hist_fcntl_lock # fcntl histfile locking: cheaper than the default per-command lockfile dance
-setopt multios # 複数のリダイレクトやパイプに対応
-setopt extended_history # ヒストリに時刻を追加
-setopt noclobber # リダイレクトで上書き禁止
-setopt listpacked # 詰めて表示
-setopt nopromptcr # 改行コードで終わらない出力をケア、しない
-setopt complete_in_word # 語の途中でも補完
-setopt always_last_prompt # カーソル位置は保持したままファイル名一覧を順次その場で表示
+setopt multios # cmd >a >b で両方に書く（tee いらず）
+setopt extended_history # 履歴に実行時刻を残す（bin/usage_report.sh が読む）
+setopt noclobber # > で既存ファイルを上書きしない（>| で強制）
+setopt listpacked # 補完候補を幅を詰めて並べる
+setopt nopromptcr # 改行なしで終わった出力をプロンプトで消さない
+setopt complete_in_word # カーソルが単語の途中でも補完する
+setopt always_last_prompt # 補完候補を出してもプロンプトの位置を動かさない
 setopt magic_equal_subst # --prefix=~/local の~も展開できるように
-setopt ignore_eof # Ctrl-Dを無視
-setopt auto_param_slash # 末尾/を自動的に付加
-setopt mark_dirs # ディレクトリは末尾に/追加
-setopt list_types #
-setopt auto_menu # 補完キー連打
-setopt auto_param_keys # カッコの対応などを自動的に補完
-setopt print_eight_bit
-setopt globdots # dotも補完
+setopt ignore_eof # ⌃D でシェルを閉じない（exit で抜ける）
+setopt auto_param_slash # ディレクトリを補完したら末尾に / を付ける
+setopt mark_dirs # グロブで展開したディレクトリにも / を付ける
+setopt list_types # 補完候補に種類の印（/ * @）を付ける
+setopt auto_menu # Tab を続けて押すと候補を順に選ぶ
+setopt auto_param_keys # 補完で付いた空白や / を、続けて打った ) などに合わせて消す
+setopt print_eight_bit # 補完候補の日本語をエスケープせずに出す
+setopt globdots # * や補完でドットファイルも対象にする
 
 #=====================
 # history & shell vars
@@ -237,9 +227,6 @@ export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-# LS_COLORS is exported by the vivid-ls-colors inline plugin in
-# config/sheldon/plugins.toml, which zsh-defer runs after the first prompt —
-# so nothing in this file may read it eagerly (see the list-colors zstyle).
 export GPG_TTY=$TTY # zsh sets $TTY itself; saves a tty(1) fork per shell
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
@@ -254,13 +241,9 @@ zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、�
 zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zcompcache
-# `-e` (evaluate on lookup), not a plain value: LS_COLORS is not set yet when
-# this line runs. It is exported by the vivid-ls-colors plugin, which
-# config/sheldon/plugins.toml loads through zsh-defer, i.e. after the first
-# prompt - so a plain `list-colors ${(s.:.)LS_COLORS}` captured an empty value
-# and completion candidates were listed uncoloured on every machine. With -e
-# the style body is evaluated each time the completion system looks the style
-# up, so it picks up whatever LS_COLORS holds by then.
+# `-e` (evaluated on each lookup): LS_COLORS is exported by the vivid-ls-colors
+# plugin, which config/sheldon/plugins.toml defers until after the first prompt,
+# so a plain value would capture it empty. Nothing else here may read it eagerly.
 zstyle -e ':completion:*' list-colors 'reply=( ${(s.:.)LS_COLORS} )'
 
 #=====================
