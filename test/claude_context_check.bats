@@ -166,6 +166,14 @@ check() {
     | select(.command | startswith("[ ! -x ") and contains("claude_context_check.sh"))' "$SETTINGS" >/dev/null
 }
 
+@test "installer wires /clear's SessionEnd and SessionStart to the handoff carrier" {
+  run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  jq -e '.hooks.SessionEnd[].hooks[] | select(.command | endswith("claude_handoff.sh\" end"))' "$SETTINGS" >/dev/null
+  jq -e '.hooks.SessionStart[].hooks[]
+    | select(.command | endswith("claude_handoff.sh\" start"))' "$SETTINGS" >/dev/null
+}
+
 @test "rerunning changes nothing (no stacked duplicates)" {
   "$INSTALLER"
   first="$(cat "$SETTINGS")"
@@ -173,8 +181,8 @@ check() {
   [ "$status" -eq 0 ]
   [ "$(cat "$SETTINGS")" = "$first" ]
   n="$(jq '[.hooks[][] | .hooks[]
-     | select(.command | contains("claude_context_check.sh"))] | length' "$SETTINGS")"
-  [ "$n" -eq 1 ]
+     | select(.command | contains("claude_context_check.sh") or contains("claude_handoff.sh"))] | length' "$SETTINGS")"
+  [ "$n" -eq 3 ]
 }
 
 @test "--uninstall removes our hook and keeps other hooks" {
@@ -187,7 +195,8 @@ JSON
   [ "$status" -eq 0 ]
   [ "$(jq -r '.model' "$SETTINGS")" = opus ]
   jq -e '.hooks.UserPromptSubmit[].hooks[] | select(.command == "echo other")' "$SETTINGS" >/dev/null
-  left="$(jq '[.hooks[][] | .hooks[] | select(.command | contains("claude_context_check.sh"))] | length' "$SETTINGS")"
+  left="$(jq '[.hooks[][] | .hooks[]
+     | select(.command | contains("claude_context_check.sh") or contains("claude_handoff.sh"))] | length' "$SETTINGS")"
   [ "$left" -eq 0 ]
 }
 
