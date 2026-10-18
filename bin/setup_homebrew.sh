@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+# The installer runs as a script fetched over the network, so it runs from a
+# pinned commit rather than whatever HEAD holds that minute. A commit SHA names
+# the file's exact bytes already, so no separate hash is kept: one would only
+# guard against GitHub itself serving other bytes, and would stop Renovate from
+# moving the pin on its own. Renovate proposes a newer commit in its monthly PR
+# once that commit is a week old.
+# renovate: datasource=github-digest depName=Homebrew/install branch=main
+HOMEBREW_INSTALL_REF="7a3f48c7e498d7df3237fd41c30f4d492857edf4"
+
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1;
 
@@ -13,7 +22,8 @@ if [ -z "${BREW_BIN:-}" ]; then
     if ! command -v brew >/dev/null 2>&1; then
         os="$(uname)"
         if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            installer="https://raw.githubusercontent.com/Homebrew/install/$HOMEBREW_INSTALL_REF/install.sh"
+            /bin/bash -c "$(curl -fsSL "$installer")"
         fi
     fi
 

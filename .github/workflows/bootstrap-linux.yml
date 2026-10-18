@@ -13,7 +13,7 @@
 # ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
 # same locale the real machine uses. Slow and network-bound (it installs every
 # Brewfile), hence scheduled + manual rather than per-push.
-name: bootstrap-monthly
+name: bootstrap-linux
 on:
   schedule:
     # Daily while the full bootstrap keeps breaking unseen (monthly left a
@@ -153,7 +153,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          sha="$(./ci/aged_pass.sh bootstrap-monthly.yml 7 schedule workflow_dispatch)"
+          sha="$(./ci/aged_pass.sh bootstrap-linux.yml 7 schedule workflow_dispatch)"
           if [ -z "$sha" ]; then
             echo "no passing run a week old yet; stable stays where it is"
             exit 0
