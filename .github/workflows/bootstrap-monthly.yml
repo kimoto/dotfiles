@@ -16,8 +16,8 @@
 name: bootstrap-monthly
 on:
   schedule:
-    # Daily while the full bootstrap keeps breaking unseen (it sat red for two
-    # weeks on a monthly cadence); free on a public repo. Back to weekly once
+    # Daily while the full bootstrap keeps breaking unseen (monthly left a
+    # break unnoticed for two weeks); free on a public repo. Back to weekly once
     # it has stayed green for a month.
     - cron: '0 7 * * *'   # 07:00 UTC
   workflow_dispatch: {}
