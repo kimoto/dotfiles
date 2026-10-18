@@ -1,5 +1,5 @@
 ---
-name: decision-sweep
+name: project-decision-sweep
 description: Project の全スレッドから**人の判断待ち**を集め、Project チャットに1件1枚の選択カードで並べ、押された答えを各スレッドへ届ける。★Project チャットで「判断待ちまとめて」「まとめてお掃除」「何待ち?」「溜まってる質問に答えたい」と言われた時に使う。⚠️ Project 以外では使わない（スレッドも `message_thread` も無い）。
 ---
 

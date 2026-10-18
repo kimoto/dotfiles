@@ -25,6 +25,9 @@ ignore rule would apply in every repo on the machine.
   in `rules/`. Written in Japanese, against the language rule in `AGENTS.md`:
   the `description` is matched against requests that arrive in Japanese, and a
   skill is also read by the person deciding whether it says the right thing.
+  A name starts with the environment it needs when it works nowhere else
+  (`project-` for a Claude Projects chat), so the slash menu says where it
+  can run before its description is read; the rest carry no prefix.
 - `rules-cloud/` — linked as `~/.claude/rules/dotfiles-cloud` only by
   `link_claude_dir.sh --cloud`. It says what a container lacks, so every line
   is false on a workstation; `mklink.sh` removes the link.
