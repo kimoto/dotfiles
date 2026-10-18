@@ -72,6 +72,10 @@ if [ "$(readlink -f ./.claude/settings.json 2>/dev/null)" = "$BASE_DIR/claudecod
     rm -f ./.claude/settings.json
 fi
 
+# The settings every workstation shares, at a path that does not depend on
+# where this repo is cloned, for each machine's `claude --settings` alias.
+ln -nsf "$BASE_DIR/claudecode/settings-shared.json" ./.claude/settings-shared.json
+
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
 # directory — and an existing real directory under that name is theirs.
