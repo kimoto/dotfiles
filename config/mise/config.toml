@@ -2,6 +2,9 @@
 bun = "latest"
 go = "latest"
 node = "latest"
+# The repo's pipx: tools ask for this minor version, and mise resolves them
+# outside the repo, where only this file names a python.
+python = "3.14"
 rust = "latest"
 
 [settings]

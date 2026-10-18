@@ -7,8 +7,10 @@ set -euo pipefail
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
 
+# The same mise a workstation runs `mise lock` with: releases write the pipx:
+# entries of mise.lock differently, and `--locked` below rejects another's.
 # renovate: datasource=github-releases depName=jdx/mise
-MISE_VERSION="${MISE_VERSION:-2026.10.6}"
+MISE_VERSION="${MISE_VERSION:-2026.10.13}"
 
 case "$(uname -m)" in
   x86_64)        MISE_ARCH=x64 ;;
