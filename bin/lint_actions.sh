@@ -15,23 +15,12 @@
 
 set -euo pipefail
 
-BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
-cd "$BASE_DIR" || exit 1
+# shellcheck source=bin/lint_lib.sh
+. "$(dirname "$(readlink -f "$0")")/lint_lib.sh"
 
-if ! command -v ratchet >/dev/null 2>&1; then
-    echo "x ratchet not found; install it (run 'mise install' in this repo)" >&2
-    exit 1
-fi
-
-if ! command -v actionlint >/dev/null 2>&1; then
-    echo "x actionlint not found; install it (run 'mise install' in this repo)" >&2
-    exit 1
-fi
-
-if ! command -v zizmor >/dev/null 2>&1; then
-    echo "x zizmor not found; install it (run 'mise install' in this repo)" >&2
-    exit 1
-fi
+lint_require ratchet
+lint_require actionlint
+lint_require zizmor
 
 files=()
 while IFS= read -r f; do

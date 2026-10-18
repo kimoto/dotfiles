@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # Validate structured config files against the JSON Schema they declare via a
-# top-level "$schema" key. Single source of truth shared by CI and the lefthook
-# pre-commit hook. Pass files as arguments; with none, all tracked
-# json/jsonc/toml/yaml files are checked.
+# top-level "$schema" key.
 #
 # Files without a "$schema" key are skipped. Schemas whose host refuses
 # automated downloads (see SKIP_HOSTS) are skipped with a notice — validate
@@ -15,8 +13,8 @@
 
 set -euo pipefail
 
-BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
-cd "$BASE_DIR" || exit 1
+# shellcheck source=bin/lint_lib.sh
+. "$(dirname "$(readlink -f "$0")")/lint_lib.sh"
 
 # Schema hosts that block programmatic GETs (HTTP 403); no usable mirror.
 SKIP_HOSTS="starship.rs"
@@ -34,10 +32,7 @@ SKIP_HOSTS="starship.rs"
 # up under a strict validator. Upstream's bug; nothing to fix on our side.
 SKIP_SCHEMAS="https://aka.ms/winget-packages.schema.2.0.json"
 
-if ! command -v check-jsonschema >/dev/null 2>&1; then
-    echo "x check-jsonschema not found (run 'mise install' in this repo)" >&2
-    exit 1
-fi
+lint_require check-jsonschema
 
 # stdin: JSONC -> stdout: JSON (string-aware comment + trailing-comma stripper).
 jsonc_to_json() {
@@ -71,14 +66,7 @@ sys.stdout.write(re.sub(r",(\s*[}\]])", r"\1", "".join(out)))
 '
 }
 
-files=()
-if [ "$#" -gt 0 ]; then
-    files=("$@")
-else
-    while IFS= read -r f; do
-        files+=("$f")
-    done < <(git ls-files '*.json' '*.jsonc' '*.toml' '*.yaml' '*.yml')
-fi
+lint_collect '*.json' '*.jsonc' '*.toml' '*.yaml' '*.yml' -- "$@"
 
 [ "${#files[@]}" -eq 0 ] && exit 0
 
@@ -98,7 +86,6 @@ validate() {
 }
 
 for f in "${files[@]}"; do
-    [ -f "$f" ] || continue
     # The quoted yq expressions are yq syntax, not shell variables.
     # shellcheck disable=SC2016
     case "$f" in

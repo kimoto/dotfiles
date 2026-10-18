@@ -3,7 +3,7 @@
 # Enforce .editorconfig rules (max_line_length, trailing whitespace, final
 # newline) with editorconfig-checker. Indentation enforcement is turned off in
 # .editorconfig-checker.json; .editorconfig still advertises indent rules to
-# editors. Single source of truth shared by CI and the lefthook pre-commit hook.
+# editors.
 #
 # Pass files as arguments (lefthook feeds {staged_files}); with none, the whole
 # tree is walked (CI), honouring the excludes in .editorconfig-checker.json.
