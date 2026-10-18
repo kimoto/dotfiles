@@ -13,6 +13,12 @@ setup() {
   isolate_git_env
   SCRIPT="$REPO_ROOT/bin/lint_actions.sh"
   TMP="$(mktemp -d)"
+  # The fixture repo has no mise.toml, so a mise shim run from inside it finds
+  # no version and fails. Put this repo's installed tools on PATH directly, as
+  # CI's /usr/local/bin links already do.
+  if command -v mise >/dev/null 2>&1; then
+    PATH="$(cd "$REPO_ROOT" && mise bin-paths 2>/dev/null | paste -sd: -)${PATH:+:$PATH}"
+  fi
 }
 
 teardown() {
