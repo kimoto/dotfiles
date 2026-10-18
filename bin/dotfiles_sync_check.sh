@@ -48,7 +48,18 @@ result="$cache_dir/sync_status"
     # the end feeds the next shell. A merge that loses a race with another
     # shell for index.lock simply leaves the note for next time.
     branch=$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)
-    if { [ "$branch" = main ] || [ "$branch" = stable ]; } \
+    # stable is only ever moved to a commit already on main, so an
+    # origin/stable that main does not contain was put there by something
+    # other than that path. Taking it would run unreviewed code here.
+    off_main=0
+    if [ "$branch" = stable ] \
+        && git -C "$REPO_DIR" rev-parse --verify --quiet origin/main >/dev/null \
+        && ! git -C "$REPO_DIR" merge-base --is-ancestor origin/stable origin/main 2>/dev/null; then
+        off_main=1
+        note "origin/stable is not on main; not pulling it" \
+            "git -C $REPO_DIR log --oneline origin/main..origin/stable"
+    fi
+    if [ "$off_main" = 0 ] && { [ "$branch" = main ] || [ "$branch" = stable ]; } \
         && [ "$(git -C "$REPO_DIR" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)" = "origin/$branch" ] \
         && [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ] \
         && [ "$(git -C "$REPO_DIR" rev-list --count '@{upstream}..HEAD' 2>/dev/null)" = 0 ]; then
@@ -81,7 +92,7 @@ result="$cache_dir/sync_status"
         elif [ "${ahead:-0}" -gt 0 ] 2>/dev/null; then
             note "${ahead} unpushed commit(s)" "git -C $REPO_DIR push"
         fi
-        if [ "${behind:-0}" -gt 0 ] 2>/dev/null; then
+        if [ "${behind:-0}" -gt 0 ] 2>/dev/null && [ "$off_main" = 0 ]; then
             note "${behind} commit(s) behind upstream" "git -C $REPO_DIR pull"
         fi
     fi
