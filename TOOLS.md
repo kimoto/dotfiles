@@ -108,7 +108,6 @@ _Source: `Brewfile.macos`._
 
 | Tool | Description |
 | --- | --- |
-| [displayplacer](https://formulae.brew.sh/formula/displayplacer) | Utility to configure multi-display resolutions and arrangements |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
 | [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |

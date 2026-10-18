@@ -60,9 +60,6 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
   `.aerospace.toml`'s bindings without editing anything. komorebi is the more
   popular choice but needs a separate hotkey daemon (`LGUG2Z.whkd`) and does
   not follow i3's directional model.
-- **`displayplacer`** — drives `hammerspoon/displays.lua`, which restores the
-  display arrangement per set of monitors. Windows already remembers that per
-  set of monitors on its own, so nothing needs installing.
 - **`gitify`** — no equivalent worth installing; GitHub notifications are read
   in the browser or through `gh`.
 - **`font-bitstream-vera-sans-mono-nerd-font`** — not in the winget catalog.
