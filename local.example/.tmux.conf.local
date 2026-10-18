@@ -1,0 +1,6 @@
+# ~/.tmux.conf.local: this machine's tmux layer, sourced last by .tmux.conf
+# (source-file -q, so a missing file is fine). Copy to ~/.tmux.conf.local.
+#
+# Belongs here: overrides only this machine wants, such as a status bar
+# segment for a tool installed only here, or a key binding that clashes with
+# something else on this machine.

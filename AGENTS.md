@@ -36,6 +36,8 @@ before changing or calling the script.
   what it does and what it never does. `git-leftovers-reminder.sh` is the
   exception: registered per machine, not by this file.
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
+- `local.example/` — what goes in each `~/*.local` file those source last; the
+  files themselves stay on the machine.
 - `windows/` — the Windows half of the same workstation; manual copies, nothing
   in `bin/` reads it. See `windows/README.md`.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →

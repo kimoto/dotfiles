@@ -154,6 +154,9 @@ if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ] && command -v brew >
     "$BASE_DIR/bin/setup_brew_auto_upgrade.sh" || true
 fi
 
+# The per-machine files the dotfiles source, which never enter the repo.
+"$BASE_DIR/bin/local_layer_report.sh" || true
+
 set +x
 echo "mkworld: reached $reached${stopped:+ (stopped: $stopped)}"
 if [ -n "${MKWORLD_EXPECT:-}" ] && [ "$(phase_rank "$reached")" -lt "$(phase_rank "$MKWORLD_EXPECT")" ]; then

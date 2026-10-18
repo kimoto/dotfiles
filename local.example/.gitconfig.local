@@ -1,0 +1,18 @@
+# ~/.gitconfig.local: this machine's git layer, included last by .gitconfig,
+# so anything here overrides both .gitconfig and .gitconfig.default_user.
+# Copy to ~/.gitconfig.local and fill in.
+#
+# Belongs here: the identity and signing this machine commits with, when they
+# differ from .gitconfig.default_user.
+#
+# [user]
+#   name =
+#   email =
+#   signingkey =
+#
+# [gpg]
+#   format =
+#
+# Per-directory identities also go here:
+# [includeIf "gitdir:~/src/<somewhere>/"]
+#   path = ~/.gitconfig.<somewhere>
