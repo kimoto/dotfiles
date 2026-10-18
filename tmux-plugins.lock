@@ -1,0 +1,16 @@
+# The commit each tmux plugin in .tmux.conf's @tpm_plugins is checked out at.
+# tpm can only follow a branch, so bin/install_tmux_plugins.sh checks these
+# out after tpm clones; an upstream push reaches this machine only through a
+# reviewed bump here (Renovate proposes them, see renovate.json).
+# <owner/repo> <branch Renovate follows> <commit>
+tmux-plugins/tpm master e261deb1b47614eed3400089ce7197dc68acc4eb
+tmux-plugins/tmux-sensible master 25cb91f42d020f675bb0a2ce3fbd3a5d96119efa
+tmux-plugins/tmux-pain-control master 32b760f6652f2305dfef0acd444afc311cf5c077
+tmux-plugins/tmux-resurrect master cff343cf9e81983d3da0c8562b01616f12e8d548
+tmux-plugins/tmux-continuum master 0698e8f4b17d6454c71bf5212895ec055c578da0
+jaclu/tmux-menus main 1c3372d489a10907d2dff7731e0a10246b7a6a81
+laktak/extrakto master d1af77988081dae496fa4a1f5e5e6bc9ef66767f
+sainnhe/tmux-fzf master e5f427e9dcf180ca92e2f8af47ba07f644fd4585
+alexwforsythe/tmux-which-key main 85fb9756447b989f3b94e515d1e6ee7fec76cba2
+nhdaly/tmux-better-mouse-mode master aa59077c635ab21b251bd8cb4dc24c415e64a58e
+timvw/tmux-assistant-resurrect main a2bb0a4bd5786ea5ee93e104099a92e16f69e87c
