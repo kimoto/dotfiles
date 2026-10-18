@@ -151,3 +151,23 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$out" | grep -q ZSH_OK
+
+  # Only the weekly run installs every formula for real (a PR or manual run
+  # restores the Cellar cache), so only it may move `stable`, the commit
+  # README's install line starts a new machine from.
+  advance-stable:
+    needs: platform
+    if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # moves the stable branch; nothing else in this job writes
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Fast-forward stable to this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./ci/advance_stable.sh "$GITHUB_SHA"
