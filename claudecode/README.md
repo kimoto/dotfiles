@@ -34,7 +34,10 @@ ignore rule would apply in every repo on the machine.
   while a person in a web session just approves it. ⚠️ Not a wall: a Bash write
   does not match an `Edit(...)` rule. Its `SessionStart` hook fast-forwards the
   checkout it is linked from, because a cloud environment restores the setup
-  script's result from a cache and would otherwise read stale rules.
+  script's result from a cache and would otherwise read stale rules. Its
+  `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
+  workstation (`bin/claude_context_check.sh`), reached through the same link
+  because a container never runs `mkworld.sh`.
 - `settings-shared.json` — the keys of a workstation's `~/.claude/settings.json`
   that should match on every machine (status line, plugins, compaction).
   `bin/install_claude_settings.sh --sync` keeps the two in step per key on every

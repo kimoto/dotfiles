@@ -18,6 +18,7 @@ cd "$HOME" || exit 1
 # Unregister the Claude Code tmux-indicator hooks (pairs with mkworld.sh).
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_context_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_settings.sh" --uninstall || true
 
 # このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。

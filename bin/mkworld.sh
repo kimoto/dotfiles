@@ -132,11 +132,12 @@ else
     echo "tmux not found on PATH; skipping tmux plugin install" >&2
 fi
 
-# Claude Code: the tmux state-indicator and idle hooks, and the settings meant
+# Claude Code: the tmux state-indicator, idle and context hooks, and the settings meant
 # to match on every machine (claudecode/settings-shared.json). Each one skips
 # with a warning when jq is missing.
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" || echo "Claude tmux hooks failed" >&2
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" || echo "Claude idle hooks failed" >&2
+"$BASE_DIR/bin/install_claude_context_hooks.sh" || echo "Claude context hook failed" >&2
 "$BASE_DIR/bin/install_claude_settings.sh" --sync || echo "Claude settings sync failed" >&2
 
 # The check toolchain pinned in mise.toml, before the hooks below that run it.
