@@ -16,16 +16,28 @@ case "$want" in
   *) die "usage: $0 minimal|basic" ;;
 esac
 
+if [ "$want" = basic ]; then
+  # mkworld.sh looks for Homebrew at these fixed prefixes, so an empty $HOME and
+  # PATH cannot hide one that is already installed: the climb would go past
+  # basic and read as a mkworld bug.
+  for prefix in /opt/homebrew /home/linuxbrew/.linuxbrew; do
+    [ -x "$prefix/bin/brew" ] && die "Homebrew is already at $prefix; basic can only be tested where it is not"
+  done
+fi
+
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir "$WORK/home"
 
-search_path="$PATH"
+# Without the caller's mise shims: the fresh $HOME has none of the tools they
+# stand for, so mkworld's `mise install` would run a shim (rustup) that is mise
+# again, waiting on that same install forever.
+search_path="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/mise/shims/*$' | paste -sd: -)"
 if [ "$want" = minimal ]; then
   # A PATH that is the real one minus zsh, so the rest of the OS stays as is.
   mkdir "$WORK/bin"
-  IFS=: read -ra dirs <<<"$PATH"
+  IFS=: read -ra dirs <<<"$search_path"
   for d in "${dirs[@]}"; do
     for f in "$d"/*; do
       # An empty or missing PATH entry leaves the glob as a literal "*".
