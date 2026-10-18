@@ -232,7 +232,7 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + A | Same, but forking this pane's Claude Code session |
 | prefix + v | `hunk diff --watch` in a split to the right, same cwd |
 | prefix + V | The same, for the whole branch since it left main (commits too) |
-| prefix + f | fzf switcher across all panes of all sessions, most recent first |
+| prefix + f | fzf switcher across all panes of all sessions: Claude Code waiting on you (⏳) first, then finished (✳), then most recent |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
 | prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
 | prefix + ? | tmux-which-key: menu of tmux commands |
