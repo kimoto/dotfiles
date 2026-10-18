@@ -267,18 +267,6 @@ teardown() {
   [ ! -L "$hud" ]
 }
 
-@test "mklink.sh links the shared Claude settings, and rmworld.sh takes them back out" {
-  HOME="$HOME_SANDBOX" run sh "$MKLINK"
-  [ "$status" -eq 0 ]
-  shared="$HOME_SANDBOX/.claude/settings-shared.json"
-  [ "$(readlink -f "$shared")" = "$REPO_ROOT/claudecode/settings-shared.json" ]
-
-  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
-  [ "$status" -eq 0 ]
-  [ ! -e "$shared" ]
-  [ ! -L "$shared" ]
-}
-
 @test "mklink.sh leaves a claude-hud config that is not ours" {
   mkdir -p "$HOME_SANDBOX/.claude/plugins/claude-hud"
   echo '{"mine": true}' >"$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"

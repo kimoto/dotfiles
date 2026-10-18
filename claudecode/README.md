@@ -42,12 +42,5 @@ ignore rule would apply in every repo on the machine.
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
   because a container never runs `mkworld.sh`.
-- `settings-shared.json` — the settings that should match on every workstation
-  (status line, plugins, compaction), linked to `~/.claude/settings-shared.json`
-  by `mklink`. Each machine passes it to
-  `claude --settings` from an alias in `~/.zshrc.local` (example in
-  `local.example/.zshrc.local`), which only reads it. Nothing writes it back: a copy merged
-  into `~/.claude/settings.json` would carry that machine's own plugins and paths
-  into this public repo. Machine-specific settings stay in `~/.claude/settings.json`.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.

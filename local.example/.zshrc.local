@@ -10,7 +10,3 @@
 # Not here: anything every machine wants (put it in .zshrc), and settings
 # shared by every machine with the same hostname
 # (~/.config/hosts/<hostname>.zshrc, sourced just before this file).
-
-# Claude Code reads the settings every workstation shares. --settings only
-# reads the file, so nothing set on this machine is written back to the repo.
-# alias claude='claude --settings ~/.claude/settings-shared.json'
