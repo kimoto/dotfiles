@@ -151,11 +151,12 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           # tpm clones every @tpm_plugins entry into here; cache them so later
-          # runs skip the clones. Keyed on .tmux.conf since that is where the
-          # plugin list lives — editing it re-resolves the plugin set. Bump the
-          # vN to evict a bad cache (same manual lever as the brew key).
+          # runs skip the clones. Keyed on .tmux.conf (the plugin list) and
+          # tmux-plugins.lock (the commit each is pinned to), so a bump saves
+          # a cache holding the new commits. Bump the vN to evict a bad cache
+          # (same manual lever as the brew key).
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
+          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
 
       - name: Prepare world (cache phase)
         # One entry point owns the installs (Homebrew + Brewfile.standard,
@@ -268,7 +269,7 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
+          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
 
       - name: Prepare world (cache phase)
         run: ./ci/prepare.sh
