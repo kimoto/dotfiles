@@ -13,7 +13,7 @@
 # ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
 # same locale the real machine uses. Slow and network-bound (it installs every
 # Brewfile), hence scheduled + manual rather than per-push.
-name: bootstrap-linux
+name: bootstrap-monthly
 on:
   schedule:
     # Daily while the full bootstrap keeps breaking unseen (it sat red for two
