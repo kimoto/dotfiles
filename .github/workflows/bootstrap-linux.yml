@@ -112,10 +112,12 @@ jobs:
         # every fresh checkout is.
         #
         # Each step is a fresh shell, so brew has to go back on PATH: bats comes
-        # from Brewfile.extra, as do the linters the suite shells out to.
+        # from Brewfile.extra. The linters the suite shells out to are mise's,
+        # reached through the same shims sheldon puts on PATH for zsh.
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          eval "$(mise activate --shims bash)"
           ./bin/run_tests.sh
 
       - name: Interactive e2e that only bite with the full toolchain installed
