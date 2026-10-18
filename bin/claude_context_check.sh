@@ -10,7 +10,8 @@
 # write + cache read), read from the transcript. The window follows Claude
 # Code's own precedence — $CLAUDE_CODE_AUTO_COMPACT_WINDOW, then
 # `autoCompactWindow` in ~/.claude/settings.json — else 200000;
-# $CLAUDE_CONTEXT_WINDOW overrides all three.
+# $CLAUDE_CONTEXT_WINDOW overrides all three. Percentages are of the point
+# where compact fires.
 # ⚠️ Claude Code caps that window at the model's own, which the hook cannot
 #    see: on a 200K model with a 500K setting, compact comes before any notice.
 #
@@ -59,6 +60,12 @@ case "$window" in
 esac
 case "$window" in ''|0|*[!0-9]*) window=200000 ;; esac
 [ "$window" -lt 1000 ] && window=$(( window * 1000 ))
+# Compact fires at this share of the window, not at its end. Undocumented, but
+# the cloud environment sets it (80), and without it the 80% notice would land
+# on the same turn as compact.
+case "${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-}" in
+  [1-9]|[1-9][0-9]) window=$(( window * CLAUDE_AUTOCOMPACT_PCT_OVERRIDE / 100 )) ;;
+esac
 
 pct=$(( used * 100 / window ))
 level=0

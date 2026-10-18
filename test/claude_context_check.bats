@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$HOME"
   export CLAUDE_CONTEXT_CHECK_STATE="$TMP/state"
   export CLAUDE_CONTEXT_WINDOW=500000
-  unset CLAUDE_CONTEXT_WARN_PCT CLAUDE_CODE_AUTO_COMPACT_WINDOW
+  unset CLAUDE_CONTEXT_WARN_PCT CLAUDE_CODE_AUTO_COMPACT_WINDOW CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
   SETTINGS="$HOME/.claude/settings.json"
   TRANSCRIPT="$TMP/t.jsonl"
   : >"$TRANSCRIPT"
@@ -126,6 +126,13 @@ check() {
     [ "$status" -eq 0 ]
     case "$w" in *1M*) [ -z "$output" ] ;; *) [ -n "$output" ] ;; esac   # 1.5M -> 200K fallback
   done
+}
+
+# The cloud environment compacts at 80% of the window: 500K -> 400K.
+@test "percentages are of the point where compact fires" {
+  turn 250000                                    # 50% of 500K, 62% of 400K
+  CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
+  printf '%s' "$output" | jq -e '.systemMessage | contains("250k/400k (62%)")' >/dev/null
 }
 
 @test "the thresholds are configurable" {
