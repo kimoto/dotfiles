@@ -25,7 +25,7 @@ teardown() {
 make_fixture_repo() {
   local ref="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 permissions:
@@ -56,7 +56,7 @@ EOF
 
 @test "a repo with no workflows exits 0" {
   mkdir -p "$TMP/repo/bin"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   git -C "$TMP/repo" init -q
   run "$TMP/repo/bin/lint_actions.sh"
   [ "$status" -eq 0 ]
@@ -69,7 +69,7 @@ EOF
 make_actionlint_fixture_repo() {
   local runner="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 permissions:
@@ -110,7 +110,7 @@ EOF
 # actionlint (both would accept this workflow).
 make_zizmor_fixture_repo() {
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 jobs:

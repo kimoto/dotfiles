@@ -224,26 +224,8 @@ jobs:
           name: zsh-startup-bench
           path: ${{ runner.temp }}/zsh-startup-bench.txt
 
-      - name: Load to test .tmux.conf
-        run: ./test/e2e/tmux_loading_test.sh
-
-      - name: Interactive e2e (drive a real terminal, assert on rendered screen)
-        run: ./test/e2e/tmux_interactive_test.sh
-
-      - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
-        run: ./test/e2e/tmux_keybinding_test.sh
-
-      - name: Interactive e2e for tmux copy-mode (select + yank)
-        run: ./test/e2e/tmux_copymode_test.sh
-
-      - name: e2e for the status bar and dynamic window/pane formats
-        run: ./test/e2e/tmux_status_test.sh
-
-      - name: e2e for the Claude Code tmux state indicator (hook script + formats)
-        run: ./test/e2e/claude_tmux_indicator_test.sh
-
-      - name: e2e for the hook that keeps a hunk pane on Claude's repo
-        run: ./test/e2e/claude_tmux_hunk_test.sh
+      - name: tmux e2e suite
+        run: ./ci/tmux_suite.sh
 
       - name: Starship prompt e2e (render in a real terminal, assert segments)
         run: ./test/e2e/starship_test.sh
@@ -253,9 +235,6 @@ jobs:
 
       - name: Interactive e2e for the w worktree-jump command (git worktree -> fzf -> cd)
         run: ./test/e2e/w_command_test.sh
-
-      - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
-        run: ./test/e2e/keys_command_test.sh
 
       - name: Interactive e2e for completion candidate colours (list-colors)
         run: ./test/e2e/completion_colors_test.sh
@@ -311,29 +290,8 @@ jobs:
             exit 1
           fi
 
-      - name: Load to test .tmux.conf
-        run: ./test/e2e/tmux_loading_test.sh
-
-      - name: Interactive e2e (drive a real terminal, assert on rendered screen)
-        run: ./test/e2e/tmux_interactive_test.sh
-
-      - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
-        run: ./test/e2e/tmux_keybinding_test.sh
-
-      - name: Interactive e2e for tmux copy-mode (select + yank)
-        run: ./test/e2e/tmux_copymode_test.sh
-
-      - name: e2e for the status bar and dynamic window/pane formats
-        run: ./test/e2e/tmux_status_test.sh
-
-      - name: e2e for the Claude Code tmux state indicator (hook script + formats)
-        run: ./test/e2e/claude_tmux_indicator_test.sh
-
-      - name: e2e for the hook that keeps a hunk pane on Claude's repo
-        run: ./test/e2e/claude_tmux_hunk_test.sh
-
-      - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
-        run: ./test/e2e/keys_command_test.sh
+      - name: tmux e2e suite
+        run: ./ci/tmux_suite.sh
 
   # The standard-phase gate from docs/staged-bootstrap.md: zsh_loading_test
   # above also runs mkworld.sh (tmux plugins, Claude hooks, lefthook), so a
