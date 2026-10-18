@@ -70,4 +70,3 @@ for link in ./.claude/skills/*; do
     esac
 done
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"
-unlink_if_symlink "./.claude/settings-shared.json"
