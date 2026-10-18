@@ -71,12 +71,18 @@ fi
 
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
-# directory. Adding one means a line here and in bin/rmworld.sh (a test fails
-# if the two lists drift).
+# directory — and an existing real directory under that name is theirs.
+# claudecode/skills/ is the list: adding a skill is adding its directory.
 mkdir -p ./.claude/skills
-ln -nsf "$BASE_DIR/claudecode/skills/issue-sweep" ./.claude/skills/issue-sweep
-ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
-ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
+for skill in "$BASE_DIR"/claudecode/skills/*/; do
+    [ -d "$skill" ] || continue
+    dest="./.claude/skills/$(basename "$skill")"
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        echo "$HOME/.claude/skills/$(basename "$skill") is not ours; left alone" >&2
+        continue
+    fi
+    ln -nsf "${skill%/}" "$dest"
+done
 
 # claude-hud's look. Only the file: the directory also holds its caches. A real
 # file there is this machine's until someone moves it in by hand.

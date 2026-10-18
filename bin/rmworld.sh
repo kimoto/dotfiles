@@ -62,7 +62,11 @@ if [ "$(readlink -f ./.codex/AGENTS.md 2>/dev/null)" = "$BASE_DIR/codex/AGENTS.m
     unlink_if_symlink "./.codex/AGENTS.md"
 fi
 unlink_if_symlink "./.claude/rules/dotfiles"
-unlink_if_symlink "./.claude/skills/issue-sweep"
-unlink_if_symlink "./.claude/skills/session-resume"
-unlink_if_symlink "./.claude/skills/wrapup"
+# By where the link points rather than by name, so a skill since removed from
+# claudecode/skills/ still has its link taken down.
+for link in ./.claude/skills/*; do
+    case "$(readlink "$link" 2>/dev/null)" in
+        "$BASE_DIR"/claudecode/skills/*) unlink_if_symlink "$link" ;;
+    esac
+done
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"

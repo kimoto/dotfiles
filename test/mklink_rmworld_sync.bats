@@ -6,6 +6,9 @@
 # forgets the other, mkworld/rmworld stop being inverses and stale symlinks
 # get left behind (or real files get clobbered). This test fails loudly the
 # moment the two lists drift apart.
+#
+# Skills are in neither list: both scripts derive them from claudecode/skills/,
+# and mklink_rmworld_behaviour.bats covers them.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -22,6 +25,7 @@ mklink_targets() {
   awk '/ln -/ {
     s = $0
     sub(/^[^"]*"/, "", s); src = s; sub(/".*/, "", src)   # src = $BASE_DIR/...
+    if (src !~ /^\$BASE_DIR\//) next   # the skills loop: see the header
     dest = $NF
     if (dest == "./") { sub(/\/$/, "", src); sub(/.*\//, "", src); print src }
     else { sub(/^\.\//, "", dest); sub(/\/$/, "", dest); print dest }
