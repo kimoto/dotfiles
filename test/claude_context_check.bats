@@ -44,13 +44,13 @@ check() {
   [ -z "$output" ]
 }
 
-@test "crossing 60% tells both the person and the model, naming wrapup" {
+@test "crossing 60% tells both the person and the model, naming handoff" {
   turn 310000
   check
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e '.systemMessage | contains("310k/500k (62%)")' >/dev/null
   printf '%s' "$output" | jq -e '.hookSpecificOutput.hookEventName == "UserPromptSubmit"' >/dev/null
-  printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("wrapup")' >/dev/null
+  printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("handoff")' >/dev/null
 }
 
 @test "each threshold speaks once per climb" {

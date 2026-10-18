@@ -2,7 +2,7 @@
 # Claude Code UserPromptSubmit hook (registered by
 # bin/install_claude_context_hooks.sh): when the context has grown far into the
 # auto-compact window, tells both the person and the model that it is time to
-# hand off to a fresh session — via the wrapup skill — instead of letting
+# hand off to a fresh session — via the handoff skill — instead of letting
 # auto-compact replace the conversation with a summary that silently drops
 # detail.
 #
@@ -24,7 +24,7 @@
 set -u
 
 # 60: early enough that the handoff is a choice, not a rescue. 80: the last
-# point where wrapup itself still fits comfortably before auto-compact.
+# point where the handoff itself still fits comfortably before auto-compact.
 WARN_PCT="${CLAUDE_CONTEXT_WARN_PCT:-60 80}"
 STATE_DIR="${CLAUDE_CONTEXT_CHECK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/claude-context}"
 
@@ -89,11 +89,11 @@ if [ "$level" -eq 1 ]; then
   user="コンテキスト $size。区切りで次のセッションへの仕切り直しを検討"
   model="★コンテキストが自動 compact の窓の $size に達した。今の作業は止めずに続け、"
   model="${model}次に区切りが付いた返答の末尾で一行、仕切り直しを提案する: "
-  model="${model}wrapup skill で残件を消えない場所へ移し、次のセッションに貼る引き継ぎプロンプトを渡す。"
+  model="${model}handoff skill で次のセッションに貼る引き継ぎプロンプトを作る。"
 else
   user="コンテキスト $size。今の作業単位を閉じたら仕切り直し"
   model="★コンテキストが自動 compact の窓の $size。新しい大きな作業は始めない。"
-  model="${model}今の作業単位を閉じたら wrapup skill を実行し、引き継ぎプロンプトを渡して仕切り直しを勧める。"
+  model="${model}今の作業単位を閉じたら handoff skill を実行し、引き継ぎプロンプトを渡して仕切り直しを勧める。"
   model="${model}自動 compact は会話を要約に置き換え、細部が黙って落ちる。"
 fi
 
