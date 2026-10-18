@@ -204,6 +204,43 @@ advance_upstream() {
   [[ "$output" == *"behind upstream"* ]]
 }
 
+@test "a machine following stable is fast-forwarded along stable" {
+  add_upstream
+  git -C "$REPO" push -q origin main:stable
+  git -C "$REPO" switch -q -c stable --track origin/stable
+  advance_upstream stable
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse origin/stable)" ]
+  run "$SCRIPT"
+  [[ "$output" == *"pulled 1 commit"* ]]
+}
+
+@test "a commit made on stable is pointed at a branch, not at push" {
+  add_upstream
+  git -C "$REPO" push -q origin main:stable
+  git -C "$REPO" switch -q -c stable --track origin/stable
+  echo mine >"$REPO/mine.txt"
+  git -C "$REPO" add mine.txt
+  git -C "$REPO" commit -qm "feat: local"
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  run "$SCRIPT"
+  [[ "$output" == *"commit(s) on stable"* ]]
+  [[ "$output" != *"push"* ]]
+}
+
+@test "a branch tracking another branch's upstream is not fast-forwarded" {
+  add_upstream
+  git -C "$REPO" push -q origin main:stable
+  git -C "$REPO" switch -q -c stable --track origin/main
+  advance_upstream main
+  before=$(git -C "$REPO" rev-parse HEAD)
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$before" ]
+}
+
 @test "main with unpushed commits is not merged into" {
   add_upstream
   advance_upstream

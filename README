@@ -15,4 +15,7 @@
 #
 cd $HOME
 git clone --recursive https://github.com/kimoto/dotfiles.git
+# Start from the last commit a full bootstrap passed on, not whatever main
+# holds right now. main stays checked out, so later syncs move it forward.
+git -C dotfiles reset --hard origin/stable || echo "no stable ref yet; using main"
 ./dotfiles/bin/mkworld.sh

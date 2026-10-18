@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Warns at shell startup that this repo needs syncing between machines, and
-# fast-forwards main when that cannot lose anything.
+# fast-forwards main or stable when that cannot lose anything.
 #
 # ⚠ What it prints is the previous shell's answer, and "behind" lags up to one
 # 24h fetch window on top of that — never read it as the state right now.
@@ -41,13 +41,15 @@ result="$cache_dir/sync_status"
     }
 
     # Catch up with what the last fetch brought, but only where nothing can be
-    # lost: on main, tracking origin/main, clean, nothing unpushed. A branch or
-    # a dirty tree belongs to whoever is working in this checkout, so those
+    # lost: on main or stable (the branch this machine chose to follow),
+    # tracking its origin counterpart, clean, nothing unpushed. A topic branch
+    # or a dirty tree belongs to whoever is working in this checkout, so those
     # stay a "behind" note below. Local refs only, no network: the fetch at
     # the end feeds the next shell. A merge that loses a race with another
     # shell for index.lock simply leaves the note for next time.
-    if [ "$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)" = main ] \
-        && [ "$(git -C "$REPO_DIR" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)" = origin/main ] \
+    branch=$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)
+    if { [ "$branch" = main ] || [ "$branch" = stable ]; } \
+        && [ "$(git -C "$REPO_DIR" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)" = "origin/$branch" ] \
         && [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ] \
         && [ "$(git -C "$REPO_DIR" rev-list --count '@{upstream}..HEAD' 2>/dev/null)" = 0 ]; then
         pulled=$(git -C "$REPO_DIR" rev-list --count 'HEAD..@{upstream}' 2>/dev/null || echo 0)
@@ -71,7 +73,12 @@ result="$cache_dir/sync_status"
         counts=$(git -C "$REPO_DIR" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null || echo '')
         behind=$(printf '%s' "$counts" | awk '{print $1}')
         ahead=$(printf '%s' "$counts" | awk '{print $2}')
-        if [ "${ahead:-0}" -gt 0 ] 2>/dev/null; then
+        # stable only ever moves to a commit CI verified, so a commit made on
+        # it goes to main through a branch and a PR, never by pushing here.
+        if [ "${ahead:-0}" -gt 0 ] 2>/dev/null && [ "$branch" = stable ]; then
+            note "${ahead} commit(s) on stable" \
+                "git -C $REPO_DIR switch -c <topic> && git -C $REPO_DIR branch -f stable origin/stable"
+        elif [ "${ahead:-0}" -gt 0 ] 2>/dev/null; then
             note "${ahead} unpushed commit(s)" "git -C $REPO_DIR push"
         fi
         if [ "${behind:-0}" -gt 0 ] 2>/dev/null; then
