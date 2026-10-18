@@ -208,12 +208,28 @@ advance_upstream() {
   add_upstream
   git -C "$REPO" push -q origin main:stable
   git -C "$REPO" switch -q -c stable --track origin/stable
-  advance_upstream stable
+  advance_upstream main
+  git -C "$REPO" push -q origin origin/main:refs/heads/stable
+  git -C "$REPO" fetch -q origin
   run "$SCRIPT"
   wait_for '[ -s "$CACHE/sync_status" ]'
   [ "$(git -C "$REPO" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse origin/stable)" ]
   run "$SCRIPT"
   [[ "$output" == *"pulled 1 commit"* ]]
+}
+
+@test "a stable that main does not contain is not pulled, and is named" {
+  add_upstream
+  git -C "$REPO" push -q origin main:stable
+  git -C "$REPO" switch -q -c stable --track origin/stable
+  before=$(git -C "$REPO" rev-parse HEAD)
+  advance_upstream stable
+  run "$SCRIPT"
+  wait_for '[ -s "$CACHE/sync_status" ]'
+  [ "$(git -C "$REPO" rev-parse HEAD)" = "$before" ]
+  run "$SCRIPT"
+  [[ "$output" == *"origin/stable is not on main"* ]]
+  [[ "$output" != *"git pull"* ]]
 }
 
 @test "a commit made on stable is pointed at a branch, not at push" {
