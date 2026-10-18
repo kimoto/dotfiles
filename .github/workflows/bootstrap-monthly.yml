@@ -12,12 +12,11 @@
 # This job closes that gap by doing what a person does on a fresh machine:
 # ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
 # same locale the real machine uses. Slow and network-bound (it installs every
-# Brewfile), hence monthly + manual rather than per-push — the same trade-off as
-# vim-monthly.yml.
+# Brewfile), hence monthly + manual rather than per-push.
 name: bootstrap-monthly
 on:
   schedule:
-    - cron: '0 7 1 * *'   # 07:00 UTC on the 1st, an hour after vim-monthly
+    - cron: '0 7 1 * *'   # 07:00 UTC on the 1st
   workflow_dispatch: {}
 
 permissions:

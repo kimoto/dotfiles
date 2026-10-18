@@ -51,14 +51,9 @@ climb() {
     "$BASE_DIR/bin/mklink.sh"
     reached=minimal
 
-    # basic: the OS's zsh, plus what a git clone brings. NeoBundle is a
-    # submodule under .vim/bundle/; with it present, the first `vim` launch runs
-    # NeoBundleCheck instead of erroring on every NeoBundle command.
+    # basic: the OS's zsh, plus what a git clone brings.
     if ! command -v zsh >/dev/null 2>&1; then
         stop "zsh not installed"; return
-    fi
-    if ! git -C "$BASE_DIR" submodule update --init --recursive; then
-        stop "git submodule update failed"; return
     fi
     reached=basic
 

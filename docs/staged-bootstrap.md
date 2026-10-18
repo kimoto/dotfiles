@@ -8,7 +8,7 @@ its own.
 | Phase | Assumes | May install | Gate |
 |---|---|---|---|
 | minimal | nothing can be installed | nothing: the OS's bash, vim and git | `test/e2e/mkworld_phase_test.sh minimal`, `test/e2e/plain_shell_test.sh` (bash half) |
-| basic | the OS has zsh | only what a git clone brings (vim's NeoBundle plugins); no extra binary | `test/e2e/mkworld_phase_test.sh basic`, `test/e2e/plain_shell_test.sh` (zsh half), `vim_guard_test` |
+| basic | the OS has zsh | only what a git clone brings; no extra binary | `test/e2e/mkworld_phase_test.sh basic`, `test/e2e/plain_shell_test.sh` (zsh half), `vim_guard_test` |
 | standard | tools can be installed | `Brewfile.standard` | `test/e2e/zsh_loading_test.sh` (`zsh_loading_test_standard_only`) |
 | extra | your own machine | `Brewfile.extra`, tpm/nvim plugins, mise runtimes | `test/e2e/tmux_loading_test.sh`, `run_tests.sh`, the tmux e2e set, `test/e2e/nvim_loading_test.sh` |
 | platform | this OS | `Brewfile.macos` + `setup_macosx.sh`, or `Brewfile.linux` | `bootstrap-macos`, `bootstrap-monthly` |
@@ -16,8 +16,7 @@ its own.
 ## Where a tool goes
 
 - **basic | standard: does it need a separate binary?** sheldon is one, so the
-  zsh plugins it loads are standard, while NeoBundle (cloned by `.vimrc`
-  itself) stays basic.
+  zsh plugins it loads are standard.
 - **standard | extra: does installing it change everyday use, with no other
   step?** eza (`ls`), bat (`cat`), zoxide (`cd`), delta (`git diff`), fzf
   (^R) do. kubectl, jq, tmux do not: they run only when typed, even

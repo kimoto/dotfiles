@@ -1,22 +1,18 @@
 #!/bin/bash
-# Fast guard test for the legacy .vimrc: on a machine with NO plugins installed,
-# Vim must still start completely clean instead of erroring on every NeoBundle
-# command and blocking on a "Press ENTER" prompt.
-#
-# This exercises the degrade-gracefully path of .vimrc's bootstrap: with
-# $VIM_NO_BOOTSTRAP set, the auto-install of neobundle is skipped, so the whole
-# plugin block is guarded out. It installs nothing and touches no network, so
-# unlike test/e2e/vim_loading_test.sh (the full monthly install) this is cheap enough
-# to run on every push.
+# Guard test for .vimrc, the fallback editor on machines without nvim: Vim must
+# start completely clean with nothing but the OS's vim, and stay plugin-free.
+# It installs nothing and touches no network, so it runs on every push.
 set -euo pipefail
 
 die() { echo "CI error: $*" >&2; exit 1; }
 
 command -v vim  >/dev/null 2>&1 || die "vim not installed"
 command -v tmux >/dev/null 2>&1 || die "tmux not installed"
+
 REPO="$PWD"
 VIMRC="$REPO/.vimrc"
 [ -f "$VIMRC" ] || die "no .vimrc in $REPO"
+
 echo "== $(vim --version | head -1) =="
 
 HOME_DIR="$(mktemp -d)"
@@ -27,35 +23,37 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Isolated HOME with an empty bundle dir: no neobundle, no plugins.
-mkdir -p "$HOME_DIR/.vim/bundle" "$HOME_DIR/.vim/undo" "$HOME_DIR/tmp"
+# Isolated HOME laid out as mkworld leaves it: ~/tmp for backups, ~/.vim/undo.
+mkdir -p "$HOME_DIR/.vim/undo" "$HOME_DIR/tmp"
 cp "$VIMRC" "$HOME_DIR/.vimrc"
-
-# Assert 1 (headless): sourcing .vimrc with no plugins yields no error messages,
-# exits cleanly, and really is in the guarded path (the NeoBundle command, which
-# only the plugin manager defines, must be absent).
-echo "== headless: no-plugin startup must be clean =="
 msgs="$HOME_DIR/messages.txt"
-HOME="$HOME_DIR" VIM_NO_BOOTSTRAP=1 vim -N -u "$HOME_DIR/.vimrc" \
-  -c 'set nomore' \
-  -c "redir! > $msgs" \
-  -c 'silent messages' \
-  -c 'silent echo "NEOBUNDLE_CMD=".(exists(":NeoBundle")?"present":"absent")' \
-  -c 'redir END' -c 'qall!' </dev/null >/dev/null 2>&1 || die "vim exited non-zero with no plugins"
 
+# Assert 1 (headless): startup yields no error messages, exits cleanly, and
+# sources no script from $HOME besides .vimrc itself: a plugin, or a plugin
+# manager, would show up there.
+echo "== headless: startup must be clean and plugin-free =="
+scripts="$HOME_DIR/scriptnames.txt"
+HOME="$HOME_DIR" vim -N -u "$HOME_DIR/.vimrc" \
+  -c 'set nomore' \
+  -c "redir! > $msgs" -c 'silent messages' -c 'redir END' \
+  -c "redir! > $scripts" -c 'silent scriptnames' -c 'redir END' \
+  -c 'qall!' </dev/null >/dev/null 2>&1 || die "vim exited non-zero on startup"
 echo "---- :messages ----"; cat "$msgs"; echo "-------------------"
 if grep -nE "E[0-9]{2,}:|Not an editor command|Unknown function|Cannot find color scheme|Error detected" "$msgs"; then
-  die "no-plugin startup produced Vim errors (the guard regressed)"
+  die "startup produced Vim errors"
 fi
-grep -q "NEOBUNDLE_CMD=absent" "$msgs" ||
-  die "expected the guarded path (NeoBundle command should be undefined without plugins)"
-echo "== headless no-plugin startup clean =="
+# :scriptnames shortens paths under $HOME to ~/, so match that form.
+grep -qE ' ~/\.vimrc$' "$scripts" || die ":scriptnames does not list ~/.vimrc; the check below would prove nothing"
+if grep -E ' ~/' "$scripts" | grep -vE ' ~/\.vimrc$'; then
+  die "vim sourced a script from \$HOME besides .vimrc: .vimrc must load no plugins"
+fi
+echo "== headless startup clean and plugin-free =="
 
-# Assert 2 (real terminal): confirm there is no "Press ENTER" prompt or error
-# wall — the original symptom — and Vim lands on a normal editing screen.
+# Assert 2 (real terminal): no "Press ENTER" prompt or error wall, and Vim
+# lands on a normal editing screen.
 echo "== real-terminal: no Press-ENTER / error wall =="
 tmux -L "$SOCK" new-session -d -x 120 -y 40 \
-  "env HOME='$HOME_DIR' VIM_NO_BOOTSTRAP=1 TERM=xterm-256color vim -N -u '$HOME_DIR/.vimrc'" ||
+  "env HOME='$HOME_DIR' TERM=xterm-256color vim -N -u '$HOME_DIR/.vimrc'" ||
   die "failed to start tmux session"
 
 screen=""
@@ -66,11 +64,11 @@ for _ in $(seq 1 50); do
 done
 if printf '%s\n' "$screen" | grep -qiE 'Press ENTER|Not an editor command|E[0-9]{2,}:|Unknown function'; then
   echo "---- pane ----"; printf '%s\n' "$screen" >&2
-  die "Vim showed an error / Press-ENTER prompt on no-plugin startup (guard regressed)"
+  die "Vim showed an error / Press-ENTER prompt on startup"
 fi
 printf '%s\n' "$screen" | grep -qE '\[No Name\]|VIM - Vi IMproved' ||
   { echo "---- pane ----"; printf '%s\n' "$screen" >&2; die "Vim did not reach a normal startup screen"; }
 tmux -L "$SOCK" send-keys ':qa!' Enter
-echo "== real-terminal no-plugin startup clean =="
+echo "== real-terminal startup clean =="
 
 echo "PASS"
