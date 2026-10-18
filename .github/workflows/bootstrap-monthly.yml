@@ -133,8 +133,9 @@ jobs:
           ./test/e2e/w_command_test.sh
 
   # README's install line starts a new machine from `stable`, so it only ever
-  # points at a commit this full bootstrap passed on. A manual run on main
-  # moves it too, for when a change is wanted sooner than the next run.
+  # points at a commit this full bootstrap passed on, a week ago or more: the
+  # daily run finds a breakage fast, the week lets one surface in use first.
+  # Only when today's run is green too, so a main that broke since stays put.
   advance-stable:
     needs: full-bootstrap
     if: github.ref == 'refs/heads/main'
@@ -147,7 +148,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Fast-forward stable to this commit
+      - name: Fast-forward stable to the newest pass at least a week old
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./ci/advance_stable.sh "$GITHUB_SHA"
+        run: |
+          set -e
+          sha="$(./ci/aged_pass.sh bootstrap-monthly.yml 7 schedule workflow_dispatch)"
+          if [ -z "$sha" ]; then
+            echo "no passing run a week old yet; stable stays where it is"
+            exit 0
+          fi
+          ./ci/advance_stable.sh "$sha"
