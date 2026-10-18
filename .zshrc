@@ -162,32 +162,32 @@ fi
 #=====================
 # setopts
 #=====================
-setopt autocd
-setopt autopushd
-setopt nocorrectall
-setopt histignoredups
-setopt histignorealldups
-setopt pushdignoredups
-setopt interactivecomments
-setopt share_history
-setopt incappendhistory
+setopt autocd # ディレクトリ名だけ打てば cd する
+setopt autopushd # cd のたびに移動元を積む（cd -<Tab> で戻れる）
+setopt nocorrectall # 引数のスペル訂正を聞いてこない
+setopt histignoredups # 直前と同じコマンドは履歴に積まない
+setopt histignorealldups # 同じコマンドを打つと古い方を履歴から消す
+setopt pushdignoredups # 同じディレクトリを重ねて積まない
+setopt interactivecomments # コマンドラインでも # 以降をコメントにする
+setopt share_history # 他のシェルで打ったコマンドも履歴に出てくる
+setopt incappendhistory # シェルの終了を待たず、実行のたびに履歴へ書く
 setopt hist_fcntl_lock # fcntl histfile locking: cheaper than the default per-command lockfile dance
-setopt multios
-setopt extended_history
-setopt noclobber
-setopt listpacked
-setopt nopromptcr
-setopt complete_in_word
-setopt always_last_prompt
+setopt multios # cmd >a >b で両方に書く（tee いらず）
+setopt extended_history # 履歴に実行時刻を残す（bin/usage_report.sh が読む）
+setopt noclobber # > で既存ファイルを上書きしない（>| で強制）
+setopt listpacked # 補完候補を幅を詰めて並べる
+setopt nopromptcr # 改行なしで終わった出力をプロンプトで消さない
+setopt complete_in_word # カーソルが単語の途中でも補完する
+setopt always_last_prompt # 補完候補を出してもプロンプトの位置を動かさない
 setopt magic_equal_subst # --prefix=~/local の~も展開できるように
-setopt ignore_eof
-setopt auto_param_slash
-setopt mark_dirs
-setopt list_types
-setopt auto_menu
-setopt auto_param_keys
-setopt print_eight_bit
-setopt globdots
+setopt ignore_eof # ⌃D でシェルを閉じない（exit で抜ける）
+setopt auto_param_slash # ディレクトリを補完したら末尾に / を付ける
+setopt mark_dirs # グロブで展開したディレクトリにも / を付ける
+setopt list_types # 補完候補に種類の印（/ * @）を付ける
+setopt auto_menu # Tab を続けて押すと候補を順に選ぶ
+setopt auto_param_keys # 補完で付いた空白や / を、続けて打った ) などに合わせて消す
+setopt print_eight_bit # 補完候補の日本語をエスケープせずに出す
+setopt globdots # * や補完でドットファイルも対象にする
 
 #=====================
 # history & shell vars
