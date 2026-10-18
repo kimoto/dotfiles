@@ -4,10 +4,11 @@ set -euo pipefail
 
 # The installer runs as a script fetched over the network, so it runs from a
 # commit a person has read rather than whatever HEAD holds that minute, and
-# only if its bytes match the hash recorded with that commit. Renovate proposes
-# a newer commit in its monthly PR once it is a week old; that PR stays red
-# until someone reads the new installer and records its hash here.
-# renovate: datasource=github-digest depName=Homebrew/install branch=main
+# only if its bytes match the hash recorded with that commit. Deliberately not
+# tracked by Renovate: install.sh changes every few weeks, mostly in ways this
+# repo never notices, and a monthly few-hundred-line shell diff would be ticked
+# rather than read. Move the pin when the daily full bootstrap says the old
+# installer no longer works, reading `git diff <old> <new> -- install.sh`.
 HOMEBREW_INSTALL_REF="7a3f48c7e498d7df3237fd41c30f4d492857edf4"
 HOMEBREW_INSTALL_SHA256="5f333bbe53bc490e51e7ccb1df8779b3dd6ee73a1a7379efda216edb08ccb148"
 
