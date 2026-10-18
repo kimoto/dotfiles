@@ -63,6 +63,7 @@ claudecode/rules/*
 !claudecode/rules/hooks.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
+!claudecode/rules/secrets.md
 !claudecode/rules/tooling.md
 !claudecode/rules/writing.md
 
