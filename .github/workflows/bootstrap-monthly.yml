@@ -1,5 +1,5 @@
 ---
-# Monthly, no-cache, full-workstation bootstrap on Ubuntu.
+# Daily, no-cache, full-workstation bootstrap on Ubuntu.
 #
 # ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
 # slice of it: ci/prepare.sh asks setup_homebrew.sh to leave Brewfile.extra out,
@@ -12,11 +12,14 @@
 # This job closes that gap by doing what a person does on a fresh machine:
 # ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
 # same locale the real machine uses. Slow and network-bound (it installs every
-# Brewfile), hence monthly + manual rather than per-push.
+# Brewfile), hence scheduled + manual rather than per-push.
 name: bootstrap-monthly
 on:
   schedule:
-    - cron: '0 7 1 * *'   # 07:00 UTC on the 1st
+    # Daily while the full bootstrap keeps breaking unseen (monthly left a
+    # break unnoticed for two weeks); free on a public repo. Back to weekly once
+    # it has stayed green for a month.
+    - cron: '0 7 * * *'   # 07:00 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -40,13 +43,15 @@ jobs:
       - name: Generate the ja_JP locale
         run: sudo locale-gen ja_JP.UTF-8
 
-      - name: Install a tmux to bootstrap from
-        # Only needed to *host* the bootstrap; Brewfile.extra installs the tmux
-        # everything afterwards actually uses.
+      - name: Install the OS packages a person installs first
+        # zsh is what the basic phase means by "the OS has zsh": the runner
+        # image ships without it, and mkworld stops at minimal rather than
+        # install a shell itself. tmux only *hosts* the bootstrap;
+        # Brewfile.extra installs the tmux everything afterwards actually uses.
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tmux
+          sudo apt-get install -y --no-install-recommends tmux zsh
 
       - name: Bootstrap from scratch, from inside a tmux session
         # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_EXTRA is set, so
@@ -67,10 +72,15 @@ jobs:
         # out of band: the pane writes it to a file and signals a wait-for
         # channel. A signal sent before anyone waits is remembered by tmux, so
         # a fast bootstrap cannot slip past the wait below.
+        #
+        # The pane's output is copied to a file and printed after, pass or
+        # fail: without it the job log shows only the exit status, and a
+        # failure cannot be told apart from any other.
         run: |
           set -e
           cat >"$RUNNER_TEMP/bootstrap.sh" <<'EOF'
           #!/bin/sh
+          tmux pipe-pane "cat >>'$RUNNER_TEMP/mkworld.log'"
           cd "$GITHUB_WORKSPACE" || exit 1
           MKWORLD_EXPECT=platform ./bin/mkworld.sh
           echo $? >"$RUNNER_TEMP/mkworld.rc"
@@ -79,6 +89,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/bootstrap.sh"
           tmux new-session -d -x 200 -y 50 "$RUNNER_TEMP/bootstrap.sh"
           tmux wait-for bootstrapped
+          cat "$RUNNER_TEMP/mkworld.log"
           rc="$(cat "$RUNNER_TEMP/mkworld.rc")"
           echo "mkworld.sh exit=$rc"
           [ "$rc" = "0" ]
@@ -101,10 +112,12 @@ jobs:
         # every fresh checkout is.
         #
         # Each step is a fresh shell, so brew has to go back on PATH: bats comes
-        # from Brewfile.extra, as do the linters the suite shells out to.
+        # from Brewfile.extra. The linters the suite shells out to are mise's,
+        # reached through the same shims sheldon puts on PATH for zsh.
         run: |
           set -e
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          eval "$(mise activate --shims bash)"
           ./bin/run_tests.sh
 
       - name: Interactive e2e that only bite with the full toolchain installed
@@ -120,8 +133,9 @@ jobs:
           ./test/e2e/w_command_test.sh
 
   # README's install line starts a new machine from `stable`, so it only ever
-  # points at a commit this full bootstrap passed on. A manual run on main
-  # moves it too, for when a change is wanted sooner than the next month.
+  # points at a commit this full bootstrap passed on, a week ago or more: the
+  # daily run finds a breakage fast, the week lets one surface in use first.
+  # Only when today's run is green too, so a main that broke since stays put.
   advance-stable:
     needs: full-bootstrap
     if: github.ref == 'refs/heads/main'
@@ -134,7 +148,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Fast-forward stable to this commit
+      - name: Fast-forward stable to the newest pass at least a week old
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./ci/advance_stable.sh "$GITHUB_SHA"
+        run: |
+          set -e
+          sha="$(./ci/aged_pass.sh bootstrap-monthly.yml 7 schedule workflow_dispatch)"
+          if [ -z "$sha" ]; then
+            echo "no passing run a week old yet; stable stays where it is"
+            exit 0
+          fi
+          ./ci/advance_stable.sh "$sha"

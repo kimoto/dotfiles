@@ -153,8 +153,9 @@ jobs:
           printf '%s\n' "$out" | grep -q ZSH_OK
 
   # Only the weekly run installs every formula for real (a PR or manual run
-  # restores the Cellar cache), so only it may move `stable`, the commit
-  # README's install line starts a new machine from.
+  # restores the Cellar cache), so only its passes count toward `stable`, the
+  # commit README's install line starts a new machine from, and only once they
+  # are a week old.
   advance-stable:
     needs: platform
     if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
@@ -167,7 +168,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Fast-forward stable to this commit
+      - name: Fast-forward stable to the newest pass at least a week old
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./ci/advance_stable.sh "$GITHUB_SHA"
+        run: |
+          set -e
+          sha="$(./ci/aged_pass.sh bootstrap-macos.yml 7 schedule)"
+          if [ -z "$sha" ]; then
+            echo "no passing run a week old yet; stable stays where it is"
+            exit 0
+          fi
+          ./ci/advance_stable.sh "$sha"
