@@ -25,6 +25,9 @@ ignore rule would apply in every repo on the machine.
   in `rules/`. Written in Japanese, against the language rule in `AGENTS.md`:
   the `description` is matched against requests that arrive in Japanese, and a
   skill is also read by the person deciding whether it says the right thing.
+  A name starts with the environment it needs when it works nowhere else
+  (`project-` for a Claude Projects chat), so the slash menu says where it
+  can run before its description is read; the rest carry no prefix.
 - `rules-cloud/` — linked as `~/.claude/rules/dotfiles-cloud` only by
   `link_claude_dir.sh --cloud`. It says what a container lacks, so every line
   is false on a workstation; `mklink.sh` removes the link.
@@ -33,8 +36,9 @@ ignore rule would apply in every repo on the machine.
   unattended routines: a rule edit must stop at a prompt nobody answers there,
   while a person in a web session just approves it. ⚠️ Not a wall: a Bash write
   does not match an `Edit(...)` rule. Its `SessionStart` hook fast-forwards the
-  checkout it is linked from, because a cloud environment restores the setup
-  script's result from a cache and would otherwise read stale rules. Its
+  checkout it is linked from and re-runs `link_claude_dir.sh --cloud`, because a
+  cloud environment restores the setup script's result from a cache and would
+  otherwise read stale rules and never see a skill added since. Its
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
   because a container never runs `mkworld.sh`.

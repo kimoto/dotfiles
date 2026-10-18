@@ -80,6 +80,7 @@ claudecode/rules-cloud/*
 claudecode/skills/*
 !claudecode/skills/handoff/
 !claudecode/skills/issue-sweep/
+!claudecode/skills/project-decision-sweep/
 !claudecode/skills/session-resume/
 !claudecode/skills/wrapup/
 
