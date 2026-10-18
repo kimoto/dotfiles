@@ -1,7 +1,10 @@
 #!/bin/sh
 
 set -eu
-set -x
+# Same rule as mkworld.sh: traced in CI or with MKWORLD_TRACE=1, quiet otherwise.
+if [ -n "${CI:-}" ] || [ "${MKWORLD_TRACE:-0}" = 1 ]; then
+    set -x
+fi
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 

@@ -10,7 +10,11 @@
 # lower result into exit 1, for callers (CI) that know how far they should get.
 
 set -euo pipefail
-set -x
+# Traced in CI, where the log is all anyone sees afterwards; on a person's
+# terminal the trace buries the one line that matters. MKWORLD_TRACE=1 opts in.
+if [ -n "${CI:-}" ] || [ "${MKWORLD_TRACE:-0}" = 1 ]; then
+    set -x
+fi
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
