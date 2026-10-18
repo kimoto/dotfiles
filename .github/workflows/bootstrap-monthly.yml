@@ -67,10 +67,15 @@ jobs:
         # out of band: the pane writes it to a file and signals a wait-for
         # channel. A signal sent before anyone waits is remembered by tmux, so
         # a fast bootstrap cannot slip past the wait below.
+        #
+        # The pane's output is copied to a file and printed after, pass or
+        # fail: without it the job log shows only the exit status, and a
+        # failure cannot be told apart from any other.
         run: |
           set -e
           cat >"$RUNNER_TEMP/bootstrap.sh" <<'EOF'
           #!/bin/sh
+          tmux pipe-pane "cat >>'$RUNNER_TEMP/mkworld.log'"
           cd "$GITHUB_WORKSPACE" || exit 1
           MKWORLD_EXPECT=platform ./bin/mkworld.sh
           echo $? >"$RUNNER_TEMP/mkworld.rc"
@@ -79,6 +84,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/bootstrap.sh"
           tmux new-session -d -x 200 -y 50 "$RUNNER_TEMP/bootstrap.sh"
           tmux wait-for bootstrapped
+          cat "$RUNNER_TEMP/mkworld.log"
           rc="$(cat "$RUNNER_TEMP/mkworld.rc")"
           echo "mkworld.sh exit=$rc"
           [ "$rc" = "0" ]
