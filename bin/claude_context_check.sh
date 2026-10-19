@@ -1,19 +1,16 @@
 #!/bin/sh
 # Claude Code UserPromptSubmit hook (registered by
-# bin/install_claude_context_hooks.sh): when the context has grown far into the
-# auto-compact window, tells both the person and the model that it is time to
-# hand off to a fresh session — via the handoff skill — instead of letting
-# auto-compact replace the conversation with a summary that silently drops
-# detail.
+# bin/install_claude_context_hooks.sh): once the context has grown long, tells
+# both the person and the model that it is time to hand off to a fresh session
+# — via the handoff skill — instead of letting auto-compact replace the
+# conversation with a summary that silently drops detail.
 #
 # The size is the last main-chain assistant turn's input (uncached + cache
-# write + cache read), read from the transcript. The window follows Claude
-# Code's own precedence — $CLAUDE_CODE_AUTO_COMPACT_WINDOW, then
-# `autoCompactWindow` in ~/.claude/settings.json — else 200000;
-# $CLAUDE_CONTEXT_WINDOW overrides all three. Percentages are of the point
-# where compact fires.
-# ⚠️ Claude Code caps that window at the model's own, which the hook cannot
-#    see: on a 200K model with a 500K setting, compact comes before any notice.
+# write + cache read), read from the transcript.
+# ★The thresholds are token counts, not shares of the compact window. Compact is
+#  only the backstop, left at Claude Code's default; when to hand off is decided
+#  here. Every turn re-reads the whole context, so cost and slowness grow with
+#  its size whatever the window is.
 #
 # ⚠️ Each threshold speaks once per climb. A notice on every prompt is a notice
 #    nobody reads; a drop below a threshold (compact, /clear) re-arms it.
@@ -23,9 +20,12 @@
 # ⚠️ Never fails a turn — every path exits 0.
 set -u
 
-# 60: early enough that the handoff is a choice, not a rescue. 80: the last
-# point where the handoff itself still fits comfortably before auto-compact.
-WARN_PCT="${CLAUDE_CONTEXT_WARN_PCT:-60 80}"
+# 400K: early enough that the handoff is a choice, not a rescue. 600K: stop
+# starting new work while a handoff still fits before compact (~800K on a 1M
+# model in a cloud session), and before the length where published long-context
+# results show clear losses (~800K). Not measured on our own sessions; lower
+# values landed mid-task and went unread.
+WARN_TOKENS="${CLAUDE_CONTEXT_WARN_TOKENS:-400000 600000}"
 STATE_DIR="${CLAUDE_CONTEXT_CHECK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/claude-context}"
 
 command -v jq >/dev/null 2>&1 || exit 0
@@ -47,31 +47,10 @@ used=$(tail -n 100 "$transcript" 2>/dev/null | jq -Rr '
     + (.cache_read_input_tokens // 0)' 2>/dev/null | tail -n 1)
 case "$used" in ''|*[!0-9]*) exit 0 ;; esac
 
-window="${CLAUDE_CONTEXT_WINDOW:-${CLAUDE_CODE_AUTO_COMPACT_WINDOW:-}}"
-if [ -z "$window" ]; then
-  window=$(jq -r '.autoCompactWindow // empty' "$HOME/.claude/settings.json" 2>/dev/null)
-fi
-# The setting also takes 500k, 1M, or a bare 200 meaning 200,000.
-# Only digits reach $(( )): a malformed value there would abort the script.
-case "$window" in
-  *[!0-9]*[kKmM]|[kKmM]) window= ;;
-  *[kK]) window=$(( ${window%?} * 1000 )) ;;
-  *[mM]) window=$(( ${window%?} * 1000000 )) ;;
-esac
-case "$window" in ''|0|*[!0-9]*) window=200000 ;; esac
-[ "$window" -lt 1000 ] && window=$(( window * 1000 ))
-# Compact fires at this share of the window, not at its end. Undocumented, but
-# the cloud environment sets it (80), and without it the 80% notice would land
-# on the same turn as compact.
-case "${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-}" in
-  [1-9]|[1-9][0-9]) window=$(( window * CLAUDE_AUTOCOMPACT_PCT_OVERRIDE / 100 )) ;;
-esac
-
-pct=$(( used * 100 / window ))
 level=0
-for t in $WARN_PCT; do
+for t in $WARN_TOKENS; do
   case "$t" in ''|*[!0-9]*) continue ;; esac
-  [ "$pct" -ge "$t" ] && level=$(( level + 1 ))
+  [ "$used" -ge "$t" ] && level=$(( level + 1 ))
 done
 
 mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
@@ -84,15 +63,15 @@ printf '%s\n' "$level" >"$state" 2>/dev/null || exit 0
 find "$STATE_DIR" -type f -mtime +14 -delete 2>/dev/null || true
 [ "$level" -gt "$last" ] || exit 0
 
-size="$(( used / 1000 ))k/$(( window / 1000 ))k (${pct}%)"
+size="$(( used / 1000 ))k"
 if [ "$level" -eq 1 ]; then
   user="コンテキスト $size。区切りで次のセッションへの仕切り直しを検討"
-  model="★コンテキストが自動 compact の窓の $size に達した。今の作業は止めずに続け、"
+  model="★コンテキストが $size トークンに達した。今の作業は止めずに続け、"
   model="${model}次に区切りが付いた返答の末尾で一行、仕切り直しを提案する: "
   model="${model}handoff skill で次のセッションに貼る引き継ぎプロンプトを作る。"
 else
   user="コンテキスト $size。今の作業単位を閉じたら仕切り直し"
-  model="★コンテキストが自動 compact の窓の $size。新しい大きな作業は始めない。"
+  model="★コンテキストが $size トークン。新しい大きな作業は始めない。"
   model="${model}今の作業単位を閉じたら handoff skill を実行し、引き継ぎプロンプトを渡して仕切り直しを勧める。"
   model="${model}自動 compact は会話を要約に置き換え、細部が黙って落ちる。"
 fi
