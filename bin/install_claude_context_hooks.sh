@@ -1,6 +1,7 @@
 #!/bin/sh
-# Register (default) or remove (--uninstall) the "context is filling up" hook and
-# the /clear handoff hooks in ~/.claude/settings.json. Same jq-merge contract as install_claude_idle_hooks.sh:
+# Register (default) or remove (--uninstall) the "context is filling up" hook,
+# the /clear handoff hooks, and idleCompaction=false in ~/.claude/settings.json.
+# Same jq-merge contract as install_claude_idle_hooks.sh:
 # unrelated settings survive, reruns are no-ops, and anything unexpected only
 # warns — never fails the mkworld bootstrap. rmworld.sh runs --uninstall.
 set -eu
@@ -57,16 +58,23 @@ STRIP='
            | any(contains("claude_context_check.sh") or contains("claude_handoff.sh"))) | not))
       ) | with_entries(select(.value != [])))
     end;
+  # Only the value install writes: a hand-set true is not ours.
+  def strip_idle_compaction:
+    if .idleCompaction == false then del(.idleCompaction) else . end;
 '
 
 if [ "$MODE" = "--uninstall" ]; then
-  jq "$STRIP strip_context" "$SETTINGS" >"$tmp"
+  jq "$STRIP strip_context | strip_idle_compaction" "$SETTINGS" >"$tmp"
 else
   jq --arg cmd "$GUARDED" --arg handoff "$HANDOFF" "$STRIP"'
     def ensure($event; $c):
       .hooks[$event] = ((.hooks[$event] // [])
         + [{hooks: [{type: "command", command: $c}]}]);
     strip_context
+    # ★Idle compaction summarizes a 200K+ conversation after ~54 idle minutes,
+    #  before the person has seen the handoff notice: the detail loss the check
+    #  exists to avoid. A value set by hand stays.
+    | if has("idleCompaction") then . else .idleCompaction = false end
     # UserPromptSubmit, not Stop: its output reaches both the person
     # (systemMessage) and the model (additionalContext) before the turn starts.
     | ensure("UserPromptSubmit"; $cmd)

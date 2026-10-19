@@ -14,8 +14,7 @@ setup() {
   export HOME="$TMP/home"
   mkdir -p "$HOME"
   export CLAUDE_CONTEXT_CHECK_STATE="$TMP/state"
-  export CLAUDE_CONTEXT_WINDOW=500000
-  unset CLAUDE_CONTEXT_WARN_PCT CLAUDE_CODE_AUTO_COMPACT_WINDOW CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
+  unset CLAUDE_CONTEXT_WARN_TOKENS CLAUDE_CODE_AUTO_COMPACT_WINDOW CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
   SETTINGS="$HOME/.claude/settings.json"
   TRANSCRIPT="$TMP/t.jsonl"
   : >"$TRANSCRIPT"
@@ -38,34 +37,34 @@ check() {
 }
 
 @test "below the first threshold says nothing" {
-  turn 200000                                    # 40%
+  turn 150000
   check
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "crossing 60% tells both the person and the model, naming handoff" {
-  turn 310000
+@test "crossing 200K tells both the person and the model, naming handoff" {
+  turn 210000
   check
   [ "$status" -eq 0 ]
-  printf '%s' "$output" | jq -e '.systemMessage | contains("310k/500k (62%)")' >/dev/null
+  printf '%s' "$output" | jq -e '.systemMessage | contains("210k")' >/dev/null
   printf '%s' "$output" | jq -e '.hookSpecificOutput.hookEventName == "UserPromptSubmit"' >/dev/null
   printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("handoff")' >/dev/null
 }
 
 @test "each threshold speaks once per climb" {
-  turn 310000
+  turn 210000
   check
   [ -n "$output" ]
-  turn 330000
+  turn 230000
   check
   [ -z "$output" ]
 }
 
-@test "crossing 80% speaks again, with the firmer notice" {
-  turn 310000
+@test "crossing 300K speaks again, with the firmer notice" {
+  turn 210000
   check
-  turn 420000
+  turn 310000
   check
   printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext
     | contains("新しい大きな作業は始めない")' >/dev/null
@@ -73,12 +72,12 @@ check() {
 
 # After compact or /clear the size drops; the next climb must warn again.
 @test "a drop below the threshold re-arms it" {
-  turn 310000
+  turn 210000
   check
   turn 50000
   check
   [ -z "$output" ]
-  turn 310000
+  turn 210000
   check
   [ -n "$output" ]
 }
@@ -91,58 +90,30 @@ check() {
 }
 
 @test "a half-written last line does not hide the turn before it" {
-  turn 310000
+  turn 210000
   printf '{"type":"assistant","mess' >>"$TRANSCRIPT"
   check
   [ -n "$output" ]
 }
 
-@test "the window falls back to autoCompactWindow in settings.json" {
-  unset CLAUDE_CONTEXT_WINDOW
+# Compact is only the backstop: wherever it sits, the notice stays put.
+@test "the compact window does not move the thresholds" {
   mkdir -p "$HOME/.claude"
   printf '{"autoCompactWindow": 1000000}\n' >"$SETTINGS"
-  turn 310000                                    # 31% of 1M
-  check
-  [ -z "$output" ]
-}
-
-@test "Claude Code's own window variable outranks settings.json" {
-  unset CLAUDE_CONTEXT_WINDOW
-  mkdir -p "$HOME/.claude"
-  printf '{"autoCompactWindow": 1000000}\n' >"$SETTINGS"
-  turn 310000                                    # 62% of 500K
-  CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000 run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
+  turn 210000
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW=900000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 \
+    run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
   [ -n "$output" ]
 }
 
-@test "the window accepts the setting's 500k / 1M / bare-thousands forms" {
-  unset CLAUDE_CONTEXT_WINDOW
-  mkdir -p "$HOME/.claude"
-  turn 310000
-  for w in '"500k"' '500' '"1M"' '"1.5M"'; do
-    printf '{"autoCompactWindow": %s}\n' "$w" >"$SETTINGS"
-    rm -rf "$CLAUDE_CONTEXT_CHECK_STATE"
-    check
-    [ "$status" -eq 0 ]
-    case "$w" in *1M*) [ -z "$output" ] ;; *) [ -n "$output" ] ;; esac   # 1.5M -> 200K fallback
-  done
-}
-
-# The cloud environment compacts at 80% of the window: 500K -> 400K.
-@test "percentages are of the point where compact fires" {
-  turn 250000                                    # 50% of 500K, 62% of 400K
-  CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
-  printf '%s' "$output" | jq -e '.systemMessage | contains("250k/400k (62%)")' >/dev/null
-}
-
 @test "the thresholds are configurable" {
-  turn 100000                                    # 20%
-  CLAUDE_CONTEXT_WARN_PCT="10" run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
+  turn 120000
+  CLAUDE_CONTEXT_WARN_TOKENS="100000" run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
   [ -n "$output" ]
 }
 
 @test "each session keeps its own state" {
-  turn 310000
+  turn 210000
   check
   run sh -c "printf '%s' '{\"session_id\":\"s-2\",\"transcript_path\":\"$TRANSCRIPT\"}' | '$HANDLER'"
   [ -n "$output" ]
@@ -172,6 +143,27 @@ check() {
   jq -e '.hooks.SessionEnd[].hooks[] | select(.command | endswith("claude_handoff.sh\" end"))' "$SETTINGS" >/dev/null
   jq -e '.hooks.SessionStart[].hooks[]
     | select(.command | endswith("claude_handoff.sh\" start"))' "$SETTINGS" >/dev/null
+}
+
+@test "installer turns idle compaction off, unless someone set it by hand" {
+  run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = false ]
+
+  printf '{"idleCompaction": true}\n' >"$SETTINGS"
+  run "$INSTALLER"
+  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = true ]
+}
+
+@test "--uninstall takes back idle compaction only when it is ours" {
+  "$INSTALLER"
+  run "$INSTALLER" --uninstall
+  [ "$status" -eq 0 ]
+  [ "$(jq 'has("idleCompaction")' "$SETTINGS")" = false ]
+
+  printf '{"idleCompaction": true}\n' >"$SETTINGS"
+  run "$INSTALLER" --uninstall
+  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = true ]
 }
 
 @test "rerunning changes nothing (no stacked duplicates)" {
