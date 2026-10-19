@@ -37,34 +37,34 @@ check() {
 }
 
 @test "below the first threshold says nothing" {
-  turn 150000
+  turn 250000
   check
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "crossing 200K tells both the person and the model, naming handoff" {
-  turn 210000
+@test "crossing 300K tells both the person and the model, naming handoff" {
+  turn 310000
   check
   [ "$status" -eq 0 ]
-  printf '%s' "$output" | jq -e '.systemMessage | contains("210k")' >/dev/null
+  printf '%s' "$output" | jq -e '.systemMessage | contains("310k")' >/dev/null
   printf '%s' "$output" | jq -e '.hookSpecificOutput.hookEventName == "UserPromptSubmit"' >/dev/null
   printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("handoff")' >/dev/null
 }
 
 @test "each threshold speaks once per climb" {
-  turn 210000
+  turn 310000
   check
   [ -n "$output" ]
-  turn 230000
+  turn 330000
   check
   [ -z "$output" ]
 }
 
-@test "crossing 300K speaks again, with the firmer notice" {
-  turn 210000
-  check
+@test "crossing 500K speaks again, with the firmer notice" {
   turn 310000
+  check
+  turn 510000
   check
   printf '%s' "$output" | jq -e '.hookSpecificOutput.additionalContext
     | contains("新しい大きな作業は始めない")' >/dev/null
@@ -72,12 +72,12 @@ check() {
 
 # After compact or /clear the size drops; the next climb must warn again.
 @test "a drop below the threshold re-arms it" {
-  turn 210000
+  turn 310000
   check
   turn 50000
   check
   [ -z "$output" ]
-  turn 210000
+  turn 310000
   check
   [ -n "$output" ]
 }
@@ -90,7 +90,7 @@ check() {
 }
 
 @test "a half-written last line does not hide the turn before it" {
-  turn 210000
+  turn 310000
   printf '{"type":"assistant","mess' >>"$TRANSCRIPT"
   check
   [ -n "$output" ]
@@ -100,7 +100,7 @@ check() {
 @test "the compact window does not move the thresholds" {
   mkdir -p "$HOME/.claude"
   printf '{"autoCompactWindow": 1000000}\n' >"$SETTINGS"
-  turn 210000
+  turn 310000
   CLAUDE_CODE_AUTO_COMPACT_WINDOW=900000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 \
     run sh -c "printf '%s' '$PAYLOAD' | '$HANDLER'"
   [ -n "$output" ]
@@ -113,7 +113,7 @@ check() {
 }
 
 @test "each session keeps its own state" {
-  turn 210000
+  turn 310000
   check
   run sh -c "printf '%s' '{\"session_id\":\"s-2\",\"transcript_path\":\"$TRANSCRIPT\"}' | '$HANDLER'"
   [ -n "$output" ]
