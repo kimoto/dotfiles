@@ -22,7 +22,9 @@ setup() {
   : >"$UPSTREAM/claudecode/rules/a.md"
   : >"$UPSTREAM/claudecode/rules-cloud/a.md"
   git -C "$UPSTREAM" init -q -b main
-  git -C "$UPSTREAM" add -A
+  # -f here and below: where mklink ran, ~/.gitignore is this repo's, which
+  # ignores claudecode/skills/* outside its allow-list.
+  git -C "$UPSTREAM" add -A -f
   git -C "$UPSTREAM" -c user.name=t -c user.email=t@t commit -qm init
   git clone -q "$UPSTREAM" "$CHECKOUT"
   ln -s "$CHECKOUT/claudecode/settings-cloud.json" "$TMP/home/.claude/settings.json"
@@ -34,7 +36,7 @@ teardown() {
 }
 
 upstream_commit() {
-  git -C "$UPSTREAM" add -A
+  git -C "$UPSTREAM" add -A -f
   git -C "$UPSTREAM" -c user.name=t -c user.email=t@t commit -qm "$1"
 }
 
