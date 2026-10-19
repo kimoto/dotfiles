@@ -20,10 +20,12 @@
 # ⚠️ Never fails a turn — every path exits 0.
 set -u
 
-# 300K: early enough that the handoff is a choice, not a rescue. 500K: stop
-# starting new work, with room left before compact (~800K on a 1M model in a
-# cloud session). Not measured: at 200K the notice landed mid-task, unread.
-WARN_TOKENS="${CLAUDE_CONTEXT_WARN_TOKENS:-300000 500000}"
+# 400K: early enough that the handoff is a choice, not a rescue. 600K: stop
+# starting new work while a handoff still fits before compact (~800K on a 1M
+# model in a cloud session), and before the length where published long-context
+# results show clear losses (~800K). Not measured on our own sessions; lower
+# values landed mid-task and went unread.
+WARN_TOKENS="${CLAUDE_CONTEXT_WARN_TOKENS:-400000 600000}"
 STATE_DIR="${CLAUDE_CONTEXT_CHECK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/claude-context}"
 
 command -v jq >/dev/null 2>&1 || exit 0
