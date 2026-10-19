@@ -145,25 +145,34 @@ check() {
     | select(.command | endswith("claude_handoff.sh\" start"))' "$SETTINGS" >/dev/null
 }
 
-@test "installer turns idle compaction off, unless someone set it by hand" {
+@test "installer keeps idle compaction for conversations past the first handoff notice" {
+  mkdir -p "$HOME/.claude"
+  printf '{"idleCompaction": false}\n' >"$SETTINGS"
   run "$INSTALLER"
   [ "$status" -eq 0 ]
-  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = false ]
-
-  printf '{"idleCompaction": true}\n' >"$SETTINGS"
-  run "$INSTALLER"
-  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = true ]
+  [ "$(jq 'has("idleCompaction")' "$SETTINGS")" = false ]
+  first="$(sed -n 's/^WARN_TOKENS="${CLAUDE_CONTEXT_WARN_TOKENS:-\([0-9]*\) .*/\1/p' "$HANDLER")"
+  [ -n "$first" ]
+  [ "$(jq -r '.env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS' "$SETTINGS")" = "$first" ]
 }
 
-@test "--uninstall takes back idle compaction only when it is ours" {
+@test "installer leaves a hand-set idle compaction minimum alone" {
+  mkdir -p "$HOME/.claude"
+  printf '{"env": {"CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "250000"}}\n' >"$SETTINGS"
+  run "$INSTALLER"
+  [ "$(jq -r '.env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS' "$SETTINGS")" = 250000 ]
+}
+
+@test "--uninstall takes back the idle compaction minimum only when it is ours" {
   "$INSTALLER"
   run "$INSTALLER" --uninstall
   [ "$status" -eq 0 ]
-  [ "$(jq 'has("idleCompaction")' "$SETTINGS")" = false ]
+  [ "$(jq 'has("env")' "$SETTINGS")" = false ]
 
-  printf '{"idleCompaction": true}\n' >"$SETTINGS"
+  printf '{"env": {"CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "250000", "FOO": "1"}}\n' >"$SETTINGS"
   run "$INSTALLER" --uninstall
-  [ "$(jq -r '.idleCompaction' "$SETTINGS")" = true ]
+  [ "$(jq -r '.env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS' "$SETTINGS")" = 250000 ]
+  [ "$(jq -r '.env.FOO' "$SETTINGS")" = 1 ]
 }
 
 @test "rerunning changes nothing (no stacked duplicates)" {

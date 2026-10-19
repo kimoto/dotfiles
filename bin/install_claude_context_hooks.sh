@@ -1,6 +1,7 @@
 #!/bin/sh
 # Register (default) or remove (--uninstall) the "context is filling up" hook,
-# the /clear handoff hooks, and idleCompaction=false in ~/.claude/settings.json.
+# the /clear handoff hooks, and the idle compaction minimum in
+# ~/.claude/settings.json.
 # Same jq-merge contract as install_claude_idle_hooks.sh:
 # unrelated settings survive, reruns are no-ops, and anything unexpected only
 # warns — never fails the mkworld bootstrap. rmworld.sh runs --uninstall.
@@ -16,6 +17,13 @@ MODE="${1:-install}"
 GUARDED='[ ! -x "$HOME/bin/claude_context_check.sh" ] || "$HOME/bin/claude_context_check.sh"'
 # shellcheck disable=SC2016
 HANDOFF='[ ! -x "$HOME/bin/claude_handoff.sh" ] || "$HOME/bin/claude_handoff.sh"'
+
+# ★Idle compaction summarizes a conversation left ~54 minutes, before its 1h
+# prompt cache expires; past that, the next prompt pays to cache it all again.
+# Its stock 200K minimum would summarize work the handoff notice has not yet
+# flagged, so it starts at that notice's first threshold (WARN_TOKENS in
+# claude_context_check.sh; a test keeps the two equal).
+IDLE_MIN=400000
 
 warn() { echo "install_claude_context_hooks: $*" >&2; }
 
@@ -49,6 +57,8 @@ trap 'rm -f "$tmp"' EXIT
 
 # Drop every entry that runs these handlers (any command-string version), so
 # install below is migration-safe strip-then-add.
+# jq variables, not shell ones.
+# shellcheck disable=SC2016
 STRIP='
   def strip_context:
     if .hooks == null then .
@@ -58,23 +68,26 @@ STRIP='
            | any(contains("claude_context_check.sh") or contains("claude_handoff.sh"))) | not))
       ) | with_entries(select(.value != [])))
     end;
-  # Only the value install writes: a hand-set true is not ours.
+  # Only the value install writes: a hand-set minimum is not ours.
   def strip_idle_compaction:
-    if .idleCompaction == false then del(.idleCompaction) else . end;
+    if .env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS == $idle_min
+    then del(.env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS)
+      | if .env == {} then del(.env) else . end
+    else . end;
 '
 
 if [ "$MODE" = "--uninstall" ]; then
-  jq "$STRIP strip_context | strip_idle_compaction" "$SETTINGS" >"$tmp"
+  jq --arg idle_min "$IDLE_MIN" "$STRIP strip_context | strip_idle_compaction" "$SETTINGS" >"$tmp"
 else
-  jq --arg cmd "$GUARDED" --arg handoff "$HANDOFF" "$STRIP"'
+  jq --arg cmd "$GUARDED" --arg handoff "$HANDOFF" --arg idle_min "$IDLE_MIN" "$STRIP"'
     def ensure($event; $c):
       .hooks[$event] = ((.hooks[$event] // [])
         + [{hooks: [{type: "command", command: $c}]}]);
     strip_context
-    # ★Idle compaction summarizes a 200K+ conversation after ~54 idle minutes,
-    #  before the person has seen the handoff notice: the detail loss the check
-    #  exists to avoid. A value set by hand stays.
-    | if has("idleCompaction") then . else .idleCompaction = false end
+    # An earlier install wrote false; idle compaction stays on now.
+    | if .idleCompaction == false then del(.idleCompaction) else . end
+    | if .env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS then .
+      else .env.CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS = $idle_min end
     # UserPromptSubmit, not Stop: its output reaches both the person
     # (systemMessage) and the model (additionalContext) before the turn starts.
     | ensure("UserPromptSubmit"; $cmd)
