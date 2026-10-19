@@ -20,7 +20,7 @@ before changing or calling the script.
   Bootstrap: `mkworld.sh` (climbs the phases in `docs/staged-bootstrap.md`),
   `mklink.sh` / `rmworld.sh`, `install_check_tools.sh`, `setup_agent.sh` (any
   agent container), `setup_cloud_session.sh` (a container on this repo),
-  `link_claude_dir.sh`. Startup reminders: `dotfiles_sync_check.sh`,
+  `link_claude_dir.sh`, `refresh_cloud_session.sh`. Startup reminders: `dotfiles_sync_check.sh`,
   `brew_bundle_check.sh`, `mise_missing_check.sh`. Generated files:
   `gen_tools_list.sh` (`TOOLS.md`), `keys.sh` (reads `KEYBINDINGS.md`).
   Human-only, never from an agent: `brew_bundle_install.sh`,
