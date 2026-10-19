@@ -76,7 +76,6 @@ _Source: `Brewfile.extra`._
 | [kubectx](https://formulae.brew.sh/formula/kubectx) | Tool that can switch between kubectl contexts easily and create aliases |
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
-| [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
 | [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
@@ -84,7 +83,6 @@ _Source: `Brewfile.extra`._
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
 | [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
-| [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
 | [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
 | [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
 | [rust-analyzer](https://formulae.brew.sh/formula/rust-analyzer) | Experimental Rust compiler front-end for IDEs |
@@ -108,6 +106,7 @@ _Source: `Brewfile.macos`._
 
 | Tool | Description |
 | --- | --- |
+| [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
 | [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |

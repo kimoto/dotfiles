@@ -1,6 +1,11 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Tap for AeroSpace
 tap "nikitabobko/tap"
+# macOS-only: on macOS lima runs on Virtualization.framework, so it needs no
+# qemu; inside WSL a VM manager has nothing to do, and on Linux it would pull
+# qemu -> mesa -> llvm (~1GB) into every install.
+# Linux virtual machines
+brew "lima"
 # macOS-only, not in Brewfile.extra: Homebrew has no Linux bottle for telnet
 # (Tier 3, "no bottle available"). On Linux the distro package supplies
 # /usr/bin/telnet instead — see Brewfile.linux.

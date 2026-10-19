@@ -57,8 +57,6 @@ brew "kubectx"
 brew "lefthook"
 # Pager program similar to more
 brew "less"
-# Linux virtual machines
-brew "lima"
 # Rainbows and unicorns in your console!
 brew "lolcat"
 # Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
@@ -73,8 +71,6 @@ brew "netcat"
 brew "nmap"
 # SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
 brew "openvpn"
-# Generic machine emulator and virtualizer
-brew "qemu"
 # Persistent key-value database, with built-in net interface
 brew "redis"
 # Wrapper around ripgrep that adds multiple rich file types
