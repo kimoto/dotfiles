@@ -83,6 +83,7 @@ claudecode/skills/*
 !claudecode/skills/issue-sweep/
 !claudecode/skills/project-decision-sweep/
 !claudecode/skills/session-resume/
+!claudecode/skills/trend-intake/
 !claudecode/skills/wrapup/
 
 # mysqlsh
