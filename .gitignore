@@ -82,6 +82,7 @@ claudecode/skills/*
 !claudecode/skills/handoff/
 !claudecode/skills/issue-sweep/
 !claudecode/skills/project-decision-sweep/
+!claudecode/skills/project-goal/
 !claudecode/skills/session-resume/
 !claudecode/skills/wrapup/
 
