@@ -65,7 +65,12 @@ export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
 # Only this repo's tools (--local) are installed and linked: a global mise
 # config (CI links config/ into ~/.config) asks for unpinned tools the lockfile
 # cannot hold, and they are not ours to put on PATH.
-mapfile -t tools < <(mise ls --local --json | jq -r 'keys[]')
+# A read loop rather than mapfile: macOS's /bin/bash is 3.2, which has no
+# mapfile, and the bats suite for this script runs there from lefthook.
+tools=()
+while IFS= read -r tool; do
+  tools+=("$tool")
+done < <(mise ls --local --json | jq -r 'keys[]')
 failed=0
 mise install --locked "${tools[@]}" || failed=1
 
