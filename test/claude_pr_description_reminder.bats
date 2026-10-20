@@ -87,7 +87,8 @@ count_ours() {
   run "$INSTALLER"
   [ "$status" -eq 0 ]
   [ "$(jq -r '.hooks.PostToolUse[0].matcher' "$SETTINGS")" = Bash ]
-  [[ "$(jq -r '.hooks.PostToolUse[0].hooks[0].command' "$SETTINGS")" == *'[ ! -x "$HOME/bin/claude_pr_description_reminder.sh" ]'* ]]
+  cmd="$(jq -r '.hooks.PostToolUse[0].hooks[0].command' "$SETTINGS")"
+  [[ "$cmd" == *'[ ! -x "$HOME/bin/claude_pr_description_reminder.sh" ]'* ]]
 }
 
 @test "the registered command runs the hook and stays quiet without ~/bin" {
