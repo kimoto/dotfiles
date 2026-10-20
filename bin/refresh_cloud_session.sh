@@ -11,10 +11,19 @@
 set -uo pipefail
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+# The commit this session started from, kept by the first run (the hook):
+# rules and settings were read from it, so what moved since is what is stale.
+# Before the pull, as rules may load either side of the hook; a superset only
+# costs a re-read.
+SESSION_BASE=$(git -C "$BASE_DIR" rev-parse --path-format=absolute \
+  --git-path refresh-session-base 2>/dev/null)
 
 if [ -z "${REFRESH_CLOUD_PULLED:-}" ]; then
   # main only: a session working on a branch in this checkout owns its HEAD.
   branch=$(git -C "$BASE_DIR" branch --show-current 2>/dev/null)
+  if [ -n "$SESSION_BASE" ] && [ ! -e "$SESSION_BASE" ]; then
+    git -C "$BASE_DIR" rev-parse HEAD >"$SESSION_BASE" 2>/dev/null
+  fi
   if [ "$branch" != main ]; then
     echo "[refresh] pull skipped: on '${branch:-detached}', not main"
   elif before=$(git -C "$BASE_DIR" rev-parse --short HEAD) &&
@@ -25,6 +34,21 @@ if [ -z "${REFRESH_CLOUD_PULLED:-}" ]; then
     echo "[refresh] MISS pull: main did not fast-forward"
   fi
   REFRESH_CLOUD_PULLED=1 exec "$BASE_DIR/bin/refresh_cloud_session.sh" "$@"
+fi
+
+# Rules load once, so the skill re-reads these; Claude Code reloads settings
+# itself on change, bar a few keys and the SessionStart hook that already ran.
+base=$(cat "$SESSION_BASE" 2>/dev/null)
+if [ -n "$base" ]; then
+  git -C "$BASE_DIR" diff --no-renames --name-status "$base" HEAD -- \
+    claudecode/rules claudecode/rules-cloud claudecode/settings-cloud.json |
+  while read -r st path; do
+    case "$path:$st" in
+      *.json:*) echo "[refresh] settings changed: $path" ;;
+      *:D) echo "[refresh] rule removed: $BASE_DIR/$path" ;;
+      *) echo "[refresh] rule changed: $BASE_DIR/$path" ;;
+    esac
+  done
 fi
 
 exec "$BASE_DIR/bin/link_claude_dir.sh" --cloud

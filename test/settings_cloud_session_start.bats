@@ -65,7 +65,7 @@ upstream_commit() {
   mkdir -p "$UPSTREAM/claudecode/skills/new-skill"
   : >"$UPSTREAM/claudecode/skills/new-skill/SKILL.md"
   upstream_commit "add skill"
-  run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
   [[ "$output" == *"pull skipped: on 'work'"* ]]
   [ "$(git -C "$CHECKOUT" branch --show-current)" = work ]
   [ ! -e "$CHECKOUT/claudecode/skills/new-skill" ]
@@ -74,4 +74,33 @@ upstream_commit() {
 @test "prints nothing, so a session never starts with link noise" {
   HOME="$TMP/home" run sh -c "$HOOK"
   [ -z "$output" ]
+}
+
+@test "names the rules and settings that moved since the session started" {
+  HOME="$TMP/home" run sh -c "$HOOK"
+  echo new >"$UPSTREAM/claudecode/rules/a.md"
+  : >"$UPSTREAM/claudecode/rules-cloud/b.md"
+  git -C "$UPSTREAM" rm -q claudecode/rules-cloud/a.md
+  echo '{}' >"$UPSTREAM/claudecode/settings-cloud.json"
+  upstream_commit "move rules"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules/a.md"* ]]
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules-cloud/b.md"* ]]
+  [[ "$output" == *"rule removed: $CHECKOUT/claudecode/rules-cloud/a.md"* ]]
+  [[ "$output" == *"settings changed: claudecode/settings-cloud.json"* ]]
+}
+
+@test "counts a rule the startup pull brought in, since it may have loaded first" {
+  echo new >"$UPSTREAM/claudecode/rules/a.md"
+  upstream_commit "change rule"
+  HOME="$TMP/home" run sh -c "$HOOK"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules/a.md"* ]]
+}
+
+@test "names no rule when none moved" {
+  HOME="$TMP/home" run sh -c "$HOOK"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" != *"rule "* ]]
+  [[ "$output" != *"settings changed"* ]]
 }
