@@ -16,7 +16,7 @@ for t in \
     tmux_keybinding_test.sh \
     tmux_copymode_test.sh \
     tmux_status_test.sh \
-    claude_tmux_indicator_test.sh \
+    agent_status_test.sh \
     claude_tmux_hunk_test.sh \
     keys_command_test.sh; do
     echo "::group::$t"

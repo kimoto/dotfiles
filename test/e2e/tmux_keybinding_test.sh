@@ -163,7 +163,7 @@ fi
 # asks the server which pane is current, which is what $cur_pane holds here.
 INNER_PATH="$(tmux -L "$INNER" display-message -p '#{socket_path}')"
 switcher_list() {
-  TMUX="$INNER_PATH,0,0" "$DIR/../../bin/tmux_pane_switcher.sh" "$cur_pane" | cut -d' ' -f1
+  TMUX="$INNER_PATH,0,0" "$DIR/../../config/tmux-agent-status/scripts/switcher.sh" "$cur_pane" | cut -d' ' -f1
 }
 pane_target() { tmux -L "$INNER" display-message -t "$1" -p '#S:#I.#P'; }
 top="$(switcher_list | head -n1)"
@@ -171,21 +171,21 @@ top="$(switcher_list | head -n1)"
 if switcher_list | grep -qxF "$(pane_target "$cur_pane")"; then
   die "switcher must not offer the current pane $cur_pane"
 fi
-# A Claude Code pane waiting on the user outranks recency, wherever it is; a
+# An agent pane waiting on the user outranks recency, wherever it is; a
 # finished one comes next. Tag the least recent panes, the way the hook does.
 waiting_pane="$(tmux -L "$INNER" list-panes -a -F '#{?@mru,#{@mru},0} #{pane_id}' | sort -n | head -n1 | cut -d' ' -f2)"
 done_pane="$(tmux -L "$INNER" list-panes -a -F '#{?@mru,#{@mru},0} #{pane_id}' | sort -n | sed -n 2p | cut -d' ' -f2)"
-tmux -L "$INNER" set-option -p -t "$waiting_pane" @claude_state waiting \; \
-  set-option -p -t "$done_pane" @claude_state 'done'
+tmux -L "$INNER" set-option -p -t "$waiting_pane" @agent_state waiting \; \
+  set-option -p -t "$done_pane" @agent_state 'done'
 ranked="$(switcher_list | head -n2 | tr '\n' ' ')"
 expected="$(pane_target "$waiting_pane") $(pane_target "$done_pane") "
 [ "$ranked" = "$expected" ] ||
-  die "switcher should rank waiting then done Claude panes first: want '$expected', got '$ranked'"
-TMUX="$INNER_PATH,0,0" "$DIR/../../bin/tmux_pane_switcher.sh" "$cur_pane" | head -n1 | grep -q '⏳' ||
-  die "the waiting Claude pane should carry the ⏳ marker"
-tmux -L "$INNER" set-option -pu -t "$waiting_pane" @claude_state \; \
-  set-option -pu -t "$done_pane" @claude_state
-echo "== prefix+f ranks waiting Claude panes, then the last-used pane, and drops the current one =="
+  die "switcher should rank waiting then done agent panes first: want '$expected', got '$ranked'"
+TMUX="$INNER_PATH,0,0" "$DIR/../../config/tmux-agent-status/scripts/switcher.sh" "$cur_pane" | head -n1 | grep -q '⏳' ||
+  die "the waiting agent pane should carry the ⏳ marker"
+tmux -L "$INNER" set-option -pu -t "$waiting_pane" @agent_state \; \
+  set-option -pu -t "$done_pane" @agent_state
+echo "== prefix+f ranks waiting agent panes, then the last-used pane, and drops the current one =="
 
 # 9) prefix+y (extrakto) opens a floating pane on whichever half of the
 #    window the cursor is NOT in, so the picker never covers the lines whose

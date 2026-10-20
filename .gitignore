@@ -38,6 +38,7 @@ config/*
 !config/mise/
 !config/nvim/
 !config/sheldon/
+!config/tmux-agent-status/
 !config/zsh/
 !config/starship.toml
 # Inner ignores within allowed directories (preserve previous behavior)
