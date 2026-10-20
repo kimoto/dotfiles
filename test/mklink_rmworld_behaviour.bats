@@ -160,6 +160,25 @@ teardown() {
   [ "$(cat "$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md")" = vendor ]
 }
 
+@test "mklink.sh links each agent by file and rmworld.sh takes only ours down" {
+  mkdir -p "$HOME_SANDBOX/.claude/agents"
+  echo vendor >"$HOME_SANDBOX/.claude/agents/vendor-agent.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/agents" ]
+  for agent in "$REPO_ROOT"/claudecode/agents/*.md; do
+    [ "$(readlink -f "$HOME_SANDBOX/.claude/agents/$(basename "$agent")")" = "$agent" ]
+  done
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  for agent in "$REPO_ROOT"/claudecode/agents/*.md; do
+    [ ! -e "$HOME_SANDBOX/.claude/agents/$(basename "$agent")" ]
+  done
+  [ "$(cat "$HOME_SANDBOX/.claude/agents/vendor-agent.md")" = vendor ]
+}
+
 @test "mklink.sh links every directory under claudecode/skills, with no list to update" {
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
   [ "$status" -eq 0 ]

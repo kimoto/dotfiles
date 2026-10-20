@@ -87,6 +87,18 @@ for skill in "$BASE_DIR"/claudecode/skills/*/; do
     ln -nsf "${skill%/}" "$dest"
 done
 
+# Subagents, by the same rule as skills; each is a single file.
+mkdir -p ./.claude/agents
+for agent in "$BASE_DIR"/claudecode/agents/*.md; do
+    [ -f "$agent" ] || continue
+    dest="./.claude/agents/$(basename "$agent")"
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        echo "$HOME/.claude/agents/$(basename "$agent") is not ours; left alone" >&2
+        continue
+    fi
+    ln -nsf "$agent" "$dest"
+done
+
 # claude-hud's look. Only the file: the directory also holds its caches. A real
 # file there is this machine's until someone moves it in by hand.
 mkdir -p ./.claude/plugins/claude-hud

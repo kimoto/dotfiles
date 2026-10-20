@@ -69,4 +69,9 @@ for link in ./.claude/skills/*; do
         "$BASE_DIR"/claudecode/skills/*) unlink_if_symlink "$link" ;;
     esac
 done
+for link in ./.claude/agents/*; do
+    case "$(readlink "$link" 2>/dev/null)" in
+        "$BASE_DIR"/claudecode/agents/*) unlink_if_symlink "$link" ;;
+    esac
+done
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"
