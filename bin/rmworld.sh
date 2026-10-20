@@ -19,6 +19,7 @@ cd "$HOME" || exit 1
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_context_hooks.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_secret_scan_hook.sh" --uninstall || true
 
 # このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。
 # Only remove the entry if it is a symlink (never touch real files).
