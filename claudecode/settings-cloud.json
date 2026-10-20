@@ -50,6 +50,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_pr_description_reminder.sh\" ] || \"$d/bin/claude_pr_description_reminder.sh\"; exit 0",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

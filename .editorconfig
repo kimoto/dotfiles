@@ -56,6 +56,10 @@ max_line_length = off
 [bin/check_secret_files.sh]
 max_line_length = off
 
+# The git-push regex: split, it no longer reads as one command shape.
+[bin/claude_pr_description_reminder.sh]
+max_line_length = off
+
 [.claude/hooks/*.sh]
 max_line_length = off
 
