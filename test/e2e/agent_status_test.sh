@@ -1,13 +1,13 @@
 #!/bin/bash
-# End-to-end test for the Claude Code tmux state indicator: runs the real
-# hook script (bin/claude_tmux_indicator.sh) against a real tmux server
+# End-to-end test for config/tmux-agent-status: runs the real hook script
+# (scripts/hook.sh, which drives scripts/state.sh) against a real tmux server
 # loaded with the repo .tmux.conf and asserts every layer — pane option and
 # border override, the recomputed window color, the resync hooks, and the
 # rendered status formats.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-BIN="$(cd "$DIR/../../bin" && pwd)"
+PLUGIN="$(cd "$DIR/../../config/tmux-agent-status" && pwd)"
 # shellcheck source=/dev/null
 . "$DIR/tmux_e2e_helpers.sh"
 
@@ -26,7 +26,7 @@ export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE"
 RED="#dc322f"
 YELLOW="#b58900"
 
-SOCK="ci_claude_ind_$$"
+SOCK="ci_agent_status_$$"
 SESS="INDCHECK"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
@@ -36,14 +36,22 @@ tmux -L "$SOCK" -f "$CONF" new-session -d -s "$SESS" -x 200 -y 50 || die "failed
 SOCK_PATH="$(tmux -L "$SOCK" display-message -p '#{socket_path}')"
 PANE1="$(tmux -L "$SOCK" display-message -p '#{pane_id}')"
 
-# Run the hook script the way Claude Code does: a plain child process that
-# only knows it is inside tmux via $TMUX / $TMUX_PANE.
-ind() { TMUX="$SOCK_PATH,0,0" TMUX_PANE="$2" "$BIN/claude_tmux_indicator.sh" "$1"; }
+# Run the hook the way an agent does: a plain child process that only knows
+# it is inside tmux via $TMUX / $TMUX_PANE, given the event name. ind maps the
+# three states onto one event each.
+hook() { TMUX="$SOCK_PATH,0,0" TMUX_PANE="$2" "$PLUGIN/scripts/hook.sh" "$1"; }
+ind() {
+  case "$1" in
+    waiting) hook Notification "$2" ;;
+    done) hook Stop "$2" >/dev/null ;;
+    clear) hook PreToolUse "$2" ;;
+  esac
+}
 
 opt() { tmux -L "$SOCK" show-options -gqv "$1"; }
-pane_state() { tmux -L "$SOCK" show-options -pqv -t "$1" @claude_state; }
+pane_state() { tmux -L "$SOCK" show-options -pqv -t "$1" @agent_state; }
 pane_border() { tmux -L "$SOCK" show-options -pqv -t "$1" pane-border-style; }
-win_color() { tmux -L "$SOCK" show-options -wqv -t "$1" @claude_color; }
+win_color() { tmux -L "$SOCK" show-options -wqv -t "$1" @agent_color; }
 expand_at() { tmux -L "$SOCK" display-message -p -t "$1" "$2" 2>/dev/null | tr -d '\000'; }
 # Hook-driven recomputes are deferred (run-shell -b); poll briefly.
 wait_win_color() { # <target> <expected> <label>
@@ -59,19 +67,19 @@ wait_win_color() { # <target> <expected> <label>
 #    (window-layout-changed is window-scoped -gw; window-linked is -g).
 case "$(opt window-status-format)" in
   *'fg=#{?window_bell_flag,#dc322f,'*) ;;
-  *) die "bell: window_bell_flag no longer outranks @claude_color in window-status-format" ;;
+  *) die "bell: window_bell_flag no longer outranks @agent_color in window-status-format" ;;
 esac
 echo "== bell keeps priority over the indicator =="
-tmux -L "$SOCK" show-hooks -gw | grep -q 'window-layout-changed.*@claude_color' \
-  || die "hooks: window-layout-changed does not recompute @claude_color"
-tmux -L "$SOCK" show-hooks -g | grep -q 'window-linked.*@claude_color' \
-  || die "hooks: window-linked does not recompute @claude_color"
+tmux -L "$SOCK" show-hooks -gw | grep -q 'window-layout-changed.*@agent_color' \
+  || die "hooks: window-layout-changed does not recompute @agent_color"
+tmux -L "$SOCK" show-hooks -g | grep -q 'window-linked.*@agent_color' \
+  || die "hooks: window-linked does not recompute @agent_color"
 echo "== layout/linked resync hooks are registered =="
 
 # 1) waiting -> red border, red window color, red + ✳ in the formats.
 ind waiting "$PANE1"
 [ "$(pane_state "$PANE1")" = "waiting" ] \
-  || die "waiting: @claude_state expected 'waiting', got '$(pane_state "$PANE1")'"
+  || die "waiting: @agent_state expected 'waiting', got '$(pane_state "$PANE1")'"
 pane_border "$PANE1" | grep -qF "$RED" || die "waiting: pane-border-style not overridden to $RED"
 [ "$(win_color "$PANE1")" = "$RED" ] || die "waiting: window color expected $RED, got '$(win_color "$PANE1")'"
 expand_at "$PANE1" "$(opt window-status-format)" | grep -qF "$RED" \
@@ -110,7 +118,7 @@ echo "== the indicator follows a moved pane; no stale window color =="
 ind clear "$PANE2"
 [ -z "$(win_color "$PANE2")" ] || die "clear: pane 2 window color should be empty"
 ind clear "$PANE1"
-[ -z "$(pane_state "$PANE1")" ] || die "clear: @claude_state should be unset"
+[ -z "$(pane_state "$PANE1")" ] || die "clear: @agent_state should be unset"
 [ -z "$(pane_border "$PANE1")" ] || die "clear: pane 1 border override should be gone"
 expand_at "$PANE1" "$(opt window-status-format)" | grep -qF "#586e75" \
   || die "clear: window-status-format did not fall back to the default fg"
@@ -120,8 +128,8 @@ fi
 ind clear "$PANE1" || die "clear: repeated clear should stay exit 0"
 echo "== clear restores the default colors =="
 
-# 6) outside tmux the hook is a silent no-op.
-out="$(env -u TMUX -u TMUX_PANE "$BIN/claude_tmux_indicator.sh" waiting 2>&1)" \
+# 6) outside tmux the hook is a silent no-op (Stop still answers Codex's "{}").
+out="$(env -u TMUX -u TMUX_PANE "$PLUGIN/scripts/hook.sh" Notification 2>&1)" \
   || die "outside tmux: expected exit 0"
 [ -z "$out" ] || die "outside tmux: expected no output, got '$out'"
 echo "== outside tmux it is a silent no-op =="

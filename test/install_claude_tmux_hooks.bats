@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for bin/install_claude_tmux_hooks.sh: register/unregister the Claude
-# Code tmux-indicator hooks in ~/.claude/settings.json without ever touching
+# Code agent-state hooks (config/tmux-agent-status) in ~/.claude/settings.json without ever touching
 # unrelated settings. Each test runs against a throwaway $HOME.
 
 setup() {
@@ -24,21 +24,18 @@ teardown() {
   jq empty "$SETTINGS"
   for ev in Notification Stop UserPromptSubmit PreToolUse PostToolUse SessionStart SessionEnd; do
     jq -e --arg ev "$ev" \
-      '.hooks[$ev][].hooks[] | select(.type == "command" and (.command | contains("claude_tmux_indicator.sh")))' \
+      '.hooks[$ev][].hooks[] | select(.type == "command" and (.command | contains("agent-status/scripts/hook.sh")))' \
       "$SETTINGS" >/dev/null
   done
 }
 
-@test "wires each event to the right indicator state" {
+@test "passes each event its own name, leaving the state to hook.sh" {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  # Notification (permission prompt / idle) = attention; Stop = finished.
-  jq -e '.hooks.Notification[].hooks[] | select(.command | endswith(" waiting"))' "$SETTINGS" >/dev/null
-  jq -e '.hooks.Stop[].hooks[] | select(.command | endswith(" done"))' "$SETTINGS" >/dev/null
-  # A new prompt, tool activity, and session start/end all reset it.
-  for ev in UserPromptSubmit PreToolUse PostToolUse SessionStart SessionEnd; do
+  for ev in Notification Stop UserPromptSubmit PreToolUse PostToolUse SessionStart SessionEnd; do
     jq -e --arg ev "$ev" \
-      '.hooks[$ev][].hooks[] | select(.command | endswith(" clear"))' "$SETTINGS" >/dev/null
+      '.hooks[$ev][].hooks[] | select(.command | contains("hook.sh") and endswith(" " + $ev))' \
+      "$SETTINGS" >/dev/null
   done
 }
 
@@ -58,10 +55,10 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   jq -e '.hooks.Stop[].hooks[]
-           | select(.command | startswith("[ ! -x ") and contains("claude_tmux_indicator.sh"))' \
+           | select(.command | startswith("[ ! -x ") and contains("agent-status/scripts/hook.sh"))' \
     "$SETTINGS" >/dev/null
   cmd="$(jq -r '.hooks.Stop[].hooks[]
-                  | select(.command | contains("claude_tmux_indicator.sh")).command' "$SETTINGS")"
+                  | select(.command | contains("agent-status/scripts/hook.sh")).command' "$SETTINGS")"
   run sh -c "$cmd"   # script does not exist under this fake $HOME
   [ "$status" -eq 0 ]
 }
@@ -101,7 +98,7 @@ EOF
   [ "$status" -eq 0 ]
   [ "$(jq -r '.model' "$SETTINGS")" = "opus" ]
   jq -e '.hooks.Stop[].hooks[] | select(.command == "echo custom-stop")' "$SETTINGS" >/dev/null
-  jq -e '.hooks.Stop[].hooks[] | select(.command | contains("claude_tmux_indicator.sh"))' "$SETTINGS" >/dev/null
+  jq -e '.hooks.Stop[].hooks[] | select(.command | contains("agent-status/scripts/hook.sh"))' "$SETTINGS" >/dev/null
 }
 
 @test "writes through a symlinked settings.json instead of replacing it" {
@@ -115,17 +112,20 @@ EOF
   [ "$(jq -r '.model' "$TMP/settings-repo/settings.json")" = "opus" ]
 }
 
-@test "replaces a stale registration instead of stacking a duplicate" {
+@test "replaces a stale registration, including the old indicator script" {
   mkdir -p "$HOME/.claude"
   cat >"$SETTINGS" <<'EOF'
 {"hooks": {"Notification": [{"hooks": [
-  {"type": "command", "command": "$HOME/bin/claude_tmux_indicator.sh waiting"}]}]}}
+  {"type": "command", "command": "$HOME/bin/claude_tmux_indicator.sh waiting"},
+  {"type": "command", "command": "$HOME/.config/tmux-agent-status/scripts/hook.sh Notification"}]}]}}
 EOF
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   count="$(jq '[.hooks.Notification[].hooks[]
-                 | select(.command | contains("claude_tmux_indicator.sh"))] | length' "$SETTINGS")"
+                 | select(.command | contains("agent-status/scripts/hook.sh"))] | length' "$SETTINGS")"
   [ "$count" -eq 1 ]
+  run jq -e '.. | .command? // empty | select(contains("claude_tmux_indicator.sh"))' "$SETTINGS"
+  [ "$status" -ne 0 ]
 }
 
 @test "--uninstall removes every indicator hook and keeps everything else" {
@@ -142,7 +142,7 @@ EOF
   [ "$status" -eq 0 ]
   run "$SCRIPT" --uninstall
   [ "$status" -eq 0 ]
-  run jq -e '.. | .command? // empty | select(contains("claude_tmux_indicator.sh"))' "$SETTINGS"
+  run jq -e '.. | .command? // empty | select(contains("tmux-agent-status/"))' "$SETTINGS"
   [ "$status" -ne 0 ]
   run jq -e '.. | .command? // empty | select(contains("claude_tmux_hunk.sh"))' "$SETTINGS"
   [ "$status" -ne 0 ]
