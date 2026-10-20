@@ -1,6 +1,7 @@
 #!/bin/bash
-# PostToolUse hook for Bash calls: after a push, remind the agent to bring the
-# PR description in line with what was just pushed.
+# Claude Code PostToolUse hook for Bash calls (registered in every repo by
+# bin/install_claude_pr_hooks.sh, and by settings-cloud.json in a container):
+# after a push, remind the agent that the PR description may no longer hold.
 #
 # Claude Code sends the tool call as JSON on stdin and reads hookSpecificOutput
 # JSON back on stdout; printing nothing means "no comment". Quoted text is
@@ -20,11 +21,13 @@ if ! printf '%s' "$bare" | grep -qE '(^|[;&|(]|&&|\|\|)[[:space:]]*git([[:space:
   exit 0
 fi
 
+# What a description may hold lives in one place, the pull-requests rule every
+# session already loads; the reminder only points there, so the two never drift.
 jq -cn '{
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
     additionalContext: ("A git push just ran. If the pushed branch has an open pull request, "
-      + "update that PR description (via the GitHub PR update tool) to reflect what was just "
-      + "pushed: a short summary of the changes and current status.")
+      + "re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md "
+      + "and fix what this push made untrue.")
   }
 }'

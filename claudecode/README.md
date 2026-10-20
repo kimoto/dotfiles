@@ -53,6 +53,8 @@ ignore rule would apply in every repo on the machine.
   settings on its own). Its
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
-  because a container never runs `mkworld.sh`.
+  because a container never runs `mkworld.sh`. Its `PostToolUse` hook is the
+  after-push PR description reminder (`bin/claude_pr_description_reminder.sh`),
+  which `install_claude_pr_hooks.sh` registers on a workstation the same way.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.
