@@ -39,6 +39,18 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_commit_secret_scan.sh\" ] || \"$d/bin/claude_commit_secret_scan.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Bash",

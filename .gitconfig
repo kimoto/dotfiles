@@ -95,6 +95,14 @@
 [rerere]
   enabled = true
 
+# Secret scan before every commit in every repo, alongside the repo's own
+# pre-commit (Git 2.54+; older Git ignores this). Why and how the repo's own
+# setup wins: bin/git_hook_gitleaks.sh. The -x guard keeps a machine without
+# ~/bin committing.
+[hook "dotfiles-gitleaks"]
+  event = pre-commit
+  command = "[ ! -x \"$HOME/bin/git_hook_gitleaks.sh\" ] || \"$HOME/bin/git_hook_gitleaks.sh\""
+
 # --------
 # local
 # --------
