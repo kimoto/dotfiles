@@ -132,12 +132,12 @@ else
     echo "tmux not found on PATH; skipping tmux plugin install" >&2
 fi
 
-# Claude Code: the tmux state-indicator, idle, context and security hooks. Each
+# Claude Code: the tmux state-indicator, idle, context and secret-scan hooks. Each
 # one skips with a warning when jq is missing.
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" || echo "Claude tmux hooks failed" >&2
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" || echo "Claude idle hooks failed" >&2
 "$BASE_DIR/bin/install_claude_context_hooks.sh" || echo "Claude context hook failed" >&2
-"$BASE_DIR/bin/install_claude_security_hooks.sh" || echo "Claude security hooks failed" >&2
+"$BASE_DIR/bin/install_claude_secret_scan_hook.sh" || echo "Claude secret scan hook failed" >&2
 
 # The check toolchain pinned in mise.toml, before the hooks below that run it.
 # Each bin/lint_*.sh names the tool that is missing.

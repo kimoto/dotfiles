@@ -1,10 +1,9 @@
 #!/bin/sh
-# Register (default) or remove (--uninstall) the security hooks in
-# ~/.claude/settings.json: the once-per-file reminder when an edit adds a
-# dangerous pattern (claude_edit_security_check.sh) and the gitleaks scan before
-# a commit the model runs (claude_commit_secret_scan.sh). Same jq-merge contract
-# as install_claude_idle_hooks.sh: unrelated settings survive, reruns are no-ops,
-# and anything unexpected only warns — never fails the mkworld bootstrap.
+# Register (default) or remove (--uninstall) the gitleaks scan before a commit
+# the model runs (claude_commit_secret_scan.sh) in ~/.claude/settings.json.
+# Same jq-merge contract as install_claude_idle_hooks.sh: unrelated settings
+# survive, reruns are no-ops, and anything unexpected only warns — never fails
+# the mkworld bootstrap.
 # rmworld.sh runs --uninstall.
 set -eu
 
@@ -15,11 +14,9 @@ MODE="${1:-install}"
 # Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
 # guard keeps the hook a no-op when ~/bin is gone instead of erroring.
 # shellcheck disable=SC2016
-EDIT_CHECK='[ ! -x "$HOME/bin/claude_edit_security_check.sh" ] || "$HOME/bin/claude_edit_security_check.sh"'
-# shellcheck disable=SC2016
 COMMIT_SCAN='[ ! -x "$HOME/bin/claude_commit_secret_scan.sh" ] || "$HOME/bin/claude_commit_secret_scan.sh"'
 
-warn() { echo "install_claude_security_hooks: $*" >&2; }
+warn() { echo "install_claude_secret_scan_hook: $*" >&2; }
 
 if ! command -v jq >/dev/null 2>&1; then
   warn "jq not found; skipping"
@@ -57,8 +54,7 @@ STRIP='
     else .hooks |= (with_entries(
         .value |= map(select(
           ([.hooks[]? | .command? // empty | strings]
-           | any(contains("claude_edit_security_check.sh")
-                 or contains("claude_commit_secret_scan.sh"))) | not))
+           | any(contains("claude_commit_secret_scan.sh"))) | not))
       ) | with_entries(select(.value != [])))
     end;
 '
@@ -66,15 +62,14 @@ STRIP='
 if [ "$MODE" = "--uninstall" ]; then
   jq "$STRIP strip_security" "$SETTINGS" >"$tmp"
 else
-  jq --arg edit "$EDIT_CHECK" --arg commit "$COMMIT_SCAN" "$STRIP"'
-    def ensure($matcher; $c; $timeout):
-      .hooks.PreToolUse = ((.hooks.PreToolUse // [])
+  jq --arg commit "$COMMIT_SCAN" "$STRIP"'
+    def ensure($event; $matcher; $c; $timeout):
+      .hooks[$event] = ((.hooks[$event] // [])
         + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: $timeout}]}]);
     strip_security
-    | ensure("Edit|Write|MultiEdit"; $edit; 5)
     # gitleaks reads the whole diff; 30s covers a large one without letting a
     # hung scan hold the session.
-    | ensure("Bash"; $commit; 30)
+    | ensure("PreToolUse"; "Bash"; $commit; 30)
   ' "$SETTINGS" >"$tmp"
 fi
 
@@ -84,7 +79,7 @@ fi
 # cat, not mv: keeps a symlinked settings.json, its permissions and inode.
 cat "$tmp" >"$SETTINGS"
 if [ "$MODE" = "--uninstall" ]; then
-  warn "security hooks removed from $SETTINGS"
+  warn "secret scan hook removed from $SETTINGS"
 else
-  warn "security hooks registered in $SETTINGS"
+  warn "secret scan hook registered in $SETTINGS"
 fi

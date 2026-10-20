@@ -1,16 +1,16 @@
 #!/bin/bash
 # Claude Code PreToolUse hook for Bash (registered by
-# bin/install_claude_security_hooks.sh, and by claudecode/settings-cloud.json in
+# bin/install_claude_secret_scan_hook.sh, and by claudecode/settings-cloud.json in
 # a cloud session): before a `git commit` the model runs, scan what that commit
 # can contain with gitleaks, and block it while a secret is found.
 #
-# Why a Claude hook and not git's own: a global core.hooksPath replaces every
-# repo's .git/hooks, so lefthook, pre-commit and friends would stop running.
-# This covers only the commits a Claude session makes, and leaves the repo's
-# hooks exactly as they are.
+# The fallback for bin/git_hook_gitleaks.sh: that one runs from .gitconfig on
+# Git 2.54+, for every commit. Where Git is older (a cloud container, a distro
+# LTS) only the commits a Claude session makes are covered, by this hook.
 #
-# ★The repo wins. When its installed pre-commit already runs gitleaks, this
-#  stays out (unless the commit skips hooks with --no-verify / -n). Otherwise
+# ★The repo wins, by the same test as git_hook_gitleaks.sh --repo-owns. Both
+#  stand down for a commit that skips hooks with --no-verify / -n, so this one
+#  scans it. Otherwise
 #  the repo's .gitleaks.toml and .gitleaksignore, when present, decide what
 #  counts as a leak.
 # ★What is scanned is the diff against HEAD plus untracked files, not only the
@@ -21,6 +21,8 @@
 #    a guard that blocks every commit on a machine without gitleaks is one that
 #    gets removed.
 set -uo pipefail
+
+HERE=$(dirname "$(readlink -f "$0")")
 
 # Untracked files larger than this are skipped: a secret is rarely in one, and
 # reading a build artefact would make every commit slow.
@@ -55,22 +57,23 @@ skips_hooks=0
 grep -qE '(^|[[:space:]])(--no-verify|-[A-Za-z]*n[A-Za-z]*)([[:space:]]|$)' \
   <<<"$(grep -oE 'commit([[:space:]]+[^;&|]*)?' <<<"$bare")" && skips_hooks=1
 
+# git_version_ge <major> <minor>
+git_version_ge() {
+  local v maj min
+  v=$(git --version 2>/dev/null | sed -nE 's/^git version ([0-9]+)\.([0-9]+).*/\1 \2/p')
+  read -r maj min <<<"$v"
+  [ -n "${maj:-}" ] && { [ "$maj" -gt "$1" ] || { [ "$maj" -eq "$1" ] && [ "$min" -ge "$2" ]; }; }
+}
+
 if [ "$skips_hooks" -eq 0 ]; then
-  hooks_dir=$(git -C "$root" rev-parse --git-path hooks 2>/dev/null)
-  case "$hooks_dir" in /*) ;; *) hooks_dir="$root/$hooks_dir" ;; esac
-  hp=$(git -C "$root" config core.hooksPath 2>/dev/null) && {
-    case "$hp" in /*) hooks_dir="$hp" ;; *) hooks_dir="$root/$hp" ;; esac
-  }
-  # An installed pre-commit, and a config it reads that names gitleaks: the
-  # repo already scans. A config alone is not enough — a hook manager that was
-  # never installed runs nothing.
-  if [ -x "$hooks_dir/pre-commit" ]; then
-    for f in "$hooks_dir/pre-commit" "$root"/lefthook.yml "$root"/.lefthook.yml \
-      "$root"/lefthook-local.yml "$root"/.lefthook-local.yml \
-      "$root"/.pre-commit-config.yaml "$root"/.husky/pre-commit; do
-      [ -r "$f" ] && grep -q gitleaks "$f" 2>/dev/null && exit 0
-    done
+  # Git 2.54+ with the .gitconfig hook: git itself scans at commit time, or the
+  # repo opted out of it (hook.dotfiles-gitleaks.enabled=false). Either way it
+  # is not this hook's call.
+  if git_version_ge 2 54 &&
+    git -C "$root" config --get-regexp '^hook\..*\.command$' 2>/dev/null | grep -q git_hook_gitleaks.sh; then
+    exit 0
   fi
+  "$HERE/git_hook_gitleaks.sh" --repo-owns "$root" && exit 0
 fi
 
 args=(stdin --no-banner --no-color --redact --log-level error --exit-code 1)
