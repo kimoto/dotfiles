@@ -174,22 +174,47 @@ commit_scan() {
   [ "$status" -eq 0 ]
 }
 
+# fake_git_version <x.y.z>: put a git on PATH that reports that version and
+# otherwise runs the real one, so both sides of the 2.54 cut run anywhere.
+fake_git_version() {
+  local real_git
+  real_git=$(command -v git)
+  mkdir -p "$TMP/shim-$1"
+  printf '#!/bin/sh\n[ "$1" = --version ] && { echo "git version %s"; exit 0; }\nexec %s "$@"\n' \
+    "$1" "$real_git" >"$TMP/shim-$1/git"
+  chmod +x "$TMP/shim-$1/git"
+  echo "$TMP/shim-$1"
+}
+
 @test "commit: defers to git's own hook on Git 2.54+" {
   command -v gitleaks >/dev/null || skip "gitleaks not installed"
   mkrepo
   printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
   git -C "$REPO" config hook.dotfiles-gitleaks.event pre-commit
   git -C "$REPO" config hook.dotfiles-gitleaks.command "$GIT_HOOK"
-  # Older Git: git would not run the config hook, so this one scans.
-  commit_scan 'git add creds.txt && git commit -m add'
+  # Older Git would not run the config hook, so this one scans.
+  PATH="$(fake_git_version 2.43.0):$PATH" commit_scan 'git add creds.txt && git commit -m add'
   [ "$status" -eq 2 ]
-  mkdir -p "$TMP/shim"
-  real_git=$(command -v git)
-  printf '#!/bin/sh\n[ "$1" = --version ] && { echo "git version 2.54.0"; exit 0; }\nexec %s "$@"\n' \
-    "$real_git" >"$TMP/shim/git"
-  chmod +x "$TMP/shim/git"
-  PATH="$TMP/shim:$PATH" commit_scan 'git add creds.txt && git commit -m add'
+  PATH="$(fake_git_version 2.54.0):$PATH" commit_scan 'git add creds.txt && git commit -m add'
   [ "$status" -eq 0 ]
+}
+
+@test "git 2.54+ runs the config hook and refuses the commit" {
+  command -v gitleaks >/dev/null || skip "gitleaks not installed"
+  mkrepo
+  # Same version test as the fallback, so the two cannot disagree.
+  v=$(git --version | sed -nE 's/^git version ([0-9]+)\.([0-9]+).*/\1 \2/p')
+  read -r maj min <<<"$v"
+  { [ "$maj" -gt 2 ] || { [ "$maj" -eq 2 ] && [ "$min" -ge 54 ]; }; } || skip "git $maj.$min has no config hooks"
+  git -C "$REPO" config hook.dotfiles-gitleaks.event pre-commit
+  git -C "$REPO" config hook.dotfiles-gitleaks.command "$GIT_HOOK"
+  printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
+  git -C "$REPO" add creds.txt
+  run git -C "$REPO" -c user.name=t -c user.email=t@example.com commit -q -m add
+  [ "$status" -ne 0 ]
+  [[ "$output" == *github-pat* ]]
+  run git -C "$REPO" rev-list --count HEAD
+  [ "$output" = 1 ]
 }
 
 @test "install: registers the hook once, keeps other settings, and uninstalls" {

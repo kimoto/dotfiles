@@ -1,22 +1,21 @@
 #!/bin/bash
-# Claude Code PreToolUse hook for Bash (registered by
-# bin/install_claude_secret_scan_hook.sh, and by claudecode/settings-cloud.json in
-# a cloud session): before a `git commit` the model runs, scan what that commit
-# can contain with gitleaks, and block it while a secret is found.
+# Stops a `git commit` that Claude is about to run when gitleaks finds a secret
+# in it. Claude Code PreToolUse hook for Bash, registered by
+# bin/install_claude_secret_scan_hook.sh (and claudecode/settings-cloud.json).
 #
-# The fallback for bin/git_hook_gitleaks.sh: that one runs from .gitconfig on
-# Git 2.54+, for every commit. Where Git is older (a cloud container, a distro
-# LTS) only the commits a Claude session makes are covered, by this hook.
+# Only needed where Git is older than 2.54. On 2.54+ the .gitconfig hook
+# (bin/git_hook_gitleaks.sh) scans every commit, Claude's or not.
 #
-# ★The repo wins, by the same test as git_hook_gitleaks.sh --repo-owns. Both
-#  stand down for a commit that skips hooks with --no-verify / -n, so this one
-#  scans it. Otherwise
-#  the repo's .gitleaks.toml and .gitleaksignore, when present, decide what
-#  counts as a leak.
-# ★What is scanned is the diff against HEAD plus untracked files, not only the
-#  index: the model usually runs `git add x && git commit` as one command, and
-#  at this point x is not staged yet. Scanning a little more than the commit
-#  holds can block on a change it does not include; that is the safe side.
+# 1. Not a `git commit`: let it through.
+# 2. Git will scan it itself: let it through. That is Git 2.54+ with the
+#    .gitconfig hook, or a repo whose installed pre-commit runs gitleaks
+#    (git_hook_gitleaks.sh --repo-owns, so the two cannot disagree).
+#    --no-verify / -n skips those hooks, so such a commit is scanned here.
+# 3. Otherwise scan the diff against HEAD plus untracked files, and block with
+#    the redacted findings. Not only the index: Claude usually runs
+#    `git add x && git commit` as one command, and x is not staged yet.
+#    The repo's .gitleaks.toml / .gitleaksignore decide what counts.
+#
 # ⚠️ Fails open when it cannot tell (no gitleaks, not a repo, unparsable input):
 #    a guard that blocks every commit on a machine without gitleaks is one that
 #    gets removed.
