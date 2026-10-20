@@ -65,7 +65,7 @@ upstream_commit() {
   mkdir -p "$UPSTREAM/claudecode/skills/new-skill"
   : >"$UPSTREAM/claudecode/skills/new-skill/SKILL.md"
   upstream_commit "add skill"
-  run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
   [[ "$output" == *"pull skipped: on 'work'"* ]]
   [ "$(git -C "$CHECKOUT" branch --show-current)" = work ]
   [ ! -e "$CHECKOUT/claudecode/skills/new-skill" ]
@@ -87,7 +87,7 @@ upstream_commit() {
   [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules/a.md"* ]]
   [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules-cloud/b.md"* ]]
   [[ "$output" == *"rule removed: $CHECKOUT/claudecode/rules-cloud/a.md"* ]]
-  [[ "$output" == *"next session: claudecode/settings-cloud.json"* ]]
+  [[ "$output" == *"settings changed: claudecode/settings-cloud.json"* ]]
 }
 
 @test "counts a rule the startup pull brought in, since it may have loaded first" {
@@ -102,5 +102,5 @@ upstream_commit() {
   HOME="$TMP/home" run sh -c "$HOOK"
   HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
   [[ "$output" != *"rule "* ]]
-  [[ "$output" != *"next session"* ]]
+  [[ "$output" != *"settings changed"* ]]
 }

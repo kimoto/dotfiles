@@ -36,14 +36,15 @@ if [ -z "${REFRESH_CLOUD_PULLED:-}" ]; then
   REFRESH_CLOUD_PULLED=1 exec "$BASE_DIR/bin/refresh_cloud_session.sh" "$@"
 fi
 
-# A rule can be re-read mid-session; settings (hooks included) cannot.
+# Rules load once, so the skill re-reads these; Claude Code reloads settings
+# itself on change, bar a few keys and the SessionStart hook that already ran.
 base=$(cat "$SESSION_BASE" 2>/dev/null)
 if [ -n "$base" ]; then
   git -C "$BASE_DIR" diff --no-renames --name-status "$base" HEAD -- \
     claudecode/rules claudecode/rules-cloud claudecode/settings-cloud.json |
   while read -r st path; do
     case "$path:$st" in
-      *.json:*) echo "[refresh] next session: $path" ;;
+      *.json:*) echo "[refresh] settings changed: $path" ;;
       *:D) echo "[refresh] rule removed: $BASE_DIR/$path" ;;
       *) echo "[refresh] rule changed: $BASE_DIR/$path" ;;
     esac

@@ -32,12 +32,10 @@ rules は起動時に一度読まれたきりなので、張り直しただけ�
 
 - **いまのセッションで効くもの**: skill（新しく張ったものも、次の依頼から呼べる）と、
   上で Read した rules。どの rules を読み直したかを名前で言う。
-- **このセッションでは効かないもの**: `next session:` 行の `settings-cloud.json`、
-  つまり hook・permissions などの設定。⚠️ 読み直す手段がない。
-  変わっていれば必ずそう言う。言わないと、いま効いたと読まれる。
-  ★新しいスレッド（セッション）でも、起動時に読むのはキャッシュの版なので効かない。
-  環境設定の Setup script を保存し直してキャッシュを作り直した後の新しいセッションから効く。
-  それを人に頼む（ここからは変えられない）。
+- **自動で入るもの**: `settings changed:` 行の `settings-cloud.json`。
+  Claude Code はファイルの変更を見て読み直すので、hook・permissions・env・outputStyle は
+  このセッションにも入る。⚠️ 例外は起動時だけ読む key（`model` など）と、もう走った
+  SessionStart hook。その2つが変わっていれば、このセッションには入らないと言う。
 - **最新にならなかったもの**: `pull skipped`（main 以外を checkout 中）か `MISS pull`
   （分岐・未コミット・通信失敗）なら、何が古いまま残ったか。⚠️ 勝手に reset や stash をしない。
 
