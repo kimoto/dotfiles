@@ -30,10 +30,11 @@ ignore rule would apply in every repo on the machine.
   can run before its description is read; the rest carry no prefix.
 - `agents/` — subagents, linked one by one as `~/.claude/agents/<name>.md`
   by the same rule as skills. One earns a file here when a separate context
-  buys something a skill cannot: a narrower tool set. `upstream-diff-reader`
-  reads code someone else wrote with Read/Grep/Glob only, so text planted in
-  it can sway the verdict that comes back but cannot write or run anything.
-  ⚠️ Adding a write, network or shell tool to such an agent undoes the point.
+  buys something a skill cannot: a narrower tool set. `untrusted-reader`
+  reads what someone else wrote (upstream code, issue bodies, fetched pages)
+  with Read/Grep/Glob only, so text planted in it can sway the answer that
+  comes back but cannot write or run anything. ⚠️ Adding a write, network or
+  shell tool to such an agent undoes the point.
 - `rules-cloud/` — linked as `~/.claude/rules/dotfiles-cloud` only by
   `link_claude_dir.sh --cloud`. It says what a container lacks, so every line
   is false on a workstation; `mklink.sh` removes the link.
