@@ -75,3 +75,32 @@ upstream_commit() {
   HOME="$TMP/home" run sh -c "$HOOK"
   [ -z "$output" ]
 }
+
+@test "names the rules and settings that moved since the session started" {
+  HOME="$TMP/home" run sh -c "$HOOK"
+  echo new >"$UPSTREAM/claudecode/rules/a.md"
+  : >"$UPSTREAM/claudecode/rules-cloud/b.md"
+  git -C "$UPSTREAM" rm -q claudecode/rules-cloud/a.md
+  echo '{}' >"$UPSTREAM/claudecode/settings-cloud.json"
+  upstream_commit "move rules"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules/a.md"* ]]
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules-cloud/b.md"* ]]
+  [[ "$output" == *"rule removed: $CHECKOUT/claudecode/rules-cloud/a.md"* ]]
+  [[ "$output" == *"next session: claudecode/settings-cloud.json"* ]]
+}
+
+@test "counts a rule the startup pull brought in, since it may have loaded first" {
+  echo new >"$UPSTREAM/claudecode/rules/a.md"
+  upstream_commit "change rule"
+  HOME="$TMP/home" run sh -c "$HOOK"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" == *"rule changed: $CHECKOUT/claudecode/rules/a.md"* ]]
+}
+
+@test "names no rule when none moved" {
+  HOME="$TMP/home" run sh -c "$HOOK"
+  HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
+  [[ "$output" != *"rule "* ]]
+  [[ "$output" != *"next session"* ]]
+}

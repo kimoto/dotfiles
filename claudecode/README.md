@@ -41,7 +41,9 @@ ignore rule would apply in every repo on the machine.
   from a cache and would otherwise read stale rules and never see a skill added
   since. ⚠️ The cache holds the hook text too, so the hook only names that
   script; a change to the hook text itself waits for the cache to be rebuilt.
-  The `cloud-refresh` skill runs the same script mid-session. Its
+  The `cloud-refresh` skill runs the same script mid-session and re-reads the
+  rules it reports changed since the session started; a settings change, as
+  with the hook text, still waits for the cache. Its
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
   because a container never runs `mkworld.sh`.
