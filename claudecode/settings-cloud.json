@@ -38,6 +38,28 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_edit_security_check.sh\" ] || \"$d/bin/claude_edit_security_check.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_commit_secret_scan.sh\" ] || \"$d/bin/claude_commit_secret_scan.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }

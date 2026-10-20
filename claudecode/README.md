@@ -46,6 +46,8 @@ ignore rule would apply in every repo on the machine.
   settings on its own). Its
   `UserPromptSubmit` hook is the context notice `mkworld.sh` registers on a
   workstation (`bin/claude_context_check.sh`), reached through the same link
-  because a container never runs `mkworld.sh`.
+  because a container never runs `mkworld.sh`. Its `PreToolUse` hooks are
+  the security pair `install_claude_security_hooks.sh` registers on a
+  workstation, so a cloud session on any repo gets them too.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.
