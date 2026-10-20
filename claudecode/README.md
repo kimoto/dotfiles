@@ -28,6 +28,13 @@ ignore rule would apply in every repo on the machine.
   A name starts with the environment it needs when it works nowhere else
   (`project-` for a Claude Projects chat), so the slash menu says where it
   can run before its description is read; the rest carry no prefix.
+- `agents/` — subagents, linked one by one as `~/.claude/agents/<name>.md`
+  by the same rule as skills. One earns a file here when a separate context
+  buys something a skill cannot: a narrower tool set. `untrusted-reader`
+  reads what someone else wrote (upstream code, issue bodies, fetched pages)
+  with Read/Grep/Glob only, so text planted in it can sway the answer that
+  comes back but cannot write or run anything. ⚠️ Adding a write, network or
+  shell tool to such an agent undoes the point.
 - `rules-cloud/` — linked as `~/.claude/rules/dotfiles-cloud` only by
   `link_claude_dir.sh --cloud`. It says what a container lacks, so every line
   is false on a workstation; `mklink.sh` removes the link.

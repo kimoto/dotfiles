@@ -27,6 +27,22 @@ teardown() {
     [ -L "$HOME_SANDBOX/.claude/skills/$name" ]
     [ -f "$HOME_SANDBOX/.claude/skills/$name/SKILL.md" ]
   done
+  for agent in "$REPO_ROOT"/claudecode/agents/*.md; do
+    [ "$(readlink -f "$HOME_SANDBOX/.claude/agents/$(basename "$agent")")" = "$agent" ]
+  done
+}
+
+@test "leaves an agent file it did not create alone" {
+  agent="$(find "$REPO_ROOT/claudecode/agents" -name '*.md' | head -1)"
+  foreign="$HOME_SANDBOX/.claude/agents/$(basename "$agent")"
+  mkdir -p "$(dirname "$foreign")"
+  echo "someone else's" >"$foreign"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -ne 0 ]
+  [ ! -L "$foreign" ]
+  [ "$(cat "$foreign")" = "someone else's" ]
+  [[ "$output" == *"MISS agent $(basename "$agent" .md)"* ]]
 }
 
 @test "--cloud decides whether the container-only rule comes along" {
