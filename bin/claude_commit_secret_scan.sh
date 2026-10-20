@@ -31,6 +31,9 @@ command -v jq >/dev/null 2>&1 || exit 0
 command -v gitleaks >/dev/null 2>&1 || exit 0
 
 payload=$(cat 2>/dev/null) || exit 0
+# Runs before every Bash call, so leave without starting jq when the command
+# cannot be a commit.
+[[ "$payload" == *commit* ]] || exit 0
 cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null)
 cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null)
 [ -n "$cmd" ] || exit 0
@@ -88,14 +91,12 @@ fi
 report=$(
   {
     git -C "$root" diff --no-ext-diff --no-color "$base" 2>/dev/null
-    git -C "$root" ls-files -z --others --exclude-standard 2>/dev/null |
-      while IFS= read -r -d '' f; do
-        p="$root/$f"
-        [ -f "$p" ] || continue
-        [ "$(wc -c <"$p")" -le "$MAX_UNTRACKED_BYTES" ] || continue
-        printf '+++ %s\n' "$f"
-        cat "$p"
-      done
+    # One find and one awk for all files, not a process per file: a repo with
+    # thousands of untracked files would otherwise take seconds.
+    # shellcheck disable=SC2016 # "$@" and "$0" belong to the inner sh
+    (cd "$root" && git ls-files -z --others --exclude-standard 2>/dev/null |
+      xargs -0 -r sh -c 'find "$@" -maxdepth 0 -type f -size -"$0"c -print0' "$((MAX_UNTRACKED_BYTES + 1))" |
+      xargs -0 -r awk 'FNR == 1 { print "+++ " FILENAME } { print }')
   } | gitleaks "${args[@]}" -v 2>&1
 )
 status=$?
