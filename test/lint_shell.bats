@@ -37,6 +37,16 @@ teardown() {
   [ "$status" -ne 0 ]
 }
 
+@test "rejects an unbraced variable followed by non-ASCII text" {
+  # Passes shellcheck, yet aborts under macOS's bash 3.2 in a UTF-8 locale.
+  printf '#!/bin/sh\nset -u\nsize=1k\necho "$size\343\200\202"\n' >"$TMP/mb.sh"
+  run "$SCRIPT" "$TMP/mb.sh"
+  [ "$status" -ne 0 ]
+  printf '#!/bin/sh\nset -u\nsize=1k\necho "${size}\343\200\202"\n' >"$TMP/mb.sh"
+  run "$SCRIPT" "$TMP/mb.sh"
+  [ "$status" -eq 0 ]
+}
+
 @test "fails the batch if any one file is broken" {
   printf '#!/bin/bash\necho ok\n' >"$TMP/ok.sh"
   printf '#!/bin/bash\ncase $x in\n' >"$TMP/nope.sh"   # missing patterns/esac

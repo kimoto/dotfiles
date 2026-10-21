@@ -19,6 +19,16 @@ for f in "${files[@]}"; do
     bash -n "$f"
 done
 
+# bash 3.2 (macOS /bin/sh) in a UTF-8 locale reads a non-ASCII byte right after
+# an unbraced variable as part of its name, so a Japanese full stop right after
+# one aborts the script under `set -u`. dash and newer
+# bash do not, so CI on Linux never sees it — and shellcheck does not flag it.
+if LC_ALL=C grep -HnE '\$[A-Za-z_][A-Za-z0-9_]*[^ -~]' "${files[@]}"; then
+    # shellcheck disable=SC2016 # literal text, not an expansion
+    echo 'error: brace the variable above (${name}, not $name)' >&2
+    exit 1
+fi
+
 # -x follows the lint_lib.sh source line, so a lint script staged on its own
 # still sees the variables the lib sets.
 shellcheck -x "${files[@]}"
