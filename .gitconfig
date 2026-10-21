@@ -27,7 +27,7 @@
   tool = difftastic
 
 [diff "exif"]
-  textconv = exiftool
+  textconv = "$HOME/bin/git_textconv_exif.sh"
 
 [gui]
   encoding = utf-8

@@ -1,0 +1,12 @@
+# Global attributes (git reads ~/.config/git/attributes when core.attributesFile
+# is unset; mklink.sh links ~/.config to this repo's config/).
+#
+# Images diff through the exif driver in .gitconfig. Upper-case names are listed
+# too because cameras and phones export them, and Linux matches case-sensitively.
+*.jpg  diff=exif
+*.jpeg diff=exif
+*.JPG  diff=exif
+*.JPEG diff=exif
+*.png  diff=exif
+*.heic diff=exif
+*.HEIC diff=exif
