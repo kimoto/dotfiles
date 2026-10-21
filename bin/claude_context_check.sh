@@ -65,13 +65,13 @@ find "$STATE_DIR" -type f -mtime +14 -delete 2>/dev/null || true
 
 size="$(( used / 1000 ))k"
 if [ "$level" -eq 1 ]; then
-  user="コンテキスト $size。区切りで次のセッションへの仕切り直しを検討"
-  model="★コンテキストが $size トークンに達した。今の作業は止めずに続け、"
+  user="コンテキスト ${size}。区切りで次のセッションへの仕切り直しを検討"
+  model="★コンテキストが ${size} トークンに達した。今の作業は止めずに続け、"
   model="${model}次に区切りが付いた返答の末尾で一行、仕切り直しを提案する: "
   model="${model}handoff skill で次のセッションに貼る引き継ぎプロンプトを作る。"
 else
-  user="コンテキスト $size。今の作業単位を閉じたら仕切り直し"
-  model="★コンテキストが $size トークン。新しい大きな作業は始めない。"
+  user="コンテキスト ${size}。今の作業単位を閉じたら仕切り直し"
+  model="★コンテキストが ${size} トークン。新しい大きな作業は始めない。"
   model="${model}今の作業単位を閉じたら handoff skill を実行し、引き継ぎプロンプトを渡して仕切り直しを勧める。"
   model="${model}自動 compact は会話を要約に置き換え、細部が黙って落ちる。"
 fi
