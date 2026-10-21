@@ -6,9 +6,11 @@
 # instead of leaving the reference quietly wrong — the failure mode
 # claudecode/rules/tooling.md names: a rule held up by remembering.
 #
-# Two layers of #249 so far (Ghostty, AeroSpace). The other three sources
-# that issue lists (tmux, zsh, Neovim, Hammerspoon) are not covered yet;
-# each needs its own per-syntax key extraction the same way these two do.
+# Three layers of #249 so far (Ghostty, AeroSpace, and tmux's prefix and
+# copy-mode tables). tmux's root table is not covered: its rows name the Mac
+# keys (⌘, ⌥⌘) that Ghostty translates before tmux sees them, so checking it
+# needs that translation, not just .tmux.conf. zsh, Neovim and Hammerspoon
+# are not covered yet; each needs its own per-syntax key extraction.
 
 set -euo pipefail
 
@@ -19,11 +21,27 @@ cd "$BASE_DIR" || exit 1
 # own files.
 GHOSTTY_CONFIG="${CHECK_KEYBINDINGS_GHOSTTY_CONFIG:-config/ghostty/config}"
 AEROSPACE_CONFIG="${CHECK_KEYBINDINGS_AEROSPACE_CONFIG:-.aerospace.toml}"
+TMUX_CONFIG="${CHECK_KEYBINDINGS_TMUX_CONFIG:-.tmux.conf}"
 DOC="${CHECK_KEYBINDINGS_DOC:-KEYBINDINGS.md}"
 
 # Ghostty keybinds with no row of their own in the Terminal table: they are
 # the "⌥+0~5 go to AeroSpace" footnote below it, not a row in it.
 ALLOWED_UNDOCUMENTED=("alt+0" "alt+1" "alt+2" "alt+3" "alt+4" "alt+5")
+
+# Rows of the tmux "With prefix" table whose key .tmux.conf never binds,
+# each bound somewhere this script does not parse.
+TMUX_PREFIX_BOUND_ELSEWHERE=(
+  "m"     # tmux's own default: mark pane
+  "Tab"   # tmux 3.8's own default: window picker
+  "g"     # tmux 3.8's own default: floating pane placement
+  "*"     # tmux 3.7's own default: new floating pane
+  "f"     # config/tmux-agent-status/agent-status.tmux, its own default key
+  "F"     # tmux-fzf's default key
+  "\\"    # tmux-menus' default trigger
+  "Enter" # tmux-menus' second default trigger
+  "C-s"   # tmux-resurrect's default save key
+  "C-r"   # tmux-resurrect's default restore key
+)
 
 # Canonicalize one key spec (a Ghostty trigger like "super+shift+o", or a
 # KEYBINDINGS.md token already split down to one modifier+base combo) into
@@ -180,6 +198,38 @@ aerospace_configured_keys() {
     done | sort -u
 }
 
+# Normalize one tmux key name: drop the quotes .tmux.conf needs around
+# punctuation ('[', "C-M-'"), and spell the doc's "Ctrl-s" as tmux's "C-s".
+# Case is kept: tmux binds m and M separately.
+tmux_canon() {
+  local k="$1"
+  k="${k#[\"\']}"
+  k="${k%[\"\']}"
+  k="${k/#Ctrl-/C-}"
+  printf '%s\n' "$k"
+}
+
+# The keys .tmux.conf binds in one key table ("prefix", "root", or a -T
+# table such as "copy-mode-vi"), one per line. Every `bind-key` counts,
+# including those inside if-shell strings, since each of them is a binding
+# some tmux version gets; `unbind-key` does not.
+tmux_configured_keys() {
+  local table="$1" a b c t k
+  grep -vE '^[[:space:]]*#' "$TMUX_CONFIG" |
+    grep -oE '(^|[^a-z-])bind-key( -N "[^"]*")?( -r)?( -n| -T [A-Za-z-]+)? [^ ]+' |
+    sed -E 's/^[^b]?bind-key( -N "[^"]*")?( -r)?//' |
+    while read -r a b c; do
+      case "$a" in
+        -n) t=root k="$b" ;;
+        -T) t="$b" k="$c" ;;
+        *) t=prefix k="$a" ;;
+      esac
+      if [ "$t" = "$table" ]; then
+        tmux_canon "$k"
+      fi
+    done | sort -u
+}
+
 # The Key column of the markdown table between two heading lines, as raw
 # cell text (one per line) — shared by every documented_keys()-style
 # function below. $1/$2 are grep -E patterns matched against whole lines.
@@ -228,6 +278,37 @@ aerospace_service_documented_keys() {
     done | sort -u
 }
 
+# The tmux "With prefix" table's documented keys, one per line: every
+# "prefix + <key>" in a cell, so "prefix + \ (or prefix + Enter)" gives
+# both. Keys in TMUX_PREFIX_BOUND_ELSEWHERE are left out.
+tmux_prefix_documented_keys() {
+  local key allowed skip
+  table_cells '^### With prefix' '^### ' |
+    grep -oE 'prefix \+ [^ ,)]+' |
+    sed -E 's/^prefix \+ //' |
+    while IFS= read -r key; do
+      key="$(tmux_canon "$key")"
+      skip=0
+      for allowed in "${TMUX_PREFIX_BOUND_ELSEWHERE[@]}"; do
+        if [ "$key" = "$allowed" ]; then
+          skip=1
+          break
+        fi
+      done
+      if [ "$skip" -eq 0 ]; then
+        printf '%s\n' "$key"
+      fi
+    done | sort -u
+}
+
+# The tmux "Copy mode (vi)" table's documented keys, one per line.
+tmux_copy_mode_documented_keys() {
+  table_cells '^### Copy mode' '^---$' |
+    while IFS= read -r cell; do
+      tmux_canon "$cell"
+    done | sort -u
+}
+
 # Compares a configured key set against a documented key set and prints one
 # line per mismatch in either direction. $1/$3 name the two sides for the
 # message; $2/$4 are their newline-separated canonical key sets.
@@ -265,5 +346,11 @@ compare_keys "AeroSpace's main binding mode" "$(aerospace_configured_keys '[mode
 
 compare_keys "AeroSpace's service binding mode" "$(aerospace_configured_keys '[mode.service.binding]')" \
   "KEYBINDINGS.md's Service mode table" "$(aerospace_service_documented_keys)" || rc=1
+
+compare_keys ".tmux.conf's prefix table" "$(tmux_configured_keys prefix)" \
+  "KEYBINDINGS.md's tmux With prefix table" "$(tmux_prefix_documented_keys)" || rc=1
+
+compare_keys ".tmux.conf's copy-mode-vi table" "$(tmux_configured_keys copy-mode-vi)" \
+  "KEYBINDINGS.md's tmux Copy mode table" "$(tmux_copy_mode_documented_keys)" || rc=1
 
 exit "$rc"
