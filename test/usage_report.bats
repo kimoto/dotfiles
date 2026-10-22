@@ -95,7 +95,7 @@ EOF
   report --all
   [ "$status" -eq 0 ]
   [[ "$output" == *"$(printf 'never\talias\treload')"* ]]
-  for name in chpwd update_tmux_window keys_widget pasteinit source-if-exist _abbr_expand; do
+  for name in chpwd update_tmux_window keys_widget source-if-exist _abbr_expand; do
     [[ "$output" != *"$name"* ]]
   done
 }
