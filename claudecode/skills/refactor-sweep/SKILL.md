@@ -1,0 +1,73 @@
+---
+name: refactor-sweep
+description: いま居る repo で、挙動を変えずに読みやすくするリファクタを1本だけ PR にする。★「リファクタして」「読みやすくして」と言われた時と、週次 routine から使う。⚠️ 挙動が変わらないと示せない変更は出さない・消す変更は prune-sweep・マージしない。
+---
+
+# 挙動を変えずに読みやすくする
+
+★**約束は「マージしても何も変わらない」こと。**変わらないと**示せない**変更は出さない。
+手で呼んでも routine から呼んでも同じ手順。どの repo かは呼ぶ側が決める。
+
+## 0. 準備
+
+- 対象 repo の既定ブランチの最新で作業する（`git fetch origin <base> && git checkout -B <base> origin/<base>`）。
+  `CLAUDE.md`（または `AGENTS.md`）を全部読む
+- ★**repo ごとの決まりは `CLAUDE.md` の `## Scouts` 節にある。**そこに書かれたもの（検査コマンド・写しの取り方・触らない場所・却下済みの判断・PR の言語・open PR の上限）はこの skill より優先する
+- ⚠️ `## Scouts` 節が無い repo では推測で進めない。何もせず「Scouts 節が無い」と報告して終わる
+- GitHub 操作は GitHub MCP（`gh` は無いことがある）。search_* は使わず、list_pull_requests をラベルで絞る
+- repo の visibility を確かめる。公開 repo なら、PR とコミットに private repo の名前・中身、ホスト名、どのマシンで使っているかを書かない
+
+## 1. 無人で呼ばれたときの間隔（backoff）
+
+呼ぶ側（routine）が間隔を決めているときは、最初の3項目を飛ばし、open PR の確認からにする。
+
+- ラベル `routine:refactor-sweep` の PR（open/closed とも）の一番新しい created_at から今日までの週数 w = floor(日数/7)。一件も無ければ routine を作った日を起点にする
+- w が 0・1・2・4、または 4 以上の 4 の倍数のときだけ走る。それ以外は「休み（w 週 PR なし）」の1行で終わる
+- 照会に失敗したら休まずに走り、その旨を報告に書く
+- open な `routine:refactor-sweep` PR があれば新しく作らず、その PR の CI と conflict だけ面倒を見て「前回の PR が未確認」で終わる
+- `## Scouts` 節に open PR の上限があれば、`routine` ラベルの open PR を数えて従う
+
+## 2. 対象（1回に1テーマ・1領域）
+
+- **コメント**: コードを言い直しているだけのもの、経緯・移行の跡・commit への言及は消す。なぜその値かを言うものは残す
+- **重複**: 同じ処理が2か所以上にあり、repo に既にある関数・モジュールへ寄せられるもの
+- **読みにくさ**: 深い入れ子、意味の無い一時変数、その言語の古い書き方。linter の info/style で、直しても挙動が同じもの
+- **名前**: 中身と合っていない関数名・変数名。外から呼ばれている名前は変えない（`rg` で repo 全体を見る）
+
+## 3. 対象にしないもの
+
+- 使われていないものを消す変更（prune-sweep の仕事）。機能・設定・オプションを1つでも減らす変更
+- 新機能・速度改善・依存の追加・版の変更
+- CI の workflow、認証まわり、hook の登録、デプロイ設定
+- open な `routine:*` PR が触っているファイル
+- closed かつ未マージの `routine:refactor-sweep` PR で出した変更
+- `## Scouts` 節の「やらないと決めたもの」
+
+## 4. 挙動が変わらないことを示す（両方そろって初めて PR）
+
+1. **テスト**: `## Scouts` 節の検査コマンドが、変更前と変更後の両方で green
+2. **写し（snapshot）か、触った行を通るテスト**:
+   - `## Scouts` 節に写しを取るコマンドがあれば、変更前後で取り、差分が空であること
+   - 無ければ、触った行を実際に通るテストがあること（カバレッジか、わざと壊して落ちるかで確かめる）。無い領域はその週は選ばない
+   - コメントだけの変更は、コメントと空行を除いた差分が空であることで示してよい
+- ⚠️ 毎回ちがう一行コマンドで写しを取らない。写しの仕組みが要るなら、それを足すこと自体を1本目の PR にする（テスト付き。一度わざと壊して red を見てから戻す）
+
+## 5. PR
+
+- 差分は ±150 行までを目安（超えるなら分ける）
+- ブランチ `refactor/<short-desc>`。Conventional Commits（`refactor(scope): …`。テストだけなら `test(scope): …`）
+- コミット identity は `command git -c user.name=kimoto -c user.email=9657+kimoto@users.noreply.github.com commit`
+- PR テンプレートがあれば埋める。Verification には回したコマンドと、写しの差分が空だったことを名前で書く
+- ラベル `routine` と `routine:refactor-sweep`（無ければ作る）、assignee kimoto。subscribe_pr_activity して CI を緑にする。**マージしない**
+
+## 報告
+
+1行目だけで分かる形にする（`<repo>` は repo 名）:
+
+```
+🧹 refactor-sweep <repo>: PR <URL>（テーマを一言・±N行・写しの差分なし）
+🧹 refactor-sweep <repo>: 候補なし（見た範囲）
+⚠️ refactor-sweep <repo>: 確認できなかった（理由）
+```
+
+⚠️「何も無かった」と「確認できなかった」を混ぜない。
