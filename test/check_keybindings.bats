@@ -2,11 +2,12 @@
 
 # Tests for bin/check_keybindings.sh.
 #
-# Two layers of #249: pins KEYBINDINGS.md's "Terminal" table against
-# config/ghostty/config's `keybind = ` lines, and its "AeroSpace" /
+# Three layers of #249: pins KEYBINDINGS.md's "Terminal" table against
+# config/ghostty/config's `keybind = ` lines, its "AeroSpace" /
 # "Service mode" tables against .aerospace.toml's `key = command` bindings,
-# so a renamed or removed keybind fails here instead of leaving the
-# reference quietly wrong.
+# and its tmux "With prefix" / "Copy mode" tables against .tmux.conf, so a
+# renamed or removed keybind fails here instead of leaving the reference
+# quietly wrong.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -14,6 +15,7 @@ setup() {
   TMP="$(mktemp -d)"
   export CHECK_KEYBINDINGS_GHOSTTY_CONFIG="$TMP/ghostty_config"
   export CHECK_KEYBINDINGS_AEROSPACE_CONFIG="$TMP/aerospace.toml"
+  export CHECK_KEYBINDINGS_TMUX_CONFIG="$TMP/tmux.conf"
   export CHECK_KEYBINDINGS_DOC="$TMP/KEYBINDINGS.md"
   cat >"$CHECK_KEYBINDINGS_GHOSTTY_CONFIG" <<'EOF'
 keybind = global:f12=toggle_quick_terminal
@@ -45,6 +47,17 @@ EOF
 [[on-window-detected]]
   run = 'layout floating'
 EOF
+  cat >"$CHECK_KEYBINDINGS_TMUX_CONFIG" <<'EOF'
+# Each bind-key carries a -N note.
+bind-key -N "Jump back to the last window" C-t last-window
+unbind-key -T copy-mode-vi v
+bind-key -N "Start a selection" -T copy-mode-vi v send-keys -X begin-selection
+bind-key -N "Jump to the previous shell prompt" -T copy-mode-vi '[' send-keys -X previous-prompt
+bind-key -N "New window" -n M-t new-window
+bind-key -N "Reload" r source-file ~/.tmux.conf \; display-message "config reloaded"
+if-shell -F '#{>=:#{version},3.7}' \
+  'bind-key -N "New Claude Code" a new-pane; bind-key -N "Fork it" A run-shell true'
+EOF
   cat >"$CHECK_KEYBINDINGS_DOC" <<'EOF'
 ## Terminal (intercepts before tmux)
 
@@ -75,6 +88,30 @@ EOF
 |-----|--------|
 | Esc | Reload config, back to main mode |
 | ⌥+⇧+h/j/k/l | Join with window left / down / up / right, back to main mode |
+
+---
+
+## tmux (prefix: C-t)
+
+### With prefix (C-t)
+
+| Key | Action |
+|-----|--------|
+| prefix + C-t | Jump back to the last window |
+| prefix + m | Mark pane |
+| prefix + r | Reload ~/.tmux.conf |
+| prefix + a | New Claude Code session |
+| prefix + A | Same, but forking |
+| prefix + \ (or prefix + Enter) | tmux-menus |
+| prefix + Ctrl-s | Save session state |
+| prefix + g, then 1–4 / arrows | Move the floating pane |
+
+### Copy mode (vi)
+
+| Key | Action |
+|-----|--------|
+| v | Begin selection |
+| [ | Jump to previous prompt |
 
 ---
 EOF
@@ -188,4 +225,40 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"shift+alt+l"* ]]
+}
+
+@test "accepts a tmux config and doc that agree, plugin and default keys included" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"tmux"* ]]
+}
+
+@test "fails when a tmux prefix binding is renamed out from under the doc" {
+  sed -i.bak 's/"Reload" r source-file/"Reload" R source-file/' "$CHECK_KEYBINDINGS_TMUX_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'R'"* ]]
+  [[ "$output" == *"names 'r'"* ]]
+}
+
+@test "fails when a tmux binding inside an if-shell string has no row" {
+  sed -i.bak '/| prefix + A |/d' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'A'"* ]]
+}
+
+@test "fails when the doc names a copy-mode key tmux.conf does not bind" {
+  sed -i.bak 's/^| \[ | Jump to previous prompt |$/| ] | Jump to previous prompt |/' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds '['"* ]]
+  [[ "$output" == *"names ']'"* ]]
+}
+
+@test "an unbind-key is not a binding" {
+  sed -i.bak '/"Start a selection"/d' "$CHECK_KEYBINDINGS_TMUX_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"names 'v'"* ]]
 }

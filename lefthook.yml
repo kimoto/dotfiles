@@ -85,6 +85,7 @@ pre-commit:
         - "KEYBINDINGS.md"
         - "config/ghostty/config"
         - ".aerospace.toml"
+        - ".tmux.conf"
         - "bin/check_keybindings.sh"
       run: ./bin/check_keybindings.sh
     secret-files:
