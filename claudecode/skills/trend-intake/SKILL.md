@@ -17,6 +17,19 @@ description: 流行りのツールや、使っているツールの上流の変�
   ⚠️ 見つからないときは、記録なしで進めて報告にそう書く。ledger を公開 repo に作らない
 - ledger にあるもの（見送り・却下・実装済み）は二度と出さない。closed で未マージの trend-intake PR の案も同じ
 
+## 0.5 上流で見た目が変わっていないか（先に片付ける）
+
+CI の `tmux_latest_test` は Homebrew の最新 tmux で `.tmux.conf` を実際に描画し、`test/fixtures/tmux_render.txt`（受け入れ済みの見た目）と比べる。週1の schedule でも回るので、push が無くても上流の更新で赤くなる。
+
+- main の直近の ci.yml の run で、`tmux_latest_test` の「The look of .tmux.conf matches the golden」が赤かを見る（`gh api repos/kimoto/dotfiles/actions/workflows/ci.yml/runs?branch=main` → その run の jobs）。緑なら 1. へ
+- 赤なら、**この回の PR はこれ1本にする。**open な同じ PR があれば作らない
+- 差分を読み、上流の CHANGES で原因（既定値の変化・新しい描画）を特定して、どちらかを選ぶ:
+  - **元に戻す**: `.tmux.conf` で効いてしまった既定を打ち消す（例: 3.8 で `window-status-current-style` の既定が `underscore` になった）。コメントに「なぜこの値か」を書く
+  - **受け入れる**: 改善と言える変化なら `bin/tmux_render_snapshot.sh update` で golden を更新する
+  - どちらでも PR の Summary に、何が変わって見えるか・原因・選んだ理由と、もう一方を選ぶならどうするかを書く。決めるのは kimoto
+- 手元の確認は最新 tmux で行う。クラウドのコンテナには Homebrew が無いので、`https://github.com/tmux/tmux/releases` の tarball を libevent-dev・bison を入れてビルドし、`TMUX_BIN=<ビルドした tmux> bin/tmux_render_snapshot.sh check` を回す（緑になるまで）
+- ledger の「上流」表に tmux の読んだ版を足す
+
 ## 1. 入口を選ぶ
 
 頼まれ方で1つ選ぶ。無人で入口の指定が無ければ「広く探す」と「上流を見る」の両方。
