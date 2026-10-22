@@ -6,8 +6,10 @@ on:
   # A push only ever restores the Homebrew cache keyed on Brewfile.standard's
   # hash, so a green push proves nothing about whether that cached tmux/zsh
   # still matches what Homebrew serves today (#272). This weekly run skips
-  # the restore in zsh_loading_test to force a real install, and every other
-  # job is skipped for this trigger since only that job touches brew.
+  # the restore in zsh_loading_test to force a real install. tmux_latest_test
+  # runs too, so a new tmux release that changes the look of .tmux.conf turns
+  # main red within a week even with no push; every other job is skipped for
+  # this trigger.
   schedule:
     - cron: "17 6 * * 1"
 
@@ -247,7 +249,6 @@ jobs:
   # where the newer-only bindings are actually live. Its own job rather than a
   # second pass in that one: the two cannot share one tmux on PATH.
   tmux_latest_test:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -277,6 +278,7 @@ jobs:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
       - name: Upgrade tmux to Homebrew's current release
+        id: upgrade
         # Fails rather than passes when the upgrade leaves tmux below 3.8: every
         # 3.8-only case skips itself on an older tmux, so this job would go green
         # while testing the same release as zsh_loading_test.
@@ -293,6 +295,14 @@ jobs:
 
       - name: tmux e2e suite
         run: ./ci/tmux_suite.sh
+
+      # The golden is drawn by the latest release, so only this job can compare
+      # against it. A red here is not always a regression: the fix is either a
+      # .tmux.conf change or `bin/tmux_render_snapshot.sh update`, picked in a
+      # PR (the trend-intake skill makes that PR).
+      - name: The look of .tmux.conf matches the golden
+        if: (success() || failure()) && steps.upgrade.outcome == 'success'
+        run: ./bin/tmux_render_snapshot.sh check
 
   # The standard-phase gate from docs/staged-bootstrap.md: zsh_loading_test
   # above also runs mkworld.sh (tmux plugins, Claude hooks, lefthook), so a
