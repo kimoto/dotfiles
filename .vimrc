@@ -6,37 +6,36 @@
 set nocompatible
 set smartindent
 set number
-set showcmd " 入力したコマンドをステータスラインに表示
-set ruler " 位置情報を表示
-set laststatus=2 " ステータスラインを表示
+set showcmd " 打ちかけのコマンドを右下に出す
+set ruler " カーソルの行と桁を出す
+set laststatus=2 " ステータスラインを常に出す
 set statusline=[%n]%t\ %=%1*%m%*%r%{'['.(&fenc!=''?&fenc:&enc).':'.&ff.']'}[%<%{fnamemodify(getcwd(),':~')}]\ %-6(%l,%c%V%)\ %4P
-set showmatch " 対応する括弧を強調表示
+set showmatch " 閉じ括弧を打つと、対応する開き括弧へ一瞬カーソルが飛ぶ
 set nowrap " 長い行を折り返さない
-set backspace=indent,eol,start " バックスペースの挙動
-set expandtab " タブではなく適切な数の空白を使う
-set smartcase " 大文字小文字を無視して検索
-set mouse=a " マウス機能(wheel scroll)を有効に
-set ttymouse=xterm2 " 同上
-set incsearch " インクリメンタルサーチ
-set ignorecase " 検索時に大文字小文字区別しない
-set hlsearch " マッチした単語をカラー表示
-set scrolloff=5 " 上下から、指定した行数に達したら自動スクロール
-set nomodeline " モードライン機能の無効化
-set wildmenu " 強化されたコマンドライン補完を使用
-set hidden " バッファを保存しないで他のファイルを開けるようにする
-set sidescroll=1 " 水平スクロール時の文字数
-set ambiwidth=double "特殊な文字でもカーソル位置がずれないように
-set display+=lastline "最後の行を可能な限り最後まで表示
-" Tab入力したときに入力される空白の数
-set tabstop=4
+set backspace=indent,eol,start " インデント・改行・挿入開始前の文字も BS で消せる
+set expandtab " Tab キーでタブ文字でなく空白を入れる
+set smartcase " 検索語に大文字があるときだけ大文字小文字を区別する
+set mouse=a " マウスでスクロール・選択できる
+set ttymouse=xterm2 " ドラッグも端末から受け取る
+set incsearch " 検索語を打つそばから当たる所へ飛ぶ
+set ignorecase " 検索で大文字小文字を区別しない
+set hlsearch " 検索に当たった所を全部色付けする
+set scrolloff=5 " カーソルの上下に常に5行見せる
+set nomodeline " ファイル内の vim: 設定行を読まない
+set wildmenu " : コマンドの Tab 補完で候補を一覧に出す
+set hidden " 保存していないバッファを残したまま別のファイルへ移れる
+set sidescroll=1 " 横スクロールを1桁ずつにする
+set ambiwidth=double " ○ や ※ を全角幅で扱い、カーソルがずれない
+set display+=lastline " 画面に入りきらない最後の行も @ にせず途中まで出す
+set tabstop=4 " タブ文字を4桁で表示し、Tab キーも4桁ぶん空白を入れる
 set tags=$HOME/tags,./tags,./TAGS,tags,TAGS
 
-" バックアップファイルを作成する
+" バックアップとスワップは ~/tmp に置き、編集中のディレクトリを汚さない
 set backup
 set backupdir=~/tmp
 set directory=~/tmp
 
-" Vimを終了してもUndo
+" 閉じて開き直しても undo できる
 if has('persistent_undo')
 	set undofile
 	set undodir=./.vimundo,~/.vim/undo
@@ -45,7 +44,7 @@ endif
 " netrwの閲覧履歴(~/.vim/.netrwhist)を書き出さない
 let g:netrw_dirhistmax = 0
 
-" 日本語設定
+" 文字コードは UTF-8
 set termencoding=utf8
 set encoding=utf8
 
@@ -54,7 +53,7 @@ set background=dark
 filetype plugin indent on
 highlight Normal ctermbg=NONE guibg=NONE
 
-" 前回編集していた場所に自動でジャンプするように
+" 保存時の表示状態を残し、次に開くと同じ位置・折りたたみで開く
 au BufWritePost * mkview
 autocmd BufReadPost * loadview
 
@@ -78,7 +77,7 @@ augroup HighlightTrailingSpaces
 augroup END
 
 " key maps
-" 保存/終了関係
+" mm で保存、qq で閉じる
 nmap mm :w<CR>
 nmap qq :q<CR>
 

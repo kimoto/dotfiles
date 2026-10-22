@@ -25,6 +25,15 @@ EOF
 # a user option
 set -g @fixture on
 EOF
+  cat >"$REPO/.vimrc" <<'EOF'
+" four columns
+set tabstop=4
+EOF
+  cat >"$REPO/.bashrc" <<'EOF'
+# list long
+alias ll='ls -l'
+EOF
+  printf 'set completion-ignore-case on\n' >"$REPO/.inputrc"
   touch "$REPO/config/.keep"
   git -C "$REPO" init -q
   git -C "$REPO" config user.email t@t.test
@@ -39,6 +48,10 @@ teardown() {
 
 need_tmux() {
   command -v tmux >/dev/null || skip "tmux not installed"
+}
+
+need_vim() {
+  command -v vim >/dev/null || skip "vim not installed"
 }
 
 @test "zsh: two loads of the same config print the same bytes" {
@@ -80,14 +93,60 @@ need_tmux() {
   [[ "$output" == *"@fixture on"* ]]
 }
 
+@test "vim: two loads print the same bytes and include the config's options" {
+  need_vim
+  run "$REPO/bin/behavior_snapshot.sh" vim
+  [ "$status" -eq 0 ]
+  first="$output"
+  run "$REPO/bin/behavior_snapshot.sh" vim
+  [ "$output" = "$first" ]
+  [[ "$output" == *"  tabstop=4"* ]]
+}
+
 @test "compare: a comment-only change reports no difference" {
   need_tmux
+  need_vim
   sed -i.bak 's/# say hello/# greet whoever asks/' "$REPO/.zshrc"
   sed -i.bak 's/# a user option/# set for the test/' "$REPO/.tmux.conf"
+  sed -i.bak 's/# list long/# long listing/' "$REPO/.bashrc"
+  printf '" a new line that shifts the rest\n' | cat - "$REPO/.vimrc" >"$TMP/vimrc"
+  mv "$TMP/vimrc" "$REPO/.vimrc"
   run "$REPO/bin/behavior_snapshot.sh" compare HEAD
   [ "$status" -eq 0 ]
   [[ "$output" == *"zsh: no difference from HEAD"* ]]
   [[ "$output" == *"tmux: no difference from HEAD"* ]]
+  [[ "$output" == *"vim: no difference from HEAD"* ]]
+  [[ "$output" == *"bash: no difference from HEAD"* ]]
+}
+
+@test "bash: two loads print the same bytes, with .bashrc and .inputrc applied" {
+  run "$REPO/bin/behavior_snapshot.sh" bash
+  [ "$status" -eq 0 ]
+  first="$output"
+  run "$REPO/bin/behavior_snapshot.sh" bash
+  [ "$output" = "$first" ]
+  [[ "$output" == *"alias ll='ls -l'"* ]]
+  [[ "$output" == *"set completion-ignore-case on"* ]]
+  [[ "$output" != *"job control"* ]]
+}
+
+@test "compare: a changed bash alias and readline setting fail with the diff" {
+  need_tmux
+  sed -i.bak "s/ls -l'/ls -la'/" "$REPO/.bashrc"
+  printf 'set completion-ignore-case off\n' >"$REPO/.inputrc"
+  run "$REPO/bin/behavior_snapshot.sh" compare HEAD
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"+alias ll='ls -la'"* ]]
+  [[ "$output" == *"+set completion-ignore-case off"* ]]
+}
+
+@test "compare: a changed vim option fails with the diff" {
+  need_tmux
+  need_vim
+  sed -i.bak 's/tabstop=4/tabstop=2/' "$REPO/.vimrc"
+  run "$REPO/bin/behavior_snapshot.sh" compare HEAD
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"+  tabstop=2"* ]]
 }
 
 @test "compare: a changed alias and a changed tmux option fail with the diff" {
@@ -122,7 +181,7 @@ need_tmux() {
 }
 
 @test "rejects an unknown mode" {
-  run "$REPO/bin/behavior_snapshot.sh" bash
+  run "$REPO/bin/behavior_snapshot.sh" fish
   [ "$status" -eq 2 ]
   [[ "$output" == usage:* ]]
 }

@@ -8,13 +8,15 @@
 # Usage:
 #   behavior_snapshot.sh zsh  [CHECKOUT]   state after .zshrc loads
 #   behavior_snapshot.sh tmux [CHECKOUT]   state after .tmux.conf loads
-#   behavior_snapshot.sh compare [BASE]    both, BASE (default origin/main)
+#   behavior_snapshot.sh vim  [CHECKOUT]   state after .vimrc loads
+#   behavior_snapshot.sh bash [CHECKOUT]   state after .bashrc and .inputrc load
+#   behavior_snapshot.sh compare [BASE]    all four, BASE (default origin/main)
 #                                          against this working tree; exit 1
 #                                          and print the diff if they differ
 # CHECKOUT defaults to the checkout this script lives in.
 #
-# Each load runs under a throwaway HOME whose .zshrc, .tmux.conf, .config and
-# bin point at CHECKOUT, the way mklink.sh lays out a real one. With the real
+# Each load runs under a throwaway HOME whose .zshrc, .tmux.conf, .vimrc,
+# .bashrc, .inputrc, .config and bin point at CHECKOUT, the way mklink.sh lays out a real one. With the real
 # HOME, both sides of a compare would read the same ~/.config — the main
 # checkout's — and a change under config/ would never show; ~/.zshrc.local and
 # ~/.tmux.conf.local would leak one machine's state in, and the completion dump
@@ -34,7 +36,7 @@ set -euo pipefail
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 
 usage() {
-    echo "usage: behavior_snapshot.sh zsh|tmux [CHECKOUT] | compare [BASE]" >&2
+    echo "usage: behavior_snapshot.sh zsh|tmux|vim|bash [CHECKOUT] | compare [BASE]" >&2
     exit 2
 }
 
@@ -46,6 +48,9 @@ make_home() {
     ln -s "$1/config" "$home/.config"
     ln -s "$1/bin" "$home/bin"
     ln -s "$1/.tmux.conf" "$home/.tmux.conf"
+    ln -s "$1/.vimrc" "$home/.vimrc"
+    ln -s "$1/.bashrc" "$home/.bashrc"
+    ln -s "$1/.inputrc" "$home/.inputrc"
     # ~/.local/bin: first on the PATH zsh starts with, and .zshrc keeps it
     # ahead of Homebrew's sheldon.
     mkdir -p "$home/.local/bin"
@@ -123,13 +128,83 @@ snapshot_tmux() {
     return "$rc"
 }
 
+# Options, maps, autocommands and g: variables, as vim prints them. Not
+# :verbose: it names the .vimrc line that set each value, so a comment added
+# above would move every line after it. g: comes out in hash order, so it is
+# sorted; the rest already comes out in a fixed order.
+snapshot_vim() {
+    local checkout="$1" home out rc=0
+    home=$(make_home "$checkout")
+    out="$home/vim.out"
+    # The backup and undo directories mklink.sh's world provides; without them
+    # vim reports E303 and the snapshot would carry that instead.
+    mkdir -p "$home/tmp" "$home/.vim/undo"
+    # A script, not -c: vim takes at most ten -c commands and exits 1 past that.
+    cat >"$home/probe.vim" <<EOF
+set nomore
+redir! > $out
+silent messages
+silent set! all
+silent map
+silent map!
+silent autocmd
+redir END
+redir! > $out.g
+silent let g:
+redir END
+qall!
+EOF
+    (cd "$home" && env -i HOME="$home" PATH="$PATH" TERM=xterm-256color \
+        vim -N -u "$home/.vimrc" -i NONE -S "$home/probe.vim" </dev/null >/dev/null 2>&1) || rc=$?
+    if [ "$rc" -eq 0 ]; then
+        { cat "$out"; echo; echo "--- g: ---"; sort "$out.g"; } | normalize "$home" "$checkout"
+    fi
+    rm -rf "$home"
+    return "$rc"
+}
+
+# Same idea as ZSH_PROBE. readline's settings and keys come from .inputrc.
+# shellcheck disable=SC2016  # bash code, expanded by the inner bash
+BASH_PROBE='
+echo "== shopt"; shopt
+echo "== set -o"; set -o
+echo "== alias"; alias -p
+echo "== bind -v"; bind -v
+echo "== bind -p"; bind -p
+echo "== complete"; complete -p
+echo "== functions"; declare -f
+echo "== variables"
+_volatile="BASHPID|BASH_ARGC|BASH_ARGV|BASH_COMMAND|BASH_EXECUTION_STRING|BASH_LINENO"
+_volatile+="|BASH_SOURCE|EPOCHREALTIME|EPOCHSECONDS|FUNCNAME|HISTCMD|LINENO|PIPESTATUS"
+_volatile+="|PPID|RANDOM|SECONDS|SRANDOM|_|_volatile"
+declare -p | grep -vE "^declare -[-a-zA-Z]+ ($_volatile)="
+'
+
+snapshot_bash() {
+    local checkout="$1" home rc=0
+    home=$(make_home "$checkout")
+    # Without a tty, bash -i warns about job control with its own PID in the
+    # text; those two lines say nothing about the config.
+    (cd "$home" && env -i HOME="$home" PATH="$PATH" TERM=xterm-256color \
+        LANG="${LANG:-C.UTF-8}" bash -ic "$BASH_PROBE" </dev/null 2>&1) |
+        grep -vE '^bash: (cannot set terminal process group|no job control in this shell)' |
+        normalize "$home" "$checkout" || rc=$?
+    rm -rf "$home"
+    return "$rc"
+}
+
 compare() {
     local base="$1" kind status=0
     # Global: the EXIT trap reads it after compare has returned.
     work=$(mktemp -d)
     trap 'git -C "$BASE_DIR" worktree remove --force "$work/base" >/dev/null 2>&1; rm -rf "$work"' EXIT
     git -C "$BASE_DIR" worktree add --quiet --detach "$work/base" "$base"
-    for kind in zsh tmux; do
+    for kind in zsh tmux vim bash; do
+        # A machine without tmux or vim can still compare the rest.
+        if ! command -v "$kind" >/dev/null 2>&1; then
+            echo "$kind: not installed, skipped"
+            continue
+        fi
         "snapshot_$kind" "$work/base" >"$work/$kind.before"
         "snapshot_$kind" "$BASE_DIR" >"$work/$kind.after"
         if diff -u --label "$kind@$base" --label "$kind@worktree" \
@@ -143,7 +218,7 @@ compare() {
 }
 
 case "${1:-}" in
-    zsh | tmux)
+    zsh | tmux | vim | bash)
         checkout=$(cd "${2:-$BASE_DIR}" && pwd)
         "snapshot_$1" "$checkout"
         ;;
