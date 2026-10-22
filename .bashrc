@@ -49,8 +49,6 @@ if [[ "$PS1" ]]; then
   export PAGER=less
   export EDITOR=vim
   export VISUAL=vim
-  export CVSEDITOR=vim
-  export SVN_EDITOR=vim
   export LANG=ja_JP.UTF-8
   export LESS="-gieRmX"
   export PATH=$HOME/bin:$HOME/local/bin:$PATH
