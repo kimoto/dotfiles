@@ -22,11 +22,9 @@ set -euo pipefail
 die() { echo "CI error: $*" >&2; exit 1; }
 
 # Prefer a Homebrew nvim (newer) when the shellenv is available.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# shellcheck source=bin/brew_lib.sh
+. "$(dirname "$(readlink -f "$0")")/../../bin/brew_lib.sh"
+load_brew
 
 command -v nvim >/dev/null 2>&1 || die "nvim not installed"
 REPO="$PWD"

@@ -8,11 +8,9 @@ set -euo pipefail
 die() { echo "CI error: $*" >&2; exit 1; }
 
 # Prefer a Homebrew tmux (newer) when the shellenv is available.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# shellcheck source=bin/brew_lib.sh
+. "$(dirname "$(readlink -f "$0")")/brew_lib.sh"
+load_brew
 
 command -v tmux >/dev/null 2>&1 || die "tmux not installed"
 command -v git >/dev/null 2>&1 || die "git not installed"

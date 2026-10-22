@@ -25,11 +25,9 @@ else
 fi
 
 # Put brew on PATH for the rest of this script, whichever path ran above.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# shellcheck source=bin/brew_lib.sh
+. "$BASE_DIR/bin/brew_lib.sh"
+load_brew
 
 # 2. tmux: in Brewfile.extra (it runs only when typed), but every tmux e2e test
 #    needs it. Baked into the brew cache (key suffix -tmux), so this touches

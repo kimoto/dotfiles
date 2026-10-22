@@ -18,11 +18,9 @@ set -euo pipefail
 
 die() { echo "x $*" >&2; exit 1; }
 
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# shellcheck source=bin/brew_lib.sh
+. "$(dirname "$(readlink -f "$0")")/brew_lib.sh"
+load_brew
 
 command -v nvim >/dev/null 2>&1 || die "nvim not installed"
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
