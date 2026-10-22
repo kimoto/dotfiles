@@ -18,11 +18,11 @@ opt.termguicolors = true
 opt.smartcase = true
 opt.ignorecase = true
 
-opt.scrolloff = 10 -- 上下から、指定した行数に達したら自動スクロール
-opt.signcolumn = 'yes' --行数表示の横に余白を追加
+opt.scrolloff = 10 -- カーソルの上下に常に10行見せる
+opt.signcolumn = 'yes' -- git や診断の印の列を常に出し、印の出入りで本文がずれない
 opt.wrap = true
 
-opt.undofile = true -- Vimを終了してもUndo (undodir: stdpath('state')/undo, auto-created)
+opt.undofile = true -- 閉じて開き直しても undo できる (undodir: stdpath('state')/undo, auto-created)
 
 opt.breakindent = true -- 折り返した行のインデントを揃える (wrap = true 前提)
 
