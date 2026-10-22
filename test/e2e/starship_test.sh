@@ -44,25 +44,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Poll capture-pane until $1 (a grep -E pattern) appears, or time out. Sampling
-# in a loop keeps the test as fast as the shell on a quick runner and as
-# forgiving as needed on a slow one. Default 150 tries * 0.1s = 15s: the first
-# assertion waits for starship's prompt, which only renders once the deferred
-# starship init has run, and zsh-defer can keep draining past the first prompt
-# on a loaded runner (see the 15s default in tmux_e2e_helpers.sh's wait_for_pane).
-wait_for() {
-  local pattern="$1" tries="${2:-150}" i=0
-  while [ "$i" -lt "$tries" ]; do
-    if tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE "$pattern"; then
-      return 0
-    fi
-    i=$((i + 1))
-    sleep 0.1
-  done
-  echo "---- pane contents at timeout ----" >&2
-  tmux -L "$SOCK" capture-pane -p >&2 || true
-  die "timed out waiting for: $pattern"
-}
 
 # Launch an interactive zsh in a real terminal, started inside the marker dir,
 # under the shared CI pane conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh).
@@ -71,11 +52,11 @@ tmux -L "$SOCK" new-session -d -x 200 -y 50 -c "$WORK" "$(zsh_pane_cmd)" ||
 
 # 1) Starship is the live prompt (not the fallback): its [time] module renders a
 #    timestamp the fallback PROMPT never produces.
-wait_for '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+wait_for_pane "$SOCK" '[0-9]{4}-[0-9]{2}-[0-9]{2}'
 echo "== Starship prompt is live (time module rendered) =="
 
 # 2) The [directory] module reflects $PWD — the marker dir name is on screen.
-wait_for 'starship_e2e_zone'
+wait_for_pane "$SOCK" 'starship_e2e_zone'
 echo "== directory module reflects \$PWD =="
 
 tmux -L "$SOCK" send-keys C-c
