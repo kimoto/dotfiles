@@ -46,6 +46,11 @@ GOLDEN="$BASE_DIR/test/fixtures/tmux_render.txt"
 . "$BASE_DIR/bin/brew_lib.sh"
 load_brew
 TMUX_BIN="${TMUX_BIN:-tmux}"
+# The config's run-shell scripts call plain `tmux`; they must reach the server
+# under test with the same release, not whatever else is on PATH.
+case "$TMUX_BIN" in
+    */*) PATH="$(cd "$(dirname "$TMUX_BIN")" && pwd):$PATH" ;;
+esac
 
 # The screen the client draws on. Wide enough that the status line shows every
 # window and the whole right side; tall enough for two bordered panes.
@@ -87,7 +92,11 @@ start() {
     in_tmux select-pane -t work:1.1 -T left \; select-pane -t work:1.2 -T right
     in_tmux new-window -d -t work:2 -n logs "$(pane_cmd '\a')"
     in_tmux new-window -d -t work:3 -n agent "$(pane_cmd '')"
-    in_tmux set -w -t work:3 @agent_color '#dc322f'
+    # As state.sh marks a waiting agent: the pane state first, since the
+    # window-linked hook recomputes @agent_color from it in the background
+    # and would otherwise race a plain set back to empty.
+    in_tmux set -p -t work:3.1 @agent_state waiting \; \
+        set -wF -t work:3 @agent_color '#{E:@agent_win_color}'
     in_tmux new-window -d -t work:4 -n zoomed "$(pane_cmd '')"
     in_tmux split-window -d -t work:4 "$(pane_cmd '')"
     in_tmux resize-pane -Z -t work:4.1
