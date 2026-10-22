@@ -1,24 +1,21 @@
-#= .inputrc
-#= $Id$
-
-# emacsキーバインド
+# ⌃A/⌃E など emacs 風のキーで行を編集する
 set editing-mode emacs
 
-# チルダをTabにより展開
+# Tab 補完で ~ を実際のパスに書き換える
 set expand-tilde on
 
-# 日本語関係
+# 日本語（8bit の文字）をそのまま打てて、そのまま表示する
 set input-meta on
 set convert-meta off
 set output-meta on
 
-# 大文字小文字無視
+# 補完で大文字小文字を区別しない
 set completion-ignore-case on
 
-# 横方向の画面自動スクロール
+# 長い行は横にスクロールせず、折り返して出す
 set horizontal-scroll-mode off
 
-# 補完
+# ⌃P/⌃N で、打ちかけの文字で始まる履歴だけを遡る・進む
 "\C-p": history-search-backward
 "\C-n": history-search-forward
 
