@@ -6,11 +6,11 @@
 # instead of leaving the reference quietly wrong — the failure mode
 # claudecode/rules/tooling.md names: a rule held up by remembering.
 #
-# Three layers of #249 so far (Ghostty, AeroSpace, and tmux's prefix and
-# copy-mode tables). tmux's root table is not covered: its rows name the Mac
-# keys (⌘, ⌥⌘) that Ghostty translates before tmux sees them, so checking it
-# needs that translation, not just .tmux.conf. zsh, Neovim and Hammerspoon
-# are not covered yet; each needs its own per-syntax key extraction.
+# Four layers of #249 so far (Ghostty, AeroSpace, tmux's prefix and
+# copy-mode tables, and Hammerspoon). tmux's root table is not covered: its
+# rows name the Mac keys (⌘, ⌥⌘) that Ghostty translates before tmux sees
+# them, so checking it needs that translation, not just .tmux.conf. zsh and
+# Neovim are not covered yet; each needs its own per-syntax key extraction.
 
 set -euo pipefail
 
@@ -21,6 +21,7 @@ cd "$BASE_DIR" || exit 1
 # own files.
 GHOSTTY_CONFIG="${CHECK_KEYBINDINGS_GHOSTTY_CONFIG:-config/ghostty/config}"
 AEROSPACE_CONFIG="${CHECK_KEYBINDINGS_AEROSPACE_CONFIG:-.aerospace.toml}"
+HAMMERSPOON_CONFIG="${CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG:-hammerspoon/init.lua}"
 TMUX_CONFIG="${CHECK_KEYBINDINGS_TMUX_CONFIG:-.tmux.conf}"
 DOC="${CHECK_KEYBINDINGS_DOC:-KEYBINDINGS.md}"
 
@@ -198,6 +199,18 @@ aerospace_configured_keys() {
     done | sort -u
 }
 
+# The remaps hammerspoon/init.lua makes, one canonical key per line:
+# `remapKey({"alt"}, "b", ...)` gives "alt+b".
+hammerspoon_configured_keys() {
+  grep -E '^[[:space:]]*remapKey\(' "$HAMMERSPOON_CONFIG" |
+    sed -E 's/^[[:space:]]*remapKey\(\{([^}]*)\},[[:space:]]*"([^"]+)".*/\1,\2/' |
+    tr -d '" ' |
+    tr ',' '+' |
+    while IFS= read -r spec; do
+      canon "$spec"
+    done | sort -u
+}
+
 # Normalize one tmux key name: drop the quotes .tmux.conf needs around
 # punctuation ('[', "C-M-'"), and spell the doc's "Ctrl-s" as tmux's "C-s".
 # Case is kept: tmux binds m and M separately.
@@ -278,6 +291,15 @@ aerospace_service_documented_keys() {
     done | sort -u
 }
 
+# The "Text editing" table's documented keys, one canonical key per line.
+# "(Windows only)" rows are skipped, as in the Terminal table.
+text_editing_documented_keys() {
+  table_cells '^## Text editing' '^---$' '\(Windows only\)' |
+    while IFS= read -r cell; do
+      expand_cell "$cell"
+    done | sort -u
+}
+
 # The tmux "With prefix" table's documented keys, one per line: every
 # "prefix + <key>" in a cell, so "prefix + \ (or prefix + Enter)" gives
 # both. Keys in TMUX_PREFIX_BOUND_ELSEWHERE are left out.
@@ -309,10 +331,10 @@ tmux_copy_mode_documented_keys() {
     done | sort -u
 }
 
-# Compares a configured key set against a documented key set and prints one
-# line per mismatch in either direction. $1/$3 name the two sides for the
-# message; $2/$4 are their newline-separated canonical key sets.
-compare_keys() {
+# Prints one line per configured key with no documented row. $1/$3 name the
+# two sides for the message; $2/$4 are their newline-separated canonical key
+# sets.
+compare_config_to_doc() {
   local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
   local key found=0
   while IFS= read -r key; do
@@ -324,6 +346,14 @@ compare_keys() {
       found=1
     fi
   done <<<"$config_keys"
+  return "$found"
+}
+
+# compare_config_to_doc, plus one line per documented key no config binds.
+compare_keys() {
+  local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
+  local key found=0
+  compare_config_to_doc "$@" || found=1
   while IFS= read -r key; do
     if [ -z "$key" ]; then
       continue
@@ -352,5 +382,10 @@ compare_keys ".tmux.conf's prefix table" "$(tmux_configured_keys prefix)" \
 
 compare_keys ".tmux.conf's copy-mode-vi table" "$(tmux_configured_keys copy-mode-vi)" \
   "KEYBINDINGS.md's tmux Copy mode table" "$(tmux_copy_mode_documented_keys)" || rc=1
+
+# One direction only: the rest of that table is macOS built-in, which no
+# config here binds, as its Source line declares.
+compare_config_to_doc "Hammerspoon" "$(hammerspoon_configured_keys)" \
+  "KEYBINDINGS.md's Text editing table" "$(text_editing_documented_keys)" || rc=1
 
 exit "$rc"

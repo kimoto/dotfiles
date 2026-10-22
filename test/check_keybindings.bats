@@ -2,10 +2,11 @@
 
 # Tests for bin/check_keybindings.sh.
 #
-# Three layers of #249: pins KEYBINDINGS.md's "Terminal" table against
+# Four layers of #249: pins KEYBINDINGS.md's "Terminal" table against
 # config/ghostty/config's `keybind = ` lines, its "AeroSpace" /
 # "Service mode" tables against .aerospace.toml's `key = command` bindings,
-# and its tmux "With prefix" / "Copy mode" tables against .tmux.conf, so a
+# its tmux "With prefix" / "Copy mode" tables against .tmux.conf, and
+# hammerspoon/init.lua's remaps against its "Text editing" table, so a
 # renamed or removed keybind fails here instead of leaving the reference
 # quietly wrong.
 
@@ -16,7 +17,13 @@ setup() {
   export CHECK_KEYBINDINGS_GHOSTTY_CONFIG="$TMP/ghostty_config"
   export CHECK_KEYBINDINGS_AEROSPACE_CONFIG="$TMP/aerospace.toml"
   export CHECK_KEYBINDINGS_TMUX_CONFIG="$TMP/tmux.conf"
+  export CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG="$TMP/init.lua"
   export CHECK_KEYBINDINGS_DOC="$TMP/KEYBINDINGS.md"
+  cat >"$CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG" <<'EOF'
+remapKey({"alt"}, "b", keyCode("left", {"alt"}))
+remapKey({"alt"}, "f", keyCode("right", {"alt"}))
+remapKey({"ctrl"}, "/", keyCode("z", {"cmd"}))
+EOF
   cat >"$CHECK_KEYBINDINGS_GHOSTTY_CONFIG" <<'EOF'
 keybind = global:f12=toggle_quick_terminal
 keybind = ¥=text:\\
@@ -59,6 +66,17 @@ if-shell -F '#{>=:#{version},3.7}' \
   'bind-key -N "New Claude Code" a new-pane; bind-key -N "Fork it" A run-shell true'
 EOF
   cat >"$CHECK_KEYBINDINGS_DOC" <<'EOF'
+## Text editing (every app except the terminal)
+
+| Key | Action |
+|-----|--------|
+| ⌥+B / F | Word backward / forward |
+| ⌥+D | Delete word forward (Windows only) |
+| ⌃+/ | Undo |
+| ⌃+A / E | Beginning / end of line |
+
+---
+
 ## Terminal (intercepts before tmux)
 
 | Key | Action |
@@ -261,4 +279,24 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"names 'v'"* ]]
+}
+
+@test "a Text editing row with no Hammerspoon remap is a macOS built-in, not a mismatch" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"ctrl+a"* ]]
+}
+
+@test "fails when a Hammerspoon remap is renamed out from under the doc" {
+  sed -i.bak 's|remapKey({"ctrl"}, "/"|remapKey({"ctrl"}, "."|' "$CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'ctrl+.'"* ]]
+}
+
+@test "a Windows-only Text editing row does not cover a Hammerspoon remap" {
+  echo 'remapKey({"alt"}, "d", keyCode("forwarddelete", {"alt"}))' >>"$CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'alt+d'"* ]]
 }
