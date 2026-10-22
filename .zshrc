@@ -52,7 +52,6 @@ unset _zcompdump _zcompdump_stale
 #=====================
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
-typeset -xUT SUDO_PATH sudo_path # 重複したパスをSUDO_PATHに登録しない
 # /home/linuxbrew is added on Linux only: on macOS /home is an autofs mount,
 # so even stat()ing /home/* (which the (N-/) glob does) can fire a Directory
 # Services lookup — with corporate AD binding that is a network round trip per
@@ -99,10 +98,6 @@ unset _brew_bins
 manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
   $manpath
-)
-sudo_path=(
-  {,/usr/pkg,/usr/local,/usr}/sbin(N-/)
-  $sudo_path
 )
 
 #=====================
