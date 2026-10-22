@@ -229,11 +229,13 @@ export CARAPACE_BRIDGES='zsh,bash'
 #=====================
 # completion zstyles
 #=====================
-zstyle ':completion:*:default' menu select=1
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
-zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+zstyle ':completion:*:default' menu select=1 # 補完候補の一覧をカーソルキーで選べる
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 小文字で打っても大文字の候補に当たる
+# 候補が無ければ * などのパターンを展開し、それでも無ければ打ち間違いを直して出す
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*' squeeze-slashes true # a//b を a/b とみなして補完する
+zstyle ':completion:*:cd:*' ignore-parents parent pwd # cd ../<Tab> に今いるディレクトリを出さない
+# パッケージ名など遅い補完の結果を貯めて、2回目から速く出す
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zcompcache
 # `-e` (evaluated on each lookup): LS_COLORS is exported by the vivid-ls-colors
