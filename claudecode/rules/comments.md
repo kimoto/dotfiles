@@ -8,17 +8,12 @@ commit did it — goes in the commit message, already dated and attributed.
 only to someone who has read all of it. A file that cannot carry a comment —
 JSON, a generated file, data a script parses — goes without.
 
-★**Inside it, say intent with a name first.** Name the variable, or pull the
-block out into a well-named function; an `if` or a short block gets no comment.
-Comment only what is complex or cannot be said in code. A line that repeats a
-name or the line below it goes, however true.
+★**Say intent with a name first; a comment carries only what a name cannot.**
+An `if` or a short block gets a better name, not a comment. A function or a
+config section whose aim its name cannot carry opens with one line on that aim.
+A line that repeats a name or the line below it goes.
 
-★**A name says what a block does, not what it is for.** So a function whose
-aim its name cannot carry, or a section too large to name in one word, opens
-with a line on what it is trying to achieve — not the name again. This covers config
-sections (`.zshrc`, `.tmux.conf`) that cannot be pulled out into a function.
-
-★**Say why a value is what it is**, above all when it equals the default and is
+**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
 pin from something nobody cleaned up, and deletes it.
 
