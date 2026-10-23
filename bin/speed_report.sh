@@ -144,11 +144,16 @@ measure_nvim() {
 
 # A new server reading the config with -f, as a terminal starting tmux does.
 # tpm's `run` blocks until every plugin is loaded, so new-session returns
-# after the plugins too.
+# after the plugins too. A socket per run: kill-server returns before the old
+# server is gone, and a new one on the same socket then sometimes dies with
+# "server exited unexpectedly".
 tmux_start() {
-    HOME="$MEASURE_HOME" tmux -L speed_report -f "$MEASURE_HOME/.tmux.conf" \
-        new-session -d -x 200 -y 50 || return 1
-    HOME="$MEASURE_HOME" tmux -L speed_report kill-server
+    local sock="$MEASURE_HOME/tmux-$RANDOM$RANDOM" rc=0
+    HOME="$MEASURE_HOME" tmux -S "$sock" -f "$MEASURE_HOME/.tmux.conf" \
+        new-session -d -x 200 -y 50 || rc=$?
+    HOME="$MEASURE_HOME" tmux -S "$sock" kill-server 2>/dev/null
+    rm -f "$sock"
+    return "$rc"
 }
 
 measure_tmux() {
