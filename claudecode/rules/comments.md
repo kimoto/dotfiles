@@ -4,13 +4,10 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**Open a file with what it is for**, in a line or two. The code shows that
-only to someone who has read all of it. A file that cannot carry a comment —
-JSON, a generated file, data a script parses — goes without.
-
 ★**Say intent with a name first; a comment carries only what a name cannot.**
-An `if` or a short block gets a better name, not a comment. A function or a
-config section whose aim its name cannot carry opens with one line on that aim.
+A file, a function or a config section opens with one line on the aim its name
+cannot carry; a file that cannot hold a comment — JSON, a generated file, data a
+script parses — goes without. An `if` or a short block first gets a better name.
 A line that repeats a name or the line below it goes.
 
 **Say why a value is what it is**, above all when it equals the default and is
