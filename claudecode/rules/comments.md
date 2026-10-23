@@ -4,8 +4,9 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**A comment says what the code cannot.** A line that a name, the structure or
-the code itself already says goes, however true.
+★**A comment says what the code cannot.** A line that repeats a name or the
+line below it goes, however true. A line that says where a block is headed
+stays: the code shows that only to someone who has read all of it.
 
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
