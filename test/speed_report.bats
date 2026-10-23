@@ -102,12 +102,12 @@ report() {
   cat >"$REPO/.claude/settings.json" <<'EOF'
 {"hooks": {
   "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "cat >/dev/null"}]}],
-  "Stop": [{"hooks": [{"type": "command", "command": "grep -q hook_event_name && sleep 0.2"}]}]
+  "Stop": [{"hooks": [{"type": "command", "command": "grep -q hook_event_name && sleep 0.1"}]}]
 }}
 EOF
-  report hook
+  SPEED_REPORT_RUNS=1 report hook
   [ "$status" -eq 0 ]
-  [ "$output" -ge 200 ]
+  [ "$output" -ge 100 ]
   [ "$output" -lt 1000 ]
 }
 
