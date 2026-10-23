@@ -1,9 +1,10 @@
 # Pull requests
 
-**Write only what the diff cannot say.** A reader should finish the body able to
-ask "which lines?" and never "why?". Restating changes or naming files goes
+**Write only what the diff cannot say.** A reader should finish the body able
+to ask "which lines?" and never "why?". Restating changes or naming files goes
 stale the moment the branch moves; the diff is already there and is always
-right. Same for a commit body.
+current. ★The why stays in the body even when a comment in the diff already says
+it: reviewers read the body first. Same for a commit body.
 
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
 50 characters, no script names, no jargon. ⚠️ **No counts either**: a number is
