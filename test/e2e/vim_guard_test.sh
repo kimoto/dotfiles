@@ -33,7 +33,8 @@ msgs="$HOME_DIR/messages.txt"
 # manager, would show up there.
 echo "== headless: startup must be clean and plugin-free =="
 scripts="$HOME_DIR/scriptnames.txt"
-HOME="$HOME_DIR" vim -N -u "$HOME_DIR/.vimrc" \
+# --not-a-term skips the two-second wait vim adds when stdin/stdout are not a tty.
+HOME="$HOME_DIR" vim --not-a-term -N -u "$HOME_DIR/.vimrc" \
   -c 'set nomore' \
   -c "redir! > $msgs" -c 'silent messages' -c 'redir END' \
   -c "redir! > $scripts" -c 'silent scriptnames' -c 'redir END' \

@@ -154,8 +154,10 @@ silent let g:
 redir END
 qall!
 EOF
+    # --not-a-term: vim otherwise waits two seconds after warning that its
+    # input and output are not a terminal, and compare loads it twice.
     (cd "$home" && env -i HOME="$home" PATH="$PATH" TERM=xterm-256color \
-        vim -N -u "$home/.vimrc" -i NONE -S "$home/probe.vim" </dev/null >/dev/null 2>&1) || rc=$?
+        vim --not-a-term -N -u "$home/.vimrc" -i NONE -S "$home/probe.vim" </dev/null >/dev/null 2>&1) || rc=$?
     if [ "$rc" -eq 0 ]; then
         { cat "$out"; echo; echo "--- g: ---"; sort "$out.g"; } | normalize "$home" "$checkout"
     fi
