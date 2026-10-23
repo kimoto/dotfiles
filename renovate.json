@@ -53,6 +53,16 @@
       ],
       "datasourceTemplate": "github-digest",
       "description": "tmux plugins, same pinning as the zsh plugins above."
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+[A-Z_]+: (?<currentValue>\\S+)"
+      ],
+      "description": "The Neovim release CI tests against, which it downloads rather than installs from a package manager."
     }
   ],
   "packageRules": [

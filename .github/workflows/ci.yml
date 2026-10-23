@@ -336,7 +336,9 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: debian:stable-slim
+    # By digest: the tag moves, and whatever it points at that day would run
+    # here unreviewed. Renovate moves the digest in its monthly PR.
+    container: debian:stable-slim@sha256:a717a33469731894e77e912ea7d714e27c2dc38ee6554fd1a3102e92999cfc66
     steps:
       - name: Install the distro shells only
         run: |
@@ -395,15 +397,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends tmux
 
-      - name: Install Neovim (upstream stable tarball)
+      - name: Install Neovim (upstream release tarball)
         # apt ships 0.9.x, but the real environment runs the latest brew nvim
         # and the config carries 0.12+ API usage (vim.pack in
-        # setup_plugin.lua), so test against
-        # upstream's stable channel — the same thing brew tracks.
+        # setup_plugin.lua), so test against an upstream release. A version
+        # rather than the moving `stable` tag, so what runs here changes only
+        # through a reviewed bump; Renovate proposes each release a week old.
+        env:
+          # renovate: datasource=github-releases depName=neovim/neovim
+          NVIM_VERSION: v0.12.6
         run: |
           set -e
           curl -fsSL -o /tmp/nvim.tar.gz \
-            https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+            "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz"
           sudo tar -C /opt -xzf /tmp/nvim.tar.gz
           sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
           nvim --version | head -1
