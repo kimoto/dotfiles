@@ -89,7 +89,9 @@ vim.pack.add({
 
 -- A plugin dropped from the list above stays on disk (and in the lockfile)
 -- until vim.pack.del removes it, so remove whatever this session did not add.
-local stale = vim.iter(vim.pack.get())
+-- info = false: `active` is all this needs, and the default asks git for every
+-- plugin's branches and tags, which was half of startup.
+local stale = vim.iter(vim.pack.get(nil, { info = false }))
   :filter(function(p) return not p.active end)
   :map(function(p) return p.spec.name end)
   :totable()
