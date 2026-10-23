@@ -24,7 +24,7 @@ CI の `tmux_latest_test` は Homebrew の最新 tmux で `.tmux.conf` を実際
 - main の直近の ci.yml の run で、`tmux_latest_test` の「The look of .tmux.conf matches the golden」が赤かを見る（`gh api repos/kimoto/dotfiles/actions/workflows/ci.yml/runs?branch=main` → その run の jobs）。緑なら 1. へ
 - 赤なら、**この回の PR はこれ1本にする。**open な同じ PR があれば作らない
 - 差分を読み、上流の CHANGES で原因（既定値の変化・新しい描画）を特定して、どちらかを選ぶ:
-  - **元に戻す**: `.tmux.conf` で効いてしまった既定を打ち消す（例: 3.8 で `window-status-current-style` の既定が `underscore` になった）。コメントに「なぜこの値か」を書く
+  - **元に戻す**: `.tmux.conf` で効いてしまった既定を打ち消す。コメントに「なぜこの値か」を書く
   - **受け入れる**: 改善と言える変化なら `bin/tmux_render_snapshot.sh update` で golden を更新する
   - どちらでも PR の Summary に、何が変わって見えるか・原因・選んだ理由と、もう一方を選ぶならどうするかを書く。決めるのは kimoto
 - 手元の確認は最新 tmux で行う。クラウドのコンテナには Homebrew が無いので、`https://github.com/tmux/tmux/releases` の tarball を libevent-dev・bison を入れてビルドし、`TMUX_BIN=<ビルドした tmux> bin/tmux_render_snapshot.sh check` を回す（緑になるまで）
@@ -47,8 +47,7 @@ CI の `tmux_latest_test` は Homebrew の最新 tmux で `.tmux.conf` を実際
 ## 2. 機能に分けて、もう無いかを確かめる
 
 - 見つけたものを機能一つずつに分ける
-- ⚠️★**提案する前に、同じことがもう dotfiles に無いかを必ず `rg` で確かめる**（repo 全体）。
-  確かめずに出した「承認待ちの pane を色で示す」案は、すでに `config/tmux-agent-status` にあった
+- ⚠️★**提案する前に、同じことがもう dotfiles に無いかを必ず `rg` で確かめる**（repo 全体）
 - 残すのは「まだ無い」かつ「数十〜百行で自前で作れて、毎日の操作が実際に変わる」もの
 
 ## 3. 入れないもの
