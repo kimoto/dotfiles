@@ -89,10 +89,13 @@ report() {
   fake bats 'exit 0'
   printf '#!/bin/sh\nenv >"%s/suite.env"\n' "$TMP" >"$REPO/bin/run_tests.sh"
   chmod +x "$REPO/bin/run_tests.sh"
-  report bats
+  # CI's own value must reach the suite unchanged, and nothing else added.
+  unset DOTFILES_NO_SYNC_CHECK DOTFILES_NO_BREW_CHECK DOTFILES_NO_MISE_CHECK
+  CI=true report bats
   [ "$status" -eq 0 ]
   [[ "$output" =~ ^[0-9]+$ ]]
-  run grep -E '^(DOTFILES_NO_|CI=)' "$TMP/suite.env"
+  grep -qx 'CI=true' "$TMP/suite.env"
+  run grep '^DOTFILES_NO_' "$TMP/suite.env"
   [ "$status" -eq 1 ]
 }
 
