@@ -31,3 +31,7 @@ Checked harmless: `grep`/`egrep`/`fgrep`, `mkdir`, `mv`.
 ## zsh expands unquoted option values
 
 `--include=*.ts` dies with `no matches found` before the command runs. Quote glob patterns passed as option values.
+
+## Signed commits
+
+`.gitconfig` signs every commit with GPG, and `.zshrc` exports `GPG_TTY` for it. If `git commit` hangs in a shell that never read `.zshrc`, `export GPG_TTY=$(tty)`, then check pinentry (pinentry-mac on macOS).

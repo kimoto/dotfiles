@@ -61,15 +61,11 @@ before changing or calling the script.
 
 - lefthook runs the `bin/` checks on commit/push; CI runs the same. Reproduce a
   check locally exactly as CI does, e.g. `./bin/lint_shell.sh`.
-- Commits follow Conventional Commits `type(scope): description`, type ∈ {feat,
-  fix, chore, docs, refactor, ci, revert, test} (`test` = test-only changes).
-- Bypass a hook with `--no-verify`. CI failures: `gh run view <id> --log-failed`.
 - GitHub Actions `uses:` must be pinned to a full commit SHA, not a tag.
 - Config files with a top-level `$schema` are validated against it
   (`lint_schema.sh`) — keep the key accurate.
-- TDD: when adding or changing a test, see it fail first (red), then pass.
-  Especially for the `test/e2e/` checks, where a typo'd assertion can
-  silently pass forever.
+- Red before green matters most for the `test/e2e/` checks, where a typo'd
+  assertion can silently pass forever.
 
 ### Conventions
 
@@ -79,27 +75,12 @@ before changing or calling the script.
   Indentation is advisory; Markdown is exempt from line length — don't hard-wrap.
 - Zsh/CI: set `ZDOTDIR` to the repo root; skip `.zshrc` sections in CI via an env
   flag (e.g. `DOTFILES_NO_SYNC_CHECK`), not an early return.
-- If `git commit -S` hangs: `export GPG_TTY=$(tty)` and check pinentry-mac.
-
-### Interaction
-
-- When offering the user a choice between options, prefer the `AskUserQuestion`
-  tool over free-text questions whenever the options can be enumerated.
 
 ### Branch & PR workflow
 
-- Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.
-  lefthook and GitHub branch protection both block it.
-- Work in your own worktree (`claude --worktree`, or the EnterWorktree tool), not
-  in the main checkout: other sessions share it. ⚠️ Not one reached by `cd` in
-  Bash — the session never leaves the main checkout. A hook refuses it.
-- One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
-  with `gh pr edit --body-file`. How to write one is in the shared rules.
-- An auto-created PR (web/remote) starts with an empty body; backfill it from
-  the template before anything.
-- Claude Code auto-appends its PR-body / commit trailers — don't remove them.
-- After creating a PR from a session that can receive PR events, subscribe to
-  its activity (`subscribe_pr_activity`) right away without asking.
+The flow is in the shared rules (`claudecode/rules/git.md`, `pull-requests.md`);
+here it is enforced: lefthook and branch protection block a commit to `main`,
+and a hook refuses a worktree reached by `cd`.
 
 ### Language
 
