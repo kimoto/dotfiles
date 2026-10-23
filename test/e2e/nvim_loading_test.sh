@@ -51,10 +51,10 @@ export XDG_CACHE_HOME="$HOME_DIR/.cache"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 ln -s "$REPO/config/nvim" "$XDG_CONFIG_HOME/nvim"
 
-# Keep startups deterministic: the config's first-run auto-installers (mason
-# servers, treesitter parsers) must not kick off background downloads while
-# the assertions below read :messages / the rendered screen. The vim.pack
-# plugin install itself is NOT gated by this — phase 1 relies on it.
+# Keep startups deterministic: the config's first-run auto-installer
+# (treesitter parsers) must not kick off background downloads while the
+# assertions below read :messages / the rendered screen. The vim.pack plugin
+# install itself is NOT gated by this — phase 1 relies on it.
 export DOTFILES_NO_NVIM_AUTO_INSTALL=1
 
 run_nvim() { HOME="$HOME_DIR" nvim --headless "$@" </dev/null; }

@@ -74,7 +74,6 @@ vim.pack.add({
   -- lsp / completion / formatting
   gh('neovim/nvim-lspconfig'),        -- per-server configs for vim.lsp.config
   gh('mason-org/mason.nvim'),         -- language server installer (:Mason)
-  gh('mason-org/mason-lspconfig.nvim'),
   gh('stevearc/conform.nvim'),        -- format on save (prettier etc.)
   gh('L3MON4D3/LuaSnip'),             -- snippet engine
   gh('rafamadriz/friendly-snippets'), -- the snippet bodies themselves (vscode format)
