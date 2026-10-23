@@ -3,7 +3,7 @@
 **Write only what the diff cannot say.** A reader should finish the body able
 to ask "which lines?" and never "why?". Restating changes or naming files goes
 stale the moment the branch moves; the diff is already there and is always
-right. ★The why stays in the body even when a comment in the diff already says
+current. ★The why stays in the body even when a comment in the diff already says
 it: reviewers read the body first. Same for a commit body.
 
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
