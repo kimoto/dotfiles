@@ -85,6 +85,8 @@ claudecode/skills/*
 !claudecode/skills/issue-sweep/
 !claudecode/skills/project-decision-sweep/
 !claudecode/skills/project-goal/
+!claudecode/skills/prune-sweep/
+!claudecode/skills/refactor-sweep/
 !claudecode/skills/session-resume/
 !claudecode/skills/trend-intake/
 !claudecode/skills/wrapup/
