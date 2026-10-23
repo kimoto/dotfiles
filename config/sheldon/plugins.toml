@@ -12,7 +12,7 @@ apply = ['source']
 [plugins.fzf]
 github = 'junegunn/fzf'
 rev = 'c8c2d0828a94a00879ceb6f95112a42e3ea322cf' # master
-apply = ['fzf-install', 'fzf-source']
+apply = ['fzf-source']
 
 [plugins.evalcache]
 github = 'mroth/evalcache'
@@ -125,6 +125,6 @@ inline = 'zsh-defer _evalcache carapace _carapace zsh'
 
 [templates]
 defer = "{{ hooks?.pre | nl }}{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}{{ hooks?.post | nl }}"
-# Run fzf's install script only when no fzf binary is present yet.
-fzf-install = "(( $+commands[fzf] )) || [[ -x \"{{ dir }}/bin/fzf\" ]] || {{ dir }}/install --bin > /dev/null\n[[ ! $PATH == *{{ dir }}* ]] && export PATH=\"$PATH:{{ dir }}/bin\"\n"
-fzf-source = "{% for file in files %}source \"{{ file }}\"\n{% endfor %}"
+# The fzf binary comes from the package manager (Brewfile.standard), like
+# every other tool here; a machine without one gets no bindings that call it.
+fzf-source = "if (( $+commands[fzf] )); then\n{% for file in files %}source \"{{ file }}\"\n{% endfor %}fi\n"
