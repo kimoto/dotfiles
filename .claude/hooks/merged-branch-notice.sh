@@ -27,7 +27,9 @@ current_branch=$(git branch --show-current 2>/dev/null) || exit 0
 [[ -z "$current_branch" || "$current_branch" == "main" ]] && exit 0
 
 # The one network call; it only runs off main, and starting a session on a
-# feature branch is rare once sessions live in worktrees.
+# feature branch is rare once sessions live in worktrees. settings.json caps
+# the hook at 10s so a slow GitHub cannot hold up the session start; killed,
+# it prints nothing, the same as a failed lookup.
 pr_info=$(gh pr view "$current_branch" --json state,number --jq '"#\(.number) \(.state)"' 2>/dev/null) || exit 0
 [[ "$pr_info" == *MERGED* ]] || exit 0
 
