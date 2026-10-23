@@ -13,6 +13,11 @@ block out into a well-named function; an `if` or a short block gets no comment.
 Comment only what is complex or cannot be said in code. A line that repeats a
 name or the line below it goes, however true.
 
+★**A name says what a block does, not what it is for.** So a function, or a
+section too large to name in one word, opens with a line on what it is trying to
+achieve — the aim the name cannot carry, not the name again. This covers config
+sections (`.zshrc`, `.tmux.conf`) that cannot be pulled out into a function.
+
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
 pin from something nobody cleaned up, and deletes it.
