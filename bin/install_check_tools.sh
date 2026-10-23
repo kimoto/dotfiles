@@ -29,8 +29,9 @@ as_root() {
 
 # zsh (zsh-syntax) + bats (unit tests) + luajit
 # (lua-syntax: parse nvim's Lua with its own runtime) + jq (unit tests:
-# install_claude_tmux_hooks.sh and its bats suite) via apt. Unpinned: these
-# follow the distro, as they always have.
+# install_claude_tmux_hooks.sh and its bats suite) + gpg (checks mise's
+# signature below) via apt. Unpinned: these follow the distro, as they always
+# have.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
@@ -39,17 +40,54 @@ if command -v apt-get >/dev/null 2>&1; then
   # Keep the file already there: it belongs to the image, not to us.
   as_root apt-get install -y -qq \
     -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
-    zsh bats luajit jq >/dev/null
+    zsh bats luajit jq gpg >/dev/null
 fi
 
 # A pinned release binary rather than mise.run's installer script, which would
-# install whatever is newest on the day.
+# install whatever is newest on the day. A version names no bytes, so the binary
+# must also match the SHASUMS256 list mise's release key signed: mise is what
+# checks every other tool against mise.lock, so a swapped mise would make that
+# check meaningless. A signature rather than a sha256 written here keeps
+# Renovate able to bump MISE_VERSION alone.
+# The key is the one https://mise.jdx.dev/gpg-key.pub serves; it expires
+# 2028-01-02, after which a new one from there replaces both values.
+MISE_RELEASE_KEY="${MISE_RELEASE_KEY:-$BASE_DIR/bin/keys/mise-release.asc}"
+MISE_RELEASE_FPR="${MISE_RELEASE_FPR:-24853EC9F655CE80B48E6C3A8B81C9D17413A06D}"
+# Overridable only so the bats suite can install somewhere it may write.
+MISE_INSTALL_DIR="${MISE_INSTALL_DIR:-/usr/local/bin}"
+
+# Prints the sha256 list in $1 (a clearsigned SHASUMS256.asc) if, and only if,
+# the pinned key made a good signature over it.
+verified_sums() {
+  local gnupghome status
+  gnupghome="$(mktemp -d)"
+  GNUPGHOME="$gnupghome" gpg --batch --quiet --import "$MISE_RELEASE_KEY" 2>/dev/null
+  status="$(GNUPGHOME="$gnupghome" gpg --batch --status-fd 1 --output - --decrypt "$1" 2>/dev/null)"
+  rm -rf "$gnupghome"
+  # VALIDSIG's last field is the primary key's fingerprint, which is what
+  # MISE_RELEASE_FPR names; GOODSIG alone would accept any key in the file.
+  grep -qE "^\[GNUPG:\] VALIDSIG .* ${MISE_RELEASE_FPR}\$" <<<"$status" || return 1
+  grep -v '^\[GNUPG:\]' <<<"$status"
+}
+
 if ! command -v mise >/dev/null 2>&1; then
-  tmp="$(mktemp)"
-  curl -sSfL -o "$tmp" \
-    "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}"
-  as_root install -m 0755 "$tmp" /usr/local/bin/mise
-  rm -f "$tmp"
+  tmp="$(mktemp -d)"
+  asset="mise-v${MISE_VERSION}-linux-${MISE_ARCH}"
+  release="https://github.com/jdx/mise/releases/download/v${MISE_VERSION}"
+  curl -sSfL -o "$tmp/$asset" "$release/$asset"
+  curl -sSfL -o "$tmp/SHASUMS256.asc" "$release/SHASUMS256.asc"
+  sums="$(verified_sums "$tmp/SHASUMS256.asc")" || {
+    echo "mise $MISE_VERSION: SHASUMS256.asc is not signed by $MISE_RELEASE_FPR" >&2
+    exit 1
+  }
+  want="$(awk -v f="./$asset" '$2 == f { print $1 }' <<<"$sums")"
+  got="$(sha256sum "$tmp/$asset" | cut -d' ' -f1)"
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    echo "mise $MISE_VERSION: $asset does not match its signed sha256" >&2
+    exit 1
+  fi
+  as_root install -m 0755 "$tmp/$asset" "$MISE_INSTALL_DIR/mise"
+  rm -rf "$tmp"
 fi
 
 cd "$BASE_DIR"
