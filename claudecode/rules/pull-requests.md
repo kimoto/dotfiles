@@ -5,9 +5,6 @@ ask "which lines?" and never "why?". Restating changes or naming files goes
 stale the moment the branch moves; the diff is already there and is always
 right. Same for a commit body.
 
-★**A Summary holds why, and what it was modelled on or replaces — nothing
-else.** The rest is restating the diff.
-
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
 50 characters, no script names, no jargon. ⚠️ **No counts either**: a number is
 scale, and scale means nothing until the body says what it is scale of.
