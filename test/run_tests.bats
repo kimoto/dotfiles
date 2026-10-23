@@ -39,3 +39,58 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"skipping"* ]]
 }
+
+# A fake bats records how it was called, next to a fake GNU parallel when the
+# test wants one. The real one would run the suite from inside the suite.
+fake_tools() {
+  BIN="$(mktemp -d)"
+  printf '#!/bin/sh\necho "$*" >"%s/args"\n' "$BIN" >"$BIN/bats"
+  chmod +x "$BIN/bats"
+  if [ "${1:-}" = parallel ]; then
+    printf '#!/bin/sh\n' >"$BIN/parallel"
+    chmod +x "$BIN/parallel"
+  fi
+}
+
+# PATH with GNU parallel taken out. A directory that holds it also holds
+# bash and the rest, so it is mirrored without parallel instead of dropped.
+path_without_parallel() {
+  local d out="" n=0
+  local IFS=:
+  for d in $PATH; do
+    if [ -x "$d/parallel" ]; then
+      n=$((n + 1))
+      mkdir -p "$BIN/mirror$n"
+      ln -s "$d"/* "$BIN/mirror$n/"
+      rm "$BIN/mirror$n/parallel"
+      d="$BIN/mirror$n"
+    fi
+    out="$out${out:+:}$d"
+  done
+  printf '%s' "$out"
+}
+
+@test "the whole suite runs its files in parallel when GNU parallel is there" {
+  [ "$(getconf _NPROCESSORS_ONLN)" -gt 1 ] || skip "one CPU"
+  fake_tools parallel
+  RUN_TESTS_LIST= PATH="$BIN:$PATH" run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$(cat "$BIN/args")" == "--jobs "*" --no-parallelize-within-files "*"test/" ]]
+  rm -rf "$BIN"
+}
+
+@test "without GNU parallel the suite runs one file at a time" {
+  fake_tools
+  RUN_TESTS_LIST= PATH="$BIN:$(path_without_parallel)" run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BIN/args")" = "--print-output-on-failure test/" ]
+  rm -rf "$BIN"
+}
+
+@test "a single file is not worth starting GNU parallel for" {
+  fake_tools parallel
+  RUN_TESTS_LIST= PATH="$BIN:$PATH" run "$SCRIPT" test/protect_main.bats
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BIN/args")" = "--print-output-on-failure test/protect_main.bats" ]
+  rm -rf "$BIN"
+}
