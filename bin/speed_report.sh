@@ -117,10 +117,7 @@ prepare_home() {
     pin_mise_dirs
     # The real XDG dirs would send plugin clones and caches outside it.
     unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME
-    # Same toggles as ci/zsh_bench.sh: the sync, brew and mise reminders are
-    # network and noise, not startup. CI= because CI=true makes .zshrc strict.
-    export DOTFILES_NO_SYNC_CHECK=1 DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1
-    export TERM=xterm-256color CI=
+    export TERM=xterm-256color
     unset TMUX TMUX_PANE CLAUDE_CODE_REMOTE
 }
 
@@ -129,7 +126,12 @@ in_home() { HOME="$MEASURE_HOME" "$@"; }
 measure_zsh() {
     have zsh || { echo n/a; return; }
     if have sheldon; then in_home sheldon lock >/dev/null 2>&1 || true; fi
-    repeat "$RUNS" env HOME="$MEASURE_HOME" zsh -lic exit
+    # Same toggles as ci/zsh_bench.sh: the sync, brew and mise reminders are
+    # network and noise, not startup. CI= because CI=true makes .zshrc strict.
+    # Set here only: exported for the whole script, they would also switch
+    # off the scripts the bats suite tests.
+    repeat "$RUNS" env HOME="$MEASURE_HOME" CI= DOTFILES_NO_SYNC_CHECK=1 \
+        DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 zsh -lic exit
 }
 
 measure_nvim() {

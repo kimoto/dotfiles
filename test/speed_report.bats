@@ -85,6 +85,17 @@ report() {
   [ -L "$TMP/home/.config" ]
 }
 
+@test "bats: the suite sees none of the toggles that quiet zsh's startup" {
+  fake bats 'exit 0'
+  printf '#!/bin/sh\nenv >"%s/suite.env"\n' "$TMP" >"$REPO/bin/run_tests.sh"
+  chmod +x "$REPO/bin/run_tests.sh"
+  report bats
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ ^[0-9]+$ ]]
+  run grep -E '^(DOTFILES_NO_|CI=)' "$TMP/suite.env"
+  [ "$status" -eq 1 ]
+}
+
 @test "hook: the slowest registered hook, fed a payload on stdin" {
   command -v jq >/dev/null || skip "jq not installed"
   ln -s "$(command -v jq)" "$BIN/jq"
