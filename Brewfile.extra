@@ -73,6 +73,10 @@ brew "netcat"
 brew "nmap"
 # SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
 brew "openvpn"
+# Perl language server (nvim LSP: perlnavigator)
+brew "perlnavigator"
+# Static type checker and language server for Python (nvim LSP: pyright)
+brew "pyright"
 # Generic machine emulator and virtualizer
 brew "qemu"
 # Persistent key-value database, with built-in net interface
@@ -87,18 +91,28 @@ brew "sevenzip"
 brew "shellcheck"
 # Create beautiful image of your source code
 brew "silicon"
+# Ruby language server (nvim LSP: solargraph)
+brew "solargraph"
+# TOML toolkit and language server (nvim LSP: taplo)
+brew "taplo"
 # Terminal multiplexer
 brew "tmux"
 # Manage complex tmux sessions easily
 brew "tmuxinator"
 # Parser generator tool and incremental parsing library (nvim-treesitter CLI)
 brew "tree-sitter"
+# Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls)
+brew "typescript-language-server"
 # Source code spell checker (bin/lint_typos.sh)
 brew "typos-cli"
 # Maintained, actively developed ctags implementation
 brew "universal-ctags"
 # Vi 'workalike' with many additional features
 brew "vim"
+# Language servers for HTML/CSS/JSON/ESLint (nvim LSP: jsonls, cssls, eslint)
+brew "vscode-langservers-extracted"
+# Vue.js language server (nvim LSP: vue_ls)
+brew "vue-language-server"
 # Executes a program periodically, showing output fullscreen
 brew "watch"
 # Internet file retriever

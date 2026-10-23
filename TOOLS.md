@@ -84,6 +84,8 @@ _Source: `Brewfile.extra`._
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
 | [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
+| [perlnavigator](https://formulae.brew.sh/formula/perlnavigator) | Perl language server (nvim LSP: perlnavigator) |
+| [pyright](https://formulae.brew.sh/formula/pyright) | Static type checker and language server for Python (nvim LSP: pyright) |
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
 | [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
 | [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
@@ -91,12 +93,17 @@ _Source: `Brewfile.extra`._
 | [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
 | [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
+| [solargraph](https://formulae.brew.sh/formula/solargraph) | Ruby language server (nvim LSP: solargraph) |
+| [taplo](https://formulae.brew.sh/formula/taplo) | TOML toolkit and language server (nvim LSP: taplo) |
 | [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
+| [typescript-language-server](https://formulae.brew.sh/formula/typescript-language-server) | Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls) |
 | [typos-cli](https://formulae.brew.sh/formula/typos-cli) | Source code spell checker (bin/lint_typos.sh) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
+| [vscode-langservers-extracted](https://formulae.brew.sh/formula/vscode-langservers-extracted) | Language servers for HTML/CSS/JSON/ESLint (nvim LSP: jsonls, cssls, eslint) |
+| [vue-language-server](https://formulae.brew.sh/formula/vue-language-server) | Vue.js language server (nvim LSP: vue_ls) |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |

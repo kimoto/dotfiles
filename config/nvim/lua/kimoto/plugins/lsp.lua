@@ -1,4 +1,4 @@
--- Native LSP stack: mason manages server installs, nvim-lspconfig supplies the
+-- Native LSP stack: Homebrew installs the servers, nvim-lspconfig supplies the
 -- per-server configs consumed by vim.lsp.config (nvim 0.11+), the builtin
 -- completion menu shows their items (see kimoto/completion.lua), and conform
 -- runs the formatters. Builtin LSP maps (0.11+):
@@ -6,11 +6,11 @@
 -- NOTE: keybindings here are documented in KEYBINDINGS.md (repo root) —
 -- update it when adding or changing a map.
 
--- mason-lspconfig auto-installs missing servers on startup (first-run
--- bootstrap); enabling a server that is not installed yet is harmless — nvim
--- warns once when a matching filetype is opened. CI/e2e sets
--- DOTFILES_NO_NVIM_AUTO_INSTALL to keep startups deterministic (no background
--- downloads while assertions run).
+-- The servers come from Brewfile.extra, so they update through the same
+-- reviewed path as every other tool; nothing is downloaded when nvim starts.
+-- sqls has no formula: `:MasonInstall sqls` by hand where it is wanted.
+-- Enabling a server that is not installed is harmless — nvim warns once when
+-- a matching filetype is opened.
 local servers = {
   'ts_ls',         -- typescript / javascript
   'eslint',
@@ -24,10 +24,8 @@ local servers = {
   'sqls',          -- sql
 }
 
-require('mason').setup()
-require('mason-lspconfig').setup({
-  ensure_installed = vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and servers or {},
-})
+-- Appended, so a server Homebrew provides wins over a copy Mason installed.
+require('mason').setup({ PATH = 'append' })
 
 -- Snippets for the completion menu (kimoto/completion.lua lists them).
 --
