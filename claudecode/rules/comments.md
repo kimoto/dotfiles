@@ -4,12 +4,13 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**Open a file and each block with where it is headed** — what it is trying
-to do, in a line or two. The code shows that only to someone who has read all
-of it.
+★**Open a file, and a block its name does not explain, with what it is for**,
+in a line or two. The code shows that only to someone who has read all of it.
+A file that cannot carry a comment — JSON, a generated file, data a script
+parses — goes without.
 
-★**Otherwise a comment says what the code cannot.** A line that repeats a name
-or the line below it goes, however true.
+★**A comment says what the code cannot.** A line that repeats a name or the
+line below it goes, however true, a header included.
 
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
