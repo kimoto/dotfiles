@@ -6,7 +6,7 @@ stale the moment the branch moves; the diff is already there and is always
 right. Same for a commit body.
 
 ★**A Summary holds why, and what it was modelled on or replaces — nothing
-else.** If it does not fit in two or three lines, it is restating the diff.
+else.** The rest is restating the diff.
 
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
 50 characters, no script names, no jargon. ⚠️ **No counts either**: a number is

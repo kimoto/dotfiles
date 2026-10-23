@@ -4,8 +4,8 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**A reason fits on a line.** A block past three lines is usually narrating
-the code or the history; cut it to the why before committing.
+★**Of the reasons behind a line, keep the one whose absence would get it
+broken.** The rest are true too, and belong in the commit message.
 
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
