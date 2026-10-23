@@ -29,8 +29,3 @@ empty at merge cannot be told apart from one ignored.
 ★**On a public repo, write nothing a stranger shouldn't read** — no repo they
 cannot open, no server layout, nothing on where secrets live. Check
 `gh api repos/OWNER/REPO --jq .visibility` first: an edit does not unpublish.
-
-**Turn on auto-merge at creation only when both hold: the session already
-agreed to it, and the diff cannot change behavior** — comments, docs, or a
-`refactor` whose tests did not change. Say in the reply that it is on, so the
-merge is never a surprise. ⚠️ Anything else waits for a human to press it.
