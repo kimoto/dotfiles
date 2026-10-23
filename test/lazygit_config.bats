@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # config/lazygit/config.yml must keep lazygit's diffs going through delta, the
-# same pager `git diff` uses (.gitconfig), so the two never look different.
+# pager .gitconfig sets for every diff, so the two never look different.
 
 setup() {
   CONFIG="$BATS_TEST_DIRNAME/../config/lazygit/config.yml"
