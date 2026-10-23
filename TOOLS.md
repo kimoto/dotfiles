@@ -74,6 +74,7 @@ _Source: `Brewfile.extra`._
 | [k9s](https://formulae.brew.sh/formula/k9s) | Kubernetes CLI To Manage Your Clusters In Style! |
 | [kubectl](https://formulae.brew.sh/formula/kubectl) | Kubernetes command-line tool |
 | [kubectx](https://formulae.brew.sh/formula/kubectx) | Tool that can switch between kubectl contexts easily and create aliases |
+| [lazygit](https://formulae.brew.sh/formula/lazygit) | Simple terminal UI for git commands |
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
 | [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |

@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://json.schemastore.org/lazygit.json
+git:
+  pagers:
+    # Same delta as `git diff` (.gitconfig [delta]); lazygit needs --paging=never
+    # because it is the pager, and the width placeholder keeps side panes wrapped.
+    - pager: delta --dark --paging=never --width={{columnWidth}}

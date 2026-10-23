@@ -36,6 +36,7 @@ config/*
 !config/glow/
 !config/hunk/
 !config/k9s/
+!config/lazygit/
 !config/mise/
 !config/nvim/
 !config/sheldon/

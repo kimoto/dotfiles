@@ -53,6 +53,8 @@ brew "k9s"
 brew "kubectl"
 # Tool that can switch between kubectl contexts easily and create aliases
 brew "kubectx"
+# Simple terminal UI for git commands
+brew "lazygit"
 # Fast and powerful Git hooks manager
 brew "lefthook"
 # Pager program similar to more
