@@ -4,13 +4,14 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**Open a file, and a block its name does not explain, with what it is for**,
-in a line or two. The code shows that only to someone who has read all of it.
-A file that cannot carry a comment — JSON, a generated file, data a script
-parses — goes without.
+★**Open a file with what it is for**, in a line or two. The code shows that
+only to someone who has read all of it. A file that cannot carry a comment —
+JSON, a generated file, data a script parses — goes without.
 
-★**A comment says what the code cannot.** A line that repeats a name or the
-line below it goes, however true, a header included.
+★**Inside it, say intent with a name first.** Name the variable, or pull the
+block out into a well-named function; an `if` or a short block gets no comment.
+Comment only what is complex or cannot be said in code. A line that repeats a
+name or the line below it goes, however true.
 
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
