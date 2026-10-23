@@ -4,8 +4,8 @@
 outlives the change.** Everything else — what was tried, what moved, which
 commit did it — goes in the commit message, already dated and attributed.
 
-★**Of the reasons behind a line, keep the one whose absence would get it
-broken.** The rest are true too, and belong in the commit message.
+★**A comment says what the code cannot.** A line that a name, the structure or
+the code itself already says goes, however true.
 
 ★**Say why a value is what it is**, above all when it equals the default and is
 spelled out anyway. Without that line the next reader cannot tell a deliberate
