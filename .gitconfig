@@ -40,6 +40,12 @@
   conflictstyle = zdiff3
   tool = nvimdiff
 
+# Syntax-aware merges for the files config/git/attributes routes here; why and
+# the fallback without mergiraf: bin/git_merge_mergiraf.sh.
+[merge "mergiraf"]
+  name = mergiraf
+  driver = "$HOME/bin/git_merge_mergiraf.sh %O %A %B %L %P %S %X %Y"
+
 [mergetool]
   prompt = false
   keepBackup = false

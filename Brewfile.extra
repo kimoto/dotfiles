@@ -63,6 +63,8 @@ brew "lima"
 brew "lolcat"
 # Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
 brew "luajit"
+# Syntax-aware git merge driver (merge "mergiraf" in .gitconfig)
+brew "mergiraf"
 # Open source relational database management system
 brew "mysql-client"
 # Text-based UI library
