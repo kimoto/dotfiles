@@ -18,7 +18,8 @@ for t in \
     tmux_status_test.sh \
     agent_status_test.sh \
     claude_tmux_hunk_test.sh \
-    keys_command_test.sh; do
+    keys_command_test.sh \
+    long_command_bell_test.sh; do
     echo "::group::$t"
     "$E2E/$t" || failed+=("$t")
     echo "::endgroup::"
