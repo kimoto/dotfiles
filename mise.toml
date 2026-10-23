@@ -4,10 +4,11 @@
 # Each tool names its backend explicitly so Renovate can map it to a
 # datasource without relying on mise's registry aliases.
 # Tools also used outside this repo (actionlint, gitleaks, yq, lefthook,
-# shellcheck) stay in Brewfile.extra too: a mise shim falls through to the brew
-# binary in a directory without this config.
+# shellcheck, typos) stay in Brewfile.extra too: a mise shim falls through to
+# the brew binary in a directory without this config.
 [tools]
 "aqua:biomejs/biome" = "2.5.10"
+"aqua:crate-ci/typos" = "1.51.1"
 "aqua:editorconfig-checker/editorconfig-checker" = "3.11.2"
 "aqua:evilmartians/lefthook" = "2.2.1"
 "aqua:gitleaks/gitleaks" = "8.30.1"

@@ -55,6 +55,8 @@ jobs:
         run: ./bin/lint_schema.sh
       - name: Check editorconfig (line length, whitespace, final newline)
         run: ./bin/lint_editorconfig.sh
+      - name: Spell-check (typos)
+        run: ./bin/lint_typos.sh
       - name: Lint YAML style (yamllint)
         run: ./bin/lint_yaml.sh
       - name: Lint workflows (ratchet pinning + actionlint)
@@ -111,13 +113,14 @@ jobs:
           # mise resolves aqua/github tools through the GitHub API, which
           # rate-limits an unauthenticated runner.
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec)
+      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec, typos)
         run: |
           ./bin/lint_config.sh
           ./bin/lint_schema.sh
           ./bin/lint_yaml.sh
           ./bin/lint_actions.sh
           ./bin/lint_editorconfig.sh
+          ./bin/lint_typos.sh
           gitleaks version
           lefthook version
 

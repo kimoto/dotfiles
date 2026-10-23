@@ -93,6 +93,8 @@ brew "tmux"
 brew "tmuxinator"
 # Parser generator tool and incremental parsing library (nvim-treesitter CLI)
 brew "tree-sitter"
+# Source code spell checker (bin/lint_typos.sh)
+brew "typos-cli"
 # Maintained, actively developed ctags implementation
 brew "universal-ctags"
 # Vi 'workalike' with many additional features

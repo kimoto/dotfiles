@@ -1,0 +1,9 @@
+# typos (bin/lint_typos.sh): a spell checker that only flags known
+# misspellings, so a word allowed here is a real token that collides with one.
+[default.extend-words]
+# "(ba)sh" in Homebrew's own shellcheck description (Brewfile.extra, TOOLS.md).
+ba = "ba"
+# <leader>fo, the telescope keymap for oldfiles.
+fo = "fo"
+# test(1)'s "older than" operator, `[ a -ot b ]`.
+ot = "ot"

@@ -94,6 +94,7 @@ _Source: `Brewfile.extra`._
 | [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
+| [typos-cli](https://formulae.brew.sh/formula/typos-cli) | Source code spell checker (bin/lint_typos.sh) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
