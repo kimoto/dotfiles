@@ -1,6 +1,8 @@
 #!/bin/bash
 # PreToolUse hook for Bash calls: refuse a worktree made from the shell and
-# point the agent at the EnterWorktree tool instead.
+# point the agent at the EnterWorktree tool instead. It only matches text, so
+# settings.json caps it at 5s: anything slower is a hang, and it would hold up
+# every Bash call.
 #
 # Bash resets its cwd to the project after every command, so a session that
 # works in such a worktree through `cd <worktree> && ...` never actually moves:
