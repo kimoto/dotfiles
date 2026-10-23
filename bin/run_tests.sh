@@ -61,4 +61,17 @@ if [ -n "${RUN_TESTS_LIST:-}" ]; then
     exit 0
 fi
 
-bats --print-output-on-failure "${targets[@]}"
+# Files in parallel when there is more than one and GNU parallel is there for
+# bats to use: the whole suite drops from about a minute and a half to about
+# half a minute on four cores. Tests within one file stay in order; several
+# share a fixture across a file, and running them apart was slower anyway.
+# One file, or no GNU parallel (bats needs it for --jobs): one at a time.
+jobs=()
+if { [ "${#targets[@]}" -gt 1 ] || [ -d "${targets[0]}" ]; } &&
+    command -v parallel >/dev/null 2>&1; then
+    cpus=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+    [ "$cpus" -gt 1 ] && jobs=(--jobs "$cpus" --no-parallelize-within-files)
+fi
+
+# ${jobs[@]+...}: macOS's bash 3.2 calls an empty array unbound under set -u.
+bats ${jobs[@]+"${jobs[@]}"} --print-output-on-failure "${targets[@]}"
