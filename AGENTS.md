@@ -106,6 +106,6 @@ in `docs/scouts.md`.
 - Security audit: findings go only to the private tracker the routine's prompt
   names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
 - Trends: the ledger, and where to read what is in use, are in `docs/scouts.md`.
-- Commits and PRs: `docs/routine-prs.md` (it holds the open PR cap); commit
-  `-c user.name=kimoto -c user.email=9657+kimoto@users.noreply.github.com`.
+- Commits and PRs: `docs/routine-prs.md` (it holds the open PR cap). The author
+  comes from `.gitconfig.agent`; if your commit's is not kimoto, say so.
 - Decided against: see `docs/scouts.md`.
