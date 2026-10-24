@@ -80,7 +80,8 @@ before changing or calling the script.
 
 The flow is in the shared rules (`claudecode/rules/git.md`, `pull-requests.md`);
 here it is enforced: lefthook and branch protection block a commit to `main`,
-and a hook refuses a worktree reached by `cd`.
+and a hook refuses a worktree reached by `cd`. A routine's PR (label
+`routine:<name>`) follows `docs/routine-prs.md`.
 
 ### Language
 
