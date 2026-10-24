@@ -62,5 +62,21 @@ What changes for you: <one sentence> · class <A|B|C> · <feel|speed|safety|plum
   not count. A routine that would go over opens nothing and says so in its
   report. More open PRs means less careful review.
 - When the owner closes a routine PR unmerged, they leave a one-line reason as
-  a comment. Before picking a new change, a routine reads the reasons on its own
-  closed-unmerged PRs and does not propose the same direction again.
+  a comment.
+
+## The decision ledger
+
+The `Decided against` sections of `docs/scouts.md` hold the owner's calls, so
+one routine's rejected direction is not proposed again by another. A close
+reason seen only by the routine that opened the PR left the others free to
+undo it.
+
+- Before picking a change, a routine reads the ledger and the reasons on every
+  closed-unmerged routine PR here, not only its own, and proposes nothing
+  either one rules out.
+- A reason not yet in the ledger becomes that run's one PR: the entry, class B,
+  `cleanup`.
+- A call the owner makes in a session goes into the ledger in the same PR as
+  the change it decides.
+- This repo is public: an entry says what was decided and why in terms a
+  stranger may read, and links the PR (`#123`) instead of quoting a private one.
