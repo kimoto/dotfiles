@@ -14,6 +14,9 @@ description: いま居る repo で、使われていないもの・重複して�
   `CLAUDE.md`（または `AGENTS.md`）を全部読む
 - ★**repo ごとの決まりは `CLAUDE.md` の `## Scouts` 節にある。**そこに書かれたもの（検査コマンド・触らない場所・保留中・残すと決めたもの・PR と issue の言語・open PR の上限）はこの skill より優先する
 - ⚠️ `## Scouts` 節が無い repo では推測で進めない。何もせず「Scouts 節が無い」と報告して終わる
+- ★**手を入れる前に、既定ブランチのまま `## Scouts` 節の検査を回す。**落ちたら:
+  - 環境のせい（root で動いている・道具が無い）なら、落ちたものを控える。変更後に同じものだけ落ちていればよい
+  - 環境のせいでなければ（日付・外の版の変化）、それを直す PR をこの回の1本にする（テストの直しでよい）。直せなければ報告に書いて終わる
 - GitHub 操作は GitHub MCP（`gh` は無いことがある）。search_* は使わず、list_pull_requests / list_issues をラベルで絞る
 - repo の visibility を確かめる。公開 repo なら、PR・issue・コミットに private repo の名前・中身、ホスト名、どのマシンで使っているかを書かない
 
