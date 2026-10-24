@@ -80,7 +80,8 @@ before changing or calling the script.
 
 The flow is in the shared rules (`claudecode/rules/git.md`, `pull-requests.md`);
 here it is enforced: lefthook and branch protection block a commit to `main`,
-and a hook refuses a worktree reached by `cd`.
+and a hook refuses a worktree reached by `cd`. A routine's PR (label
+`routine:<name>`) follows `docs/routine-prs.md`.
 
 ### Language
 
@@ -89,19 +90,22 @@ PRs, comments, and docs are file content — always English; chat stays Japanese
 
 ## Scouts
 
-Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
-`security-audit`; the why, and the calls already made, are in `docs/scouts.md`.
+Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep`,
+`security-audit` and `trend-intake`; the why, and the calls already made, are
+in `docs/scouts.md`.
 
 - Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.
 - Proof of no change: `./bin/behavior_snapshot.sh compare origin/main`. Plugin
   config is outside it.
-- Mutation tool: `bin/mutation_sweep.sh`.
+- Test gaps: `bin/mutation_sweep.sh` (also lists files no test selects). How a
+  new e2e check gets run: `docs/scouts.md`.
 - Leave alone: `TOOLS.md`, the `KEYBINDINGS.md` table shape, and the self-contained
   `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
 - Speed: `./bin/speed_report.sh` on `main`, one comment per run on #392; scripts
   never run to time are in `docs/scouts.md`.
 - Security audit: findings go only to the private tracker the routine's prompt
   names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
+- Trends: the ledger, and where to read what is in use, are in `docs/scouts.md`.
 - Commits and PRs: commit with `-c user.name=kimoto -c
   user.email=9657+kimoto@users.noreply.github.com`; assignee `kimoto`.
 - Decided against: see `docs/scouts.md`.

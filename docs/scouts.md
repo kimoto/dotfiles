@@ -1,9 +1,9 @@
 # Scouts
 
 The `## Scouts` section of `AGENTS.md` is what the sweep skills
-(`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`,
+(`claudecode/skills/refactor-sweep`, `prune-sweep`, `test-sweep`,
 `load-test-sweep`),
-`bottleneck-sweep` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
+`bottleneck-sweep`, `security-audit` and `trend-intake` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
 calls already made, so a sweep does not propose them again.
 
@@ -34,6 +34,19 @@ stripped.
   helper they sourced would sit outside that list.
 - The human-only scripts `AGENTS.md` lists are never run by an agent, so a
   sweep cannot check a change to them.
+
+## Test gaps
+
+`bin/mutation_sweep.sh` flips each `exit 1` / `return 1` to 0 and runs the
+bats files `bin/run_tests.sh` selects for that script; a survivor is a failure
+exit no test watches. It skips guards after `cd`, and prints `untested <file>`
+for a script no bats file selects. It edits files in place, so run it in its
+own worktree.
+
+An e2e check is a script in `test/e2e/` that drives a real zsh, tmux or vim;
+the tmux ones share `test/e2e/tmux_e2e_helpers.sh`. CI runs each one by name:
+a tmux check from the list in `ci/tmux_suite.sh`, the others from a step in
+`.github/workflows/ci.yml`. A new file left off both never runs.
 
 ## Speed
 
@@ -66,6 +79,18 @@ entry per command, so it gives the last use, not a count: a sweep can say
 "used this week", never "used 40 times".
 
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
+## Trends
+
+The `trend-intake` ledger lives outside the repo, at
+`/mnt/project-files/trends/ledger.md` in the Claude Project, because it holds
+upstream risks this public repo must not publish. Run without the Project, it
+goes without one.
+
+What is in use: `Brewfile.*`, `mise.toml`, the tools under `config/`, the zsh
+and tmux plugin lists, and `claudecode/` and `codex/`. A pick is something that
+changes everyday work at the prompt or in the editor. A third-party tool is
+pinned by commit SHA or a `mise.toml` version.
+
 ## Security audit
 
 This repo is public, so findings go only to the private issue tracker the
