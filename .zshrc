@@ -601,6 +601,25 @@ _feature_hint() {
 add-zsh-hook preexec _feature_hint_match
 add-zsh-hook precmd _feature_hint
 
+# Ring the bell when a command over 30s ends in a pane nobody is looking at, so
+# tmux marks its window (Ghostty's own notice needs OSC 133, which tmux eats).
+# A watched pane stays quiet, which also keeps vim or ssh silent on exit.
+_long_command_started=
+_long_command_mark() { _long_command_started=$SECONDS }
+_long_command_bell() {
+  local started=$_long_command_started
+  _long_command_started=
+  [[ -n "$TMUX" && -n "$started" ]] || return 0
+  (( SECONDS - started >= ${LONG_COMMAND_BELL_SECONDS:-30} )) || return 0
+  local watched
+  watched=$(tmux display-message -p -t "$TMUX_PANE" \
+    '#{&&:#{pane_active},#{&&:#{window_active},#{session_attached}}}' 2>/dev/null)
+  [[ "$watched" == 1 ]] || print -n '\a'
+  return 0
+}
+add-zsh-hook preexec _long_command_mark
+add-zsh-hook precmd _long_command_bell
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
