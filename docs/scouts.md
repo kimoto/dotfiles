@@ -59,6 +59,11 @@ them: the bootstrap and install scripts (`mkworld.sh`, `mklink.sh`,
 `refresh_cloud_session.sh`) and the human-only scripts `AGENTS.md` lists; they
 change the machine, so only their tests are timed.
 
+How often a typed helper is used lives only in the owner's zsh history, on
+their machine. `bin/usage_report.sh` reads it there, but the history keeps one
+entry per command, so it gives the last use, not a count: a sweep can say
+"used this week", never "used 40 times".
+
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Security audit
 
