@@ -90,7 +90,7 @@ PRs, comments, and docs are file content — always English; chat stays Japanese
 
 ## Scouts
 
-Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep`,
+Read by the sweep skills (`claudecode/skills/*-sweep`), `tool-intake`,
 `security-audit` and `trend-intake`; the why, and the calls already made, are
 in `docs/scouts.md`.
 
