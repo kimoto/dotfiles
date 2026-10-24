@@ -1,8 +1,8 @@
 # Scouts
 
 The `## Scouts` section of `AGENTS.md` is what the sweep skills
-(`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`) read for
-this repo. Those skills stop when the section is missing, so it stays even when
+(`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`),
+`speed-watch` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
 calls already made, so a sweep does not propose them again.
 
@@ -33,6 +33,24 @@ stripped.
   helper they sourced would sit outside that list.
 - The human-only scripts `AGENTS.md` lists are never run by an agent, so a
   sweep cannot check a change to them.
+
+## Security audit
+
+This repo is public, so findings go only to issues on the private
+`kimoto/routines` repo. `./bin/setup_cloud_session.sh` installs gitleaks.
+
+Pinned inputs beyond the lockfiles and the workflow `uses:` SHAs:
+
+- zsh plugins by commit (`rev =` in `config/sheldon/plugins.toml`) and tmux
+  plugins in `tmux-plugins.lock`, by choice since #430;
+- the nvim plugin lockfile, `mise.toml` / `mise.lock`, and the Homebrew
+  installer commit in `bin/setup_homebrew.sh`;
+- downloads in the `bin/` install scripts.
+
+Agent permissions also live in `claudecode/settings-*.json` and `codex/`.
+
+`stable` is the branch machines may follow instead of `main`; it only moves to
+a commit already on `main`, so it must stay an ancestor of `origin/main`.
 
 ## Decided against: refactor
 

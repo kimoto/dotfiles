@@ -89,8 +89,8 @@ PRs, comments, and docs are file content — always English; chat stays Japanese
 
 ## Scouts
 
-Read by the sweep skills (`claudecode/skills/*-sweep`); the why, and the calls
-already made, are in `docs/scouts.md`.
+Read by the sweep skills (`claudecode/skills/*-sweep`), `speed-watch` and
+`security-audit`; the why, and the calls already made, are in `docs/scouts.md`.
 
 - Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.
 - Proof of no change: `./bin/behavior_snapshot.sh compare origin/main`. Plugin
@@ -98,4 +98,6 @@ already made, are in `docs/scouts.md`.
 - Mutation tool: `bin/mutation_sweep.sh`.
 - Leave alone: `TOOLS.md`, the `KEYBINDINGS.md` table shape, and the self-contained
   `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
+- Security audit: findings go to the private `kimoto/routines` issues only; what
+  is pinned where, and the `stable` branch, are in `docs/scouts.md`.
 - Decided against: see `docs/scouts.md`.
