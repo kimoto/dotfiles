@@ -89,6 +89,7 @@ _Source: `Brewfile.extra`._
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
 | [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
 | [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
+| [ruff](https://formulae.brew.sh/formula/ruff) | Extremely fast Python linter, written in Rust (bin/lint_python.sh) |
 | [rust-analyzer](https://formulae.brew.sh/formula/rust-analyzer) | Experimental Rust compiler front-end for IDEs |
 | [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |

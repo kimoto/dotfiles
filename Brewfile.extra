@@ -83,6 +83,8 @@ brew "qemu"
 brew "redis"
 # Wrapper around ripgrep that adds multiple rich file types
 brew "ripgrep-all"
+# Extremely fast Python linter, written in Rust (bin/lint_python.sh)
+brew "ruff"
 # Experimental Rust compiler front-end for IDEs
 brew "rust-analyzer"
 # 7-Zip is a file archiver with a high compression ratio

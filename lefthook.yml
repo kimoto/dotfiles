@@ -58,6 +58,9 @@ pre-commit:
       run: ./bin/lint_editorconfig.sh {staged_files}
     typos:
       run: ./bin/lint_typos.sh {staged_files}
+    python-lint:
+      glob: "*.py"
+      run: ./bin/lint_python.sh {staged_files}
     yaml-lint:
       glob:
         - "*.yml"
