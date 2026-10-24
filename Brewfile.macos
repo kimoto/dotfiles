@@ -8,6 +8,10 @@ tap "nikitabobko/tap"
 brew "telnet"
 # Screen capturing tool
 cask "cleanshot"
+# The native cask, not npm: an npm install lives in one node version and
+# vanishes when mise moves on.
+# OpenAI's coding agent that runs in your terminal
+cask "codex"
 # AI-powered translator
 cask "deepl"
 # Bitstream Vera Sans Mono patched with Nerd Font icons
