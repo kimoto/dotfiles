@@ -104,6 +104,7 @@ Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
   never run to time are in `docs/scouts.md`.
 - Security audit: findings go only to the private tracker the routine's prompt
   names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
+- PRs follow `docs/routine-prs.md`. Open PR cap: 5 in class B/C, all repos.
 - Commits and PRs: commit with `-c user.name=kimoto -c
   user.email=9657+kimoto@users.noreply.github.com`; assignee `kimoto`.
 - Decided against: see `docs/scouts.md`.
