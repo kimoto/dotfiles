@@ -89,7 +89,7 @@ PRs, comments, and docs are file content — always English; chat stays Japanese
 
 ## Scouts
 
-Read by the sweep skills (`claudecode/skills/*-sweep`), `speed-watch` and
+Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
 `security-audit`; the why, and the calls already made, are in `docs/scouts.md`.
 
 - Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.

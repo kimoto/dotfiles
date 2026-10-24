@@ -1,5 +1,5 @@
 ---
-name: speed-watch
+name: bottleneck-sweep
 description: いま居る repo で、人や処理が待たされている時間（回数 × 1回の待ち）が一番大きいところを測って見つけ、挙動を変えずに速くする PR を1本出す。決まった項目は記録して悪化を見張る。★「速さ測って」「遅くなってない?」「ボトルネック探して」と言われた時と、週次 routine から使う。⚠️ 本番に負荷をかけない・副作用のあるものは走らせない・公開の記録に数字以外を書かない・マージしない。
 ---
 
@@ -60,15 +60,15 @@ description: いま居る repo で、人や処理が待たされている時間�
 
 - (A) の並びで一番上を1つ選び、速くする PR を1本。予算に収まっているものは選ばない
 - PR 本文に前後の数字（中央値・回数）と、週に何秒減るかを書く。1回で大差がつけば、追加の比較は要らない（experiments.md）
-- open な `routine:speed-watch` PR があれば新しく作らない。closed かつ未マージの PR で出した案と、Scouts 節の「やらないと決めたもの」は出さない
+- open な `routine:bottleneck-sweep` PR があれば新しく作らない。closed かつ未マージの PR で出した案と、Scouts 節の「やらないと決めたもの」は出さない
 
 ## PR の約束
 
 - 新しいブランチ `perf/<short-desc>`（スクリプトを足すなら `feat/`）。Conventional Commits、英語
 - push する前に Scouts 節の検査コマンドと、触った領域のテストを回す
-- PR テンプレートがあれば埋める。ラベル `routine` と `routine:speed-watch`（無ければ作る）、assignee kimoto。`subscribe_pr_activity` して CI を green にする
+- PR テンプレートがあれば埋める。ラベル `routine` と `routine:bottleneck-sweep`（無ければ作る）、assignee kimoto。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
 ## 報告（1行目だけで分かる形）
 
-「⏱ speed-watch: 予算超え N件、PR なし（悪化なし）」「⏱ speed-watch: <項目> が悪化 → PR <URL>」「⏱ speed-watch: 改善 PR <URL>（<対象> <前>→<後>ms、週 <N> 秒減）」「⚠️ speed-watch: 測れなかった（理由）」のどれか。2行目以降に、上位（対象・誰が待つか・1回の時間・週の回数と出どころ・週に失っている時間）と記録の URL。
+「⏱ bottleneck-sweep: 予算超え N件、PR なし（悪化なし）」「⏱ bottleneck-sweep: <項目> が悪化 → PR <URL>」「⏱ bottleneck-sweep: 改善 PR <URL>（<対象> <前>→<後>ms、週 <N> 秒減）」「⚠️ bottleneck-sweep: 測れなかった（理由）」のどれか。2行目以降に、上位（対象・誰が待つか・1回の時間・週の回数と出どころ・週に失っている時間）と記録の URL。
