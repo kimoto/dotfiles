@@ -1,0 +1,7 @@
+# The commit author in an agent container (bin/setup_agent.sh includes this
+# from the container's own ~/.gitconfig). Only the author: that ~/.gitconfig
+# carries the platform's commit signing, which .gitconfig.default_user's key
+# would break. Keep these two lines equal to .gitconfig.default_user's.
+[user]
+  name = kimoto
+  email = kimoto@users.noreply.github.com
