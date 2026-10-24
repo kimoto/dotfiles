@@ -1,40 +1,29 @@
 # Pull requests
 
-**One PR per change, ideally one commit.** Fill the repo's PR template, if it
-has one, with `gh pr edit --body-file`. ★An auto-created PR (web, remote)
-starts with an empty body — backfill it before anything else.
-
-Claude Code appends its own trailers to commits and PR bodies; leave them.
-
-★**After creating a PR from a session that can receive PR events, subscribe to
-its activity right away** (`subscribe_pr_activity`), without asking.
-
-**Write only what the diff cannot say.** A reader should finish the body able
-to ask "which lines?" and never "why?". Restating changes or naming files goes
-stale the moment the branch moves; the diff is already there and is always
-current. ★The why stays in the body even when a comment in the diff already says
-it: reviewers read the body first. Same for a commit body.
+★**Write only what the diff cannot say.** A reader should finish the body able
+to ask "which lines?" and never "why?". Do not restate the changes: a filename
+or a function in the body goes stale the moment the branch moves, and the diff
+already shows it. The why stays even when a comment in the diff says it,
+because reviewers read the body first. A human stops reading early, so add a
+sub-bullet only when the reader needs it, and hide nothing behind `<details>`.
+All of this holds for a commit body too.
 
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
-50 characters, no script names, no jargon. ⚠️ **No counts either**: a number is
-scale, and scale means nothing until the body says what it is scale of.
+50 characters, no script names, no jargon, no counts: a number means nothing
+until the body says what it is scale of.
 
-⚠️ **A line that opens with a filename, a function, or a step number has already
-spent the reader's attention on "where"** — which the diff answers. Open with the
-intent instead, one line per change. A human reads this and stops early, so keep it
-short: add a sub-bullet only when the reader needs it, never for what the diff or
-CI already shows. ★Nothing may hide behind `<details>`.
+★**Name what checked the change** — a job, a hook, a command run by hand, in
+one list. A name can be looked up; prose saying checks passed cannot. If
+nothing checked it, say so plainly: that is the finding, and "none" hides it.
 
-⚠️ **Name what checked the change** — a job, a hook, a command run by hand, in
-one list. Asserting in prose that checks passed adds nothing and rots; a name
-can be looked up. ★**Being unable to name anything is the finding**, and
-"none" hides it behind a word that reads like a formality.
+**Add a checklist box only for what no machine can check.** Every box ends up
+ticked, so an empty one at merge cannot be told from an ignored one.
 
-⚠️ **A checklist box only earns its place if no machine can take it over**, and
-a box that survives is an admission that nothing automates it yet. What is left
-is what the author is known to forget. Every box ends up ticked — one still
-empty at merge cannot be told apart from one ignored.
+⚠️ **On a public repo, write nothing a stranger shouldn't read** — no repo they
+cannot open, no server layout, nothing on where secrets live. Check the
+visibility first: an edit does not unpublish.
 
-★**On a public repo, write nothing a stranger shouldn't read** — no repo they
-cannot open, no server layout, nothing on where secrets live. Check
-`gh api repos/OWNER/REPO --jq .visibility` first: an edit does not unpublish.
+**One PR per change, ideally one commit.** Fill the repo's PR template, if it
+has one. An auto-created PR (web, remote) starts empty, so backfill it before
+anything else. After creating a PR from a session that can receive PR events,
+subscribe to its activity (`subscribe_pr_activity`) without asking.
