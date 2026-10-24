@@ -26,7 +26,7 @@ jobs:
     # Renovate always adds an unticked "rebase/retry" box to its PR bodies, which
     # would block every update. A skipped job still satisfies a required check.
     if: github.event.pull_request.user.login != 'renovate[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10  # runs in seconds; only a hang reaches this
     steps:
       # requireChecklist: false — a checklist is optional; if one is present,

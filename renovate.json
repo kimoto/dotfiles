@@ -77,6 +77,13 @@
       "semanticCommitScope": "deps"
     },
     {
+      "description": "GitHub-hosted runner labels have no release date, so the 7-day age would hold them back forever; the datasource lists a release only once GitHub drops its beta tag.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
       "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
       "matchDepNames": [
         "aqua:biomejs/biome"

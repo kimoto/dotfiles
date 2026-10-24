@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   full-bootstrap:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       # The real machine is Japanese, and that is not cosmetic: Vim translates
@@ -139,7 +139,7 @@ jobs:
   advance-stable:
     needs: full-bootstrap
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write # moves the stable branch; nothing else in this job writes
