@@ -16,7 +16,7 @@ description: いま居る repo で、挙動を変えずに読みやすくする�
 - ⚠️ `## Scouts` 節が無い repo では推測で進めない。何もせず「Scouts 節が無い」と報告して終わる
 - ★**手を入れる前に、既定ブランチのまま `## Scouts` 節の検査を回す。**落ちたら:
   - 環境のせい（root で動いている・道具が無い）なら、落ちたものを控える。変更後に同じものだけ落ちていればよい
-  - 環境のせいでなければ（日付・外の版の変化）、それを直す PR をこの回の1本にする（テストの直しでよい）。直せなければ報告に書いて終わる
+  - 環境のせいでなければ（日付・外の版の変化）、直さずに「既定ブランチが赤（何が）」と報告して終わる
 - GitHub 操作は GitHub MCP（`gh` は無いことがある）。search_* は使わず、list_pull_requests をラベルで絞る
 - repo の visibility を確かめる。公開 repo なら、PR とコミットに private repo の名前・中身、ホスト名、どのマシンで使っているかを書かない
 
@@ -59,9 +59,9 @@ description: いま居る repo で、挙動を変えずに読みやすくする�
 
 - 差分は ±150 行までを目安（超えるなら分ける）
 - ブランチ `refactor/<short-desc>`。Conventional Commits（`refactor(scope): …`。テストだけなら `test(scope): …`）
-- コミット identity は `command git -c user.name=kimoto -c user.email=9657+kimoto@users.noreply.github.com commit`
+- コミット identity は `## Scouts` 節に書かれたもの（`-c user.name=… -c user.email=…` で渡す）。無ければ git の設定のまま
 - PR テンプレートがあれば埋める。Verification には回したコマンドと、写しの差分が空だったことを名前で書く
-- ラベル `routine` と `routine:refactor-sweep`（無ければ作る）、assignee kimoto。subscribe_pr_activity して CI を緑にする。**マージしない**
+- ラベル `routine` と `routine:refactor-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。**マージしない**
 
 ## 報告
 
