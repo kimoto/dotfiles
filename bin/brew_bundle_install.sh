@@ -56,6 +56,32 @@ parse_failed_deps() {
   sed -E -n 's/^(Installing|Upgrading) (.+) has failed!$/\2/p' "$1" | sort -u
 }
 
+# Entries brew bundle prints a Using/Installing/Upgrading line for.
+count_entries() {
+  grep -cE '^[[:space:]]*(tap|brew|cask)[[:space:]]+"' "$1"
+}
+
+# brew bundle first prints one line per entry, then installs everything that
+# needs it in a single batch after the last one. Nothing marks the start of that
+# batch, so the run looks hung right after the final "Using" line; say what is
+# coming there. $1 is the entry count.
+announce_batch() {
+  awk -v total="$1" '
+    { print; fflush() }
+    {
+      line = $0
+      gsub(/\033\[[0-9;]*m/, "", line)
+      if (line !~ /^(Using|Installing|Upgrading) [^ ]+$/) next
+      seen++
+      split(line, word, " ")
+      if (word[1] != "Using") { n++; todo = todo (todo == "" ? "" : ", ") word[2] }
+      if (seen == total && n > 0) {
+        printf "==> Installing or upgrading %d in one batch now: %s\n", n, todo
+        fflush()
+      }
+    }'
+}
+
 # Absolute path to an always-failing askpass helper. sudo exec()s this, so it
 # must be a real file: `type -P` forces a PATH lookup, whereas `command -v`
 # would return the bash builtin's bare name "false", which sudo cannot run —
@@ -119,7 +145,8 @@ for f in "${files[@]}"; do
   [ -f "$REPO_DIR/$f" ] || continue
   echo
   echo "==> $f (unattended pass)"
-  if ! SUDO_ASKPASS="$askpass" brew bundle install --file="$REPO_DIR/$f" </dev/null 2>&1 | tee -a "$log"; then
+  if ! SUDO_ASKPASS="$askpass" brew bundle install --file="$REPO_DIR/$f" </dev/null 2>&1 |
+    announce_batch "$(count_entries "$REPO_DIR/$f")" | tee -a "$log"; then
     failed_files+=("$f")
   fi
 done
