@@ -23,10 +23,42 @@ concurrency:
 # Each timeout is a few times the job's slowest run, so a hang stops there
 # instead of at the 6-hour default: 20 where Homebrew may install from cold
 # (~5 min), 10 for the rest (~1 min).
+#
+# Each runner names its OS release, never -latest: GitHub moves that label on
+# its own date, and the apt packages and cached builds move with it. Renovate
+# proposes the next release in its monthly PR.
 jobs:
+  # Lets a prose-only branch skip the e2e jobs, which hold every push for
+  # minutes while testing nothing it touched. They skip only on an explicit
+  # "false" and run after a failed scope job too (!cancelled()), so a broken
+  # check costs time, never an untested merge — a required check skipped by
+  # its `if:` reports success. static_checks has no `needs:`: it is what
+  # checks the prose.
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      e2e: ${{ steps.scope.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          # The merge base with origin/main has to be in the clone.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Decide whether the e2e jobs run
+        id: scope
+        # Only a push is scoped: the weekly cold run and a manual dispatch
+        # exist to run everything.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "e2e=$(./bin/ci_needs_e2e.sh)" >>"$GITHUB_OUTPUT"
+          else
+            echo "e2e=true" >>"$GITHUB_OUTPUT"
+          fi
+
   static_checks:
     if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -80,8 +112,9 @@ jobs:
         run: ./bin/check_commit_msgs_range.sh
 
   windows_codex_setup:
-    if: github.event_name != 'schedule'
-    runs-on: windows-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: windows-2025
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -97,7 +130,8 @@ jobs:
   # the arm64 assets and exercises each installed binary for real via the lint
   # scripts that depend on it.
   toolchain_arm64:
-    if: github.event_name != 'schedule'
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
     runs-on: ubuntu-24.04-arm
     # Below the usual 10: this is a required check, and an arm64 runner has been
     # seen to take the job and never start a step, holding the PR for the whole
@@ -125,12 +159,20 @@ jobs:
           lefthook version
 
   zsh_loading_test:
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
 
       - name: Restore Homebrew cache
         id: cache-brew
@@ -148,7 +190,7 @@ jobs:
           # installs on demand because it lives in Brewfile.extra; the -tmux
           # suffix forces a rebuild that bakes it in. Bump the vN to evict a
           # bad cache or when the set of extra brew installs changes.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
+          key: ${{ steps.image.outputs.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
@@ -161,7 +203,7 @@ jobs:
           # a cache holding the new commits. Bump the vN to evict a bad cache
           # (same manual lever as the brew key).
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
+          key: ${{ steps.image.outputs.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
 
       - name: Prepare world (cache phase)
         # One entry point owns the installs (Homebrew + Brewfile.standard,
@@ -252,12 +294,20 @@ jobs:
   # where the newer-only bindings are actually live. Its own job rather than a
   # second pass in that one: the two cannot share one tmux on PATH.
   tmux_latest_test:
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
 
       - name: Restore Homebrew cache
         id: cache-brew
@@ -267,13 +317,13 @@ jobs:
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
           # Same key as zsh_loading_test, which owns saving it.
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
+          key: ${{ steps.image.outputs.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
 
       - name: Restore tmux plugins cache
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
+          key: ${{ steps.image.outputs.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
 
       - name: Prepare world (cache phase)
         run: ./ci/prepare.sh
@@ -313,8 +363,9 @@ jobs:
   # nothing beyond Brewfile.standard plus the symlinks and checks that the
   # shell still loads on its own.
   zsh_loading_test_standard_only:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -333,8 +384,9 @@ jobs:
   # The minimal and basic phases: distro bash, zsh and vim only, as a non-root
   # user, so the config must work before any extra tool is installed.
   plain_shell_test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     # By digest: the tag moves, and whatever it points at that day would run
     # here unreviewed. Renovate moves the digest in its monthly PR.
@@ -362,8 +414,9 @@ jobs:
         run: runuser -u tester -- ./test/e2e/plain_shell_test.sh
 
   vim_guard_test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -383,8 +436,9 @@ jobs:
         run: ./test/e2e/nvim_guard_test.sh
 
   nvim_loading_test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -414,6 +468,12 @@ jobs:
           sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
           nvim --version | head -1
 
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
       - name: Restore nvim plugins cache
         id: cache-nvim-plugins
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
@@ -425,7 +485,7 @@ jobs:
           # evict a bad cache (same manual lever as the brew/tmux keys).
           path: ~/.nvim-e2e-data
           key: >-
-            ${{ runner.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua',
+            ${{ steps.image.outputs.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua',
             'config/nvim/nvim-pack-lock.json') }}-v1
 
       - name: Neovim e2e (install all plugins, assert clean startup)
