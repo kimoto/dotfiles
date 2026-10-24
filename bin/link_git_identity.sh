@@ -18,7 +18,8 @@ fi
 if ! git config --global --get-all include.path 2>/dev/null | grep -qxF "$source"; then
   git config --global --add include.path "$source" || true
 fi
-if [ "$(git config --global --includes user.email)" = "$(git config --file "$source" user.email)" ]; then
+want=$(git config --file "$source" user.email)
+if [ -n "$want" ] && [ "$(git config --global --includes user.email)" = "$want" ]; then
   echo "[cloud-setup] ok   git identity"
 else
   echo "[cloud-setup] MISS git identity" >&2
