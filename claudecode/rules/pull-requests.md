@@ -1,5 +1,14 @@
 # Pull requests
 
+**One PR per change, ideally one commit.** Fill the repo's PR template, if it
+has one, with `gh pr edit --body-file`. ★An auto-created PR (web, remote)
+starts with an empty body — backfill it before anything else.
+
+Claude Code appends its own trailers to commits and PR bodies; leave them.
+
+★**After creating a PR from a session that can receive PR events, subscribe to
+its activity right away** (`subscribe_pr_activity`), without asking.
+
 **Write only what the diff cannot say.** A reader should finish the body able
 to ask "which lines?" and never "why?". Restating changes or naming files goes
 stale the moment the branch moves; the diff is already there and is always
