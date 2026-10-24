@@ -6,9 +6,22 @@
 # for nothing. The full draw needs the latest tmux and runs in CI's
 # tmux_latest_test; these pin the normalizer on its own.
 
+# One draw takes about three seconds, so the golden both check tests compare
+# against is drawn once for the file.
+setup_file() {
+  command -v tmux >/dev/null 2>&1 || return 0
+  export GOLDEN="$BATS_FILE_TMPDIR/golden.txt"
+  TMUX_RENDER_GOLDEN="$GOLDEN" "$BATS_TEST_DIRNAME/../bin/tmux_render_snapshot.sh" update
+}
+
 setup() {
   SNAP="$BATS_TEST_DIRNAME/../bin/tmux_render_snapshot.sh"
   E=$'\033'
+}
+
+needs_golden() {
+  command -v tmux >/dev/null 2>&1 || skip "needs tmux"
+  [ -s "$GOLDEN" ]
 }
 
 norm() { printf '%s\n' "$1" | "$SNAP" normalize; }
@@ -48,17 +61,16 @@ norm() { printf '%s\n' "$1" | "$SNAP" normalize; }
 }
 
 @test "check passes against a golden this tmux just drew" {
-  command -v tmux >/dev/null 2>&1 || skip "needs tmux"
-  export TMUX_RENDER_GOLDEN="$BATS_TEST_TMPDIR/golden.txt"
-  "$SNAP" update
+  needs_golden
+  export TMUX_RENDER_GOLDEN="$GOLDEN"
   run "$SNAP" check
   [ "$status" -eq 0 ]
 }
 
 @test "check fails and shows the diff when the look moved" {
-  command -v tmux >/dev/null 2>&1 || skip "needs tmux"
+  needs_golden
   export TMUX_RENDER_GOLDEN="$BATS_TEST_TMPDIR/golden.txt"
-  "$SNAP" update
+  cp "$GOLDEN" "$TMUX_RENDER_GOLDEN"
   sed -i.bak '1s/^/moved/' "$TMUX_RENDER_GOLDEN"
   run "$SNAP" check
   [ "$status" -eq 1 ]
