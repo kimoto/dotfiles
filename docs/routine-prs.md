@@ -57,6 +57,7 @@ What changes for you: <one sentence> · class <A|B|C> · <feel|speed|safety|plum
 
 ## Limits
 
+- Assign every routine PR to `kimoto`.
 - At most 5 open routine PRs in class B or C across all repos; class A PRs do
   not count. A routine that would go over opens nothing and says so in its
   report. More open PRs means less careful review.

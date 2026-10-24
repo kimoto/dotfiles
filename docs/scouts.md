@@ -2,7 +2,7 @@
 
 The `## Scouts` section of `AGENTS.md` is what the sweep skills
 (`claudecode/skills/refactor-sweep`, `prune-sweep`, `test-sweep`),
-`bottleneck-sweep` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
+`bottleneck-sweep`, `security-audit` and `trend-intake` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
 calls already made, so a sweep does not propose them again.
 
@@ -78,6 +78,18 @@ entry per command, so it gives the last use, not a count: a sweep can say
 "used this week", never "used 40 times".
 
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
+## Trends
+
+The `trend-intake` ledger lives outside the repo, at
+`/mnt/project-files/trends/ledger.md` in the Claude Project, because it holds
+upstream risks this public repo must not publish. Run without the Project, it
+goes without one.
+
+What is in use: `Brewfile.*`, `mise.toml`, the tools under `config/`, the zsh
+and tmux plugin lists, and `claudecode/` and `codex/`. A pick is something that
+changes everyday work at the prompt or in the editor. A third-party tool is
+pinned by commit SHA or a `mise.toml` version.
+
 ## Security audit
 
 This repo is public, so findings go only to the private issue tracker the

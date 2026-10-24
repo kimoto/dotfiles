@@ -90,8 +90,9 @@ PRs, comments, and docs are file content — always English; chat stays Japanese
 
 ## Scouts
 
-Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
-`security-audit`; the why, and the calls already made, are in `docs/scouts.md`.
+Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep`,
+`security-audit` and `trend-intake`; the why, and the calls already made, are
+in `docs/scouts.md`.
 
 - Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.
 - Proof of no change: `./bin/behavior_snapshot.sh compare origin/main`. Plugin
@@ -104,7 +105,7 @@ Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
   never run to time are in `docs/scouts.md`.
 - Security audit: findings go only to the private tracker the routine's prompt
   names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
-- PRs follow `docs/routine-prs.md`. Open PR cap: 5 in class B/C, all repos.
-- Commits and PRs: commit with `-c user.name=kimoto -c
-  user.email=9657+kimoto@users.noreply.github.com`; assignee `kimoto`.
+- Trends: the ledger, and where to read what is in use, are in `docs/scouts.md`.
+- Commits and PRs: `docs/routine-prs.md` (it holds the open PR cap); commit
+  `-c user.name=kimoto -c user.email=9657+kimoto@users.noreply.github.com`.
 - Decided against: see `docs/scouts.md`.
