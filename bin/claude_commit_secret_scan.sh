@@ -38,7 +38,7 @@ cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null)
 cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null)
 [ -n "$cmd" ] || exit 0
 
-# Same shape as .claude/hooks/pr-description-reminder.sh: drop quoted text, then
+# Same shape as bin/claude_pr_description_reminder.sh: drop quoted text, then
 # look for git (with options such as -C <dir>) followed by commit, at the start
 # of a command in the line.
 bare=$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
