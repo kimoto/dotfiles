@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   platform:
-    runs-on: macos-latest
+    runs-on: macos-26
     # A cold run downloads every bottle and cask; a few times that.
     timeout-minutes: 90
     env:
@@ -45,6 +45,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Identify the runner image
+        id: image
+        # The OS release (macos26) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
       # The download cache, not /opt/homebrew: the image's own prefix is large
       # and not ours to snapshot. A hit skips the network, not the install, so
       # the install path still runs for real every time.
@@ -53,15 +59,17 @@ jobs:
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/Library/Caches/Homebrew
-          key: macos-brew-dl-${{ hashFiles('Brewfile.standard', 'Brewfile.extra', 'Brewfile.macos') }}-v2
-          restore-keys: macos-brew-dl-
+          key: >-
+            ${{ steps.image.outputs.os }}-brew-dl-${{ hashFiles('Brewfile.standard',
+            'Brewfile.extra', 'Brewfile.macos') }}-v2
+          restore-keys: ${{ steps.image.outputs.os }}-brew-dl-
 
       - name: Restore tmux plugins
         id: cache-tmux-plugins
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.tmux/plugins
-          key: macos-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
+          key: ${{ steps.image.outputs.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
 
       # The installed formulae themselves (Cellar directories plus their
       # links), not just the downloads: with the downloads cached, the ~4
@@ -82,9 +90,11 @@ jobs:
           path: ${{ runner.temp }}/cellar.tar
           # The archive format version sits before the week: restore-keys
           # match by prefix, so a version at the end would never invalidate.
-          key: macos-cellar-v2-${{ steps.week.outputs.week }}-${{ hashFiles('Brewfile.standard', 'Brewfile.extra') }}
+          key: >-
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-${{
+            hashFiles('Brewfile.standard', 'Brewfile.extra') }}
           restore-keys: |
-            macos-cellar-v2-${{ steps.week.outputs.week }}-
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-
 
       - name: Unpack the restored formulae
         if: steps.cache-cellar.outputs.cache-matched-key != ''
@@ -159,7 +169,7 @@ jobs:
   advance-stable:
     needs: platform
     if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write # moves the stable branch; nothing else in this job writes
