@@ -95,7 +95,8 @@ Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
 - Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.
 - Proof of no change: `./bin/behavior_snapshot.sh compare origin/main`. Plugin
   config is outside it.
-- Mutation tool: `bin/mutation_sweep.sh`.
+- Test gaps: `bin/mutation_sweep.sh` (also lists files no test selects). How a
+  new e2e check gets run: `docs/scouts.md`.
 - Leave alone: `TOOLS.md`, the `KEYBINDINGS.md` table shape, and the self-contained
   `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
 - Speed: `./bin/speed_report.sh` on `main`, one comment per run on #392; scripts
