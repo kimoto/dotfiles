@@ -82,6 +82,21 @@ commit_scan() {
   [ "$status" -eq 0 ]
 }
 
+@test "git hook: an installed hook that does not run gitleaks still gets the scan" {
+  command -v gitleaks >/dev/null || skip "gitleaks not installed"
+  mkrepo
+  printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
+  git -C "$REPO" add creds.txt
+  printf '#!/bin/sh\nexit 0\n' >"$REPO/.git/hooks/pre-commit"
+  chmod +x "$REPO/.git/hooks/pre-commit"
+  printf 'pre-commit:\n  commands:\n    lint:\n      run: true\n' >"$REPO/lefthook.yml"
+  run "$GIT_HOOK" --repo-owns "$REPO"
+  [ "$status" -eq 1 ]
+  run bash -c 'cd "$1" && "$2"' _ "$REPO" "$GIT_HOOK"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *github-pat* ]]
+}
+
 @test "git hook: the repo's .gitleaks.toml decides what counts" {
   command -v gitleaks >/dev/null || skip "gitleaks not installed"
   mkrepo
