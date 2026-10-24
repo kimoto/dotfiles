@@ -9,62 +9,31 @@
 # needs: each stub records its call in $TMP/calls. The local (non-remote) case
 # is the one that must never touch the machine.
 #
-# "Nothing but stubs" has to be literal. That PATH used to end in /usr/bin:/bin
-# "for the shell itself", which quietly handed the hook everything else the host
-# had installed — so on any machine carrying fzf (the very web sandbox this hook
-# provisions, for one) `command -v fzf` succeeded and the "installs fzf only
-# when it is missing" case failed, while passing on a bare CI runner. The
-# sandbox PATH is now an allow-list, and it is applied to the hook alone rather
-# than exported over the whole test, so bats' own helpers keep a working PATH
-# and that list stays a statement about the hook's dependencies.
+# "Nothing but stubs" has to be literal: a PATH that also reached /usr/bin would
+# hand the hook whatever the host carries, so the "installs fzf only when it is
+# missing" case would fail on any machine with fzf and pass on a bare runner.
+# The sandbox PATH is applied to the hook alone rather than exported over the
+# whole test, so bats' own helpers keep a working PATH and the allow-list stays
+# a statement about the hook's dependencies.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
+  # shellcheck source=test/agent_repo_fixture.sh
+  . "$REPO_ROOT/test/agent_repo_fixture.sh"
   isolate_git_env
   HOOK="$REPO_ROOT/.claude/hooks/session-start.sh"
   TMP="$(fixture_tmpdir)"
 
-  # The rules directory has to really exist: `ln -sf` dereferences an existing
-  # symlink only when the target is real, so a dangling one hides the -n case.
-  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/repo/bin" "$TMP/repo/codex" \
-    "$TMP/repo/claudecode/rules" \
-    "$TMP/repo/claudecode/rules-cloud" "$TMP/repo/claudecode/skills/example-skill"
-  : >"$TMP/repo/codex/config.toml"
-  : >"$TMP/repo/codex/AGENTS.md"
-  : >"$TMP/repo/claudecode/rules/example.md"
-  : >"$TMP/repo/claudecode/rules-cloud/scope.md"
-  : >"$TMP/repo/claudecode/settings-cloud.json"
-  : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
-
-  # The real scripts, not stubs: a stub tests the call, not the result — the
-  # half that was silently missing before.
+  make_agent_repo
+  # The real scripts, not stubs: a stub tests the call, not the result.
   cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/setup_agent.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
     "$TMP/repo/bin/"
-  for stub in lefthook sudo apt-get; do
-    cat >"$TMP/bin/$stub" <<EOF
-#!/bin/bash
-echo "$stub \$*" >>"$TMP/calls"
-EOF
-    chmod +x "$TMP/bin/$stub"
-  done
-
-  cat >"$TMP/repo/bin/install_check_tools.sh" <<EOF
-#!/bin/bash
-echo "install_check_tools" >>"$TMP/calls"
-EOF
-  chmod +x "$TMP/repo/bin/install_check_tools.sh"
-
-  # The real commands the hook needs, symlinked in one at a time; everything
-  # else it runs is a shell builtin or stubbed above. Listing them explicitly is
-  # what makes the sandbox deterministic: a command the hook grows a dependency
-  # on is then absent on every machine alike until it is added here, rather than
-  # present or missing depending on what the host happens to carry.
-  for real in id mkdir ln readlink dirname basename find; do
-    real_path="$(command -v "$real")" || return 1
-    ln -s "$real_path" "$TMP/sysbin/$real"
-  done
+  call_stubs lefthook sudo apt-get
+  toolchain_stub 0
+  # Everything else the hook runs is a shell builtin or stubbed above.
+  link_real id mkdir ln readlink dirname basename find
 
   SANDBOX_PATH="$TMP/bin:$TMP/sysbin"
   export CLAUDE_PROJECT_DIR="$TMP/repo"
@@ -73,8 +42,6 @@ EOF
 teardown() {
   rm -rf "$TMP"
 }
-
-calls() { cat "$TMP/calls" 2>/dev/null; }
 
 # Run the hook under the sandbox PATH. Any arguments are env(1) options or
 # assignments and must precede the PATH operand: GNU env stops reading options
