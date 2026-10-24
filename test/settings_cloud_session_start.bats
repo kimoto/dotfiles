@@ -17,7 +17,9 @@ setup() {
   CHECKOUT="$TMP/checkout"
   mkdir -p "$UPSTREAM/bin" "$UPSTREAM/claudecode/rules" "$UPSTREAM/claudecode/rules-cloud" \
     "$TMP/home/.claude"
-  cp "$REPO_ROOT/bin/link_claude_dir.sh" "$REPO_ROOT/bin/refresh_cloud_session.sh" "$UPSTREAM/bin/"
+  cp "$REPO_ROOT/bin/link_claude_dir.sh" "$REPO_ROOT/bin/refresh_cloud_session.sh" \
+    "$REPO_ROOT/bin/link_git_identity.sh" "$UPSTREAM/bin/"
+  cp "$REPO_ROOT/.gitconfig.agent" "$UPSTREAM/"
   cp "$REPO_ROOT/claudecode/settings-cloud.json" "$UPSTREAM/claudecode/"
   : >"$UPSTREAM/claudecode/rules/a.md"
   : >"$UPSTREAM/claudecode/rules-cloud/a.md"
@@ -103,4 +105,11 @@ upstream_commit() {
   HOME="$TMP/home" run "$CHECKOUT/bin/refresh_cloud_session.sh"
   [[ "$output" != *"rule "* ]]
   [[ "$output" != *"settings changed"* ]]
+}
+
+@test "gives commits the owner as author again after the platform rewrote ~/.gitconfig" {
+  # The platform writes this at container start, after the setup script ran.
+  printf '[user]\n\tname = Claude\n\temail = noreply@anthropic.com\n' >"$TMP/home/.gitconfig"
+  HOME="$TMP/home" run sh -c "$HOOK"
+  [ "$(HOME="$TMP/home" git config --includes user.email)" = "kimoto@users.noreply.github.com" ]
 }
