@@ -1,7 +1,8 @@
 # Scouts
 
 The `## Scouts` section of `AGENTS.md` is what the sweep skills
-(`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`),
+(`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`,
+`load-test-sweep`),
 `bottleneck-sweep` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
 calls already made, so a sweep does not propose them again.
