@@ -1,9 +1,19 @@
 # Pull requests
 
-**Write only what the diff cannot say.** A reader should finish the body able to
-ask "which lines?" and never "why?". Restating changes or naming files goes
+**One PR per change, ideally one commit.** Fill the repo's PR template, if it
+has one, with `gh pr edit --body-file`. ★An auto-created PR (web, remote)
+starts with an empty body — backfill it before anything else.
+
+Claude Code appends its own trailers to commits and PR bodies; leave them.
+
+★**After creating a PR from a session that can receive PR events, subscribe to
+its activity right away** (`subscribe_pr_activity`), without asking.
+
+**Write only what the diff cannot say.** A reader should finish the body able
+to ask "which lines?" and never "why?". Restating changes or naming files goes
 stale the moment the branch moves; the diff is already there and is always
-right. Same for a commit body.
+current. ★The why stays in the body even when a comment in the diff already says
+it: reviewers read the body first. Same for a commit body.
 
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
 50 characters, no script names, no jargon. ⚠️ **No counts either**: a number is
@@ -28,8 +38,3 @@ empty at merge cannot be told apart from one ignored.
 ★**On a public repo, write nothing a stranger shouldn't read** — no repo they
 cannot open, no server layout, nothing on where secrets live. Check
 `gh api repos/OWNER/REPO --jq .visibility` first: an edit does not unpublish.
-
-**Turn on auto-merge at creation only when both hold: the session already
-agreed to it, and the diff cannot change behavior** — comments, docs, or a
-`refactor` whose tests did not change. Say in the reply that it is on, so the
-merge is never a surprise. ⚠️ Anything else waits for a human to press it.
