@@ -38,7 +38,7 @@ description: セッションの締め。残っているもの（未コミット�
 
 - **クラウド／web**: `create_trigger` に `run_once_at` と `create_new_session_on_fire`。
   拒否されたらコーディネーター宛ての `send_later` で新しいスレッドを立ててもらう
-- **手元の CLI**: `/schedule`（クラウド側に作るので PC を閉じても発火する。一回きりにできるかは未確認）
+- **手元の CLI**: `/schedule`（クラウド側に作るので PC を閉じても発火する。一回きりの実行も作れる）
 
 ## 4. メモリの手入れ
 
