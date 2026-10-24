@@ -29,11 +29,9 @@ dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更�
 - 依頼されたファイルのみを編集する。
 - 変更は最小限に留め、タスクに集中させる。
 
-### 4) Run required checks
+### 4) Checks
 
-- `bin/` 配下のシェルを変更した場合は必ず実行する:
-  - `shellcheck bin/*.sh`
-- 明示依頼がない限り、チェックは最小限にする。
+- 検査は lefthook を使う。合否は CI が決める。
 
 ### 5) Commit (rules apply)
 
