@@ -18,16 +18,14 @@ if [[ "$PS1" ]]; then
   alias ls='ls --color=auto'
   alias ll='ls -lh'
   alias vi='vim'
-  alias s='screen -xRR'
   alias h='history 25'
   alias total='sort | uniq -c | sort -nr'
   alias ipaddr="grep -Eo '[0-9]+(\.[0-9]+){3}'"
-  alias irb='pry'
 
   set -o emacs
 
   complete -d cd
-  complete -u su finger
+  complete -u su
   complete -c man
 
   # shell var
