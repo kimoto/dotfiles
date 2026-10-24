@@ -73,7 +73,10 @@ canon() {
       backslash) base="\\" ;;
       semicolon) base=";" ;;
       minus) base="-" ;;
-      *) base=$(printf '%s' "$part" | tr '[:upper:]' '[:lower:]') ;;
+      # Only an uppercase key pays for tr: macOS's bash 3.2 has no ${part,,},
+      # and a process per key was most of this script's run time.
+      *[[:upper:]]*) base=$(printf '%s' "$part" | tr '[:upper:]' '[:lower:]') ;;
+      *) base="$part" ;;
     esac
   done
   # Fixed order (not alphabetical, just consistent) so both sides of the
@@ -338,15 +341,16 @@ compare_config_to_doc() {
   local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
   local key found=0
   while IFS= read -r key; do
-    if [ -z "$key" ]; then
-      continue
-    fi
-    if ! grep -qxF "$key" <<<"$doc_keys"; then
-      echo "x $config_name binds '$key' but $doc_name has no row for it"
-      found=1
-    fi
-  done <<<"$config_keys"
+    echo "x $config_name binds '$key' but $doc_name has no row for it"
+    found=1
+  done < <(keys_missing_from "$doc_keys" "$config_keys")
   return "$found"
+}
+
+# The non-empty lines of $2 that are not a whole line of $1, in $2's order.
+# One grep for the whole set rather than one per key.
+keys_missing_from() {
+  grep -vxF -e '' -f <(printf '%s\n' "$1") <<<"$2" || true
 }
 
 # compare_config_to_doc, plus one line per documented key no config binds.
@@ -355,14 +359,9 @@ compare_keys() {
   local key found=0
   compare_config_to_doc "$@" || found=1
   while IFS= read -r key; do
-    if [ -z "$key" ]; then
-      continue
-    fi
-    if ! grep -qxF "$key" <<<"$config_keys"; then
-      echo "x $doc_name names '$key' but no $config_name binds it"
-      found=1
-    fi
-  done <<<"$doc_keys"
+    echo "x $doc_name names '$key' but no $config_name binds it"
+    found=1
+  done < <(keys_missing_from "$config_keys" "$doc_keys")
   return "$found"
 }
 
