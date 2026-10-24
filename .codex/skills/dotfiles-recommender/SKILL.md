@@ -14,7 +14,7 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
 ### 0) Preflight
 
 - 作業前に `git status -sb` を確認し、既存の変更や未追跡が多い場合は**別worktree**で作業を分離する。
-- ブランチ名は AGENTS.md の規約 `<type>/<short-desc>`（type ∈ feat/fix/chore/docs/refactor/ci/revert/test）に従う。迷う場合はユーザーに確認する。
+- ブランチ名は AGENTS.md の規約に従う。迷う場合はユーザーに確認する。
 
 ### 1) Scope and inputs
 
@@ -46,7 +46,7 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
   - 根拠（なぜ良いか）
   - 影響範囲（壊れる可能性や注意点）
   - 適用手順（コマンドや差分例）
-- 変更実装を求められたら、最小限の変更に留め、必要ならテスト/チェック（例: `shellcheck bin/*.sh`）を案内する。
+- 変更実装を求められたら、最小限の変更に留める。検査は lefthook を使い、合否は CI が決める。
 
 ### 4) Apply and PR
 

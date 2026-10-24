@@ -21,7 +21,7 @@ dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更�
 ### 2) Create a branch if missing
 
 - ブランチが無ければ作成する。
-- 命名は AGENTS.md の規約 `<type>/<short-desc>`（type ∈ feat/fix/chore/docs/refactor/ci/revert/test）に従う。迷う場合はユーザーに確認する。
+- 命名は AGENTS.md の規約に従う。迷う場合はユーザーに確認する。
 - 既存の作業ツリーが汚れていて分離が必要なら、別worktreeで作業する。
 
 ### 3) Make changes
@@ -56,17 +56,7 @@ dotfilesリポジトリ固有のPR手順に従い、ブランチ作成、変更�
 - 変更がスキル由来の場合はSummaryに1行入れる（例: `Created via dotfiles-recommender skill`）。
 - 改行崩れ回避のため `--body-file` を優先する。
 
-PR本文例（AI開示は末尾）:
-
-```
-## Summary
-- ...
-
-## Testing
-- ...
-
-AI disclosure: Drafted with Codex.
-```
+PR本文は `.github/PULL_REQUEST_TEMPLATE.md` の見出しを埋め、AI開示文は末尾に置く。
 
 PR本文の更新は次で行う:
 - `gh pr edit --body-file <file>`
@@ -74,4 +64,4 @@ PR本文の更新は次で行う:
 ## Notes
 
 - コミットメッセージにもAI開示を要求された場合は、末尾に1行追加する。
-- フローは必ず「変更 →（必要ならShellCheck）→ commit → push → PR」の順で進める。
+- フローは必ず「変更 → commit → push → PR」の順で進める。
