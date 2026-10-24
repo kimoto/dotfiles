@@ -67,8 +67,9 @@ entry per command, so it gives the last use, not a count: a sweep can say
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Security audit
 
-This repo is public, so findings go only to issues on the private
-`kimoto/routines` repo. `./bin/setup_cloud_session.sh` installs gitleaks.
+This repo is public, so findings go only to the private issue tracker the
+routine's prompt names, never to this repo. The name stays out of here for the
+same reason. `./bin/setup_cloud_session.sh` installs gitleaks.
 
 Pinned inputs beyond the lockfiles and the workflow `uses:` SHAs:
 

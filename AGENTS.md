@@ -100,8 +100,8 @@ Read by the sweep skills (`claudecode/skills/*-sweep`), `bottleneck-sweep` and
   `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
 - Speed: `./bin/speed_report.sh` on `main`, one comment per run on #392; scripts
   never run to time are in `docs/scouts.md`.
-- Security audit: findings go to the private `kimoto/routines` issues only; what
-  is pinned where, and the `stable` branch, are in `docs/scouts.md`.
+- Security audit: findings go only to the private tracker the routine's prompt
+  names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
 - Commits and PRs: commit with `-c user.name=kimoto -c
   user.email=9657+kimoto@users.noreply.github.com`; assignee `kimoto`.
 - Decided against: see `docs/scouts.md`.
