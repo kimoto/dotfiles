@@ -53,6 +53,12 @@ In a cloud container:
 - Never pass extra arguments to an `ln -sf` that names `/dev/null`: it once
   replaced `/dev/null`.
 
+Per-test times for the inventory: `bats --timing test/`. Never run to time
+them: the bootstrap and install scripts (`mkworld.sh`, `mklink.sh`,
+`rmworld.sh`, `setup_*`, `install_*`, `brew_*`, `link_claude_dir.sh`,
+`refresh_cloud_session.sh`) and the human-only scripts `AGENTS.md` lists; they
+change the machine, so only their tests are timed.
+
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Security audit
 
