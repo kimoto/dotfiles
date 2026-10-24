@@ -44,3 +44,5 @@ expect platform.
 Steps that are not a phase (tpm plugins, the Claude Code hooks, mise, lefthook)
 run after the climb whenever their own tool is present, and only warn on
 failure.
+
+<!-- e2e skip check: this PR is closed unmerged -->.
