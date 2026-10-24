@@ -1,6 +1,6 @@
 ---
 name: tool-intake
-description: 流行りの CLI ツールを1つ選び、Brewfile に足して dotfiles のどこかに組み込むところまでを1本の PR にする。★「便利なツール探して」「Brewfile に足せるのある?」と言われた時と、週次 routine（tool-scout）から使う。⚠️ Brewfile に足すだけの PR は出さない・1回1ツール・マージしない。
+description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfile に足して dotfiles のどこかに組み込むところまでを1本の PR にする。★「便利なツール探して」「Brewfile に足せるのある?」と言われた時と、週次 routine（tool-scout）から使う。どの repo から呼ばれても dotfiles に PR を出す。⚠️ Brewfile に足すだけの PR は出さない・1回1ツール・マージしない。
 ---
 
 # 新しいツールを入れて、組み込むところまで

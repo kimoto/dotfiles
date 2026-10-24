@@ -99,4 +99,6 @@ Read by the sweep skills (`claudecode/skills/*-sweep`), `speed-watch` and
 - Leave alone: `TOOLS.md`, the `KEYBINDINGS.md` table shape, and the self-contained
   `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
 - Speed: `./bin/speed_report.sh` on `main`, one comment per run on #392.
+- Security audit: findings go to the private `kimoto/routines` issues only; what
+  is pinned where, and the `stable` branch, are in `docs/scouts.md`.
 - Decided against: see `docs/scouts.md`.

@@ -54,6 +54,23 @@ In a cloud container:
   replaced `/dev/null`.
 
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
+## Security audit
+
+This repo is public, so findings go only to issues on the private
+`kimoto/routines` repo. `./bin/setup_cloud_session.sh` installs gitleaks.
+
+Pinned inputs beyond the lockfiles and the workflow `uses:` SHAs:
+
+- zsh plugins by commit (`rev =` in `config/sheldon/plugins.toml`) and tmux
+  plugins in `tmux-plugins.lock`, by choice since #430;
+- the nvim plugin lockfile, `mise.toml` / `mise.lock`, and the Homebrew
+  installer commit in `bin/setup_homebrew.sh`;
+- downloads in the `bin/` install scripts.
+
+Agent permissions also live in `claudecode/settings-*.json` and `codex/`.
+
+`stable` is the branch machines may follow instead of `main`; it only moves to
+a commit already on `main`, so it must stay an ancestor of `origin/main`.
 
 ## Decided against: refactor
 
