@@ -68,7 +68,6 @@
   sort = -committerdate
 
 [url "git@github.com:"]
-  pushinsteadof = "git://github.com/"
   pushinsteadof = "https://github.com/"
 
 # --------
