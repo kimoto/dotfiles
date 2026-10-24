@@ -24,7 +24,7 @@ before changing or calling the script.
   `brew_bundle_check.sh`, `mise_missing_check.sh`. Generated files:
   `gen_tools_list.sh` (`TOOLS.md`), `keys.sh` (reads `KEYBINDINGS.md`).
   Human-only, never from an agent: `brew_bundle_install.sh`,
-  `check_cloned_repo_hooks.sh`, `vscode/install_vscode.sh`.
+  `check_cloned_repo_hooks.sh`, and the repo-root `vscode/install_vscode.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
 - `claudecode/` — Claude Code user configuration (rules, skills, settings).
   What belongs where: `claudecode/README.md`.

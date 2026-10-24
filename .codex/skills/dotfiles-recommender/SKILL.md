@@ -13,7 +13,7 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
 
 ### 0) Preflight
 
-- 作業前に `git status -sb` を確認し、既存の変更や未追跡が多い場合は**別worktree**で作業を分離する。
+- 作業は自分の worktree で行う（他のセッションが main checkout を共有するため）。作業前に `git status -sb` で既存の変更を確認する。
 - ブランチ名は AGENTS.md の規約に従う。迷う場合はユーザーに確認する。
 
 ### 1) Scope and inputs
@@ -50,8 +50,7 @@ Dotfilesリポジトリをレビューし、Brewfile.*と.zshrcを起点に改�
 
 ### 4) Apply and PR
 
-- 変更提案が採用されたら `dotfiles-pr-flow` を**呼び出して**PR作成フローに移譲する。
-- PR手順の詳細はこのスキルで繰り返さず、`dotfiles-pr-flow` に従う。
+- 変更提案が採用されたら PR にする。手順はこのスキルで繰り返さない: Codex では `dotfiles-pr-flow` に移譲し、Claude Code では AGENTS.md の Branch & PR workflow に従う（`dotfiles-pr-flow` は Codex 専用で、Claude Code からは呼べない）。
 - PR本文のSummaryに「Created via dotfiles-recommender skill」を1行追加する（AI disclosureは末尾）。
 - 作業後は作成したworktreeの削除と `git worktree prune` を行う。
 
