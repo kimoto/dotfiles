@@ -2,7 +2,7 @@
 
 The `## Scouts` section of `AGENTS.md` is what the sweep skills
 (`claudecode/skills/refactor-sweep`, `prune-sweep`, `mutation-sweep`),
-`speed-watch` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
+`bottleneck-sweep` and `security-audit` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
 calls already made, so a sweep does not propose them again.
 
@@ -34,6 +34,37 @@ stripped.
 - The human-only scripts `AGENTS.md` lists are never run by an agent, so a
   sweep cannot check a change to them.
 
+## Speed
+
+`./bin/speed_report.sh` measures zsh, nvim and tmux startup, the hooks,
+pre-commit and the bats suite in a hermetic HOME, and prints one row. The row
+goes on issue #392 as one comment per run, numbers only: the repo is public.
+Run it on `main`: on a branch, a SessionStart hook calls the network and the
+numbers wobble. The budgets are those of `claudecode/rules/latency.md`.
+
+In a cloud container:
+
+- Put the mise shims at the end of `PATH`. First on `PATH`, the gitleaks shim
+  fails under the bats temp HOME and the suite reads as failed.
+- A changed HOME breaks the mise shims (config trust); install nvim, sheldon
+  and starship with `mise use -g aqua:...`.
+- tmux 3.4's `kill-server` returns before the server is gone, so use a new
+  socket name per run.
+- Never pass extra arguments to an `ln -sf` that names `/dev/null`: it once
+  replaced `/dev/null`.
+
+Per-test times for the inventory: `bats --timing test/`. Never run to time
+them: the bootstrap and install scripts (`mkworld.sh`, `mklink.sh`,
+`rmworld.sh`, `setup_*`, `install_*`, `brew_*`, `link_claude_dir.sh`,
+`refresh_cloud_session.sh`) and the human-only scripts `AGENTS.md` lists; they
+change the machine, so only their tests are timed.
+
+How often a typed helper is used lives only in the owner's zsh history, on
+their machine. `bin/usage_report.sh` reads it there, but the history keeps one
+entry per command, so it gives the last use, not a count: a sweep can say
+"used this week", never "used 40 times".
+
+Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Security audit
 
 This repo is public, so findings go only to issues on the private

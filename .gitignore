@@ -81,6 +81,7 @@ claudecode/rules-cloud/*
 # ~/.claude/skills/, and a skill is a directory, so an accidental copy would
 # arrive as a whole tree.
 claudecode/skills/*
+!claudecode/skills/bottleneck-sweep/
 !claudecode/skills/cloud-refresh/
 !claudecode/skills/handoff/
 !claudecode/skills/issue-sweep/
