@@ -84,8 +84,9 @@ disable_continuum_restore() {
   tmux -L "$1" set-option -g @continuum-restore 'off' 2>/dev/null || true
 }
 
-# wait_for_pane <socket> <pattern> [tries]: poll `capture-pane -p` until the
-# grep -E <pattern> appears, or time out (default 150 tries * 0.1s = 15s).
+# wait_for_pane <socket> <pattern> [tries] [target]: poll `capture-pane -p`
+# (the active pane, or <target>) until the grep -E <pattern> appears, or time
+# out (default 150 tries * 0.1s = 15s).
 # Polling beats a fixed sleep — as fast as the shell on a quick runner, as
 # forgiving as needed on a slow one; since it returns the instant the pattern
 # appears, a larger ceiling never slows a passing assertion, it only widens the
@@ -98,12 +99,14 @@ disable_continuum_restore() {
 # explicit larger value.
 wait_for_pane() {
   local sock="$1" pattern="$2" tries="${3:-150}" i=0
+  local -a target=()
+  [ -n "${4:-}" ] && target=(-t "$4")
   while [ "$i" -lt "$tries" ]; do
-    tmux -L "$sock" capture-pane -p 2>/dev/null | grep -qE "$pattern" && return 0
+    tmux -L "$sock" capture-pane -p ${target[@]+"${target[@]}"} 2>/dev/null | grep -qE "$pattern" && return 0
     i=$((i + 1)); sleep 0.1
   done
   echo "---- pane contents at timeout ----" >&2
-  tmux -L "$sock" capture-pane -p >&2 2>/dev/null || true
+  tmux -L "$sock" capture-pane -p ${target[@]+"${target[@]}"} >&2 2>/dev/null || true
   die "timed out waiting for: $pattern"
 }
 
