@@ -9,3 +9,8 @@ fo = "fo"
 fpr = "fpr"
 # test(1)'s "older than" operator, `[ a -ot b ]`.
 ot = "ot"
+
+[files]
+# Base64 key data, not prose. The no-argument walk skips it only because it is
+# hidden, so a commit or `lefthook run --all-files` that names it went red.
+extend-exclude = [".public_key.asc"]

@@ -36,3 +36,8 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }
+
+@test "the public key passes when a commit names it" {
+  run "$SCRIPT" "$REPO_ROOT/.public_key.asc"
+  [ "$status" -eq 0 ]
+}
