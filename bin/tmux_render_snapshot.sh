@@ -17,6 +17,8 @@
 #   tmux_render_snapshot.sh normalize   rewrite capture-pane -e output read
 #                                    on stdin the way print does (for tests)
 # TMUX_BIN picks the tmux under test (default: tmux on PATH, Homebrew's first).
+# TMUX_RENDER_GOLDEN points check/update at another golden, so a test can
+# prove check fails without touching the real one.
 #
 # The golden is drawn by the latest tmux release: CI's tmux_latest_test runs
 # `check` there, so a new release that draws differently turns it red. A
@@ -40,7 +42,7 @@
 set -euo pipefail
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
-GOLDEN="$BASE_DIR/test/fixtures/tmux_render.txt"
+GOLDEN="${TMUX_RENDER_GOLDEN:-$BASE_DIR/test/fixtures/tmux_render.txt}"
 
 # shellcheck source=bin/brew_lib.sh
 . "$BASE_DIR/bin/brew_lib.sh"

@@ -46,3 +46,21 @@ norm() { printf '%s\n' "$1" | "$SNAP" normalize; }
   run norm "x   "
   [ "$output" = "[]x" ]
 }
+
+@test "check passes against a golden this tmux just drew" {
+  command -v tmux >/dev/null 2>&1 || skip "needs tmux"
+  export TMUX_RENDER_GOLDEN="$BATS_TEST_TMPDIR/golden.txt"
+  "$SNAP" update
+  run "$SNAP" check
+  [ "$status" -eq 0 ]
+}
+
+@test "check fails and shows the diff when the look moved" {
+  command -v tmux >/dev/null 2>&1 || skip "needs tmux"
+  export TMUX_RENDER_GOLDEN="$BATS_TEST_TMPDIR/golden.txt"
+  "$SNAP" update
+  sed -i.bak '1s/^/moved/' "$TMUX_RENDER_GOLDEN"
+  run "$SNAP" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"The look of .tmux.conf changed"* ]]
+}
