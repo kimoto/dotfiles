@@ -90,6 +90,7 @@ claudecode/skills/*
 !claudecode/skills/prune-sweep/
 !claudecode/skills/refactor-sweep/
 !claudecode/skills/session-resume/
+!claudecode/skills/speed-watch/
 !claudecode/skills/trend-intake/
 !claudecode/skills/wrapup/
 
