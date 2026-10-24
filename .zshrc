@@ -603,7 +603,9 @@ add-zsh-hook precmd _feature_hint
 
 # Ring the bell when a command over 30s ends in a pane nobody is looking at, so
 # tmux marks its window (Ghostty's own notice needs OSC 133, which tmux eats).
-# A watched pane stays quiet, which also keeps vim or ssh silent on exit.
+# Watched means a client shows this pane and its terminal has focus
+# (focus-events in .tmux.conf); a terminal that never reports focus stays
+# focused from attach, so there it falls back to "shown".
 _long_command_started=
 _long_command_mark() { _long_command_started=$SECONDS }
 _long_command_bell() {
@@ -611,10 +613,9 @@ _long_command_bell() {
   _long_command_started=
   [[ -n "$TMUX" && -n "$started" ]] || return 0
   (( SECONDS - started >= ${LONG_COMMAND_BELL_SECONDS:-30} )) || return 0
-  local watched
-  watched=$(tmux display-message -p -t "$TMUX_PANE" \
-    '#{&&:#{pane_active},#{&&:#{window_active},#{session_attached}}}' 2>/dev/null)
-  [[ "$watched" == 1 ]] || print -n '\a'
+  local -a viewers
+  viewers=(${(f)"$(tmux list-clients -F '#{m:*focused*,#{client_flags}} #{pane_id}' 2>/dev/null)"})
+  (( ${viewers[(Ie)1 $TMUX_PANE]} )) || print -n '\a'
   return 0
 }
 add-zsh-hook preexec _long_command_mark
