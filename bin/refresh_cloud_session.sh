@@ -51,4 +51,8 @@ if [ -n "$base" ]; then
   done
 fi
 
+# Again here, not only in setup_agent.sh: the platform writes a fresh
+# ~/.gitconfig when the container starts, after the setup script has run.
+"$BASE_DIR/bin/link_git_identity.sh"
+
 exec "$BASE_DIR/bin/link_claude_dir.sh" --cloud

@@ -8,7 +8,8 @@
 #   # shellcheck source=test/agent_repo_fixture.sh
 #   . "$REPO_ROOT/test/agent_repo_fixture.sh"
 
-# make_agent_repo: one empty file of each kind the linkers read, in $TMP/repo.
+# make_agent_repo: one empty file of each kind the linkers read, in $TMP/repo,
+# and the real .gitconfig.agent, whose address the identity step checks.
 # The rules directory has to really exist: `ln -sf` dereferences an existing
 # symlink only when the target is real, so a dangling one hides the -n case.
 make_agent_repo() {
@@ -16,6 +17,7 @@ make_agent_repo() {
     "$TMP/repo/claudecode/rules" "$TMP/repo/claudecode/rules-cloud" \
     "$TMP/repo/claudecode/skills/example-skill"
   : >"$TMP/repo/codex/config.toml"
+  cp "$REPO_ROOT/.gitconfig.agent" "$TMP/repo/"
   : >"$TMP/repo/codex/AGENTS.md"
   : >"$TMP/repo/claudecode/rules/example.md"
   : >"$TMP/repo/claudecode/rules-cloud/scope.md"

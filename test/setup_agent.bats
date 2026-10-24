@@ -16,8 +16,8 @@ setup() {
   mkdir -p "$TMP/decoy"
   make_agent_repo
   # The real linker, not a stub: a stub tests the call, not the result.
-  cp "$REPO_ROOT/bin/setup_agent.sh" "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/"
-  cp "$REPO_ROOT/.gitconfig.agent" "$TMP/repo/"
+  cp "$REPO_ROOT/bin/setup_agent.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
+    "$REPO_ROOT/bin/link_git_identity.sh" "$TMP/repo/bin/"
   mkdir -p "$TMP/home"
   SETUP="$TMP/repo/bin/setup_agent.sh"
   toolchain_stub 0
