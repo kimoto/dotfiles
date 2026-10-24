@@ -9,39 +9,20 @@ setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
+  # shellcheck source=test/agent_repo_fixture.sh
+  . "$REPO_ROOT/test/agent_repo_fixture.sh"
   isolate_git_env
   TMP="$(fixture_tmpdir)"
 
-  mkdir -p "$TMP/bin" "$TMP/sysbin" "$TMP/decoy" "$TMP/repo/bin" \
-    "$TMP/repo/codex" \
-    "$TMP/repo/claudecode/rules" "$TMP/repo/claudecode/rules-cloud" \
-    "$TMP/repo/claudecode/skills/example-skill"
-  : >"$TMP/repo/codex/config.toml"
-  : >"$TMP/repo/codex/AGENTS.md"
-  : >"$TMP/repo/claudecode/rules/example.md"
-  : >"$TMP/repo/claudecode/rules-cloud/scope.md"
-  : >"$TMP/repo/claudecode/settings-cloud.json"
-  : >"$TMP/repo/claudecode/skills/example-skill/SKILL.md"
-
+  mkdir -p "$TMP/decoy"
+  make_agent_repo
   # The real linker, not a stub: a stub tests the call, not the result.
   cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/setup_agent.sh" \
     "$REPO_ROOT/bin/link_claude_dir.sh" "$TMP/repo/bin/"
   SETUP="$TMP/repo/bin/setup_cloud_session.sh"
-
-  for stub in lefthook sudo apt-get; do
-    cat >"$TMP/bin/$stub" <<EOF
-#!/bin/bash
-echo "$stub \$*" >>"$TMP/calls"
-EOF
-    chmod +x "$TMP/bin/$stub"
-  done
-
+  call_stubs lefthook sudo apt-get
   toolchain_stub 0
-
-  for real in id mkdir ln readlink dirname basename find; do
-    real_path="$(command -v "$real")" || return 1
-    ln -s "$real_path" "$TMP/sysbin/$real"
-  done
+  link_real id mkdir ln readlink dirname basename find
 
   SANDBOX_PATH="$TMP/bin:$TMP/sysbin"
 }
@@ -49,18 +30,6 @@ EOF
 teardown() {
   rm -rf "$TMP"
 }
-
-# The one step that can half-succeed, so every case decides what it did.
-toolchain_stub() {
-  cat >"$TMP/repo/bin/install_check_tools.sh" <<EOF
-#!/bin/bash
-echo "install_check_tools" >>"$TMP/calls"
-exit $1
-EOF
-  chmod +x "$TMP/repo/bin/install_check_tools.sh"
-}
-
-calls() { cat "$TMP/calls" 2>/dev/null; }
 
 run_setup() { run env -u CODEX_HOME HOME="$TMP/home" PATH="$SANDBOX_PATH" "$SETUP"; }
 
