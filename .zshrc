@@ -612,7 +612,11 @@ _long_command_bell() {
   local started=$_long_command_started
   _long_command_started=
   [[ -n "$TMUX" && -n "$started" ]] || return 0
-  (( SECONDS - started >= ${LONG_COMMAND_BELL_SECONDS:-30} )) || return 0
+  # Anything but whole seconds (`30s`) would print `bad math expression` above
+  # every prompt and never ring, so it gets the default instead.
+  local limit=${LONG_COMMAND_BELL_SECONDS:-30}
+  [[ $limit == <-> ]] || limit=30
+  (( SECONDS - started >= limit )) || return 0
   local -a viewers
   viewers=(${(f)"$(tmux list-clients -F '#{m:*focused*,#{client_flags}} #{pane_id}' 2>/dev/null)"})
   (( ${viewers[(Ie)1 $TMUX_PANE]} )) || print -n '\a'
