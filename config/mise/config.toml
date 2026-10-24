@@ -4,7 +4,7 @@
 # says so in its own mise.toml.
 [tools]
 bun = "1.4.3"
-go = "1.27.2"
+go = "1.27.3"
 node = "26.12.0"
 # The repo's pipx: tools ask for this minor version, and mise resolves them
 # outside the repo, where only this file names a python.
