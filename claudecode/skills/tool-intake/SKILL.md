@@ -30,7 +30,7 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 ## 3. 外すもの
 
 - もう `Brewfile.*` か `mise.toml` にあるもの
-- ★**closed かつ未マージの `routine:tool-scout` PR で出したツールは、本人が却下したもの。二度と出さない。**`gh api "repos/kimoto/dotfiles/pulls?state=all&per_page=100&page=N"`（全ページ）をラベルで絞って確かめる
+- ★**closed かつ未マージの `routine:tool-scout` PR で出したツールは、却下されたもの。二度と出さない。**`gh api "repos/<owner>/dotfiles/pulls?state=all&per_page=100&page=N"`（owner は `git remote get-url origin` から）（全ページ）をラベルで絞って確かめる
   - ⚠️ 照会に失敗したら、**却下の履歴を確かめられないまま提案しない。**PR を作らず「却下履歴を照会できなかった」と報告して終わる。「照会した上で候補が無かった」と混同しない
 - 調べて見送ったもの（2026-10-23）。理由が変わらない限り出さない:
 
@@ -53,7 +53,7 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - メンテが生きている（1年以内にリリースがある）
 - 好みに合う。その根拠を PR に書ける
 - ★**dotfiles のどこに組み込むかを具体的に言える**（`bin/lint_*.sh`・lefthook・CI・alias や関数・設定ファイルのどれか）。言えないものは対象外
-  - Brewfile に足すだけの PR はこれまで全部 close された。手本は zizmor（#242）と typos（#474）
+  - Brewfile に足すだけの PR は出さない。手本は zizmor（#242）と typos（#474）
 
 ## 5. PR を1本作る（1ツール＝導入と組み込み）
 
@@ -67,7 +67,7 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - ⚠️ `.claude/settings.json` は触らない（クラウドのセッションでは自己変更として拒否される）。allow-list に足したいときは PR 本文に書く
 - push する前に bats（少なくとも `check_brewfile_sort`・`gen_tools_list`・組み込み先の検査）と、触った `bin/lint_*.sh` を回して green を確かめる
 - PR 本文（英語）: ツールの概要 / 選んだ理由と根拠（analytics の順位・出典 URL）/ **How it's wired**（どこに組み込み、普段どう使われ、どう戻すか）/ 何を置き換える・補うか / 次点があれば "Runners-up" に1行ずつ / 何で確かめたか
-- ラベル `routine` と `routine:tool-scout`、assignee kimoto。`subscribe_pr_activity` して CI を green にする
+- ラベル `routine` と `routine:tool-scout`、assignee は dotfiles の `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
 ## 6. 報告

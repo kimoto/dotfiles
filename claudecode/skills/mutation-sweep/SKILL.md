@@ -11,14 +11,14 @@ description: いま居る repo で、スクリプトの失敗の出口（exit 1�
 
 - 対象 repo の既定ブランチの最新で作業する（`git fetch origin <base> && git checkout -B <base> origin/<base>`）。
   `CLAUDE.md`（または `AGENTS.md`）を全部読む
-- 壊して試す道具: `## Scouts` 節に書かれていればそれ、無ければ `bin/mutation_sweep.sh`。どちらも無ければ何もせず「道具が無い」と報告して終わる
+- 壊して試す道具: `## Scouts` 節に書かれていればそれ、無ければ何もせず「道具が無い」と報告して終わる
 - repo の visibility を確かめる。公開 repo なら、PR とコミットに private repo の名前・中身、ホスト名、どのマシンで使っているかを書かない
 
 ## 1. 回す
 
-- `./bin/mutation_sweep.sh` を引数なしで回す（dotfiles で約6分）。範囲を絞るならスクリプトを引数に並べる
+- その道具を Scouts 節に書かれた通りに回す。範囲を絞るなら対象を引数に並べる
 - ⚠️ 作業ツリーのファイルを書き換えながら走る。同じ checkout で別の作業をしない。終わったら `git status` で何も残っていないことを確かめる
-- 先に、既定ブランチのまま全テストが green か見る。落ちているテストがあると、それに頼るものは全部 killed に見える
+- 先に、既定ブランチのまま全テストが green か見る。落ちているテストがあると、それに頼るものは全部 killed に見える。落ちていれば、そのテストに頼る出口は選ばず、報告に書く
 
 ## 2. 1か所選ぶ
 
@@ -43,9 +43,9 @@ description: いま居る repo で、スクリプトの失敗の出口（exit 1�
 ## 4. PR
 
 - ブランチ `test/<short-desc>`。Conventional Commits の `test(scope): …`（スクリプトに入口を足しても、目的がテストなら `test`）
-- コミット identity は `command git -c user.name=kimoto -c user.email=9657+kimoto@users.noreply.github.com commit`
+- コミット identity は `## Scouts` 節に書かれたもの（`-c user.name=… -c user.email=…` で渡す）。無ければ git の設定のまま
 - push 前に `## Scouts` 節の検査、無ければ repo の lint とテストを手で回す
-- PR テンプレートがあれば埋める。Verification に「壊して赤、戻して緑」を書く。assignee kimoto。subscribe_pr_activity して CI を緑にする。CI でそのテストが skip されずに走ったことをログで確かめる。**マージしない**
+- PR テンプレートがあれば埋める。Verification に「壊して赤、戻して緑」を書く。ラベル `mutation-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。CI でそのテストが skip されずに走ったことをログで確かめる。**マージしない**
 
 ## 報告
 
