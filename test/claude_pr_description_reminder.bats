@@ -28,6 +28,54 @@ run_hook() {
   run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ "$(jq -cn --arg c "$1" '{tool_input: {command: $c}}')"
 }
 
+# Same, with what the command printed, as Claude Code passes it back.
+run_hook_with_stdout() {
+  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
+    "$(jq -cn --arg c "$1" --arg o "$2" '{tool_input: {command: $c}, tool_response: {stdout: $o}}')"
+}
+
+PR_URL="https://github.com/kimoto/dotfiles/pull/541"
+
+@test "a created PR asks for the watcher, naming its URL" {
+  run_hook_with_stdout "gh pr create --title t --body-file -" "$PR_URL"
+  [ "$status" -eq 0 ]
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"~/bin/watch_pr.sh $PR_URL"* ]]
+  [[ "$ctx" == *"run_in_background"* ]]
+}
+
+@test "a cloud session, which has its own PR subscription, gets no watcher" {
+  CLAUDE_CODE_REMOTE=true run_hook_with_stdout "gh pr create --fill" "$PR_URL"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  CLAUDE_CODE_REMOTE=true run_hook_with_stdout "git push && gh pr create --fill" "$PR_URL"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"pull-requests.md"* ]]
+  [[ "$ctx" != *"watch_pr.sh"* ]]
+}
+
+@test "the watcher the reminder names exists where ~/bin points" {
+  [ -x "$REPO_ROOT/bin/watch_pr.sh" ]
+}
+
+@test "a gh pr create that printed no PR URL stays silent" {
+  run_hook_with_stdout "gh pr create --title t" "a pull request for branch already exists"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "a quoted gh pr create stays silent even beside a PR URL" {
+  run_hook_with_stdout "grep -n 'gh pr create --fill' notes.md" "$PR_URL"
+  [ -z "$output" ]
+}
+
+@test "a push and a PR create in one command get both reminders" {
+  run_hook_with_stdout "git push -u origin feat/x && gh pr create --fill" "$PR_URL"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"pull-requests.md"* ]]
+  [[ "$ctx" == *"watch_pr.sh $PR_URL"* ]]
+}
+
 @test "a plain git push asks for the PR description update" {
   run_hook "git push"
   [ "$status" -eq 0 ]
