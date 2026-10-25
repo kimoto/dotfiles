@@ -25,9 +25,19 @@ if [ "$(cat "$QUEUE/last")" = ERR ]; then
 fi
 cat "$QUEUE/last"
 STUBEOF
-  chmod +x "$TMP/stubbin/gh"
+  # A stub sleep returns at once and logs how long the watcher asked to wait.
+  SLEEPS="$TMP/sleeps"
+  export SLEEPS
+  cat >"$TMP/stubbin/sleep" <<'STUBEOF'
+#!/bin/bash
+echo "$1" >>"$SLEEPS"
+STUBEOF
+  chmod +x "$TMP/stubbin/gh" "$TMP/stubbin/sleep"
   PATH="$TMP/stubbin:$PATH"
-  export WATCH_PR_INTERVAL=0
+}
+
+waits() {
+  tr '\n' ' ' <"$SLEEPS" | sed 's/ $//'
 }
 
 teardown() {
@@ -99,4 +109,30 @@ answer() {
   run "$SCRIPT"
   [ "$status" -eq 2 ]
   [[ "$output" == *"usage"* ]]
+}
+
+@test "a PR that does not change is polled ever less often, up to five minutes" {
+  for n in 1 2 3 4 5 6 7; do answer "$n" OPEN '{"name":"ci","conclusion":""}'; done
+  answer 8 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+  [ "$(waits)" = "30 60 120 240 300 300 300" ]
+}
+
+@test "any change in the PR brings the wait back to 30 seconds" {
+  answer 1 OPEN '{"name":"ci","conclusion":""}'
+  answer 2 OPEN '{"name":"ci","conclusion":""}'
+  answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 5 MERGED
+  run "$SCRIPT" 7
+  [ "$(waits)" = "30 60 30 60" ]
+}
+
+@test "failed polls back off the same way" {
+  echo ERR >"$QUEUE/1"
+  echo ERR >"$QUEUE/2"
+  answer 3 MERGED
+  run "$SCRIPT" 7
+  [ "$(waits)" = "30 60" ]
 }

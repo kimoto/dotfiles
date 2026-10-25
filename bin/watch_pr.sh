@@ -15,10 +15,14 @@ if [ $# -ne 1 ]; then
 fi
 pr=$1
 
-# A merge waits on a person, so a minute apart is soon enough and stays far
-# below GitHub's rate limit.
-interval=${WATCH_PR_INTERVAL:-60}
-# Ten minutes of failed polls is an outage or a PR that is gone, not a blip.
+# A PR that just moved (a push, a check finishing) tends to move again soon,
+# so it is polled every 30 s; each poll that sees nothing new doubles the wait,
+# up to 5 min, so a PR left for hours of review costs a dozen calls an hour.
+# A merge is then heard at most 5 min late.
+min_interval=30
+max_interval=300
+# Ten failed polls in a row, by then minutes apart, is an outage or a PR that
+# is gone, not a blip.
 max_failures=10
 
 # A check run reports .conclusion, a legacy commit status .state.
@@ -27,6 +31,14 @@ failing='[.statusCheckRollup[]?
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
 
+wait_and_back_off() {
+  sleep "$interval"
+  interval=$((interval * 2))
+  [ "$interval" -le "$max_interval" ] || interval=$max_interval
+}
+
+interval=$min_interval
+previous=""
 failures=0
 while true; do
   if ! json=$(gh pr view "$pr" --json state,url,statusCheckRollup 2>/dev/null); then
@@ -35,10 +47,14 @@ while true; do
       echo "giving up: gh pr view $pr failed $failures times in a row"
       exit 4
     fi
-    sleep "$interval"
+    wait_and_back_off
     continue
   fi
   failures=0
+  if [ "$json" != "$previous" ]; then
+    interval=$min_interval
+    previous=$json
+  fi
   url=$(jq -r '.url' <<<"$json")
   case $(jq -r '.state' <<<"$json") in
     MERGED) echo "merged: $url"; exit 0 ;;
@@ -49,5 +65,5 @@ while true; do
     echo "check failed ($failed): $url"
     exit 1
   fi
-  sleep "$interval"
+  wait_and_back_off
 done
