@@ -34,12 +34,14 @@ On Windows these work outside text fields too; close tabs with ⌘+W.
 ## Screenshots
 
 Source:
-- Mac: CleanShot X, in-app (`LAVA*` keys of `pl.maketheweb.cleanshotx`)
+- Mac: CleanShot X, in-app (`LAVA*` keys of `pl.maketheweb.cleanshotx`); every capture
+  goes to the clipboard and `~/Pictures/Screenshots` (`bin/setup_macosx.sh`)
 - Windows: ShareX, `HotkeysConfig.json` under `%USERPROFILE%`
 
 | Mac (CleanShot X) | Windows (ShareX) | Action |
 |-------------------|------------------|--------|
 | ⌃+⌘+⇧+4 | same | Region → annotate → clipboard |
+| ⌘+⇧+2 | — | Region → pin on screen |
 | ⌘+⇧+4 | Ctrl+PrintScreen (clipboard + file) | Region |
 | ⌘+⇧+3 | PrintScreen (clipboard + file) | Full screen |
 | ⌘+⇧+4, then Space | Alt+PrintScreen (clipboard + file) | Active window |
