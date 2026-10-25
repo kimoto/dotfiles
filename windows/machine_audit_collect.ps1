@@ -1,7 +1,7 @@
 # Print what this Windows PC starts on its own, what it exposes to the network,
 # and its security settings, one `kind<TAB>key<TAB>detail` line each, sorted.
-# bin/pc_checkup_diff.sh compares the output to a list of what is allowed; the
-# pc-checkup skill decides what to do with the rest. Read-only: changes nothing.
+# bin/machine_audit_diff.sh compares the output to a list of what is allowed; the
+# machine-audit skill decides what to do with the rest. Read-only: changes nothing.
 #
 # Keys carry only what should stay stable between runs (no PIDs, no dynamic
 # ports), so a diff shows real change instead of noise. Detail is for the

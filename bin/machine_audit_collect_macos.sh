@@ -2,9 +2,9 @@
 
 # Print what this Mac starts on its own, what it exposes to the network, and
 # its security settings, one `kind<TAB>key<TAB>detail` line each, sorted.
-# The macOS half of windows/pc_checkup_collect.ps1: same kinds, same rules.
-# bin/pc_checkup_diff.sh compares the output to a list of what is allowed; the
-# pc-checkup skill decides what to do with the rest. Read-only: changes nothing.
+# The macOS half of windows/machine_audit_collect.ps1: same kinds, same rules.
+# bin/machine_audit_diff.sh compares the output to a list of what is allowed; the
+# machine-audit skill decides what to do with the rest. Read-only: changes nothing.
 #
 # Keys carry only what should stay stable between runs (no PIDs), so a diff
 # shows real change instead of noise. Detail is for the reader, never compared.
@@ -15,7 +15,7 @@
 set -uo pipefail
 
 if [ "$(uname -s)" != "Darwin" ]; then
-    echo "pc_checkup_collect_macos.sh: macOS only" >&2
+    echo "machine_audit_collect_macos.sh: macOS only" >&2
     exit 2
 fi
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Tests for bin/pc_checkup_diff.sh.
+# Tests for bin/machine_audit_diff.sh.
 #
 # The diff must flag what the allow list does not cover, report allowed
 # entries that are gone, honour `*` prefixes, and refuse an allow entry
@@ -8,7 +8,7 @@
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  SCRIPT="$REPO_ROOT/bin/pc_checkup_diff.sh"
+  SCRIPT="$REPO_ROOT/bin/machine_audit_diff.sh"
   SNAP="$BATS_TEST_TMPDIR/snap.tsv"
   ALLOW="$BATS_TEST_TMPDIR/allow.tsv"
 }

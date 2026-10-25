@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Compare a pc-checkup snapshot to the list of what this machine is allowed to
+# Compare a machine-audit snapshot to the list of what this machine is allowed to
 # run, expose and have set, and print only what needs a decision.
 #
-#   pc_checkup_diff.sh SNAPSHOT ALLOW
+#   machine_audit_diff.sh SNAPSHOT ALLOW
 #
-# SNAPSHOT is the output of bin/pc_checkup_collect_macos.sh or
-# windows/pc_checkup_collect.ps1: `kind<TAB>key<TAB>detail`.
+# SNAPSHOT is the output of bin/machine_audit_collect_macos.sh or
+# windows/machine_audit_collect.ps1: `kind<TAB>key<TAB>detail`.
 # ALLOW is `kind<TAB>key<TAB>reason`; blank lines and `#` lines are skipped.
 # A key ending in `*` matches by prefix, for names that carry a version or an
 # id that changes on update (`service:GoogleUpdaterService*`).
