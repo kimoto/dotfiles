@@ -64,7 +64,14 @@ wait_server_gone() {
   local i=0
   while kill -0 "$SERVER_PID" 2>/dev/null; do
     i=$((i + 1))
-    [ "$i" -lt 50 ] || die "server $1 still running"
+    if [ "$i" -ge 50 ]; then
+      echo "---- server $1 at timeout ----" >&2
+      tmux -L "$1" list-panes -a -F '#{session_name} #{pane_pid} #{pane_dead}' >&2 2>&1 || true
+      tmux -L "$1" show-messages >&2 2>&1 || true
+      ps -o pid,ppid,stat,args -g "$(ps -o sid= -p "$SERVER_PID" | tr -d ' ')" >&2 2>&1 || true
+      ls -l "$SAVES" >&2 2>&1 || true
+      die "server $1 still running"
+    fi
     sleep 0.1
   done
 }
