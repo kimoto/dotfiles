@@ -25,6 +25,15 @@ function Add-Line($kind, $key, $detail) {
 
 # --- login: things that start without being asked ---
 
+# Task Manager's "Disabled" leaves the Run entry in place and records the
+# choice under StartupApproved: an odd first byte means off. Without this, an
+# item already switched off is reported as running.
+function Test-StartupDisabled($hive, $kind, $name) {
+    $key = "${hive}:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\$kind"
+    $v = (Get-ItemProperty -Path $key -Name $name).$name
+    return ($v -and ($v[0] % 2) -eq 1)
+}
+
 foreach ($hive in 'HKCU', 'HKLM') {
     foreach ($sub in 'Run', 'RunOnce') {
         $path = "${hive}:\Software\Microsoft\Windows\CurrentVersion\$sub"
@@ -32,18 +41,20 @@ foreach ($hive in 'HKCU', 'HKLM') {
         if (-not $item) { continue }
         foreach ($p in $item.PSObject.Properties) {
             if ($p.Name -like 'PS*') { continue }
+            if ($sub -eq 'Run' -and (Test-StartupDisabled $hive 'Run' $p.Name)) { continue }
             Add-Line 'login' "run:$($p.Name)" $p.Value
         }
     }
 }
 
 $startupDirs = @(
-    [Environment]::GetFolderPath('Startup'),
-    [Environment]::GetFolderPath('CommonStartup')
+    @{ Hive = 'HKCU'; Path = [Environment]::GetFolderPath('Startup') },
+    @{ Hive = 'HKLM'; Path = [Environment]::GetFolderPath('CommonStartup') }
 )
 foreach ($dir in $startupDirs) {
-    Get-ChildItem -Path $dir -File | Where-Object { $_.Name -ne 'desktop.ini' } |
-        ForEach-Object { Add-Line 'login' "startup:$($_.Name)" $_.FullName }
+    Get-ChildItem -Path $dir.Path -File | Where-Object {
+        $_.Name -ne 'desktop.ini' -and -not (Test-StartupDisabled $dir.Hive 'StartupFolder' $_.Name)
+    } | ForEach-Object { Add-Line 'login' "startup:$($_.Name)" $_.FullName }
 }
 
 # Microsoft's own tasks live under \Microsoft\ and change with every update.
