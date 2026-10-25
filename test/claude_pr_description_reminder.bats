@@ -44,6 +44,16 @@ PR_URL="https://github.com/kimoto/dotfiles/pull/541"
   [[ "$ctx" == *"run_in_background"* ]]
 }
 
+@test "a cloud session, which has its own PR subscription, gets no watcher" {
+  CLAUDE_CODE_REMOTE=true run_hook_with_stdout "gh pr create --fill" "$PR_URL"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  CLAUDE_CODE_REMOTE=true run_hook_with_stdout "git push && gh pr create --fill" "$PR_URL"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"pull-requests.md"* ]]
+  [[ "$ctx" != *"watch_pr.sh"* ]]
+}
+
 @test "the watcher the reminder names exists where ~/bin points" {
   [ -x "$REPO_ROOT/bin/watch_pr.sh" ]
 }

@@ -33,7 +33,8 @@ if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:sp
 fi
 
 # The URL gh prints is the proof a PR exists; without one the create failed.
-if printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)"; then
+# A cloud session already hears its PRs, and its container may have no gh.
+if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)"; then
   url=$(jq -r '.tool_response | tostring' <<<"$payload" 2>/dev/null \
     | grep -oE 'https://github\.com/[^/[:space:]"]+/[^/[:space:]"]+/pull/[0-9]+' | head -1)
   if [ -n "$url" ]; then
