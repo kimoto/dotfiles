@@ -54,6 +54,40 @@ PR_URL="https://github.com/kimoto/dotfiles/pull/541"
   [[ "$ctx" != *"watch_pr.sh"* ]]
 }
 
+# Install the Codex plugin under $HOME the way Claude Code lays it out, and
+# set whether settings.json has it enabled.
+codex_plugin() {
+  local enabled=$1
+  for v in 1.0.6 1.0.10; do
+    mkdir -p "$HOME/.claude/plugins/cache/openai-codex/codex/$v/scripts"
+    touch "$HOME/.claude/plugins/cache/openai-codex/codex/$v/scripts/codex-companion.mjs"
+  done
+  jq -n --argjson e "$enabled" '{enabledPlugins: {"codex@openai-codex": $e}}' >"$HOME/.claude/settings.json"
+}
+
+@test "a push with the Codex plugin enabled asks for its review, newest version" {
+  codex_plugin true
+  run_hook "git push"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"pull-requests.md"* ]]
+  [[ "$ctx" == *"codex/1.0.10/scripts/codex-companion.mjs\" review --base"* ]]
+  [[ "$ctx" == *"run_in_background"* ]]
+}
+
+@test "no Codex review when the plugin is disabled, missing, or in a cloud session" {
+  codex_plugin false
+  run_hook "git push"
+  [[ "$output" != *"codex"* ]]
+  rm -rf "$HOME/.claude"
+  run_hook "git push"
+  [[ "$output" != *"codex"* ]]
+  codex_plugin true
+  CLAUDE_CODE_REMOTE=true run_hook "git push"
+  [[ "$output" != *"codex"* ]]
+  run_hook "git status"
+  [ -z "$output" ]
+}
+
 @test "the watcher the reminder names exists where ~/bin points" {
   [ -x "$REPO_ROOT/bin/watch_pr.sh" ]
 }
