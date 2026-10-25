@@ -10,8 +10,8 @@
 
 set -euo pipefail
 
-BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
-cd "$BASE_DIR" || exit 1
+# shellcheck source=bin/lint_lib.sh
+. "$(dirname "$(readlink -f "$0")")/lint_lib.sh"
 
 # The release binary mise.toml installs is named `ec`; Homebrew uses the long
 # name.

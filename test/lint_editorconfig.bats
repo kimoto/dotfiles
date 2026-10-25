@@ -53,3 +53,10 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }
+
+@test "no arguments walks this repo, not the caller's directory" {
+  printf 'trailing whitespace   \n' >"$TMP/tw.txt"
+  cd "$TMP"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
