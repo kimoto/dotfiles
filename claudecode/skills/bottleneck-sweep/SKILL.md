@@ -66,7 +66,7 @@ description: いま居る repo で、人や処理が待たされている時間�
 
 - 新しいブランチ `perf/<short-desc>`（スクリプトを足すなら `feat/`）。Conventional Commits、英語
 - push する前に Scouts 節の検査コマンドと、触った領域のテストを回す
-- PR テンプレートがあれば埋める。ラベル `routine` と `routine:bottleneck-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
+- PR テンプレートがあれば埋める。ラベル `routine` と `routine:bottleneck-sweep`（付ける前に `"$(readlink -f ~/.claude/skills/bottleneck-sweep)/../../../bin/routine_labels.sh" routine:bottleneck-sweep` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
 ## 報告（1行目だけで分かる形）

@@ -61,7 +61,7 @@ description: いま居る repo で、挙動を変えずに読みやすくする�
 - ブランチ `refactor/<short-desc>`。Conventional Commits（`refactor(scope): …`。テストだけなら `test(scope): …`）
 - コミット identity は `## Scouts` 節に書かれたもの（`-c user.name=… -c user.email=…` で渡す）。無ければ git の設定のまま
 - PR テンプレートがあれば埋める。Verification には回したコマンドと、写しの差分が空だったことを名前で書く
-- ラベル `routine` と `routine:refactor-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。**マージしない**
+- ラベル `routine` と `routine:refactor-sweep`（付ける前に `"$(readlink -f ~/.claude/skills/refactor-sweep)/../../../bin/routine_labels.sh" routine:refactor-sweep` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。**マージしない**
 
 ## 報告
 

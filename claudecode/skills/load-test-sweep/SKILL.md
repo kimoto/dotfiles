@@ -63,7 +63,7 @@ bottleneck-sweep とは目的が違う。あちらは普段の待ち時間を縮
 - 新しいブランチ `fix/<short-desc>`。Conventional Commits、英語
 - コミット identity と assignee は `## Scouts` 節に書かれたもの（無ければ git の設定のまま・assignee なし）
 - push する前に Scouts 節の検査コマンドと、触った領域のテストを回す
-- PR テンプレートがあれば埋める。本文に、どのシナリオで・どの段で・何が壊れたか、前後の限界、再現テストの赤と緑を書く。ラベル `routine` と `routine:load-test-sweep`（無ければ作る）。`subscribe_pr_activity` して CI を green にする
+- PR テンプレートがあれば埋める。本文に、どのシナリオで・どの段で・何が壊れたか、前後の限界、再現テストの赤と緑を書く。ラベル `routine` と `routine:load-test-sweep`（付ける前に `"$(readlink -f ~/.claude/skills/load-test-sweep)/../../../bin/routine_labels.sh" routine:load-test-sweep` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
 ## 報告（1行目だけで分かる形）
