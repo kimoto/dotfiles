@@ -375,8 +375,35 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Identify the runner image
+        id: image
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
+      - name: Restore Homebrew cache (Brewfile.standard only)
+        id: cache-brew
+        # Its own key: zsh_loading_test's tree also holds tmux, which this gate
+        # must not see. The key covers the installer too, so a change to either
+        # file installs from cold. The weekly cold install in zsh_loading_test
+        # already checks Brewfile.standard against what Homebrew serves today.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          key: ${{ steps.image.outputs.os }}-brew-std-${{ hashFiles('Brewfile.standard', 'bin/setup_homebrew.sh') }}-v1
+
       - name: Install Homebrew + Brewfile.standard only
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         run: SKIP_BREWFILE_EXTRA=1 ./bin/setup_homebrew.sh
+
+      - name: Save Homebrew cache (Brewfile.standard only)
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          key: ${{ steps.cache-brew.outputs.cache-primary-key }}
 
       - name: Symlink dotfiles (stage 0, no network)
         run: ./bin/mklink.sh
