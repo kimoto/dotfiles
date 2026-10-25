@@ -107,13 +107,30 @@ Add-Setting 'uac' ($(if ($lua -eq 1) { 'on' } elseif ($null -eq $lua) { 'unknown
 $deny = (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server').fDenyTSConnections
 Add-Setting 'remote-desktop' ($(if ($deny -eq 1) { 'off' } elseif ($null -eq $deny) { 'unknown' } else { 'on' }))
 
-# BitLocker / device encryption status needs admin; without it this is unknown.
+# Get-BitLockerVolume needs admin and is missing on Home, so fall back to the
+# value Explorer shows on the drive, which any user can read: 1 on, 2 off,
+# 0 not protected (Home without device encryption). Anything else is printed
+# raw so that a state this script does not know reaches a person.
 $vol = Get-BitLockerVolume -MountPoint $env:SystemDrive
 if ($vol) {
     Add-Setting 'disk-encryption' ($(if ($vol.ProtectionStatus -eq 'On') { 'on' } else { 'off' }))
 } else {
-    Add-Setting 'disk-encryption' 'unknown'
+    $drive = (New-Object -ComObject Shell.Application).NameSpace("$env:SystemDrive\").Self
+    $state = $drive.ExtendedProperty('System.Volume.BitLockerProtection')
+    $value = switch ($state) { 1 { 'on' } 2 { 'off' } 0 { 'off' } $null { 'unknown' } default { "state-$state" } }
+    Add-Setting 'disk-encryption' $value
 }
+
+# Device encryption on Home needs Secure Boot, and it is the guard against
+# code that runs before Windows. Missing key: legacy BIOS boot.
+$sb = (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State').UEFISecureBootEnabled
+Add-Setting 'secure-boot' ($(if ($sb -eq 1) { 'on' } elseif ($sb -eq 0) { 'off' } else { 'unknown' }))
+
+# Firmware carries CPU security fixes; two years without an update is the
+# point to look, not proof of a hole. The version and date go in the detail.
+$bios = Get-CimInstance Win32_BIOS
+$recent = if ($bios.ReleaseDate -gt (Get-Date).AddYears(-2)) { 'yes' } else { 'no' }
+Add-Line 'setting' "firmware-recent=$recent" "$($bios.SMBIOSBIOSVersion) $($bios.ReleaseDate.ToString('yyyy-MM-dd'))"
 
 $smb1 = (Get-SmbServerConfiguration).EnableSMB1Protocol
 Add-Setting 'smb1' ($(if ($smb1 -eq $true) { 'on' } elseif ($smb1 -eq $false) { 'off' } else { 'unknown' }))
