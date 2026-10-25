@@ -93,7 +93,7 @@ climb() {
     case "$(uname)" in
         Darwin)
             bundle_phase Brewfile.macos || return 0
-            # System preferences: Finder, key repeat, startup mute (sudo for nvram).
+            # System preferences: Finder, key repeat, CleanShot, startup mute (sudo for nvram).
             if ! "$BASE_DIR/bin/setup_macosx.sh"; then
                 stop "setup_macosx.sh failed"; return
             fi
