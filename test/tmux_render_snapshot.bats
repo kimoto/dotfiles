@@ -45,6 +45,14 @@ norm() { printf '%s\n' "$1" | "$SNAP" normalize; }
   [ "$a" = "[bg=#073642]   [fg=#020202 bg=#073642]x" ]
 }
 
+@test "the fg of padding is part of the look under a line or reverse" {
+  # These draw blanks in the fg colour, so a new fg there is a change you see.
+  for code in 4:underscore 7:reverse 9:strike 53:overline; do
+    run norm "${E}[38;2;1;1;1mx${E}[${code%%:*}m   ${E}[0my"
+    [ "$output" = "[fg=#010101]x[fg=#010101 ${code#*:}]   []y" ]
+  done
+}
+
 @test "reset and the off codes end what they turned on" {
   run norm "${E}[1;4;7mA${E}[24mB${E}[22;27mC${E}[0;31mD"
   [ "$output" = "[bold reverse underscore]A[bold reverse]B[]C[fg=colour1]D" ]
