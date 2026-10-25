@@ -75,7 +75,7 @@ description: いま居る repo で、壊れても誰も気づかない所（テ�
 - コミット identity は `## Scouts` 節に書かれたもの（`-c user.name=… -c user.email=…` で渡す）。無ければ git の設定のまま
 - push 前に `## Scouts` 節の検査を回す
 - PR テンプレートがあれば埋める。Verification に、何を壊して赤になり、戻して緑になったかを書く
-- ラベル `routine` と `routine:test-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。CI でそのテストが skip されずに走ったことをログで確かめる。**マージしない**
+- ラベル `routine` と `routine:test-sweep`（付ける前に `"$(readlink -f ~/.claude/skills/test-sweep)/../../../bin/routine_labels.sh" routine:test-sweep` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。CI でそのテストが skip されずに走ったことをログで確かめる。**マージしない**
 
 ## 報告
 

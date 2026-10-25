@@ -38,7 +38,7 @@ repo が公開なら、その repo に issue を立てない。PR 本文やコ�
 
 ## 2. 書き方
 
-- 指摘は1件1 issue で Scouts 節の置き場に立てる（日本語、ラベル `routine` と `routine:security-audit`、assignee は `## Scouts` 節に書かれた人（無ければ付けない））。題・どこ（repo とファイルと行）・何が起きうるか・確度（✅確定 / 🟡状況証拠 / ❓未確認）・直し方の案
+- 指摘は1件1 issue で Scouts 節の置き場に立てる（日本語、ラベル `routine` と `routine:security-audit`（付ける前に `"$(readlink -f ~/.claude/skills/security-audit)/../../../bin/routine_labels.sh" --repo <置き場> routine:security-audit` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は `## Scouts` 節に書かれた人（無ければ付けない））。題・どこ（repo とファイルと行）・何が起きうるか・確度（✅確定 / 🟡状況証拠 / ❓未確認）・直し方の案
 - 立てる前に同じラベルの open issue を見る。同じ指摘があれば新しく立てず、新しい根拠があるときだけコメントで足す
 - 公開して差し支えない締め付け（版や commit の固定、checksum の追加）は、監査した repo に PR を出してよい。公開 repo なら本文は「pin X」程度にとどめ、なぜ危ないかは非公開の issue にだけ書く
   - PR はテンプレートがあれば埋め、ラベル `routine` と `routine:security-audit`、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。push 前に Scouts 節の検査コマンドを回す。`subscribe_pr_activity` する。**マージしない**

@@ -45,7 +45,7 @@ description: いま居る repo で、使われていないもの・重複して�
 - ブランチ `refactor/<short-desc>`。Conventional Commits
 - コミット identity は `## Scouts` 節に書かれたもの（`-c user.name=… -c user.email=…` で渡す）。無ければ git の設定のまま
 - push 前に `## Scouts` 節の検査コマンドを手で回す。消したものが docs や一覧に載っていれば同じ PR で直す
-- PR テンプレートがあれば埋める。ラベル `routine` と `routine:prune-sweep`（無ければ作る）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。**マージしない**
+- PR テンプレートがあれば埋める。ラベル `routine` と `routine:prune-sweep`（付ける前に `"$(readlink -f ~/.claude/skills/prune-sweep)/../../../bin/routine_labels.sh" routine:prune-sweep` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は `## Scouts` 節に書かれた人（無ければ付けない）。subscribe_pr_activity して CI を緑にする。**マージしない**
 
 ## 報告
 

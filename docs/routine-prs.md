@@ -6,6 +6,10 @@ worries them, so the PR itself has to say what kind of change it is and how
 much reading it needs. This note is the source of truth for that; a routine's
 own prompt only says "follow `docs/routine-prs.md`".
 
+Every repo a routine works in gets the same label colours, set by
+`bin/routine_labels.sh` (the skills run it before labelling), so a routine PR
+looks the same wherever it is opened.
+
 ## Status
 
 Trial week (one week from the day the routine prompts start pointing here): routines add the `automerge:candidate` label to
