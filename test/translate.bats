@@ -13,7 +13,8 @@ setup() {
   TMP="$(mktemp -d)"
   export REQUEST="$TMP/request.json"
 
-  # The SDK: record the create() call, answer with a fixed translation.
+  # The SDK: record the stream() call, answer with a fixed translation that
+  # arrives in two pieces.
   mkdir -p "$TMP/py"
   cat >"$TMP/py/anthropic.py" <<'EOF'
 import json, os
@@ -23,11 +24,17 @@ class RateLimitError(APIStatusError): pass
 class APIConnectionError(Exception): pass
 class _Obj:
     def __init__(self, **kw): self.__dict__.update(kw)
+class _Stream:
+    text_stream = ["TRANS", "LATED"]
+    def __enter__(self): return self
+    def __exit__(self, *exc): return False
+    def get_final_message(self):
+        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text="TRANSLATED")])
 class _Messages:
-    def create(self, **kw):
+    def stream(self, **kw):
         with open(os.environ["REQUEST"], "w") as f:
             json.dump(kw, f)
-        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text="TRANSLATED")])
+        return _Stream()
 class Anthropic:
     def __init__(self, api_key):
         with open(os.environ["REQUEST"] + ".key", "w") as f:

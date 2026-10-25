@@ -98,11 +98,16 @@ def system_prompt() -> str:
 
 
 def translate(content: list) -> str:
+    """Translate, writing the text to stdout as it arrives; return all of it.
+
+    Streamed so the popup can show the first words while the rest is still
+    being written: a long passage otherwise waits for its last token.
+    """
     client = anthropic.Anthropic(api_key=api_key())
     try:
         # fallbacks: a safety classifier's false positive on ordinary text is
         # retried on the model Anthropic recommends instead of failing.
-        response = client.beta.messages.create(
+        with client.beta.messages.stream(
             model=MODEL,
             max_tokens=16000,
             output_config={"effort": EFFORT},
@@ -110,7 +115,11 @@ def translate(content: list) -> str:
             fallbacks="default",
             system=system_prompt(),
             messages=[{"role": "user", "content": content}],
-        )
+        ) as stream:
+            for chunk in stream.text_stream:
+                sys.stdout.write(chunk)
+                sys.stdout.flush()
+            response = stream.get_final_message()
     except anthropic.AuthenticationError:
         fail("API キーが無効です。")
     except anthropic.RateLimitError:
@@ -124,7 +133,10 @@ def translate(content: list) -> str:
         fail("この内容は翻訳を断られました。")
     text = "".join(b.text for b in response.content if b.type == "text").strip()
     if response.stop_reason == "max_tokens":
-        text += "\n\n（長すぎて途中で切れました）"
+        cut = "\n\n（長すぎて途中で切れました）"
+        sys.stdout.write(cut)
+        text += cut
+    sys.stdout.write("\n")
     return text
 
 
@@ -160,7 +172,7 @@ def read_text(args) -> str:
 
 
 def show(text: str, quiet: bool) -> None:
-    print(text)
+    """Copy the translation, which translate() already wrote to stdout."""
     subprocess.run(["pbcopy"], input=text, text=True, check=False)
     if not quiet:
         # The text goes in as argv, so AppleScript string escaping never applies.

@@ -12,57 +12,181 @@ local CLIPBOARD_WAIT = 0.15
 -- How long a sent ⌘C may take to reach the clipboard before "nothing was
 -- selected" is the better guess than "the app is slow".
 local COPY_TIMEOUT = 0.5
-local POPUP_WIDTH = 440
+local POPUP_WIDTH = 520
+-- Before the page reports its real height; it grows or shrinks at once.
+local POPUP_START_HEIGHT = 120
+local POPUP_MAX_HEIGHT = 640
 
-local function escapeHtml(s)
-   return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+-- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
+-- The page draws the whole window (no title bar), takes the text through
+-- update(), and reports its own height so the window fits the text instead
+-- of a guess at line wrapping.
+local POPUP_HTML = [[
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root { color-scheme: light dark; --bg: #fafafc; --fg: #1d1d1f; --muted: #6e6e73;
+  --line: rgba(0,0,0,.1); --hover: rgba(0,0,0,.07); --ok: #248a3d; --err: #d70015; }
+@media (prefers-color-scheme: dark) { :root { --bg: #26262a; --fg: #f5f5f7; --muted: #a1a1a6;
+  --line: rgba(255,255,255,.12); --hover: rgba(255,255,255,.1); --ok: #30d158; --err: #ff6961; } }
+html, body { margin: 0; background: transparent; }
+.card { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden; font: 15px/1.65 -apple-system, "Hiragino Sans", sans-serif; }
+header { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 16px;
+  border-bottom: 1px solid var(--line); -webkit-user-select: none; cursor: default; }
+.title { font-weight: 600; font-size: 13px; }
+.status { flex: 1; font-size: 12px; color: var(--muted); }
+.status.busy::after { content: ""; display: inline-block; width: 9px; height: 9px; margin-left: 6px;
+  vertical-align: -1px; border: 2px solid var(--muted); border-top-color: transparent; border-radius: 50%;
+  animation: spin .8s linear infinite; }
+.status.done { color: var(--ok); }
+.status.error { color: var(--err); }
+@keyframes spin { to { transform: rotate(360deg); } }
+button { all: unset; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+  color: var(--muted); cursor: pointer; }
+button:hover { background: var(--hover); color: var(--fg); }
+button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round; }
+main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto;
+  max-height: 560px; -webkit-user-select: text; cursor: text; }
+main.error { color: var(--err); font-size: 13px; }
+</style></head><body><div class="card">
+<header>
+  <span class="title">翻訳</span><span class="status busy" id="status">翻訳中…</span>
+  <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
+    <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
+  <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</header>
+<main id="text"></main>
+</div><script>
+const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
+const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
+function update(text, status, kind) {
+  const t = document.getElementById('text');
+  t.textContent = text;
+  t.className = kind === 'error' ? 'error' : '';
+  const s = document.getElementById('status');
+  s.textContent = status;
+  s.className = 'status ' + kind;
+  fit();
+}
+document.getElementById('close').onclick = () => post({ close: true });
+document.getElementById('copy').onclick = () => post({ copy: true });
+post({ ready: true });
+</script></body></html>
+]]
+
+-- The one popup on screen; a second translation replaces the first.
+-- Globals, like the watchers in init.lua: a local would be collected.
+translatePopup = nil
+translatePopupEsc = nil
+local popup = { text = "", status = "", kind = "", ready = false }
+
+local function closePopup()
+   if translatePopupEsc then translatePopupEsc:delete() end
+   if translatePopup then translatePopup:delete() end
+   translatePopupEsc, translatePopup = nil, nil
 end
 
--- DeepL's popup: the translation in a small window by the mouse, gone on Esc.
--- A global, so a second translation replaces the first instead of stacking.
-translatePopup = nil
-local function showPopup(text)
-   if translatePopup then translatePopup:delete() end
-   -- About 28 full-width characters fit on a line; a half-width one takes half.
-   local lines = 1
-   for line in (text .. "\n"):gmatch("([^\n]*)\n") do
-      local ascii = select(2, line:gsub("[\1-\127]", ""))
-      local width = (utf8.len(line) - ascii) + ascii / 2
-      lines = lines + math.max(1, math.ceil(width / 28))
-   end
-   local height = math.min(600, 40 + lines * 20)
+local function renderPopup()
+   if not (translatePopup and popup.ready) then return end
+   translatePopup:evaluateJavaScript("update(..." .. hs.json.encode({ popup.text, popup.status, popup.kind }) .. ")")
+end
+
+local function setPopup(text, status, kind)
+   popup.text, popup.status, popup.kind = text, status, kind
+   renderPopup()
+end
+
+local function fitPopup(height)
+   local f = translatePopup:frame()
+   local screen = hs.screen.find(f) or hs.mouse.getCurrentScreen()
+   local bottom = screen:frame().y + screen:frame().h
+   f.h = math.min(POPUP_MAX_HEIGHT, height)
+   f.y = math.min(f.y, bottom - f.h)
+   translatePopup:frame(f)
+end
+
+local function openPopup()
+   closePopup()
+   popup = { text = "", status = "翻訳中…", kind = "busy", ready = false }
+   local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
+      local body = msg.body
+      if not translatePopup then return end
+      if body.ready then
+         popup.ready = true
+         renderPopup()
+      elseif body.height then
+         fitPopup(body.height)
+      elseif body.copy then
+         hs.pasteboard.setContents(popup.text)
+         setPopup(popup.text, "コピーしました", "done")
+      elseif body.close then
+         closePopup()
+      end
+   end)
    local mouse = hs.mouse.absolutePosition()
    local frame = hs.mouse.getCurrentScreen():frame()
-   local x = math.min(mouse.x, frame.x + frame.w - POPUP_WIDTH)
-   local y = math.min(mouse.y + 16, frame.y + frame.h - height)
-   translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = height })
-      :windowStyle({ "titled", "closable", "utility", "HUD" })
-      :windowTitle("翻訳（コピー済み）")
-      :closeOnEscape(true)
-      :deleteOnClose(true)
-      -- The webview paints white unless the page opts into dark mode, so the
-      -- colours follow the system instead of being fixed to one of them.
-      :html("<body style='color-scheme:light dark;font:14px -apple-system;white-space:pre-wrap;margin:12px'>"
-         .. escapeHtml(text) .. "</body>")
+   local x = math.max(frame.x, math.min(mouse.x, frame.x + frame.w - POPUP_WIDTH))
+   local y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
+   translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = POPUP_START_HEIGHT }, {}, content)
+      :windowStyle({ "borderless", "nonactivating" })
+      :transparent(true)
+      :shadow(true)
+      :level(hs.drawing.windowLevels.floating)
+      :html(POPUP_HTML)
       :show()
-      :bringToFront(true)
+   -- Borderless windows never get key focus, so Esc is caught globally, and
+   -- only while the popup is up.
+   translatePopupEsc = hs.hotkey.bind({}, "escape", closePopup)
 end
 
--- The API round trip takes a few seconds, past the 1s a key press should
--- answer in, so say at once that it was heard and drop that when it ends.
+-- The API round trip takes a second or two, past the 1s a key press should
+-- answer in: say at once that it was heard, then open the popup on the first
+-- words and keep adding to it. A failure always lands in the popup, so
+-- "nothing happened" cannot be mistaken for "still working".
+translateTask = nil
+local runs = 0
 local function run(args)
    local argv = { SCRIPT, "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
+   if translateTask and translateTask:isRunning() then translateTask:terminate() end
+   runs = runs + 1
+   local id = runs
    -- A non-number duration keeps the alert up until closeSpecific.
    local busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
-   hs.task.new(PYTHON, function(code, stdout, stderr)
-      hs.alert.closeSpecific(busy)
-      if code == 0 and stdout ~= "" then
-         showPopup((stdout:gsub("%s+$", "")))
-      elseif stderr ~= "" then
-         hs.alert.show(stderr)
+   local out, err = "", ""
+   local function popupOpened()
+      if busy then
+         hs.alert.closeSpecific(busy)
+         busy = nil
+         openPopup()
       end
-   end, argv):start()
+   end
+   translateTask = hs.task.new(PYTHON, function(code, stdout, stderr)
+      if id ~= runs then return end  -- replaced by a newer translation
+      out, err = out .. stdout, err .. stderr
+      local text = out:gsub("%s+$", "")
+      if code == 0 and text == "" and busy then
+         hs.alert.closeSpecific(busy)  -- the screen selection was cancelled
+         return
+      end
+      popupOpened()
+      if code == 0 then
+         setPopup(text, "コピー済み", "done")
+      else
+         local reason = err:gsub("%s+$", "")
+         if reason == "" then reason = "translate.py が出力なしで終了しました。" end
+         setPopup((text ~= "" and text .. "\n\n" or "") .. reason, "失敗（終了コード " .. code .. "）", "error")
+      end
+   end, function(_, stdout, stderr)
+      if id ~= runs then return false end
+      out, err = out .. (stdout or ""), err .. (stderr or "")
+      if out:find("%S") then
+         popupOpened()
+         setPopup(out, "翻訳中…", "busy")
+      end
+      return true
+   end, argv)
+   translateTask:start()
 end
 
 local function chooseLanguageThen(args)
@@ -128,4 +252,15 @@ translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function() run({ "--screen" }) end)
+-- screencapture runs as Hammerspoon's child, so without this permission it
+-- hands back an empty image, which reads exactly like a cancelled selection.
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
+   if not hs.screenRecordingState() then
+      openPopup()
+      setPopup("Hammerspoon に「画面収録」の許可がありません。\n"
+         .. "システム設定 → プライバシーとセキュリティ → 画面収録 で許可し、Hammerspoon を再起動してください。",
+         "画面を撮れません", "error")
+      return
+   end
+   run({ "--screen" })
+end)
