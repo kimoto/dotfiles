@@ -81,7 +81,7 @@ translatePopupEsc = nil
 local popup = { text = "", status = "", kind = "", ready = false }
 
 local function closePopup()
-   if translatePopupEsc then translatePopupEsc:delete() end
+   if translatePopupEsc then translatePopupEsc:stop() end
    if translatePopup then translatePopup:delete() end
    translatePopupEsc, translatePopup = nil, nil
 end
@@ -134,9 +134,15 @@ local function openPopup()
       :level(hs.drawing.windowLevels.floating)
       :html(POPUP_HTML)
       :show()
-   -- Borderless windows never get key focus, so Esc is caught globally, and
-   -- only while the popup is up.
-   translatePopupEsc = hs.hotkey.bind({}, "escape", closePopup)
+   -- Borderless windows never get key focus, so Esc is watched globally while
+   -- the popup is up, and still let through: the app in front (nvim, a
+   -- screen selection) keeps its own Esc.
+   translatePopupEsc = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(e)
+      -- Closed after the key has gone on: deleting the window while the event
+      -- is still being delivered loses it for the app in front.
+      if e:getKeyCode() == hs.keycodes.map.escape then hs.timer.doAfter(0, closePopup) end
+      return false
+   end):start()
 end
 
 -- The API round trip takes a second or two, past the 1s a key press should
@@ -252,8 +258,8 @@ translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
--- screencapture runs as Hammerspoon's child, so without this permission it
--- hands back an empty image, which reads exactly like a cancelled selection.
+-- screencapture runs as Hammerspoon's child and needs its permission; say so
+-- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
    if not hs.screenRecordingState() then
       openPopup()
