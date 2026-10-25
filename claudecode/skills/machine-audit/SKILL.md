@@ -21,7 +21,7 @@ description: この PC（Mac／Windows）の自動起動・外に開いている
 - Windows（WSL から）: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w windows/machine_audit_collect.ps1)" | tr -d '\r' >| …`
 
 ⚠️ 終了コードと行数を見る。0行・`unknown` だらけは「問題なし」ではなく**集め損ね**。
-`unknown` は権限が要る項目（BitLocker・Login Items など）——本人のターミナルで叩く1行を出す。
+`unknown` は権限が要る項目（Mac の Login Items など）——本人のターミナルで叩く1行を出す。
 
 ## 2. 比べる
 
