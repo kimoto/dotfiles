@@ -16,6 +16,7 @@ for t in \
     tmux_keybinding_test.sh \
     tmux_copymode_test.sh \
     tmux_status_test.sh \
+    tmux_forget_closed_test.sh \
     agent_status_test.sh \
     claude_tmux_hunk_test.sh \
     keys_command_test.sh \
