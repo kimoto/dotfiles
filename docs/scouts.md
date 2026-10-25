@@ -5,7 +5,8 @@ The `## Scouts` section of `AGENTS.md` is what the sweep skills
 `load-test-sweep`),
 `bottleneck-sweep`, `security-audit` and `trend-intake` read for this repo. Those skills stop when the section is missing, so it stays even when
 nothing below changes. This note holds the why of each line there, and the
-calls already made, so a sweep does not propose them again.
+calls already made, so a sweep does not propose them again: the `Decided
+against` sections are the decision ledger of `docs/routine-prs.md`.
 
 ## Checks
 
@@ -128,3 +129,11 @@ a commit already on `main`, so it must stay an ancestor of `origin/main`.
 - Kept: `.gdbinit` (used by hand), the `pbcopy`/`pbpaste` shims, `c`, `snip`,
   `egrep`, the `mysqlsh` config, and tpm.
 - Pending the owner: unused `Brewfile.extra` tools (#458).
+
+## Decided against: features
+
+- mergiraf as the merge driver (#478): replaying past merges, it resolved 4 of
+  36 conflicted files; most conflicts here are edits to the same paragraph of
+  prose or shell config.
+- A prompt guard that blocks the `curl … | sh` spelling (#294): the risk is
+  any fetched content reaching any interpreter, and one pattern only hides it.
