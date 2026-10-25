@@ -39,15 +39,27 @@ seed_save() {
   ln -s tmux_resurrect_seed.txt "$SAVES/last"
 }
 
-# start <socket> <restore-max-delay>: a server with sessions a and b on the real
-# config. A max delay of -1 stops continuum from restoring the seeded save
-# into it; the default (10s) lets it, as a fresh start from ghostty would.
+# The servers run with HOME here, so continuum's own off switch
+# (~/tmux_no_auto_restore) can be flipped per start without touching the
+# developer's. The hook's script comes from this checkout's bin/.
+FAKE_HOME="$WORK/home"
+mkdir -p "$FAKE_HOME"
+mkdir -p "$FAKE_HOME/.tmux"
+ln -s "${TMUX_PLUGIN_MANAGER_PATH:-$HOME/.tmux/plugins/}" "$FAKE_HOME/.tmux/plugins"
+ln -s "$DIR/../../bin" "$FAKE_HOME/bin"
+[ -d "$HOME/.config" ] && ln -s "$HOME/.config" "$FAKE_HOME/.config"
+
+# start <socket> restore|no-restore: a server with sessions a and b on the real
+# config. no-restore keeps continuum from restoring the seeded save into it;
+# restore lets it, as a fresh start from ghostty would.
 start() {
-  tmux -L "$1" new-session -d -s a sh
-  tmux -L "$1" set -g @resurrect-dir "$SAVES"
   if [ "$2" = no-restore ]; then
-    tmux -L "$1" set -g @continuum-restore-max-delay -1
+    : >"$FAKE_HOME/tmux_no_auto_restore"
+  else
+    rm -f "$FAKE_HOME/tmux_no_auto_restore"
   fi
+  HOME="$FAKE_HOME" tmux -L "$1" new-session -d -s a sh
+  tmux -L "$1" set -g @resurrect-dir "$SAVES"
   tmux -L "$1" source-file "$CONF" 2>/dev/null || die "$CONF failed to load"
   if [ "$2" = no-restore ]; then
     disable_continuum_restore "$1"
