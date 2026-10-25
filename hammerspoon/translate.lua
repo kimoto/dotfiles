@@ -23,9 +23,12 @@ end
 translatePopup = nil
 local function showPopup(text)
    if translatePopup then translatePopup:delete() end
+   -- About 28 full-width characters fit on a line; a half-width one takes half.
    local lines = 1
    for line in (text .. "\n"):gmatch("([^\n]*)\n") do
-      lines = lines + math.max(1, math.ceil(utf8.len(line) / 28))
+      local ascii = select(2, line:gsub("[\1-\127]", ""))
+      local width = (utf8.len(line) - ascii) + ascii / 2
+      lines = lines + math.max(1, math.ceil(width / 28))
    end
    local height = math.min(600, 40 + lines * 20)
    local mouse = hs.mouse.absolutePosition()
@@ -37,7 +40,9 @@ local function showPopup(text)
       :windowTitle("翻訳（コピー済み）")
       :closeOnEscape(true)
       :deleteOnClose(true)
-      :html("<body style='font:14px -apple-system;color:#eee;white-space:pre-wrap;margin:12px'>"
+      -- The webview paints white unless the page opts into dark mode, so the
+      -- colours follow the system instead of being fixed to one of them.
+      :html("<body style='color-scheme:light dark;font:14px -apple-system;white-space:pre-wrap;margin:12px'>"
          .. escapeHtml(text) .. "</body>")
       :show()
       :bringToFront(true)
@@ -53,7 +58,7 @@ local function run(args)
    hs.task.new(PYTHON, function(code, stdout, stderr)
       hs.alert.closeSpecific(busy)
       if code == 0 and stdout ~= "" then
-         showPopup(stdout)
+         showPopup((stdout:gsub("%s+$", "")))
       elseif stderr ~= "" then
          hs.alert.show(stderr)
       end
