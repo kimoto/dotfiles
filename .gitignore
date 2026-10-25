@@ -86,6 +86,7 @@ claudecode/skills/*
 !claudecode/skills/handoff/
 !claudecode/skills/issue-sweep/
 !claudecode/skills/load-test-sweep/
+!claudecode/skills/machine-audit/
 !claudecode/skills/project-decision-sweep/
 !claudecode/skills/project-goal/
 !claudecode/skills/prune-sweep/
