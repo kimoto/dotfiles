@@ -11,6 +11,9 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
+  # The hook stays quieter in a cloud session; a test run from one inherits
+  # that, so each test starts local and the cloud cases set it themselves.
+  unset CLAUDE_CODE_REMOTE
   HOOK="$REPO_ROOT/bin/claude_pr_description_reminder.sh"
   INSTALLER="$REPO_ROOT/bin/install_claude_pr_hooks.sh"
   TMP="$(mktemp -d)"
