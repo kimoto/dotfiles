@@ -66,6 +66,22 @@ Same keys on both.
 
 ---
 
+## Translation (Mac only)
+
+Source:
+- `hammerspoon/translate.lua`, which runs `hammerspoon/translate.py` (Claude API)
+
+DeepL's keys, so the DeepL app's own shortcuts are turned off.
+
+| Key | Action |
+|-----|--------|
+| ⌃+⌘+⇧+D | Translate the selection into a popup by the mouse: Japanese → English, anything else → Japanese |
+| ⌘+C+C | Same (hold ⌘, press C twice) |
+| ⌘+⇧+C+C | Same, choosing the target language first |
+| ⌃+⌘+⇧+L | Region → translate the text in it |
+
+---
+
 ## Terminal (intercepts before tmux)
 
 Source:
