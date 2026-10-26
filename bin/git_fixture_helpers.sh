@@ -15,7 +15,7 @@
 
 # isolate_git_env: drop every repo-scoped git variable git hands to a hook, so
 # git commands fall back to discovery from the cwd, and turn off commit signing
-# for everything the suite runs.
+# and the machine-wide secret-scan hook for everything the suite runs.
 #
 # Signing: this repo's own .gitconfig sets commit.gpgsign = true and
 # .gitconfig.default_user names a signing key, and mklink.sh symlinks both into
@@ -27,13 +27,20 @@
 # fixture has to remember. GIT_CONFIG_* is the right lever: unlike a per-repo
 # `git config`, it outranks config files, so it also covers repos created by
 # the script under test rather than by the fixture.
+#
+# The secret-scan hook: the same .gitconfig registers [hook "dotfiles-gitleaks"]
+# for every repo, so on Git 2.54+ with ~/bin linked each fixture commit also
+# runs gitleaks — about half the suite's time on a linked machine, for commits
+# that only ever hold test data. A test of that hook turns it back on with
+# `git -c hook.dotfiles-gitleaks.enabled=true`, which outranks GIT_CONFIG_*.
 isolate_git_env() {
   unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX \
     GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE \
     GIT_QUARANTINE_PATH GIT_INTERNAL_SUPER_PREFIX
-  export GIT_CONFIG_COUNT=2
+  export GIT_CONFIG_COUNT=3
   export GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false
   export GIT_CONFIG_KEY_1=tag.gpgsign GIT_CONFIG_VALUE_1=false
+  export GIT_CONFIG_KEY_2=hook.dotfiles-gitleaks.enabled GIT_CONFIG_VALUE_2=false
 }
 
 # fixture_tmpdir: a throwaway directory whose path is already resolved. macOS
