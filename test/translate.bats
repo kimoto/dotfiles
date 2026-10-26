@@ -120,3 +120,10 @@ request_text() {
   [ "$status" -eq 1 ]
   [ ! -e "$REQUEST.key" ]
 }
+
+@test "--screen and --image together are refused, and the image is left alone" {
+  printf '\x89PNG fake' >"$TMP/mine.png"
+  run python3 "$SCRIPT" --quiet --screen --image "$TMP/mine.png"
+  [ "$status" -ne 0 ]
+  [ -e "$TMP/mine.png" ]
+}

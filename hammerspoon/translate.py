@@ -197,8 +197,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Desktop translation with Claude")
     p.add_argument("text", nargs="*", help="text to translate (default: stdin, then the clipboard)")
     p.add_argument("--clipboard", action="store_true", help="translate the clipboard, ignoring stdin")
-    p.add_argument("--screen", action="store_true", help="select a screen region and translate its text")
-    p.add_argument("--image", type=Path, help="translate the text in an image file")
+    # Exclusive: the screenshot is deleted afterwards, and with both given
+    # that would be the user's own --image file.
+    source = p.add_mutually_exclusive_group()
+    source.add_argument("--screen", action="store_true", help="select a screen region and translate its text")
+    source.add_argument("--image", type=Path, help="translate the text in an image file")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     args = p.parse_args()

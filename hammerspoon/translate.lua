@@ -124,7 +124,8 @@ local function openPopup()
       end
    end)
    local mouse = hs.mouse.absolutePosition()
-   local frame = hs.mouse.getCurrentScreen():frame()
+   -- No screen under the mouse right after a display is unplugged.
+   local frame = (hs.mouse.getCurrentScreen() or hs.screen.mainScreen()):frame()
    local x = math.max(frame.x, math.min(mouse.x, frame.x + frame.w - POPUP_WIDTH))
    local y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
    translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = POPUP_START_HEIGHT }, {}, content)
@@ -168,7 +169,10 @@ local function run(args)
       end
    end
    translateTask = hs.task.new(PYTHON, function(code, stdout, stderr)
-      if id ~= runs then return end  -- replaced by a newer translation
+      if id ~= runs then  -- replaced by a newer translation
+         if busy then hs.alert.closeSpecific(busy) end
+         return
+      end
       out, err = out .. stdout, err .. stderr
       local text = out:gsub("%s+$", "")
       if code == 0 and text == "" and busy then
