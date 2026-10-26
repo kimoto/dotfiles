@@ -195,7 +195,7 @@ print({
 PY
 }
 
-@test "a gateway in the config gets the request, with its own key" {
+@test "a custom endpoint in the config gets the request, with its own key" {
   printf 'provider = "openai"\nbase_url = "https://gw.example/v1"\nmodel = "some-model"\n' >"$CONFIG"
   run python3 "$SCRIPT" --quiet "The quick brown fox"
   [ "$status" -eq 0 ]
@@ -207,7 +207,7 @@ PY
   [ "$(openai_field reasoning)" = "None" ]
 }
 
-@test "an image goes to the gateway as a data URL" {
+@test "an image goes to a custom endpoint as a data URL" {
   printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
   printf '\x89PNG fake' >"$TMP/shot.png"
   run python3 "$SCRIPT" --quiet --image "$TMP/shot.png"
@@ -215,21 +215,21 @@ PY
   [ "$(openai_field image)" = "data:image/png;base64," ]
 }
 
-@test "an answer cut short by the gateway says so" {
+@test "an answer cut short by a custom endpoint says so" {
   printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
   STUB_INCOMPLETE=1 run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 0 ]
   [[ "$output" == *"途中で切れました"* ]]
 }
 
-@test "a refusal from the gateway fails instead of passing as an empty translation" {
+@test "a refusal from a custom endpoint fails instead of passing as an empty translation" {
   printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
   STUB_REFUSAL=1 run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 1 ]
   [[ "$output" == *"断られました"* ]]
 }
 
-@test "the gateway without a model is refused before anything is sent" {
+@test "provider openai without a model is refused before anything is sent" {
   printf 'provider = "openai"\nbase_url = "https://gw.example/v1"\n' >"$CONFIG"
   run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 1 ]
@@ -237,7 +237,7 @@ PY
   [ ! -e "$REQUEST" ]
 }
 
-@test "an Anthropic-compatible gateway only moves the base URL" {
+@test "an Anthropic-compatible custom endpoint only moves the base URL" {
   printf 'base_url = "https://gw.example"\n' >"$CONFIG"
   run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 0 ]

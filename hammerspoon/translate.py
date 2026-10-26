@@ -23,11 +23,10 @@ One-time setup on a Mac (nothing in bin/mklink.sh does this):
   then grant Hammerspoon Accessibility and Screen Recording, and turn off
   the DeepL app's own shortcuts, or both apps answer ⌘C+C.
 
-Optional: another endpoint, such as a company gateway, in
-~/.local/share/desktop-translate/config.toml (it stays on the machine, so
-the gateway's address never reaches this repo):
+Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
+(it stays on the machine, so the endpoint's address never reaches this repo):
   provider = "openai"          # OpenAI Responses API; "anthropic" by default
-  base_url = "https://gateway.example/v1"
+  base_url = "https://llm.example/v1"
   model = "..."                # required for "openai"
   reasoning_effort = "low"     # optional, for reasoning models only
 "openai" needs `pip install -U openai` in the same venv, and its key under
