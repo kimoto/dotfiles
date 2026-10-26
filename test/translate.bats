@@ -60,6 +60,10 @@ class _Responses:
         events = [_Obj(type="response.created"),
                   _Obj(type="response.output_text.delta", delta="TRANS"),
                   _Obj(type="response.output_text.delta", delta="LATED")]
+        if os.environ.get("STUB_REFUSAL"):
+            events = [_Obj(type="response.refusal.delta", delta="No."),
+                      _Obj(type="response.refusal.done", refusal="No."),
+                      _Obj(type="response.completed")]
         if os.environ.get("STUB_INCOMPLETE"):
             details = _Obj(reason="max_output_tokens")
             events.append(_Obj(type="response.incomplete", response=_Obj(incomplete_details=details)))
@@ -216,6 +220,13 @@ PY
   STUB_INCOMPLETE=1 run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 0 ]
   [[ "$output" == *"途中で切れました"* ]]
+}
+
+@test "a refusal from the gateway fails instead of passing as an empty translation" {
+  printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
+  STUB_REFUSAL=1 run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"断られました"* ]]
 }
 
 @test "the gateway without a model is refused before anything is sent" {

@@ -192,6 +192,8 @@ def translate_openai(content: list, config: dict) -> tuple[str, bool]:
             if event.type == "response.output_text.delta":
                 emit(event.delta)
                 pieces.append(event.delta)
+            elif event.type == "response.refusal.done":
+                fail(f"この内容は翻訳を断られました。{event.refusal}")
             elif event.type == "response.incomplete":
                 details = event.response.incomplete_details
                 if details and details.reason == "content_filter":
