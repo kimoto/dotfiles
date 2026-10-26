@@ -505,7 +505,7 @@ export FZF_DEFAULT_OPTS=" \
   --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
+export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview '$DOTFILES_ROOT/bin/fzf_preview.sh {1}'"
 # Ctrl-R history search: the one-line list truncates long/multi-line commands,
 # so show the full selected entry in a wrapped preview and give the widget more
 # height than the default 20% (appended after DEFAULT_OPTS, so --height wins here
