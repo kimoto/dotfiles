@@ -2,7 +2,7 @@
 -- not via setup() — start treesitter whenever the filetype has a parser, and
 -- only then hand indentation to the plugin's (experimental) indentexpr.
 -- First-run bootstrap: install the everyday parsers in the background when
--- the tree-sitter CLI is present (brew: tree-sitter, required by the main
+-- the tree-sitter CLI is present (brew: tree-sitter-cli, required by the main
 -- branch); already-installed parsers are skipped. CI/e2e opts out via
 -- DOTFILES_NO_NVIM_AUTO_INSTALL.
 if vim.env.DOTFILES_NO_NVIM_AUTO_INSTALL == nil and vim.fn.executable('tree-sitter') == 1 then

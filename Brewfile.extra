@@ -103,8 +103,8 @@ brew "taplo"
 brew "tmux"
 # Manage complex tmux sessions easily
 brew "tmuxinator"
-# Parser generator tool and incremental parsing library (nvim-treesitter CLI)
-brew "tree-sitter"
+# Parser generator tool (nvim-treesitter CLI)
+brew "tree-sitter-cli"
 # Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls)
 brew "typescript-language-server"
 # Source code spell checker (bin/lint_typos.sh)

@@ -99,7 +99,7 @@ _Source: `Brewfile.extra`._
 | [taplo](https://formulae.brew.sh/formula/taplo) | TOML toolkit and language server (nvim LSP: taplo) |
 | [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
 | [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
-| [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
+| [tree-sitter-cli](https://formulae.brew.sh/formula/tree-sitter-cli) | Parser generator tool (nvim-treesitter CLI) |
 | [typescript-language-server](https://formulae.brew.sh/formula/typescript-language-server) | Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls) |
 | [typos-cli](https://formulae.brew.sh/formula/typos-cli) | Source code spell checker (bin/lint_typos.sh) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
