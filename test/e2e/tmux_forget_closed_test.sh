@@ -1,8 +1,8 @@
 #!/bin/bash
-# Closing every tmux session by hand must not come back on the next start,
-# while a crash or reboot still does. Drives the real .tmux.conf, with the
-# session-closed hook and tmux-resurrect/continuum loaded by tpm, and reads
-# resurrect's "last" save to see which way each case went.
+# Exiting every shell in tmux must not come back on the next start, while
+# kill-server, kill-session and a crash or reboot still do. Drives the real
+# .tmux.conf, with its hooks and tmux-resurrect/continuum loaded by tpm, and
+# reads resurrect's "last" save to see which way each case went.
 #
 # The hook only forgets on a socket named default, so the servers here run on
 # one under a private TMUX_TMPDIR, never the developer's own, and resurrect
@@ -108,19 +108,43 @@ sleep 1
 tmux -L "$SOCK" has-session -t a 2>/dev/null || die "the server went with the first session"
 [ "$(readlink "$SAVES/last")" = tmux_resurrect_seed.txt ] || die "closing one of two sessions emptied the save"
 
-echo "== exiting every shell empties the save and ends the server =="
-end_shell "$SOCK" a
-wait_server_gone "$SOCK"
-[ "$(readlink "$SAVES/last")" != tmux_resurrect_seed.txt ] || die "last still points at the old save"
-[ "$(last_size)" = 0 ] || die "last save is not empty"
+if [ "$(tmux -L "$SOCK" show -gv @tmux_3_8)" = 1 ]; then
+  echo "== exiting every shell empties the save and ends the server =="
+  end_shell "$SOCK" a
+  wait_server_gone "$SOCK"
+  [ "$(readlink "$SAVES/last")" != tmux_resurrect_seed.txt ] || die "last still points at the old save"
+  [ "$(last_size)" = 0 ] || die "last save is not empty"
 
-echo "== the next start restores nothing =="
-start "$SOCK" restore
-sleep 3   # continuum restores 1s after load, in the background
-n="$(tmux -L "$SOCK" list-sessions | wc -l | tr -d ' ')"
-[ "$n" = 2 ] || { tmux -L "$SOCK" list-sessions; die "expected only a and b, got $n sessions"; }
+  echo "== the next start restores nothing =="
+  start "$SOCK" restore
+  sleep 3   # continuum restores 1s after load, in the background
+  n="$(tmux -L "$SOCK" list-sessions | wc -l | tr -d ' ')"
+  [ "$n" = 2 ] || { tmux -L "$SOCK" list-sessions; die "expected only a and b, got $n sessions"; }
+  tmux -L "$SOCK" kill-server
+  wait_server_gone "$SOCK"
+else
+  # Before 3.8 pane-exited does not fire for the last pane: it must fall
+  # back to restoring, never to a server left running.
+  echo "== $(tmux -V): exiting every shell keeps the save and ends the server =="
+  end_shell "$SOCK" a
+  wait_server_gone "$SOCK"
+  [ "$(readlink "$SAVES/last")" = tmux_resurrect_seed.txt ] || die "exiting emptied the save before 3.8"
+fi
+
+echo "== kill-server keeps the save =="
+seed_save
+start "$SOCK" no-restore
 tmux -L "$SOCK" kill-server
 wait_server_gone "$SOCK"
+[ "$(readlink "$SAVES/last")" = tmux_resurrect_seed.txt ] || die "kill-server emptied the save"
+
+echo "== killing every session keeps the save and ends the server =="
+seed_save
+start "$SOCK" no-restore
+tmux -L "$SOCK" kill-session -t b
+tmux -L "$SOCK" kill-session -t a
+wait_server_gone "$SOCK"
+[ "$(readlink "$SAVES/last")" = tmux_resurrect_seed.txt ] || die "kill-session emptied the save"
 
 echo "== a crash or reboot (SIGTERM) keeps the save =="
 seed_save

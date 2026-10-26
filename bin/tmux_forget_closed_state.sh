@@ -1,7 +1,7 @@
 #!/bin/bash
 # Point tmux-resurrect's "last" save at an empty one, so tmux-continuum's
 # restore on the next server start brings nothing back. .tmux.conf runs this
-# when the last session is closed by hand; see the hook there for when.
+# when the last shell exits; see the hook there for when.
 #
 # The paths come from resurrect's own helpers, so @resurrect-dir and its
 # ~/.tmux/resurrect vs XDG fallback stay resurrect's call. They read options
