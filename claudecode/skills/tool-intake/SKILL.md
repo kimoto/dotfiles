@@ -66,7 +66,8 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - 組み込み先は1か所に絞る。既存の設定を消さない。組み込み先にテストがあればテストも足し、**組み込みをわざと壊して一度落ちるのを見てから戻す**
 - ⚠️ `.claude/settings.json` は触らない（クラウドのセッションでは自己変更として拒否される）。allow-list に足したいときは PR 本文に書く
 - push する前に bats（少なくとも `check_brewfile_sort`・`gen_tools_list`・組み込み先の検査）と、触った `bin/lint_*.sh` を回して green を確かめる
-- PR 本文（英語）: ツールの概要 / 選んだ理由と根拠（analytics の順位・出典 URL）/ **How it's wired**（どこに組み込み、普段どう使われ、どう戻すか）/ 何を置き換える・補うか / 次点があれば "Runners-up" に1行ずつ / 何で確かめたか
+- ★**PR の1行目・区分・open PR の上限・決めたこと台帳は dotfiles の `docs/routine-prs.md` に従う。**この skill はどの repo からも呼ばれ、dotfiles の AGENTS.md が読まれているとは限らないため
+- PR 本文（英語）: その1行目の後に、ツールの概要 / 選んだ理由と根拠（analytics の順位・出典 URL）/ **How it's wired**（どこに組み込み、普段どう使われ、どう戻すか）/ 何を置き換える・補うか / 次点があれば "Runners-up" に1行ずつ / 何で確かめたか
 - ラベル `routine` と `routine:tool-scout`（付ける前に `"$(readlink -f ~/.claude/skills/tool-intake)/../../../bin/routine_labels.sh" routine:tool-scout` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は dotfiles の `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
