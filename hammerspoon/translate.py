@@ -23,6 +23,15 @@ One-time setup on a Mac (nothing in bin/mklink.sh does this):
   then grant Hammerspoon Accessibility and Screen Recording, and turn off
   the DeepL app's own shortcuts, or both apps answer ⌘C+C.
 
+Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
+(it stays on the machine, so the endpoint's address never reaches this repo):
+  provider = "openai"          # OpenAI Responses API; "anthropic" by default
+  base_url = "https://llm.example/v1"
+  model = "..."                # required for "openai"
+  reasoning_effort = "low"     # optional, for reasoning models only
+"openai" needs `pip install -U openai` in the same venv, and its key under
+its own account: security add-generic-password -s desktop-translate -a openai -w
+
 The key is read from the Keychain only, inside this process. Never from the
 environment: every child this script starts would see it there, and an
 exported ANTHROPIC_API_KEY also switches Claude Code to API billing.
@@ -38,12 +47,13 @@ import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
-import anthropic
-
 KEYCHAIN_SERVICE = "desktop-translate"
-MODEL = os.environ.get("DESKTOP_TRANSLATE_MODEL", "claude-opus-5-5")
+CONFIG = Path.home() / ".local/share/desktop-translate/config.toml"
+PROVIDERS = ("anthropic", "openai")
+ANTHROPIC_MODEL = "claude-opus-5-5"
 # Thinking cannot be turned off on this model; low effort keeps the wait short.
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
@@ -56,17 +66,34 @@ lists, code, URLs, file paths and product names as they are. Translate naturally
 rather than word for word."""
 
 
-def api_key() -> str:
+def load_config() -> dict:
+    if not CONFIG.exists():
+        return {"provider": "anthropic"}
+    try:
+        config = tomllib.loads(CONFIG.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as e:
+        fail(f"設定ファイルを読めません（{CONFIG}）: {e}")
+    config.setdefault("provider", "anthropic")
+    if config["provider"] not in PROVIDERS:
+        fail(f"provider は {' か '.join(PROVIDERS)} です（{CONFIG}）。")
+    if config["provider"] == "openai" and not config.get("model"):
+        fail(f'provider = "openai" には model が要ります（{CONFIG}）。')
+    return config
+
+
+def api_key(provider: str) -> str:
+    # The account names the provider: with only -s, the first of several
+    # entries under the service would answer, whichever provider it was for.
     try:
         key = subprocess.run(
-            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-w"],
+            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", provider, "-w"],
             capture_output=True, text=True, check=True,
         ).stdout.strip()
         if key:
             return key
     except (FileNotFoundError, subprocess.CalledProcessError):
         pass
-    fail("API キーが見つかりません（Keychain の desktop-translate）。")
+    fail(f"API キーが見つかりません（Keychain の {KEYCHAIN_SERVICE}、アカウント {provider}）。")
 
 
 def is_mostly_japanese(text: str) -> bool:
@@ -97,18 +124,21 @@ def system_prompt() -> str:
     return SYSTEM
 
 
-def translate(content: list) -> str:
-    """Translate, writing the text to stdout as it arrives; return all of it.
+def emit(chunk: str) -> None:
+    sys.stdout.write(chunk)
+    sys.stdout.flush()
 
-    Streamed so the popup can show the first words while the rest is still
-    being written: a long passage otherwise waits for its last token.
-    """
-    client = anthropic.Anthropic(api_key=api_key())
+
+def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
+    model = os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("model") or ANTHROPIC_MODEL
     try:
         # fallbacks: a safety classifier's false positive on ordinary text is
         # retried on the model Anthropic recommends instead of failing.
         with client.beta.messages.stream(
-            model=MODEL,
+            model=model,
             max_tokens=16000,
             output_config={"effort": EFFORT},
             betas=["server-side-fallback-2026-07-01"],
@@ -117,8 +147,7 @@ def translate(content: list) -> str:
             messages=[{"role": "user", "content": content}],
         ) as stream:
             for chunk in stream.text_stream:
-                sys.stdout.write(chunk)
-                sys.stdout.flush()
+                emit(chunk)
             response = stream.get_final_message()
     except anthropic.AuthenticationError:
         fail("API キーが無効です。")
@@ -131,12 +160,75 @@ def translate(content: list) -> str:
 
     if response.stop_reason == "refusal":
         fail("この内容は翻訳を断られました。")
-    text = "".join(b.text for b in response.content if b.type == "text").strip()
-    if response.stop_reason == "max_tokens":
+    text = "".join(b.text for b in response.content if b.type == "text")
+    return text, response.stop_reason == "max_tokens"
+
+
+def openai_input(content: list) -> list:
+    """The same request, as the Responses API's input items."""
+    parts = []
+    for block in content:
+        if block["type"] == "text":
+            parts.append({"type": "input_text", "text": block["text"]})
+        else:
+            source = block["source"]
+            parts.append({"type": "input_image", "detail": "high",
+                          "image_url": f"data:{source['media_type']};base64,{source['data']}"})
+    return [{"role": "user", "content": parts}]
+
+
+def translate_openai(content: list, config: dict) -> tuple[str, bool]:
+    import openai
+
+    client = openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
+    params = {"model": config["model"], "instructions": system_prompt(),
+              "input": openai_input(content), "max_output_tokens": 16000, "stream": True}
+    if config.get("reasoning_effort"):
+        params["reasoning"] = {"effort": config["reasoning_effort"]}
+    pieces, truncated = [], False
+    try:
+        for event in client.responses.create(**params):
+            if event.type == "response.output_text.delta":
+                emit(event.delta)
+                pieces.append(event.delta)
+            elif event.type == "response.refusal.done":
+                fail(f"この内容は翻訳を断られました。{event.refusal}")
+            elif event.type == "response.incomplete":
+                details = event.response.incomplete_details
+                if details and details.reason == "content_filter":
+                    fail("この内容は翻訳を断られました。")
+                truncated = True
+            elif event.type == "response.failed":
+                error = event.response.error
+                fail(f"API エラー: {error.message if error else '理由不明'}")
+            elif event.type == "error":
+                fail(f"API エラー: {event.message}")
+    except openai.AuthenticationError:
+        fail("API キーが無効です。")
+    except openai.RateLimitError:
+        fail("レート制限に当たりました。少し待ってから再実行してください。")
+    except openai.APIStatusError as e:
+        fail(f"API エラー {e.status_code}: {e.message}")
+    except openai.APIConnectionError:
+        fail("API に接続できません。")
+    return "".join(pieces), truncated
+
+
+def translate(content: list) -> str:
+    """Translate, writing the text to stdout as it arrives; return all of it.
+
+    Streamed so the popup can show the first words while the rest is still
+    being written: a long passage otherwise waits for its last token.
+    """
+    config = load_config()
+    run = translate_openai if config["provider"] == "openai" else translate_anthropic
+    text, truncated = run(content, config)
+    text = text.strip()
+    if truncated:
         cut = "\n\n（長すぎて途中で切れました）"
-        sys.stdout.write(cut)
+        emit(cut)
         text += cut
-    sys.stdout.write("\n")
+    emit("\n")
     return text
 
 
