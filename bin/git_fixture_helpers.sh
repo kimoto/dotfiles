@@ -30,8 +30,8 @@
 #
 # The secret-scan hook: the same .gitconfig registers [hook "dotfiles-gitleaks"]
 # for every repo, so on Git 2.54+ with ~/bin linked each fixture commit also
-# runs gitleaks — about half the suite's time on a linked machine, for commits
-# that only ever hold test data. A test of that hook turns it back on with
+# runs gitleaks — most of what made the suite slower on a linked machine than
+# on a pristine one, for commits that only ever hold test data. A test of that hook turns it back on with
 # `git -c hook.dotfiles-gitleaks.enabled=true`, which outranks GIT_CONFIG_*.
 isolate_git_env() {
   unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX \
