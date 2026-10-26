@@ -225,7 +225,8 @@ fake_git_version() {
   git -C "$REPO" config hook.dotfiles-gitleaks.command "$GIT_HOOK"
   printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
   git -C "$REPO" add creds.txt
-  run git -C "$REPO" -c user.name=t -c user.email=t@example.com commit -q -m add
+  # isolate_git_env turns this hook off for fixtures; -c outranks it.
+  run git -C "$REPO" -c hook.dotfiles-gitleaks.enabled=true -c user.name=t -c user.email=t@example.com commit -q -m add
   [ "$status" -ne 0 ]
   [[ "$output" == *github-pat* ]]
   run git -C "$REPO" rev-list --count HEAD
