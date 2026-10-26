@@ -29,17 +29,6 @@ trap cleanup EXIT
 
 t() { tmux -L "$SOCK" "$@"; }
 
-# wait_for_pane reads only the active pane; this takes a target.
-wait_in() {
-  local i=0
-  while [ "$i" -lt 150 ]; do
-    t capture-pane -p -t "$1" 2>/dev/null | grep -qE "$2" && return 0
-    i=$((i + 1)); sleep 0.1
-  done
-  t capture-pane -p -t "$1" >&2 || true
-  die "timed out waiting in $1 for: $2"
-}
-
 # The marker comes from a precmd hook added after .zshrc's own, so it prints
 # only once the bell has been decided — and written ahead of it, if it rang.
 # Each command names its own marker: precmd runs more than once per prompt.
@@ -47,7 +36,7 @@ MARK=0
 run_in() {
   MARK=$((MARK + 1))
   t send-keys -t "$1" "_e2e_tag=$MARK; $2" Enter
-  wait_in "$1" "^MARK_$MARK\$"
+  wait_for_pane "$SOCK" "^MARK_$MARK\$" 150 "$1"
 }
 
 # alert-bell runs from a deferred callback, so give a ring a moment to land.

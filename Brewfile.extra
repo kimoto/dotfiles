@@ -11,6 +11,8 @@ brew "ast-grep"
 brew "bats-core"
 # Searches a binary image for embedded files and executable code
 brew "binwalk"
+# Versatile and fast Unicode/ASCII/ANSI graphics renderer
+brew "chafa"
 # Apjanke's fork of the classic cowsay project
 brew "cowsay"
 # Structural diff that understands syntax (on-demand via `git dft`)

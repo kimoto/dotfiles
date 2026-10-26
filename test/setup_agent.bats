@@ -74,6 +74,18 @@ run_setup() { run env -u CODEX_HOME HOME="$TMP/home" PATH="$TMP/sysbin" "$SETUP"
   [ "$(HOME="$TMP/home" git config --global --get-all include.path | wc -l)" -eq 1 ]
 }
 
+@test "an author set after the include still wins, and the setup says so" {
+  # git config --add puts the include into the existing [include] section, so
+  # a [user] below it overrides the owner: commits would go out as the platform.
+  printf '[include]\n\tpath = %s\n[user]\n\tname = Claude\n\temail = noreply@anthropic.com\n' \
+    "$TMP/other.gitconfig" >"$TMP/home/.gitconfig"
+
+  run_setup
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"MISS git identity"* ]]
+  [ "$(HOME="$TMP/home" git config --includes user.email)" = "noreply@anthropic.com" ]
+}
+
 @test "a ~/.gitconfig that is a symlink is not written through" {
   # On a workstation mklink.sh links it into this repo; a write would land there.
   printf '[user]\n\tname = someone\n' >"$TMP/linked.gitconfig"

@@ -128,6 +128,8 @@ a commit already on `main`, so it must stay an ancestor of `origin/main`.
 
 - Kept: `.gdbinit` (used by hand), the `pbcopy`/`pbpaste` shims, `c`, `snip`,
   `egrep`, the `mysqlsh` config, and tpm.
+- Kept: `.public_key.asc`, published so others can encrypt to the owner and
+  check it is them; nothing in the repo reads it, by design (#559).
 - Pending the owner: unused `Brewfile.extra` tools (#458).
 
 ## Decided against: features

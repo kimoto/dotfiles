@@ -505,7 +505,7 @@ export FZF_DEFAULT_OPTS=" \
   --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
+export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview '$DOTFILES_ROOT/bin/fzf_preview.sh {1}'"
 # Ctrl-R history search: the one-line list truncates long/multi-line commands,
 # so show the full selected entry in a wrapped preview and give the widget more
 # height than the default 20% (appended after DEFAULT_OPTS, so --height wins here
@@ -612,7 +612,11 @@ _long_command_bell() {
   local started=$_long_command_started
   _long_command_started=
   [[ -n "$TMUX" && -n "$started" ]] || return 0
-  (( SECONDS - started >= ${LONG_COMMAND_BELL_SECONDS:-30} )) || return 0
+  # Anything but whole seconds (`30s`) would print `bad math expression` above
+  # every prompt and never ring, so it gets the default instead.
+  local limit=${LONG_COMMAND_BELL_SECONDS:-30}
+  [[ $limit == <-> ]] || limit=30
+  (( SECONDS - started >= limit )) || return 0
   local -a viewers
   viewers=(${(f)"$(tmux list-clients -F '#{m:*focused*,#{client_flags}} #{pane_id}' 2>/dev/null)"})
   (( ${viewers[(Ie)1 $TMUX_PANE]} )) || print -n '\a'
