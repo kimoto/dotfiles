@@ -18,10 +18,15 @@ setup() {
   mkdir -p "$TMP/py"
   cat >"$TMP/py/anthropic.py" <<'EOF'
 import json, os
-class APIStatusError(Exception): pass
+class APIStatusError(Exception):
+    def __init__(self, message="boom", status_code=500):
+        self.message, self.status_code = message, status_code
 class AuthenticationError(APIStatusError): pass
 class RateLimitError(APIStatusError): pass
 class APIConnectionError(Exception): pass
+def _raise_stub_error():
+    if os.environ.get("STUB_ERROR"):
+        raise globals()[os.environ["STUB_ERROR"]]()
 class _Obj:
     def __init__(self, **kw): self.__dict__.update(kw)
 class _Stream:
@@ -34,6 +39,7 @@ class _Messages:
     def stream(self, **kw):
         with open(os.environ["REQUEST"], "w") as f:
             json.dump(kw, f)
+        _raise_stub_error()
         return _Stream()
 class Anthropic:
     def __init__(self, api_key, base_url=None):
@@ -47,16 +53,22 @@ EOF
   # The OpenAI SDK the same way: the Responses API's streamed events.
   cat >"$TMP/py/openai.py" <<'EOF'
 import json, os
-class APIStatusError(Exception): pass
+class APIStatusError(Exception):
+    def __init__(self, message="boom", status_code=500):
+        self.message, self.status_code = message, status_code
 class AuthenticationError(APIStatusError): pass
 class RateLimitError(APIStatusError): pass
 class APIConnectionError(Exception): pass
+def _raise_stub_error():
+    if os.environ.get("STUB_ERROR"):
+        raise globals()[os.environ["STUB_ERROR"]]()
 class _Obj:
     def __init__(self, **kw): self.__dict__.update(kw)
 class _Responses:
     def create(self, **kw):
         with open(os.environ["REQUEST"], "w") as f:
             json.dump(kw, f)
+        _raise_stub_error()
         events = [_Obj(type="response.created"),
                   _Obj(type="response.output_text.delta", delta="TRANS"),
                   _Obj(type="response.output_text.delta", delta="LATED")]
@@ -243,4 +255,28 @@ PY
   [ "$status" -eq 0 ]
   [ "$(cat "$REQUEST.base")" = "https://gw.example" ]
   [ "$(cat "$REQUEST.key")" = "sk-from-keychain:anthropic" ]
+}
+
+# Each SDK error the stub raises, and the message it must turn into.
+api_errors_fail_with_their_message() {
+  local error expected
+  while read -r error expected; do
+    STUB_ERROR="$error" run python3 "$SCRIPT" --quiet "hello"
+    [ "$status" -eq 1 ] || { echo "$error: status $status"; return 1; }
+    [[ "$output" == *"$expected"* ]] || { echo "$error: $output"; return 1; }
+  done <<'EOF'
+AuthenticationError API キーが無効です
+RateLimitError レート制限に当たりました
+APIStatusError API エラー 500: boom
+APIConnectionError API に接続できません
+EOF
+}
+
+@test "each API error fails with its own message" {
+  api_errors_fail_with_their_message
+}
+
+@test "each API error from a custom endpoint fails with its own message" {
+  printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
+  api_errors_fail_with_their_message
 }
