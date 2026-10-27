@@ -43,6 +43,7 @@ prompt. Not under ~/.config, which is this repo's config/.
 
 import argparse
 import base64
+import contextlib
 import os
 import subprocess
 import sys
@@ -129,34 +130,40 @@ def emit(chunk: str) -> None:
     sys.stdout.flush()
 
 
+@contextlib.contextmanager
+def api_errors(sdk):
+    """Turn the SDK's errors into a message; both SDKs name them alike."""
+    try:
+        yield
+    except sdk.AuthenticationError:
+        fail("API キーが無効です。")
+    except sdk.RateLimitError:
+        fail("レート制限に当たりました。少し待ってから再実行してください。")
+    except sdk.APIStatusError as e:
+        fail(f"API エラー {e.status_code}: {e.message}")
+    except sdk.APIConnectionError:
+        fail("API に接続できません。")
+
+
 def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
     import anthropic
 
     client = anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
     model = os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("model") or ANTHROPIC_MODEL
-    try:
-        # fallbacks: a safety classifier's false positive on ordinary text is
-        # retried on the model Anthropic recommends instead of failing.
-        with client.beta.messages.stream(
-            model=model,
-            max_tokens=16000,
-            output_config={"effort": EFFORT},
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            system=system_prompt(),
-            messages=[{"role": "user", "content": content}],
-        ) as stream:
-            for chunk in stream.text_stream:
-                emit(chunk)
-            response = stream.get_final_message()
-    except anthropic.AuthenticationError:
-        fail("API キーが無効です。")
-    except anthropic.RateLimitError:
-        fail("レート制限に当たりました。少し待ってから再実行してください。")
-    except anthropic.APIStatusError as e:
-        fail(f"API エラー {e.status_code}: {e.message}")
-    except anthropic.APIConnectionError:
-        fail("API に接続できません。")
+    # fallbacks: a safety classifier's false positive on ordinary text is
+    # retried on the model Anthropic recommends instead of failing.
+    with api_errors(anthropic), client.beta.messages.stream(
+        model=model,
+        max_tokens=16000,
+        output_config={"effort": EFFORT},
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+        system=system_prompt(),
+        messages=[{"role": "user", "content": content}],
+    ) as stream:
+        for chunk in stream.text_stream:
+            emit(chunk)
+        response = stream.get_final_message()
 
     if response.stop_reason == "refusal":
         fail("この内容は翻訳を断られました。")
@@ -186,7 +193,7 @@ def translate_openai(content: list, config: dict) -> tuple[str, bool]:
     if config.get("reasoning_effort"):
         params["reasoning"] = {"effort": config["reasoning_effort"]}
     pieces, truncated = [], False
-    try:
+    with api_errors(openai):
         for event in client.responses.create(**params):
             if event.type == "response.output_text.delta":
                 emit(event.delta)
@@ -203,14 +210,6 @@ def translate_openai(content: list, config: dict) -> tuple[str, bool]:
                 fail(f"API エラー: {error.message if error else '理由不明'}")
             elif event.type == "error":
                 fail(f"API エラー: {event.message}")
-    except openai.AuthenticationError:
-        fail("API キーが無効です。")
-    except openai.RateLimitError:
-        fail("レート制限に当たりました。少し待ってから再実行してください。")
-    except openai.APIStatusError as e:
-        fail(f"API エラー {e.status_code}: {e.message}")
-    except openai.APIConnectionError:
-        fail("API に接続できません。")
     return "".join(pieces), truncated
 
 
