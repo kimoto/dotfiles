@@ -7,8 +7,9 @@
 #   cpu_window.sh [SECONDS]                 sample twice, SECONDS apart (30)
 #   cpu_window.sh --diff BEFORE AFTER SECONDS
 #
-# BEFORE and AFTER are `ps -Ao pid=,time=,comm=` output; --diff is the pure
-# half the tests feed. Output, busiest first:
+# BEFORE and AFTER are `ps -Ao pid=,lstart=,time=,comm=` output under
+# LC_ALL=C (lstart is then five words); --diff is the pure half the tests
+# feed. Output, busiest first:
 #
 #   core%  machine%  pid  command
 #
@@ -17,8 +18,10 @@
 # the number to judge "is this why it is slow" by. A process that started
 # inside the window is marked `(new)`; all its CPU time is in the window, so
 # its figure is exact. One that exited inside the window is not seen at all.
-# A pid whose command changed, or whose time went down, was reused: counted
-# as new. Rows under MIN_CORE_PCT (env, default 2) are dropped.
+# A process is the pair pid + start time: a pid that reappears with a new
+# start time was reused and counts as new, while one whose command changed
+# under the same start time only exec'd and keeps its earlier CPU time.
+# Rows under MIN_CORE_PCT (env, default 2) are dropped.
 
 set -euo pipefail
 
@@ -50,14 +53,15 @@ diff_snapshots() {
             return s + days * 86400
         }
         {
-            pid = $1; time = $2
-            sub(/^[[:space:]]*[0-9]+[[:space:]]+[^[:space:]]+[[:space:]]+/, "")
+            id = $1 " " $2 " " $3 " " $4 " " $5 " " $6; pid = $1; time = $7
+            for (i = 0; i < 7; i++) sub(/^[[:space:]]*[^[:space:]]+/, "")
+            sub(/^[[:space:]]+/, "")
         }
-        FNR == NR { t[pid] = tosec(time); c[pid] = $0; next }
+        FNR == NR { t[id] = tosec(time); next }
         {
             now = tosec(time)
-            fresh = !(pid in t) || c[pid] != $0 || now < t[pid]
-            used = fresh ? now : now - t[pid]
+            fresh = !(id in t)
+            used = fresh ? now : now - t[id]
             pct = used / secs * 100
             if (pct < min) next
             printf "%6.1f\t%6.1f\t%s\t%s%s\n", pct, pct / ncpu, pid, $0, fresh ? "  (new)" : ""
@@ -75,8 +79,8 @@ seconds=${1:-30}
 [[ $seconds =~ ^[0-9]+$ ]] && [ "$seconds" -gt 0 ] || usage
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-ps -Ao pid=,time=,comm= >"$tmp/before"
+LC_ALL=C ps -Ao pid=,lstart=,time=,comm= >"$tmp/before"
 sleep "$seconds"
-ps -Ao pid=,time=,comm= >"$tmp/after"
+LC_ALL=C ps -Ao pid=,lstart=,time=,comm= >"$tmp/after"
 printf 'core%%\tmachine%%\tpid\tcommand  (%ss window, %s cores)\n' "$seconds" "$(ncpu)"
 diff_snapshots "$tmp/before" "$tmp/after" "$seconds"
