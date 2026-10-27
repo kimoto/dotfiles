@@ -83,6 +83,24 @@ answer() {
   [[ "$output" == "check failed (ci/legacy)"* ]]
 }
 
+@test "a run cancelled by a newer run of the same check does not end the watch" {
+  answer 1 OPEN \
+    '{"name":"checklist","conclusion":"SUCCESS","startedAt":"2026-10-27T14:13:30Z"}' \
+    '{"name":"checklist","conclusion":"CANCELLED","startedAt":"2026-10-27T14:13:20Z"}'
+  answer 2 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+}
+
+@test "the newest run of a check decides, even when an older one passed" {
+  answer 1 OPEN \
+    '{"name":"e2e","conclusion":"SUCCESS","startedAt":"2026-10-27T14:13:20Z"}' \
+    '{"name":"e2e","conclusion":"FAILURE","startedAt":"2026-10-27T14:13:30Z"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 1 ]
+  [ "$output" = "check failed (e2e): https://github.com/o/r/pull/7" ]
+}
+
 @test "a passing or skipped check does not end the watch" {
   answer 1 OPEN '{"name":"e2e","conclusion":"SKIPPED"}' '{"name":"lint","conclusion":"NEUTRAL"}'
   answer 2 MERGED
