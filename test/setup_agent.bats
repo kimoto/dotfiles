@@ -49,6 +49,17 @@ run_setup() { run env -u CODEX_HOME HOME="$TMP/home" PATH="$TMP/sysbin" "$SETUP"
   [ -L "$TMP/home/.codex/config.toml" ]
 }
 
+@test "a Codex file the repo no longer has is a miss, not a dangling link called ok" {
+  # ln -s succeeds whatever the target, so only the check after it notices.
+  rm "$TMP/repo/codex/config.toml"
+
+  run_setup
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"MISS Codex config"* ]]
+  [[ "$output" != *"ok   Codex config"* ]]
+  [[ "$output" == *"ok   Codex instructions"* ]]
+}
+
 @test "--no-toolchain links without installing" {
   run_setup --no-toolchain
   [ "$status" -eq 0 ]
