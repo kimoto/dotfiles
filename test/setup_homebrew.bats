@@ -3,12 +3,11 @@
 # Behavioural tests for which Brewfiles bin/setup_homebrew.sh installs.
 #
 # Brewfile.extra is the expensive half of a bootstrap, and CI wants the cheap
-# one. That choice used to be made by sniffing $CI, which meant the *one* job
-# built to run the bootstrap with nothing skipped could not opt back in: GitHub
-# Actions exports CI=true into every step, so the full-bootstrap job installed
-# Brewfile.standard and then failed its own "every Brewfile is satisfied" check.
-# Hence an explicit flag, and hence the last test here — $CI alone must not
-# decide anything.
+# one. An explicit flag makes that choice, not $CI: GitHub Actions exports
+# CI=true into every step, so a $CI test would leave the full-bootstrap job no
+# way to install Brewfile.extra, and it would fail its own "every Brewfile is
+# satisfied" check. Hence the last test here — $CI alone must not decide
+# anything.
 #
 # Each test runs a *copy* of the script in a throwaway repo with empty Brewfiles
 # and a stub `brew` on PATH that appends every `bundle install --file=X` to a
