@@ -246,6 +246,7 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
+| prefix + G | Pick a ghq repo in a popup (same list as `g`); go to its window, or open a shell window there |
 | prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
 | prefix + A | Same, but forking this pane's Claude Code session |
 | prefix + v | `hunk diff --watch` in a split to the right, same cwd |
@@ -337,7 +338,7 @@ Source:
 
 | Command | Action |
 |---------|--------|
-| `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
+| `g [query]` | Jump to a ghq-cloned repo (fzf; most visited first, by zoxide; README preview) |
 | `w [query]` | Jump to a git worktree (fzf) |
 | `W <type>/<short-desc>` | New worktree for that branch off the default branch, and cd into it |
 | `c` | Switch Kubernetes context (`kubectx`) |

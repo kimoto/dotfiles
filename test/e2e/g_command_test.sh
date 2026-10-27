@@ -1,15 +1,10 @@
 #!/bin/bash
 # Interactive end-to-end test for the `g` repo-jump command defined in .zshrc.
 #
-# `g` is the most moving-part-heavy helper in .zshrc:
-#
-#   g() {
-#     local dir=$(ghq list | fzf --preview "bat ... $(ghq root)/{}/README.*" --query="$*")
-#     [ -n "$dir" ] && cd "$(ghq root)/$dir" || return
-#   }
-#
-# i.e. ghq list -> fzf (with the `$*` argument prefilled as the query and a
-# bat-of-README preview) -> cd into `$(ghq root)/<selection>`. Three things can
+# `g` is the most moving-part-heavy helper in .zshrc: bin/ghq_pick.sh pipes
+# ghq list (ranked by zoxide; test/ghq_pick.bats covers the order) into fzf,
+# with the `$*` argument prefilled as the query and a bat-of-README preview,
+# and `g` cds into `$(ghq root)/<selection>`. Three things can
 # only be proven by driving it for real, in a terminal:
 #   1. the ghq candidate list is piped into fzf and the function argument
 #      pre-filters it (`--query`);
