@@ -83,6 +83,13 @@ answer() {
   [[ "$output" == "check failed (ci/legacy)"* ]]
 }
 
+@test "a run cancelled by a newer one does not end the watch" {
+  answer 1 OPEN '{"name":"pr-checklist","status":"COMPLETED","conclusion":"CANCELLED"}'
+  answer 2 MERGED '{"name":"pr-checklist","status":"COMPLETED","conclusion":"SUCCESS"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+}
+
 @test "a passing or skipped check does not end the watch" {
   answer 1 OPEN '{"name":"e2e","conclusion":"SKIPPED"}' '{"name":"lint","conclusion":"NEUTRAL"}'
   answer 2 MERGED
