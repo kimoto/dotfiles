@@ -119,7 +119,6 @@ _Source: `Brewfile.macos`._
 | Tool | Description |
 | --- | --- |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
-| [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
 | [codex](https://formulae.brew.sh/cask/codex) | OpenAI's coding agent that runs in your terminal |
 | [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
@@ -128,6 +127,7 @@ _Source: `Brewfile.macos`._
 | [gitify](https://formulae.brew.sh/cask/gitify) | GitHub notifications on your menu bar |
 | [google-japanese-ime](https://formulae.brew.sh/cask/google-japanese-ime) | Japanese input software |
 | [hammerspoon](https://formulae.brew.sh/cask/hammerspoon) | Desktop automation application |
+| `kimoto/dotfiles/cleanshot@4` | Screen capturing tool |
 | [monitorcontrol](https://formulae.brew.sh/cask/monitorcontrol) | Tool to control external monitor brightness & volume |
 | [mysql-shell](https://formulae.brew.sh/cask/mysql-shell) | MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client |
 | `nikitabobko/tap/aerospace` | AeroSpace is an i3-like tiling window manager for macOS |

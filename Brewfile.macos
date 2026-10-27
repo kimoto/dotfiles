@@ -1,4 +1,7 @@
 # NOTE: Keep entries sorted A-Z within this file.
+# This repo's own Casks/, tapped from the checkout itself so a branch's cask is
+# what its CI installs. Trusted because the casks are ours.
+tap "kimoto/dotfiles", __dir__, trusted: true
 # Tap for AeroSpace
 tap "nikitabobko/tap"
 # macOS-only, not in Brewfile.extra: Homebrew has no Linux bottle for telnet
@@ -6,8 +9,6 @@ tap "nikitabobko/tap"
 # /usr/bin/telnet instead — see Brewfile.linux.
 # User interface to the TELNET protocol
 brew "telnet"
-# Screen capturing tool
-cask "cleanshot"
 # The native cask, not npm: an npm install lives in one node version and
 # vanishes when mise moves on.
 # OpenAI's coding agent that runs in your terminal
@@ -26,6 +27,9 @@ cask "gitify"
 cask "google-japanese-ime"
 # Desktop automation application
 cask "hammerspoon"
+# Held at 4.x: the license does not cover 5.x (see the cask's header)
+# Screen capturing tool
+cask "kimoto/dotfiles/cleanshot@4"
 # Tool to control external monitor brightness & volume
 cask "monitorcontrol"
 # MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client
