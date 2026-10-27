@@ -17,10 +17,10 @@ pr=$1
 
 # A PR that just moved (a push, a check finishing) tends to move again soon,
 # so it is polled every 30 s; each poll that sees nothing new doubles the wait,
-# up to 5 min, so a PR left for hours of review costs a dozen calls an hour.
-# A merge is then heard at most 5 min late.
+# up to 1 min. A merge is then heard at most a minute late, and a PR left for
+# hours of review costs 60 calls an hour, far under GitHub's 5000.
 min_interval=30
-max_interval=300
+max_interval=60
 # Ten failed polls in a row, by then minutes apart, is an outage or a PR that
 # is gone, not a blip.
 max_failures=10
@@ -36,6 +36,11 @@ wait_and_back_off() {
   interval=$((interval * 2))
   [ "$interval" -le "$max_interval" ] || interval=$max_interval
 }
+
+# While CI runs, gh's own watch sees a failure within 10 s. Its exit code is
+# not read: the first poll below reports the failure, the merge or a PR with
+# no checks the same way it would have anyway.
+gh pr checks "$pr" --watch --fail-fast --interval 10 >/dev/null 2>&1
 
 interval=$min_interval
 previous=""
