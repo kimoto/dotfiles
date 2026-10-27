@@ -23,6 +23,7 @@ case "$1 $2" in
   "bundle list") printf '%s\n' ${STUB_FORMULAE:-} ;;
   "install --formula") exit "${STUB_INSTALL_RC:-0}" ;;
 esac
+[ "$1" = update ] && exit "${STUB_UPDATE_RC:-0}"
 exit 0
 STUBEOF
   chmod +x "$STUB/brew"
@@ -61,6 +62,14 @@ teardown() {
   STUB_FORMULAE="jq" STUB_INSTALL_RC=1 run "$SCRIPT"
   [ "$status" -ne 0 ]
   [ ! -e "$STAMP" ]
+}
+
+@test "a failed brew update exits non-zero before installing anything" {
+  STUB_FORMULAE="jq" STUB_UPDATE_RC=1 run "$SCRIPT"
+  [ "$status" -ne 0 ]
+  [ ! -e "$STAMP" ]
+  run grep -c '^brew install' "$CALLS"
+  [ "$output" = 0 ]
 }
 
 @test "an empty formula list is a failure, not a quiet success" {
