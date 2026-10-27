@@ -53,13 +53,16 @@ for path in "${!REPOS[@]}"; do
   mkdir -p "$GHQ_ROOT/$path"
   printf '# %s\n\n%s\n' "$path" "${REPOS[$path]}" >"$GHQ_ROOT/$path/README.md"
 done
+# A fourth repo with no README: its preview falls back to the listing.
+mkdir -p "$GHQ_ROOT/github.com/dave/delta"
+: >"$GHQ_ROOT/github.com/dave/delta/FILEMARK_DELTA"
 
 # Stub ghq: `list` prints repo-relative paths (sorted, stable order for the
 # pane assertions), `root` prints the fake root. Anything else is a no-op.
 cat >"$STUB_BIN/ghq" <<EOF
 #!/bin/sh
 case "\$1" in
-  list) printf '%s\n' 'github.com/alice/alpha' 'github.com/bob/beta' 'github.com/carol/gamma' ;;
+  list) printf '%s\n' 'github.com/alice/alpha' 'github.com/bob/beta' 'github.com/carol/gamma' 'github.com/dave/delta' ;;
   root) printf '%s\n' '$GHQ_ROOT' ;;
   *) : ;;
 esac
@@ -141,5 +144,13 @@ wait_absent_pane "$SOCK" 'github.com/carol/gamma'   # fzf fully closed before ty
 tmux -L "$SOCK" send-keys 'echo __G_ESC__:$PWD' Enter
 wait_for_pane "$SOCK" "__G_ESC__:$GHQ_ROOT/github.com/alice/alpha"
 echo "== bare g listed all repos; Esc aborted without cd =="
+
+# 5) A repo with no README previews its listing. The pane's $SHELL is zsh,
+#    which would abort the preview on the unmatched README glob instead.
+tmux -L "$SOCK" send-keys 'g delta' Enter
+wait_for_pane "$SOCK" 'FILEMARK_DELTA'
+tmux -L "$SOCK" send-keys Escape
+wait_absent_pane "$SOCK" 'FILEMARK_DELTA'
+echo "== a README-less repo previewed its listing =="
 
 echo "PASS"

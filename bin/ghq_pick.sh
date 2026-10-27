@@ -38,6 +38,12 @@ if [ "${1:-}" = --list ]; then
 fi
 
 # --tiebreak=index: among equally good matches, the ranked order decides.
-sel=$(ranked | fzf --tiebreak=index --query="$*" \
-	--preview "bat --style=plain --color=always $root/{}/README.*")
+# --layout=reverse matches FZF_DEFAULT_OPTS, which a tmux popup does not inherit.
+# The preview runs under sh: $SHELL is zsh, which aborts on a repo with no
+# README instead of falling through to the listing.
+preview="for f in '$root'/{}/README*; do
+	[ -e \"\$f\" ] && exec bat --style=plain --color=always \"\$f\"
+done
+ls '$root'/{}"
+sel=$(ranked | fzf --tiebreak=index --layout=reverse --query="$*" --with-shell 'sh -c' --preview "$preview")
 printf '%s/%s\n' "$root" "$sel"
