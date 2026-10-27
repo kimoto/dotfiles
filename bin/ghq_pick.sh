@@ -46,4 +46,6 @@ preview="for f in '$root'/{}/README*; do
 done
 ls '$root'/{}"
 sel=$(ranked | fzf --tiebreak=index --layout=reverse --query="$*" --with-shell 'sh -c' --preview "$preview")
+# With --exit-0 in FZF_DEFAULT_OPTS, no match exits 0 having picked nothing.
+[ -n "$sel" ] || exit 1
 printf '%s/%s\n' "$root" "$sel"

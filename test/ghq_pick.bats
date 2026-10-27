@@ -89,6 +89,13 @@ github.com/a/alpha2" ]
   [ -z "$output" ]
 }
 
+@test "no match under --exit-0 (fzf succeeds, picks nothing) is an abort, not the ghq root" {
+  printf '#!/bin/sh\nexit 0\n' >"$TMP/bin/fzf"
+  run "$PICK" zzz
+  [ "$status" -ne 0 ]
+  [ -z "$output" ]
+}
+
 @test "prefix + G goes to the window already inside the repo" {
   printf '%s\n' "@1 $ROOT/github.com/a/alpha2" "@2 $ROOT/github.com/a/alpha/.claude/worktrees/x" >"$PANES"
   run "$WINDOW"
