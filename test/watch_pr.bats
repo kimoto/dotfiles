@@ -2,8 +2,7 @@
 
 # Tests for bin/watch_pr.sh. A stub `gh` answers `gh pr view` from a queue of
 # canned JSON files, one per poll, so each test plays out a PR's life without
-# touching GitHub. `gh pr checks --watch` returns at once, as if CI had just
-# settled, and every gh call is logged.
+# touching GitHub.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -16,8 +15,6 @@ setup() {
   # last answer. A file holding "ERR" makes gh fail that poll.
   cat >"$TMP/stubbin/gh" <<'STUBEOF'
 #!/bin/bash
-echo "$*" >>"$QUEUE/../gh_calls"
-[ "$1 $2" = "pr checks" ] && exit 0
 next=$(ls "$QUEUE" | grep -E '^[0-9]+$' | sort -n | head -1)
 if [ -n "$next" ]; then
   mv "$QUEUE/$next" "$QUEUE/last"
@@ -114,12 +111,13 @@ answer() {
   [[ "$output" == *"usage"* ]]
 }
 
-@test "CI is watched through gh first, failing fast, before polling starts" {
-  answer 1 MERGED
+@test "while a check runs it is polled every 10 s, and a merge still ends the watch" {
+  answer 1 OPEN '{"name":"ci","status":"IN_PROGRESS","conclusion":""}'
+  answer 2 OPEN '{"context":"ext","state":"PENDING"}'
+  answer 3 MERGED '{"context":"ext","state":"PENDING"}'
   run "$SCRIPT" 7
   [ "$status" -eq 0 ]
-  [ "$(head -1 "$TMP/gh_calls")" = "pr checks 7 --watch --fail-fast --interval 10" ]
-  [ "$(sed -n 2p "$TMP/gh_calls")" = "pr view 7 --json state,url,statusCheckRollup" ]
+  [ "$(waits)" = "10 10" ]
 }
 
 @test "a PR that does not change is polled ever less often, up to a minute" {

@@ -21,6 +21,10 @@ pr=$1
 # hours of review costs 60 calls an hour, far under GitHub's 5000.
 min_interval=30
 max_interval=60
+# While a check is still running, a failure is heard within 10 s. Not
+# `gh pr checks --watch`: it waits for the checks only, so one that never
+# finishes would hide a merge or close.
+running_interval=10
 # Ten failed polls in a row, by then minutes apart, is an outage or a PR that
 # is gone, not a blip.
 max_failures=10
@@ -30,17 +34,14 @@ failing='[.statusCheckRollup[]?
   | select((.conclusion // .state // "")
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
+running='any(.statusCheckRollup[]?;
+  (.status // "") != "" and .status != "COMPLETED" or (.state // "") == "PENDING")'
 
 wait_and_back_off() {
   sleep "$interval"
   interval=$((interval * 2))
   [ "$interval" -le "$max_interval" ] || interval=$max_interval
 }
-
-# While CI runs, gh's own watch sees a failure within 10 s. Its exit code is
-# not read: the first poll below reports the failure, the merge or a PR with
-# no checks the same way it would have anyway.
-gh pr checks "$pr" --watch --fail-fast --interval 10 >/dev/null 2>&1
 
 interval=$min_interval
 previous=""
@@ -70,5 +71,9 @@ while true; do
     echo "check failed ($failed): $url"
     exit 1
   fi
-  wait_and_back_off
+  if jq -e "$running" <<<"$json" >/dev/null; then
+    sleep "$running_interval"
+  else
+    wait_and_back_off
+  fi
 done
