@@ -383,10 +383,10 @@ temp(){
     builtin cd "$dir"
 }
 
-# ghq + fzf: jump to a cloned repo.
+# Jump to a cloned repo; tmux's prefix + G picks from the same list.
 g() {
-  local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
-  [ -n "$dir" ] && builtin cd "$(ghq root)/$dir" || return
+  local dir
+  dir=$("$DOTFILES_ROOT/bin/ghq_pick.sh" "$*") && builtin cd "$dir"
 }
 
 # git worktree jump via fzf (in the style of g): cd into a chosen worktree.
