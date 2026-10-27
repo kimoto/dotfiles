@@ -65,12 +65,23 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Cache the apt packages install_check_tools.sh fetches
+        # The runners' Ubuntu mirror sometimes serves these at ~60 kB/s, which
+        # turns a 15 s install into two minutes. Saved
+        # only on a miss, so a package the distro updates is fetched again
+        # each run until the script changes or the vN is bumped. *.deb rather
+        # than the directory: apt's partial/ is unreadable to the runner user.
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: /tmp/check-tools-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-check-tools-${{ hashFiles('bin/install_check_tools.sh') }}-v1
       - name: Install check tools
         run: ./bin/install_check_tools.sh
         env:
           # mise resolves aqua/github tools through the GitHub API, which
           # rate-limits an unauthenticated runner.
           GITHUB_TOKEN: ${{ github.token }}
+          CHECK_TOOLS_APT_ARCHIVES: /tmp/check-tools-apt
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
       - name: Run unit tests (bats)
@@ -237,6 +248,17 @@ jobs:
           path: ~/.tmux/plugins
           key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
 
+      - name: Cache the apt packages install_check_tools.sh fetches
+        # The runners' Ubuntu mirror sometimes serves these at ~60 kB/s, which
+        # turns a 15 s install into two minutes. Saved
+        # only on a miss, so a package the distro updates is fetched again
+        # each run until the script changes or the vN is bumped. *.deb rather
+        # than the directory: apt's partial/ is unreadable to the runner user.
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: /tmp/check-tools-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-check-tools-${{ hashFiles('bin/install_check_tools.sh') }}-v1
+
       - name: Install check tools
         # This job installs Brewfile.standard only, and bats-core is in
         # Brewfile.extra — so the suite below has no runner without this. The
@@ -247,6 +269,7 @@ jobs:
           # mise resolves aqua/github tools through the GitHub API, which
           # rate-limits an unauthenticated runner.
           GITHUB_TOKEN: ${{ github.token }}
+          CHECK_TOOLS_APT_ARCHIVES: /tmp/check-tools-apt
 
       - name: Unit tests (bats) with the dotfiles linked into $HOME
         # Deliberately a second run of the same suite static_checks runs: that
