@@ -38,7 +38,16 @@ if command -v apt-get >/dev/null 2>&1; then
   # The cloud image ships its own /etc/zsh/zshrc without the zsh package, so
   # dpkg stops at a conffile prompt; with no terminal that aborts the install.
   # Keep the file already there: it belongs to the image, not to us.
-  as_root apt-get install -y -qq \
+  # CHECK_TOOLS_APT_ARCHIVES lets CI keep the .debs in a directory it caches:
+  # the runners' mirror sometimes serves them at ~60 kB/s, which turns a 10 s
+  # step into two minutes. apt still resolves against today's lists, so a stale
+  # cache only means downloading what changed.
+  apt_cache=()
+  if [ -n "${CHECK_TOOLS_APT_ARCHIVES:-}" ]; then
+    as_root mkdir -p "$CHECK_TOOLS_APT_ARCHIVES/partial"
+    apt_cache=(-o "Dir::Cache::Archives=$CHECK_TOOLS_APT_ARCHIVES")
+  fi
+  as_root apt-get install -y -qq ${apt_cache[@]+"${apt_cache[@]}"} \
     -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
     zsh bats luajit jq gpg >/dev/null
 fi

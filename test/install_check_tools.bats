@@ -58,6 +58,36 @@ run_install() {
   [ -L "$TMP/out/good-tool" ]
 }
 
+# An apt-get that records each call, so a test can see where it was told to
+# keep the .debs it downloads.
+apt_stub() {
+  ln -s "$(command -v mkdir)" "$TMP/sysbin/mkdir"
+  cat >"$TMP/sysbin/apt-get" <<STUB
+#!/bin/bash
+echo "\$*" >>"$TMP/apt.log"
+STUB
+  chmod +x "$TMP/sysbin/apt-get"
+}
+
+@test "apt keeps its downloads in CHECK_TOOLS_APT_ARCHIVES when it is set" {
+  mise_stub 0
+  apt_stub
+  run env CHECK_TOOLS_BIN_DIR="$TMP/out" PATH="$TMP/sysbin" \
+    CHECK_TOOLS_APT_ARCHIVES="$TMP/debs" "$REPO_ROOT/bin/install_check_tools.sh"
+  [ "$status" -eq 0 ]
+  grep -q "^install .*-o Dir::Cache::Archives=$TMP/debs " "$TMP/apt.log"
+  [ -d "$TMP/debs/partial" ]
+}
+
+@test "apt uses its own archive directory when CHECK_TOOLS_APT_ARCHIVES is unset" {
+  mise_stub 0
+  apt_stub
+  run_install
+  [ "$status" -eq 0 ]
+  grep -q "^install " "$TMP/apt.log"
+  ! grep -q "Dir::Cache::Archives" "$TMP/apt.log"
+}
+
 # A release signed by a throwaway key, served by a stub curl from $TMP/release.
 # Asserts on the download path the stub-mise tests above skip: mise is absent,
 # so the script fetches it, checks the signature and the sha256, and installs.
