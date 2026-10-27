@@ -1,5 +1,5 @@
 ---
-name: slow-pc
+name: machine-tuneup
 description: この Mac を快適にする。重い・もたつく・熱いときに原因を突き止めて、取り除く。★「PC 重い」「なんか遅い」「快適にして」と言われた時に使う。⚠️ 本人に聞かずにやってよいのは `taskpolicy -b` で優先度を下げることだけ。
 ---
 

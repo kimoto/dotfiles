@@ -87,13 +87,13 @@ claudecode/skills/*
 !claudecode/skills/issue-sweep/
 !claudecode/skills/load-test-sweep/
 !claudecode/skills/machine-audit/
+!claudecode/skills/machine-tuneup/
 !claudecode/skills/project-decision-sweep/
 !claudecode/skills/project-goal/
 !claudecode/skills/prune-sweep/
 !claudecode/skills/refactor-sweep/
 !claudecode/skills/security-audit/
 !claudecode/skills/session-resume/
-!claudecode/skills/slow-pc/
 !claudecode/skills/test-sweep/
 !claudecode/skills/tool-intake/
 !claudecode/skills/trend-intake/
