@@ -93,6 +93,7 @@ claudecode/skills/*
 !claudecode/skills/refactor-sweep/
 !claudecode/skills/security-audit/
 !claudecode/skills/session-resume/
+!claudecode/skills/slow-pc/
 !claudecode/skills/test-sweep/
 !claudecode/skills/tool-intake/
 !claudecode/skills/trend-intake/
