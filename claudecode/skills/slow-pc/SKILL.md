@@ -49,7 +49,7 @@ description: この Mac が重い・もたつく・ファンが回る（熱い�
 ## 4. 測り直す
 
 1 と同じ窓で `bin/cpu_window.sh` を走らせる。★対処したプロセスの machine% と、
-全体の空き具合（`top -l 2 -n 0 | grep 'CPU usage' | tail -1` の idle）の両方を見る。
+全体の空き具合（`/usr/bin/top -l 2 -n 0 | grep 'CPU usage' | tail -1` の idle）の両方を見る。
 ⚠️ 下がっていても、同じ時間に別のものが終わっていたなら、どちらが効いたのか分からない。そう書く。
 
 ## 5. 返す
