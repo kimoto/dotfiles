@@ -25,8 +25,10 @@ max_interval=300
 # is gone, not a blip.
 max_failures=10
 
-# A check run reports .conclusion, a legacy commit status .state.
-failing='[.statusCheckRollup[]?
+# A check run reports .conclusion, a legacy commit status .state. Only the
+# newest run of each check counts: editing the PR body reruns a check and
+# cancels the run in flight, which would otherwise read as a failure.
+failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.startedAt // "")
   | select((.conclusion // .state // "")
       | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
