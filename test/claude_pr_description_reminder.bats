@@ -103,6 +103,19 @@ codex_plugin() {
   ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
   [[ "$ctx" == *"codex-companion.mjs"* ]]
   [[ "$ctx" != *"subagent"* ]]
+  [[ "$ctx" == *"two review rounds"* ]]
+}
+
+@test "a push that publishes no new code asks for no review" {
+  for c in "git push origin --delete feat/x" "git push -d origin feat/x" \
+    "git push --dry-run" "git push -n origin HEAD" "git push --tags"; do
+    run_hook "$c"
+    ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+    [[ "$ctx" == *"pull-requests.md"* ]]
+    [[ "$ctx" != *"review"* ]]
+  done
+  run_hook "git push -u origin feat/dry-run"
+  [[ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" == *"subagent"* ]]
 }
 
 @test "the watcher the reminder names exists where ~/bin points" {
