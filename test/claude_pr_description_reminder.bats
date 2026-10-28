@@ -91,6 +91,20 @@ codex_plugin() {
   [ -z "$output" ]
 }
 
+@test "without Codex, a push asks for a fresh-context subagent review instead" {
+  run_hook "git push"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"subagent"* ]]
+  [[ "$ctx" == *"two review rounds"* ]]
+  CLAUDE_CODE_REMOTE=true run_hook "git push"
+  [[ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" == *"subagent"* ]]
+  codex_plugin true
+  run_hook "git push"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"codex-companion.mjs"* ]]
+  [[ "$ctx" != *"subagent"* ]]
+}
+
 @test "the watcher the reminder names exists where ~/bin points" {
   [ -x "$REPO_ROOT/bin/watch_pr.sh" ]
 }

@@ -30,16 +30,22 @@ context=""
 # already loads; the reminder only points there, so the two never drift.
 if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
-  # A second reader on every push, wherever the Codex plugin is enabled: that
-  # switch already says this machine's code may go to OpenAI. Advisory, so a
-  # review that never runs costs nothing.
+  # A second reader on every push. Codex where its plugin is enabled — that
+  # switch already says this machine's code may go to OpenAI, and a different
+  # model misses different things. Everywhere else, a subagent that has not
+  # seen the work: it gets the diff, not the author's reasoning, so it cannot
+  # inherit the author's blind spots. Advisory, so a review that never runs
+  # costs nothing; the round cap keeps review-fix-push from looping.
+  companion=""
   if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
     && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
     companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
       | sort -V | tail -1)
-    if [ -f "$companion" ]; then
-      context="$context Also start \`node \"$companion\" review --base <the branch the PR targets>\` with run_in_background from the pushed repo; when it finishes, fix the findings that hold up and say which ones you dismissed."
-    fi
+  fi
+  if [ -f "$companion" ]; then
+    context="$context Also start \`node \"$companion\" review --base <the branch the PR targets>\` with run_in_background from the pushed repo; when it finishes, fix the findings that hold up and say which ones you dismissed."
+  else
+    context="$context Also have the pushed change reviewed by a subagent that has not seen this work: start the Agent tool with run_in_background, and give it only the repo path, the range origin/<the branch the PR targets>..HEAD and the PR's stated purpose, not your reasoning or what you think is wrong. Ask for correctness bugs, each with a concrete input that breaks it. When it returns, fix the findings that hold up and say which ones you dismissed. Stop at two review rounds per PR; after that, list what is left in the PR body instead."
   fi
 fi
 
