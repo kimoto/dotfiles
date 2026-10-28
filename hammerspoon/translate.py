@@ -19,6 +19,9 @@ Usage:
                                     summarize the text in Japanese
   translate.py --proofread --clipboard
                                     fix typos and wrong words, nothing else
+  translate.py --diagram --clipboard
+                                    draw the text as one SVG diagram (not
+                                    copied: translate.lua copies it as an image)
   echo "..." | translate.py         stdin, when not --clipboard
 
 The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
@@ -110,6 +113,15 @@ conversions, missing or doubled characters, and grammar slips. Change nothing el
 wording, tone, line breaks and emoji. If there is nothing to fix, output the text unchanged."""
 
 
+DIAGRAM_SYSTEM = """You draw the user's text as one diagram, to paste into a chat as an image.
+Output only SVG markup: start with <svg and end with </svg>, with no code fence and nothing else.
+Pick the shape the text has (a flow, a hierarchy, a timeline, a comparison) and keep it small:
+at most about ten boxes, labels of a few words in the text's language.
+The svg has width="480", a viewBox, and a white rect filling it as the first child, so it reads
+on any background. Dark text, font-family sans-serif, at least 13px. No script, no
+foreignObject, no external images or fonts. Add nothing that is not in the text."""
+
+
 @dataclass(frozen=True)
 class Task:
     """A job that keeps the text's own language, unlike translation."""
@@ -118,6 +130,7 @@ class Task:
     needs_style: bool
     title: str  # the dialog's title
     empty: str  # what fail() says when there is no text
+    svg: bool = False  # the answer is an SVG, which only the popup can show and copy
 
 
 TASKS = {
@@ -127,6 +140,7 @@ TASKS = {
                   "返信する相手のメッセージがありません。"),
     "summarize": Task(SUMMARY_SYSTEM, "Summarize this.", False, "要約", "要約する文がありません。"),
     "proofread": Task(PROOFREAD_SYSTEM, "Proofread this.", False, "誤字チェック", "見直す文がありません。"),
+    "diagram": Task(DIAGRAM_SYSTEM, "Draw this as a diagram.", False, "図解", "図にする文がありません。", svg=True),
 }
 
 
@@ -373,6 +387,8 @@ def main() -> None:
                         help="summarize the text in Japanese")
     source.add_argument("--proofread", dest="task", action="store_const", const="proofread",
                         help="fix typos and wrong words, nothing else")
+    source.add_argument("--diagram", dest="task", action="store_const", const="diagram",
+                        help="draw the text as one SVG diagram")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     args = p.parse_args()
@@ -386,7 +402,14 @@ def main() -> None:
         if not text.strip():
             fail(task.empty)
         content = [{"type": "text", "text": f"{task.instruction}\n\n{text}"}]
-        show(translate(content, system), args.quiet, task.title)
+        result = translate(content, system)
+        if task.svg:
+            # Checked here, not in the popup: anything else would be shown as
+            # a broken image instead of a reason.
+            if not (result.startswith("<svg") and result.endswith("</svg>")):
+                fail("図になりませんでした（SVG 以外が返りました）。")
+            return
+        show(result, args.quiet, task.title)
         return
 
     if args.screen or args.image:

@@ -24,6 +24,8 @@ local MODES = {
    reply = { title = "返信案" },
    summarize = { title = "要約" },
    proofread = { title = "誤字チェック" },
+   -- The answer is an SVG: shown as an image and copied as a PNG, never as text.
+   diagram = { title = "図解", svg = true },
 }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
@@ -57,6 +59,7 @@ button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; f
 main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto;
   max-height: 560px; -webkit-user-select: text; cursor: text; }
 main.error { color: var(--err); font-size: 13px; }
+main img { display: block; max-width: 100%; height: auto; border-radius: 6px; }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
@@ -68,9 +71,28 @@ main.error { color: var(--err); font-size: 13px; }
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
-function update(text, status, kind) {
+// An SVG goes in as an <img>, where its own scripts cannot run, and comes back
+// as a PNG: Slack pastes an image, not SVG markup. Drawn once per SVG, so
+// the status update that follows the PNG does not draw it again.
+let shownSvg = null;
+function showSvg(t, svg) {
+  if (svg === shownSvg) return;
+  shownSvg = svg;
+  const img = new Image();
+  img.onload = () => {
+    fit();
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth * 2;
+    c.height = img.naturalHeight * 2;
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    post({ png: c.toDataURL('image/png') });
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  t.replaceChildren(img);
+}
+function update(text, status, kind, svg) {
   const t = document.getElementById('text');
-  t.textContent = text;
+  if (svg && text) showSvg(t, text); else { shownSvg = null; t.textContent = text; }
   t.className = kind === 'error' ? 'error' : '';
   const s = document.getElementById('status');
   s.textContent = status;
@@ -87,7 +109,7 @@ post({ ready: true });
 -- Globals, like the watchers in init.lua: a local would be collected.
 translatePopup = nil
 translatePopupEsc = nil
-local popup = { text = "", status = "", kind = "", ready = false }
+local popup = { text = "", status = "", kind = "", svg = false, ready = false }
 
 local function closePopup()
    if translatePopupEsc then translatePopupEsc:stop() end
@@ -97,12 +119,26 @@ end
 
 local function renderPopup()
    if not (translatePopup and popup.ready) then return end
-   translatePopup:evaluateJavaScript("update(..." .. hs.json.encode({ popup.text, popup.status, popup.kind }) .. ")")
+   translatePopup:evaluateJavaScript("update(..."
+      .. hs.json.encode({ popup.text, popup.status, popup.kind, popup.svg }) .. ")")
 end
 
-local function setPopup(text, status, kind)
-   popup.text, popup.status, popup.kind = text, status, kind
+local function setPopup(text, status, kind, svg)
+   popup.text, popup.status, popup.kind, popup.svg = text, status, kind, svg or false
    renderPopup()
+end
+
+-- The pasteboard takes an image object, not a data URL, so the PNG goes
+-- through a file.
+local function copyPng(dataUrl)
+   local data = hs.base64.decode((dataUrl:gsub("^data:image/png;base64,", "")))
+   local path = os.tmpname() .. ".png"
+   local f = assert(io.open(path, "wb"))
+   f:write(data)
+   f:close()
+   local image = hs.image.imageFromPath(path)
+   os.remove(path)
+   return image ~= nil and hs.pasteboard.writeObjects(image)
 end
 
 local function fitPopup(height)
@@ -116,7 +152,7 @@ end
 
 local function openPopup(mode)
    closePopup()
-   popup = { text = "", status = "", kind = "busy", ready = false }
+   popup = { text = "", status = "", kind = "busy", svg = false, ready = false }
    local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
       local body = msg.body
       if not translatePopup then return end
@@ -125,9 +161,20 @@ local function openPopup(mode)
          renderPopup()
       elseif body.height then
          fitPopup(body.height)
+      elseif body.png then
+         popup.png = body.png
+         if copyPng(body.png) then
+            setPopup(popup.text, "画像をコピー済み", "done", true)
+         else
+            setPopup(popup.text, "画像をコピーできませんでした", "error", true)
+         end
       elseif body.copy then
-         hs.pasteboard.setContents(popup.text)
-         setPopup(popup.text, "コピーしました", "done")
+         if popup.svg then
+            if popup.png and copyPng(popup.png) then setPopup(popup.text, "画像をコピーしました", "done", true) end
+         else
+            hs.pasteboard.setContents(popup.text)
+            setPopup(popup.text, "コピーしました", "done")
+         end
       elseif body.close then
          closePopup()
       end
@@ -197,17 +244,22 @@ local function run(args, mode)
          return
       end
       popupOpened()
-      if code == 0 then
+      if code == 0 and mode.svg then
+         setPopup(text, "", "busy", true)  -- done once the PNG is copied
+      elseif code == 0 then
          setPopup(text, "コピー済み", "done")
       else
          local reason = err:gsub("%s+$", "")
          if reason == "" then reason = "translate.py が出力なしで終了しました。" end
+         -- Half an SVG is markup, not a reason; only the reason is shown.
+         if mode.svg then text = "" end
          setPopup((text ~= "" and text .. "\n\n" or "") .. reason, "失敗（終了コード " .. code .. "）", "error")
       end
    end, function(_, stdout, stderr)
       if id ~= runs then return false end
       out, err = out .. (stdout or ""), err .. (stderr or "")
-      if out:find("%S") then
+      -- An SVG half written is only markup: the spinner stays until it is done.
+      if out:find("%S") and not mode.svg then
          popupOpened()
          setPopup(out, "", "busy")
       end
@@ -263,6 +315,7 @@ local MENU = {
    { text = "返信案", subText = "選んだメッセージへの返事を自分の口調で", job = "reply" },
    { text = "要約", subText = "要点を日本語で数行に", job = "summarize" },
    { text = "誤字チェック", subText = "誤字・変換ミスだけ直す（口調は変えない）", job = "proofread" },
+   { text = "図解", subText = "選んだ文を図にする（画像でコピー）", job = "diagram" },
    { text = "翻訳", subText = "日本語 ⇄ 英語", job = "translate" },
 }
 local function chooseJob()

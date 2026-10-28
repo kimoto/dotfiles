@@ -53,6 +53,7 @@ pick() {
 返信案|--quiet --reply --clipboard
 要約|--quiet --summarize --clipboard
 誤字チェック|--quiet --proofread --clipboard
+図解|--quiet --diagram --clipboard
 翻訳|--quiet --clipboard
 ROWS
 }

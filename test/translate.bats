@@ -30,11 +30,13 @@ def _raise_stub_error():
 class _Obj:
     def __init__(self, **kw): self.__dict__.update(kw)
 class _Stream:
-    text_stream = ["TRANS", "LATED"]
+    # STUB_TEXT replaces the answer, for a test that needs a particular one.
+    text_stream = [os.environ["STUB_TEXT"]] if os.environ.get("STUB_TEXT") else ["TRANS", "LATED"]
     def __enter__(self): return self
     def __exit__(self, *exc): return False
     def get_final_message(self):
-        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text="TRANSLATED")])
+        text = os.environ.get("STUB_TEXT") or "TRANSLATED"
+        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text=text)])
 class _Messages:
     def stream(self, **kw):
         with open(os.environ["REQUEST"], "w") as f:
@@ -377,4 +379,22 @@ request_system() {
   [[ "$(request_text)" == "Proofread this."*"明日わ休みです" ]]
   [[ "$(request_system)" == *"Change nothing else"* ]]
   [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+# --diagram: the answer is an SVG for the popup to show and copy as an image.
+
+@test "--diagram asks for one SVG and leaves the clipboard to the popup" {
+  STUB_TEXT='<svg width="480"><rect/></svg>' run python3 "$SCRIPT" --quiet --diagram "A → B → C"
+  [ "$status" -eq 0 ]
+  [ "$output" = '<svg width="480"><rect/></svg>' ]
+  [[ "$(request_text)" == "Draw this as a diagram."*"A → B → C" ]]
+  [[ "$(request_system)" == *"Output only SVG markup"* ]]
+  [[ "$(request_system)" == *"No script"* ]]
+  [ ! -e "$CLIPBOARD" ]
+}
+
+@test "--diagram fails when the answer is not an SVG" {
+  STUB_TEXT='Here is your diagram: <svg></svg>' run python3 "$SCRIPT" --quiet --diagram "A → B"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"SVG 以外"* ]]
 }
