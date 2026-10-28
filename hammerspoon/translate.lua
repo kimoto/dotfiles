@@ -196,7 +196,14 @@ local function run(args)
       end
       return true
    end, argv)
-   translateTask:start()
+   -- A missing venv never calls back, so the busy alert would stay up for good.
+   if not (translateTask and translateTask:start()) then
+      hs.alert.closeSpecific(busy)
+      busy = nil
+      openPopup()
+      setPopup(PYTHON .. " を起動できません。\n準備の手順は translate.py の先頭にあります。",
+         "起動できません", "error")
+   end
 end
 
 local function chooseLanguageThen(args)
