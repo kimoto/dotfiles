@@ -72,7 +72,8 @@ codex_plugin() {
 # A PR opened through the GitHub MCP tool, as a cloud session does.
 run_mcp_create() {
   run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
-    "$(jq -cn --arg u "$PR_URL" '{tool_name: "mcp__github__create_pull_request", tool_input: {title: "t"}, tool_response: {id: "1", url: $u}}')"
+    "$(jq -cn --arg u "$PR_URL" '{tool_name: "mcp__github__create_pull_request",
+      tool_input: {title: "t"}, tool_response: {id: "1", url: $u}}')"
 }
 
 @test "a new PR, from gh or the MCP tool, gets one review: correctness and the sweeps' diff mode" {
