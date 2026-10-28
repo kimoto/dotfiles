@@ -105,17 +105,18 @@ codex_plugin() {
   [[ "$ctx" == *"two review rounds"* ]]
 }
 
-@test "a push asks for a separate performance reviewer beside the correctness one" {
+@test "a push names the shared reviewer agents, which exist where ~/.claude/agents points" {
   run_hook "git push"
   ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"correctness bugs"* ]]
-  [[ "$ctx" == *"performance"* ]]
+  [[ "$ctx" == *"review-correctness"* ]]
+  [[ "$ctx" == *"review-performance"* ]]
+  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
+  [ -f "$REPO_ROOT/claudecode/agents/review-performance.md" ]
   codex_plugin true
   run_hook "git push"
   ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"codex-companion.mjs"* ]]
-  [[ "$ctx" == *"performance"* ]]
-  [[ "$ctx" != *"correctness bugs"* ]]
+  [[ "$ctx" != *"review-correctness"* ]]
+  [[ "$ctx" == *"review-performance"* ]]
 }
 
 @test "a push that publishes no new code asks for no review" {
