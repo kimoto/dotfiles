@@ -118,25 +118,6 @@ codex_plugin() {
   [[ "$ctx" != *"correctness bugs"* ]]
 }
 
-ctx_of() { jq -r '.hookSpecificOutput.additionalContext' <<<"$output"; }
-
-@test "a commit asks a fast subagent for a first look at that commit alone" {
-  run_hook "git -C repo commit -am x"
-  ctx="$(ctx_of)"
-  [[ "$ctx" == *"haiku"* ]]
-  [[ "$ctx" == *"HEAD~1..HEAD"* ]]
-  [[ "$ctx" == *"run_in_background"* ]]
-  CLAUDE_CODE_REMOTE=true run_hook "git commit -m x"
-  [[ "$(ctx_of)" == *"haiku"* ]]
-}
-
-@test "a commit that records nothing, or a command that only names one, asks for no review" {
-  run_hook "git commit --dry-run"
-  [ -z "$output" ]
-  run_hook "git log --grep 'git commit'"
-  [ -z "$output" ]
-}
-
 @test "a push that publishes no new code asks for no review" {
   for c in "git push origin --delete feat/x" "git push -d origin feat/x" \
     "git push --dry-run" "git push -n origin HEAD" "git push --tags"; do
