@@ -29,10 +29,11 @@ running_interval=10
 # is gone, not a blip.
 max_failures=10
 
-# A check run reports .conclusion, a legacy commit status .state. CANCELLED is
-# not a failure: every workflow here cancels in progress, so a push or a body
-# edit leaves a cancelled run in the rollup until its replacement registers.
-failing='[.statusCheckRollup[]?
+# A check run reports .conclusion, a legacy commit status .state. Only the
+# newest run of each check counts, and CANCELLED is not a failure: every
+# workflow here cancels in progress, so a push or a body edit leaves a
+# cancelled run in the rollup, alone until its replacement registers.
+failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.startedAt // "")
   | select((.conclusion // .state // "")
       | IN("FAILURE", "ERROR", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
