@@ -23,6 +23,11 @@ Usage:
                                     draw the text as one SVG diagram (not
                                     copied: translate.lua copies it as an image)
   echo "..." | translate.py         stdin, when not --clipboard
+  translate.py --wait               load the SDK and the key, then take the
+                                    arguments above as one JSON array on stdin
+                                    (translate.lua starts it at the key press,
+                                    so the wait is spent while the menu is open)
+  translate.py ... --timing         say on stderr how long the first words took
 
 The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
 
@@ -40,6 +45,9 @@ Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
   base_url = "https://llm.example/v1"
   model = "..."                # required for "openai"
   reasoning_effort = "low"     # optional, for reasoning models only
+A model per job, where speed matters more than the voice (the job names are the flags without --, and "translate"):
+  [models]
+  summarize = "claude-haiku-5-5"
 "openai" needs `pip install -U openai` in the same venv, and its key under
 its own account: security add-generic-password -s desktop-translate -a openai -w
 
@@ -60,10 +68,13 @@ repo is public. Without it, both fail rather than guess a voice.
 import argparse
 import base64
 import contextlib
+import json
 import os
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,6 +88,8 @@ EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
 STYLE = Path.home() / ".local/share/desktop-translate/style.md"
 TRUNCATED = "（長すぎて途中で切れました）"
+# Haiku answers fastest with no thinking at all; Opus cannot turn it off.
+NO_THINKING_PREFIX = "claude-haiku-"
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -172,7 +185,10 @@ def api_key(provider: str) -> str:
             return key
     except (FileNotFoundError, subprocess.CalledProcessError):
         pass
-    fail(f"API キーが見つかりません（Keychain の {KEYCHAIN_SERVICE}、アカウント {provider}）。")
+    # The command, not just the place: -w with no value asks for the key, so
+    # it never lands in argv or the shell history.
+    fail(f"API キーが未設定です。ターミナルで次を実行し、キーを貼ってください。\n\n"
+         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
 
 
 def is_mostly_japanese(text: str) -> bool:
@@ -211,7 +227,53 @@ def system_prompt() -> str:
     return SYSTEM
 
 
+def model_for(config: dict, job: str) -> str:
+    return (os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("models", {}).get(job)
+            or config.get("model") or ANTHROPIC_MODEL)
+
+
+def connect(config: dict):
+    """The SDK client, ready to send: importing the SDK alone takes a few
+    tenths of a second, which is why Prepared does this on its own thread."""
+    if config["provider"] == "openai":
+        import openai
+        return openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
+    import anthropic
+    return anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
+
+
+class Prepared(threading.Thread):
+    """The config and the client, made while the main thread reads the text,
+    takes the screenshot or waits for the job; a failure waits for get()."""
+
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.value = self.error = None
+        self.start()
+
+    def run(self):
+        try:
+            config = load_config()
+            self.value = config, connect(config)
+        except Exception as e:  # noqa: BLE001 - re-raised on the main thread by get()
+            self.error = e
+
+    def get(self) -> tuple:
+        started = time.perf_counter()
+        self.join()
+        timing["waited"] = time.perf_counter() - started
+        if self.error:
+            raise self.error
+        return self.value
+
+
+# When each stage ended, for --timing; "start" is when the job was known.
+timing = {"start": time.perf_counter()}
+
+
 def emit(chunk: str) -> None:
+    if chunk.strip():
+        timing.setdefault("first", time.perf_counter())
     sys.stdout.write(chunk)
     sys.stdout.flush()
 
@@ -231,22 +293,19 @@ def api_errors(sdk):
         fail("API に接続できません。")
 
 
-def translate_anthropic(content: list, system: str, config: dict) -> tuple[str, bool]:
+def translate_anthropic(client, model: str, content: list, system: str) -> tuple[str, bool]:
     import anthropic
 
-    client = anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
-    model = os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("model") or ANTHROPIC_MODEL
-    # fallbacks: a safety classifier's false positive on ordinary text is
-    # retried on the model Anthropic recommends instead of failing.
-    with api_errors(anthropic), client.beta.messages.stream(
-        model=model,
-        max_tokens=16000,
-        output_config={"effort": EFFORT},
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        system=system,
-        messages=[{"role": "user", "content": content}],
-    ) as stream:
+    params = {"model": model, "max_tokens": 16000, "output_config": {"effort": EFFORT},
+              "system": system, "messages": [{"role": "user", "content": content}]}
+    if model.startswith(NO_THINKING_PREFIX):
+        # Haiku has no server-side fallback to ask for.
+        params["thinking"] = {"type": "disabled"}
+    else:
+        # A safety classifier's false positive on ordinary text is retried on
+        # the model Anthropic recommends instead of failing.
+        params.update(betas=["server-side-fallback-2026-07-01"], fallbacks="default")
+    with api_errors(anthropic), client.beta.messages.stream(**params) as stream:
         for chunk in stream.text_stream:
             emit(chunk)
         response = stream.get_final_message()
@@ -270,11 +329,10 @@ def openai_input(content: list) -> list:
     return [{"role": "user", "content": parts}]
 
 
-def translate_openai(content: list, system: str, config: dict) -> tuple[str, bool]:
+def translate_openai(client, model: str, content: list, system: str, config: dict) -> tuple[str, bool]:
     import openai
 
-    client = openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
-    params = {"model": config["model"], "instructions": system,
+    params = {"model": model, "instructions": system,
               "input": openai_input(content), "max_output_tokens": 16000, "stream": True}
     if config.get("reasoning_effort"):
         params["reasoning"] = {"effort": config["reasoning_effort"]}
@@ -299,15 +357,18 @@ def translate_openai(content: list, system: str, config: dict) -> tuple[str, boo
     return "".join(pieces), truncated
 
 
-def translate(content: list, system: str) -> str:
+def translate(content: list, system: str, ready: Prepared, job: str) -> str:
     """Translate, writing the text to stdout as it arrives; return all of it.
 
     Streamed so the popup can show the first words while the rest is still
     being written: a long passage otherwise waits for its last token.
     """
-    config = load_config()
-    run = translate_openai if config["provider"] == "openai" else translate_anthropic
-    text, truncated = run(content, system, config)
+    config, client = ready.get()
+    model = timing["model"] = model_for(config, job)
+    if config["provider"] == "openai":
+        text, truncated = translate_openai(client, model, content, system, config)
+    else:
+        text, truncated = translate_anthropic(client, model, content, system)
     text = text.strip()
     if truncated:
         cut = "\n\n" + TRUNCATED
@@ -362,7 +423,16 @@ def show(text: str, quiet: bool, title: str) -> None:
         ], capture_output=True, check=False)
 
 
+class Failed(Exception):
+    """A reason for the user; raised rather than exiting, so a failure on
+    Prepared's thread is told only if the main thread gets that far."""
+
+
 def fail(message: str):
+    raise Failed(message)
+
+
+def report(message: str):
     print(message, file=sys.stderr)
     subprocess.run(["osascript", "-e", "on run argv", "-e",
                     'display notification (item 1 of argv) with title "翻訳"',
@@ -370,7 +440,28 @@ def fail(message: str):
     sys.exit(1)
 
 
+def report_timing():
+    def since(stage):
+        return f"{timing[stage] - timing['start']:.2f}s" if stage in timing else "なし"
+    timing["end"] = time.perf_counter()
+    print(f"準備待ち {timing.get('waited', 0):.2f}s / 最初の文字 {since('first')} / "
+          f"全体 {since('end')}（{timing.get('model', 'モデル未使用')}）", file=sys.stderr)
+
+
+def wait_for_job() -> tuple[list | None, Prepared]:
+    """--wait: get ready first, then read the job. EOF means it was cancelled."""
+    ready = Prepared()
+    line = sys.stdin.readline()
+    timing["start"] = time.perf_counter()
+    return (json.loads(line) if line.strip() else None), ready
+
+
 def main() -> None:
+    argv, ready = sys.argv[1:], None
+    if argv == ["--wait"]:
+        argv, ready = wait_for_job()
+        if argv is None:
+            return
     p = argparse.ArgumentParser(description="Desktop translation with Claude")
     p.add_argument("text", nargs="*", help="text to translate (default: stdin, then the clipboard)")
     p.add_argument("--clipboard", action="store_true", help="translate the clipboard, ignoring stdin")
@@ -392,10 +483,21 @@ def main() -> None:
                         help="draw the text as one SVG diagram")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
-    args = p.parse_args()
+    p.add_argument("--timing", action="store_true", help="say on stderr how long each stage took")
+    args = p.parse_args(argv)
     if args.task and args.to:
         p.error(f"--{args.task} keeps the language; it does not take --to")
+    ready = ready or Prepared()
+    try:
+        run(args, ready)
+    except Failed as e:
+        report(str(e))
+    finally:
+        if args.timing:
+            report_timing()
 
+
+def run(args, ready: Prepared) -> None:
     if args.task:
         task = TASKS[args.task]
         system = task_system_prompt(task)
@@ -403,7 +505,7 @@ def main() -> None:
         if not text.strip():
             fail(task.empty)
         content = [{"type": "text", "text": f"{task.instruction}\n\n{text}"}]
-        result = translate(content, system)
+        result = translate(content, system, ready, args.task)
         if task.svg:
             # Checked here, not in the popup: anything else would be shown as
             # a broken image instead of a reason.
@@ -430,7 +532,7 @@ def main() -> None:
             fail("訳す文がありません。")
         content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
 
-    show(translate(content, system_prompt()), args.quiet, "翻訳")
+    show(translate(content, system_prompt(), ready, "translate"), args.quiet, "翻訳")
 
 
 if __name__ == "__main__":

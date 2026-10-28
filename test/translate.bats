@@ -187,6 +187,7 @@ request_text() {
   run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 1 ]
   [ ! -e "$REQUEST.key" ]
+  [[ "$output" == *"security add-generic-password -s desktop-translate -a anthropic -w" ]]
 }
 
 @test "--screen and --image together are refused, and the image is left alone" {
@@ -290,6 +291,11 @@ EOF
 
 request_system() {
   python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["system"])' "$REQUEST"
+}
+
+# One top-level field of the recorded request, as Python prints it; None when absent.
+request_field() {
+  python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]))' "$REQUEST" "$1"
 }
 
 @test "--rewrite asks for the notes rewritten, not translated" {
@@ -404,4 +410,44 @@ request_system() {
   STUB_INCOMPLETE=1 run python3 "$SCRIPT" --quiet --diagram "A → B"
   [ "$status" -eq 1 ]
   [[ "$output" == *"図が長すぎて"* ]]
+}
+
+@test "--wait makes the client before the job arrives, then runs the job it is sent" {
+  mkfifo "$TMP/job"
+  python3 "$SCRIPT" --wait <"$TMP/job" >"$TMP/out" 2>&1 &
+  exec 7>"$TMP/job"
+  for _ in $(seq 50); do [ -e "$REQUEST.key" ] && break; sleep 0.1; done
+  [ -e "$REQUEST.key" ]
+  [ ! -e "$REQUEST" ]
+  echo '["--quiet", "--summarize", "--clipboard"]' >&7
+  exec 7>&-
+  wait $!
+  [ "$(cat "$TMP/out")" = "TRANSLATED" ]
+  [[ "$(request_text)" == "Summarize this."*"clipboard text" ]]
+}
+
+@test "--wait sends nothing when it is closed without a job" {
+  run python3 "$SCRIPT" --wait </dev/null
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--timing says when the first words came, after the answer" {
+  run python3 "$SCRIPT" --quiet --timing "hello"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "TRANSLATED"*"最初の文字 "*"s / 全体 "*"claude-opus-5-5"* ]]
+}
+
+@test "a job given Haiku in the config asks for no thinking and no fallback; the others keep theirs" {
+  printf '[models]\nsummarize = "claude-haiku-5-5"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-haiku-5-5" ]
+  [ "$(request_field thinking)" = "{'type': 'disabled'}" ]
+  [ "$(request_field fallbacks)" = "None" ]
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$(request_field model)" = "claude-opus-5-5" ]
+  [ "$(request_field thinking)" = "None" ]
+  [ "$(request_field fallbacks)" = "default" ]
 }

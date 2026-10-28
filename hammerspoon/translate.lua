@@ -264,11 +264,32 @@ end
 -- the popup, so "nothing happened" cannot be mistaken for "still working".
 translateTask = nil
 local runs = 0
-local function run(args, mode)
+
+-- translate.py --wait, started at the key press: loading the SDK and reading
+-- the key take a few tenths of a second, spent while the copy lands and the
+-- menu is open instead of after. It sends nothing until run() gives it a job;
+-- cancel() ends it when no job comes. An exit before the job (Python itself
+-- broken) is kept for run() to show, or the popup would spin forever.
+local function prepare()
+   local handlers = {}
+   local task = hs.task.new(PYTHON, function(...)
+      if handlers.done then handlers.done(...) else handlers.exited = { ... } end
+   end, function(...)
+      if handlers.stream then return handlers.stream(...) end
+      return true
+   end, { SCRIPT, "--wait" })
+   task:start()
+   return { task = task, handlers = handlers, cancel = function() task:terminate() end }
+end
+
+local function run(args, mode, ready)
    mode = mode or MODES.translate
-   local argv = { SCRIPT, "--quiet" }
+   ready = ready or prepare()
+   local argv = { "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
-   if translateTask and translateTask:isRunning() then translateTask:terminate() end
+   if translateTask and translateTask ~= ready.task and translateTask:isRunning() then
+      translateTask:terminate()
+   end
    runs = runs + 1
    local id = runs
    local busy
@@ -287,7 +308,7 @@ local function run(args, mode)
          openPopup(mode)
       end
    end
-   translateTask = hs.task.new(PYTHON, function(code, stdout, stderr)
+   ready.handlers.done = function(code, stdout, stderr)
       if id ~= runs then  -- replaced by a newer translation
          if busy then hs.alert.closeSpecific(busy) end
          return
@@ -310,7 +331,8 @@ local function run(args, mode)
          if mode.svg then text = "" end
          setPopup((text ~= "" and text .. "\n\n" or "") .. reason, "失敗（終了コード " .. code .. "）", "error")
       end
-   end, function(_, stdout, stderr)
+   end
+   ready.handlers.stream = function(_, stdout, stderr)
       if id ~= runs then return false end
       out, err = out .. (stdout or ""), err .. (stderr or "")
       -- An SVG half written is only markup: the spinner stays until it is done.
@@ -322,16 +344,20 @@ local function run(args, mode)
          streaming = true
       end
       return true
-   end, argv)
-   translateTask:start()
+   end
+   translateTask = ready.task
+   local exited = ready.handlers.exited
+   if exited then return ready.handlers.done(exited[1], exited[2], exited[3]) end
+   translateTask:setInput(hs.json.encode(argv) .. "\n")
+   translateTask:closeInput()
 end
 
-local function chooseLanguageThen(args)
+local function chooseLanguageThen(args, ready)
    local chooser = hs.chooser.new(function(choice)
-      if not choice then return end
+      if not choice then return ready.cancel() end
       local argv = { "--to", choice.lang }
       for _, a in ipairs(args) do table.insert(argv, a) end
-      run(argv)
+      run(argv, nil, ready)
    end)
    chooser:choices({
       { text = "日本語へ", lang = "ja" },
@@ -345,7 +371,7 @@ end
 -- working on whatever was copied before would answer the wrong question.
 -- A global: a timer only its own callback refers to can be collected.
 translateCopyPoll = nil
-local function copySelectionThen(andThen)
+local function copySelectionThen(andThen, ready)
    local before = hs.pasteboard.changeCount()
    local deadline = hs.timer.secondsSinceEpoch() + COPY_TIMEOUT
    hs.eventtap.keyStroke({ "cmd" }, "c")
@@ -356,13 +382,15 @@ local function copySelectionThen(andThen)
          andThen()
       elseif hs.timer.secondsSinceEpoch() > deadline then
          translateCopyPoll:stop()
+         ready.cancel()
          hs.alert.show("選択された文がありません")
       end
    end)
 end
 
 local function translateSelection()
-   copySelectionThen(function() run({ "--clipboard" }) end)
+   local ready = prepare()
+   copySelectionThen(function() run({ "--clipboard" }, nil, ready) end, ready)
 end
 
 -- One key for every job, so adding a job adds a menu row, not a key to learn.
@@ -376,12 +404,12 @@ local MENU = {
    { text = "図解", subText = "選んだ文を図にする（画像でコピー）", job = "diagram" },
    { text = "翻訳", subText = "日本語 ⇄ 英語", job = "translate" },
 }
-local function chooseJob()
+local function chooseJob(ready)
    local chooser = hs.chooser.new(function(choice)
-      if not choice then return end
+      if not choice then return ready.cancel() end
       local args = { "--clipboard" }
       if choice.job ~= "translate" then table.insert(args, 1, "--" .. choice.job) end
-      run(args, MODES[choice.job])
+      run(args, MODES[choice.job], ready)
    end)
    chooser:choices(MENU)
    chooser:show()
@@ -403,8 +431,9 @@ translateCopyWatcher = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, func
    if now - lastCopy < DOUBLE_PRESS then
       lastCopy = 0
       local shift = flags.shift
+      local ready = prepare()
       hs.timer.doAfter(CLIPBOARD_WAIT, function()
-         if shift then chooseLanguageThen({ "--clipboard" }) else run({ "--clipboard" }) end
+         if shift then chooseLanguageThen({ "--clipboard" }, ready) else run({ "--clipboard" }, nil, ready) end
       end)
    else
       lastCopy = now
@@ -417,7 +446,10 @@ translateCopyWatcher:start()
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
 -- The jobs that write in the user's voice need the style file (translate.py's
 -- header).
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function() copySelectionThen(chooseJob) end)
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
+   local ready = prepare()
+   copySelectionThen(function() chooseJob(ready) end, ready)
+end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()

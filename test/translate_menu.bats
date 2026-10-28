@@ -22,15 +22,15 @@ drive() {
     $1"
 }
 
-# Presses ⌃⌘⇧W, lets the copy land, picks the row, and prints the argv given
-# to translate.py.
+# Presses ⌃⌘⇧W, lets the copy land, picks the row, and prints the job sent to
+# translate.py.
 pick() {
   drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
     assert(#stub.choosers == 0, 'menu opened before the copy landed')
     stub.tick()
     stub.choose('$1')
-    print(table.concat(stub.tasks[#stub.tasks].argv, ' ', 2))"
+    print(stub.sent(stub.tasks[#stub.tasks]))"
 }
 
 @test "⌃⌘⇧W copies the selection, then opens the menu" {
@@ -38,10 +38,51 @@ pick() {
     stub.hotkeys['ctrl+cmd+shift+w']()
     print(table.concat(stub.keystrokes, ','), #stub.choosers)
     stub.tick()
-    print(#stub.choosers, #stub.tasks)"
+    print(#stub.choosers)"
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "$(printf 'cmd+c\t0')" ]
-  [ "${lines[1]}" = "$(printf '1\t0')" ]
+  [ "${lines[1]}" = "1" ]
+}
+
+@test "translate.py starts getting ready at the key press, and gets its job from the menu" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    local task = stub.tasks[1]
+    print(#stub.tasks, task.argv[2], tostring(stub.sent(task)))
+    stub.tick()
+    stub.choose('要約')
+    print(#stub.tasks, stub.sent(task), tostring(task.closed))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '1\t--wait\tnil')" ]
+  [ "${lines[1]}" = "$(printf '1\t--quiet --summarize --clipboard\ttrue')" ]
+}
+
+@test "translate.py dying before its job still ends in its reason, not a spinner" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tasks[1].done(1, '', 'No module named anthropic')
+    stub.tick()
+    stub.choose('要約')
+    stub.popups[#stub.popups]:post({ ready = true })
+    print(stub.lastUpdate())"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"No module named anthropic"*"error"* ]]
+}
+
+@test "the waiting translate.py is ended when the menu is dismissed or nothing was selected" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choosers[1].callback(nil)
+    print(tostring(stub.tasks[1].terminated), tostring(stub.sent(stub.tasks[1])))
+    hs.eventtap.keyStroke = function() end  -- the app copies nothing
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    hs.timer.secondsSinceEpoch = function() return 10 end
+    stub.tick()
+    print(tostring(stub.tasks[2].terminated), tostring(stub.sent(stub.tasks[2])))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf 'true\tnil')" ]
+  [ "${lines[1]}" = "$(printf 'true\tnil')" ]
 }
 
 @test "each menu row starts translate.py with its own job on the clipboard" {
@@ -75,7 +116,7 @@ ROWS
   run drive "
     stub.hotkeys['ctrl+cmd+shift+d']()
     stub.tick()
-    print(#stub.choosers, table.concat(stub.tasks[1].argv, ' ', 2))"
+    print(#stub.choosers, stub.sent(stub.tasks[1]))"
   [ "$status" -eq 0 ]
   [ "$output" = "$(printf '0\t--quiet --clipboard')" ]
 }

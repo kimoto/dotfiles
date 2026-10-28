@@ -110,8 +110,12 @@ hs = setmetatable({
    },
    task = {
       new = function(path, done, stream, argv)
-         local t = chain({ path = path, argv = argv, done = done, stream = stream })
+         local t = chain({ path = path, argv = argv, done = done, stream = stream, input = false,
+                          terminated = false })
          function t:isRunning() return false end
+         function t:setInput(data) self.input = (self.input or "") .. data; return self end
+         function t:closeInput() self.closed = true; return self end
+         function t:terminate() self.terminated = true; return self end
          table.insert(stub.tasks, t)
          return t
       end,
@@ -123,6 +127,15 @@ function stub.tick()
    for _, t in ipairs(stub.timers) do
       if not t.stopped then t.fn() end
    end
+end
+
+-- The job run() sent to a task started with --wait, its arguments joined by
+-- spaces; nil while none was sent.
+function stub.sent(t)
+   if not t.input then return nil end
+   local args = {}
+   for a in t.input:gmatch('"(.-)"') do table.insert(args, a) end
+   return table.concat(args, " ")
 end
 
 -- Picks the menu row whose text is `label` in the last menu shown.
