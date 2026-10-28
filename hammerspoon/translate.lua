@@ -79,13 +79,20 @@ function showSvg(t, svg) {
   if (svg === shownSvg) return;
   shownSvg = svg;
   const img = new Image();
+  // Markup that does not parse (an unescaped & in a label) never loads, and a
+  // canvas WebKit taints cannot be read: both say so instead of spinning on.
+  img.onerror = () => post({ svgError: true });
   img.onload = () => {
     fit();
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth * 2;
-    c.height = img.naturalHeight * 2;
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    post({ png: c.toDataURL('image/png') });
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth * 2;
+      c.height = img.naturalHeight * 2;
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      post({ png: c.toDataURL('image/png') });
+    } catch (e) {
+      post({ svgError: true });
+    }
   };
   img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   t.replaceChildren(img);
@@ -129,16 +136,22 @@ local function setPopup(text, status, kind, svg)
 end
 
 -- The pasteboard takes an image object, not a data URL, so the PNG goes
--- through a file.
+-- through a file. The file stays until the pasteboard has it: imageFromPath
+-- reads it lazily. os.tmpname() creates a file of its own, removed with the
+-- .png beside it that NSImage can tell the type of.
 local function copyPng(dataUrl)
    local data = hs.base64.decode((dataUrl:gsub("^data:image/png;base64,", "")))
-   local path = os.tmpname() .. ".png"
+   if not data or data == "" then return false end
+   local base = os.tmpname()
+   local path = base .. ".png"
    local f = assert(io.open(path, "wb"))
    f:write(data)
    f:close()
    local image = hs.image.imageFromPath(path)
+   local ok = image ~= nil and hs.pasteboard.writeObjects(image)
    os.remove(path)
-   return image ~= nil and hs.pasteboard.writeObjects(image)
+   os.remove(base)
+   return ok
 end
 
 local function fitPopup(height)
@@ -153,9 +166,12 @@ end
 local function openPopup(mode)
    closePopup()
    popup = { text = "", status = "", kind = "busy", svg = false, ready = false }
+   -- Set once this popup's window exists: a message still in flight from the
+   -- one it replaced must not write into this one.
+   local view
    local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
       local body = msg.body
-      if not translatePopup then return end
+      if not translatePopup or translatePopup ~= view then return end
       if body.ready then
          popup.ready = true
          renderPopup()
@@ -168,9 +184,15 @@ local function openPopup(mode)
          else
             setPopup(popup.text, "画像をコピーできませんでした", "error", true)
          end
+      elseif body.svgError then
+         setPopup("図を表示できませんでした（返ってきた SVG が壊れています）。", "失敗", "error")
       elseif body.copy then
          if popup.svg then
-            if popup.png and copyPng(popup.png) then setPopup(popup.text, "画像をコピーしました", "done", true) end
+            if popup.png and copyPng(popup.png) then
+               setPopup(popup.text, "画像をコピーしました", "done", true)
+            else
+               setPopup(popup.text, "画像をコピーできませんでした", "error", true)
+            end
          else
             hs.pasteboard.setContents(popup.text)
             setPopup(popup.text, "コピーしました", "done")
@@ -191,6 +213,7 @@ local function openPopup(mode)
       :level(hs.drawing.windowLevels.floating)
       :html((POPUP_HTML:gsub("{{TITLE}}", mode.title)))
       :show()
+   view = translatePopup
    -- Borderless windows never get key focus, so Esc is watched globally while
    -- the popup is up, and still let through: the app in front (nvim, a
    -- screen selection) keeps its own Esc.

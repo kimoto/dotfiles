@@ -398,3 +398,10 @@ request_system() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"SVG 以外"* ]]
 }
+
+@test "--diagram cut short says so, rather than that it was not an SVG" {
+  printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
+  STUB_INCOMPLETE=1 run python3 "$SCRIPT" --quiet --diagram "A → B"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"図が長すぎて"* ]]
+}

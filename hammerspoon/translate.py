@@ -76,6 +76,7 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
 STYLE = Path.home() / ".local/share/desktop-translate/style.md"
+TRUNCATED = "（長すぎて途中で切れました）"
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -309,7 +310,7 @@ def translate(content: list, system: str) -> str:
     text, truncated = run(content, system, config)
     text = text.strip()
     if truncated:
-        cut = "\n\n（長すぎて途中で切れました）"
+        cut = "\n\n" + TRUNCATED
         emit(cut)
         text += cut
     emit("\n")
@@ -406,6 +407,8 @@ def main() -> None:
         if task.svg:
             # Checked here, not in the popup: anything else would be shown as
             # a broken image instead of a reason.
+            if result.endswith(TRUNCATED):
+                fail("図が長すぎて途中で切れました。もっと短い文で試してください。")
             if not (result.startswith("<svg") and result.endswith("</svg>")):
                 fail("図になりませんでした（SVG 以外が返りました）。")
             return

@@ -1,9 +1,11 @@
 -- A stand-in for Hammerspoon's `hs`, enough to load hammerspoon/translate.lua
--- under plain luajit and drive its keys: hotkeys, the copy, the menu and the
--- task it starts are recorded in `stub`, and timers run when the test says.
--- Everything else answers with an object that accepts any call.
+-- under plain luajit and drive its keys: hotkeys, the copy, the menu, the
+-- task it starts and the popups it opens (their page, every update() sent to
+-- it, and its message handler) are recorded in `stub`, and timers run when the
+-- test says. Everything else answers with an object that accepts any call.
 
-stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, changeCount = 0 }
+stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, changeCount = 0,
+         popups = {}, pasted = {}, written = {} }
 
 local any
 any = setmetatable({}, {
@@ -16,6 +18,21 @@ local function chain(t)
 end
 
 local screen = { frame = function() return { x = 0, y = 0, w = 1440, h = 900 } end }
+
+-- Enough JSON for update()'s arguments: strings, booleans and arrays of them.
+local function json(v)
+   if type(v) == "table" then
+      local parts = {}
+      for i = 1, #v do parts[i] = json(v[i]) end
+      return "[" .. table.concat(parts, ",") .. "]"
+   elseif type(v) == "string" then
+      return '"' .. v:gsub('[%c"\\]', function(c) return string.format("\\u%04x", c:byte()) end) .. '"'
+   end
+   return tostring(v)
+end
+
+-- The handler a popup's page posts to; the next webview created takes it.
+local pendingHandler
 
 hs = setmetatable({
    configdir = "/hs",
@@ -38,9 +55,38 @@ hs = setmetatable({
       event = { types = { keyDown = 10 }, properties = { keyboardEventAutorepeat = 8 } },
    },
    keycodes = { map = { c = 8, escape = 53 } },
+   json = { encode = json },
+   base64 = { decode = function(s) return "PNG:" .. s end },
+   image = {
+      imageFromPath = function(path)
+         local f = io.open(path, "rb")
+         local data = f and f:read("*a")
+         if f then f:close() end
+         table.insert(stub.written, path)
+         return data and { data = data } or nil
+      end,
+   },
+   webview = {
+      usercontent = {
+         new = function()
+            return { setCallback = function(self, fn) pendingHandler = fn; return self end }
+         end,
+      },
+      new = function()
+         local view = chain({ updates = {}, handler = pendingHandler })
+         function view:html(page) self.page = page; return self end
+         function view:evaluateJavaScript(js) table.insert(self.updates, js); return self end
+         function view:delete() self.deleted = true end
+         -- Posts a message from this popup's page, as the page's JavaScript would.
+         function view:post(body) self.handler({ body = body }) end
+         table.insert(stub.popups, view)
+         return view
+      end,
+   },
    pasteboard = {
       changeCount = function() return stub.changeCount end,
-      setContents = function() end,
+      setContents = function(text) table.insert(stub.pasted, text) end,
+      writeObjects = function(image) table.insert(stub.pasted, image.data); return true end,
    },
    timer = {
       secondsSinceEpoch = function() return 0 end,
@@ -62,7 +108,7 @@ hs = setmetatable({
    },
    task = {
       new = function(path, done, stream, argv)
-         local t = chain({ path = path, argv = argv })
+         local t = chain({ path = path, argv = argv, done = done, stream = stream })
          function t:isRunning() return false end
          table.insert(stub.tasks, t)
          return t
@@ -84,4 +130,10 @@ function stub.choose(label)
       if row.text == label then return c.callback(row) end
    end
    error("no menu row " .. label)
+end
+
+-- The last update() the newest popup was sent, as the JSON of its arguments.
+function stub.lastUpdate()
+   local view = stub.popups[#stub.popups]
+   return view.updates[#view.updates]
 end
