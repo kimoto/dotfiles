@@ -6,14 +6,13 @@
 #
 # The metric is deliberately simple: wall-clock time of `zsh -lic exit` (parse
 # the config, run compinit/sheldon/evalcache, become ready for a command),
-# repeated N times, reported as min/mean/max. An earlier version drove
-# romkatv/zsh-bench here, but its zle-level protocol deadlocks against this
-# config (`setopt ignore_eof` blocks its stdin-EOF exit on a completion-list
-# prompt, and its instrumented typing never completed against the custom
-# space/enter widgets) - see PR #107. A plain timing loop cannot hang and is
-# what a startup-time budget check would threshold anyway. Measures the
-# dotfiles that bin/mkworld.sh symlinked into $HOME during the CI prepare
-# phase. Record-only: it never fails the build over a slow number.
+# repeated N times, reported as min/mean/max. Not romkatv/zsh-bench: its
+# zle-level protocol deadlocks against this config (`setopt ignore_eof` blocks
+# its stdin-EOF exit on a completion-list prompt, and its instrumented typing
+# never completes against the custom space/enter widgets). A plain timing loop
+# cannot hang and is what a startup-time budget check would threshold anyway.
+# Measures the dotfiles that bin/mkworld.sh symlinked into $HOME during the CI
+# prepare phase. Record-only: it never fails the build over a slow number.
 
 set -euo pipefail
 
