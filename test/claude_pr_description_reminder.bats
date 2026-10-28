@@ -128,6 +128,7 @@ run_mcp_create() {
   [[ "$ctx" == *"pull-requests.md"* ]]
   [[ "$ctx" == *"review-correctness"* ]]
   [[ "$ctx" == *"since the last review"* ]]
+  [[ "$ctx" == *"earlier findings"* ]]
   [[ "$ctx" == *"two"* ]]
   [[ "$ctx" != *"SKILL.md"* ]]
   codex_plugin true

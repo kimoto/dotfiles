@@ -78,9 +78,9 @@ if [ -n "$url" ]; then
 fi
 
 # After the review at open, a push brings only what changed since: correctness
-# on those commits is enough. Two rounds stop review and fix from looping.
+# on those commits, checked against the earlier findings, is enough. Two rounds stop review and fix from looping.
 if [ "${push_publishes_code:-false}" = true ] && [ -z "$url" ]; then
-  context="$context If that PR was reviewed when it was opened, review the commits pushed since the last review with $correctness, run_in_background; reviewers only report, you fix. At most two such rounds per PR."
+  context="$context If that PR was reviewed when it was opened, review the commits pushed since the last review with $correctness, run_in_background. Also hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Reviewers only report, you fix. At most two such rounds per PR."
 fi
 
 [ -n "$context" ] || exit 0
