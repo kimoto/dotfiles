@@ -25,11 +25,21 @@ starts='(^|[;&|(]|&&|\|\|)[[:space:]]*'
 
 context=""
 
+git_sub="${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+"
+
+# A first look right after each commit, so a plain mistake surfaces while the
+# author is still in that code rather than at push. Haiku and one commit's diff
+# keep it fast and cheap; the thorough review waits for the push below.
+if printf '%s' "$bare" | grep -qE "${git_sub}commit([[:space:]]|\$)" \
+  && ! printf '%s' "$bare" | grep -qE "commit[^;&|]*[[:space:]](--dry-run)([[:space:]]|\$)"; then
+  context="A git commit just ran. Unless it only applies an earlier review's findings, start the Agent tool with model haiku and run_in_background as a subagent that has not seen this work, giving it only the repo path and the range HEAD~1..HEAD, not your reasoning. Ask for at most three plain mistakes in that commit, each with the input that breaks it, and nothing else. Keep working meanwhile; when it returns, fix what holds up."
+fi
+
 # git with any options (e.g. -C <dir>), then the push subcommand. What a
 # description may hold lives in one place, the pull-requests rule every session
 # already loads; the reminder only points there, so the two never drift.
-if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
-  context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
+if printf '%s' "$bare" | grep -qE "${git_sub}push([[:space:]]|\$)"; then
+  context="${context:+$context }A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
   # Second readers for every push that publishes code, one per viewpoint, so
   # neither crowds out the other. For correctness, Codex where its plugin is
   # enabled — that switch already says this machine's code may go to OpenAI,
