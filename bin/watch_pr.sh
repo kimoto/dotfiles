@@ -17,21 +17,28 @@ pr=$1
 
 # A PR that just moved (a push, a check finishing) tends to move again soon,
 # so it is polled every 30 s; each poll that sees nothing new doubles the wait,
-# up to 5 min, so a PR left for hours of review costs a dozen calls an hour.
-# A merge is then heard at most 5 min late.
+# up to 1 min. A merge is then heard at most a minute late, and a PR left for
+# hours of review costs 60 calls an hour, far under GitHub's 5000.
 min_interval=30
-max_interval=300
+max_interval=60
+# While a check is still running, a failure is heard within 10 s. Not
+# `gh pr checks --watch`: it waits for the checks only, so one that never
+# finishes would hide a merge or close.
+running_interval=10
 # Ten failed polls in a row, by then minutes apart, is an outage or a PR that
 # is gone, not a blip.
 max_failures=10
 
 # A check run reports .conclusion, a legacy commit status .state. Only the
-# newest run of each check counts: editing the PR body reruns a check and
-# cancels the run in flight, which would otherwise read as a failure.
+# newest run of each check counts, and CANCELLED is not a failure: every
+# workflow here cancels in progress, so a push or a body edit leaves a
+# cancelled run in the rollup, alone until its replacement registers.
 failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.startedAt // "")
   | select((.conclusion // .state // "")
-      | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"))
+      | IN("FAILURE", "ERROR", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
+running='any(.statusCheckRollup[]?;
+  (.status // "") != "" and .status != "COMPLETED" or (.state // "") == "PENDING")'
 
 wait_and_back_off() {
   sleep "$interval"
@@ -67,5 +74,9 @@ while true; do
     echo "check failed ($failed): $url"
     exit 1
   fi
-  wait_and_back_off
+  if jq -e "$running" <<<"$json" >/dev/null; then
+    sleep "$running_interval"
+  else
+    wait_and_back_off
+  fi
 done

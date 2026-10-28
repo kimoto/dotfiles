@@ -83,6 +83,13 @@ answer() {
   [[ "$output" == "check failed (ci/legacy)"* ]]
 }
 
+@test "a cancelled run whose replacement has not registered yet does not end the watch" {
+  answer 1 OPEN '{"name":"pr-checklist","status":"COMPLETED","conclusion":"CANCELLED"}'
+  answer 2 MERGED '{"name":"pr-checklist","status":"COMPLETED","conclusion":"SUCCESS"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+}
+
 @test "a run cancelled by a newer run of the same check does not end the watch" {
   answer 1 OPEN \
     '{"name":"checklist","conclusion":"SUCCESS","startedAt":"2026-10-27T14:13:30Z"}' \
@@ -129,12 +136,21 @@ answer() {
   [[ "$output" == *"usage"* ]]
 }
 
-@test "a PR that does not change is polled ever less often, up to five minutes" {
-  for n in 1 2 3 4 5 6 7; do answer "$n" OPEN '{"name":"ci","conclusion":""}'; done
-  answer 8 MERGED
+@test "while a check runs it is polled every 10 s, and a merge still ends the watch" {
+  answer 1 OPEN '{"name":"ci","status":"IN_PROGRESS","conclusion":""}'
+  answer 2 OPEN '{"context":"ext","state":"PENDING"}'
+  answer 3 MERGED '{"context":"ext","state":"PENDING"}'
   run "$SCRIPT" 7
   [ "$status" -eq 0 ]
-  [ "$(waits)" = "30 60 120 240 300 300 300" ]
+  [ "$(waits)" = "10 10" ]
+}
+
+@test "a PR that does not change is polled ever less often, up to a minute" {
+  for n in 1 2 3 4 5; do answer "$n" OPEN '{"name":"ci","conclusion":""}'; done
+  answer 6 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+  [ "$(waits)" = "30 60 60 60 60" ]
 }
 
 @test "any change in the PR brings the wait back to 30 seconds" {
