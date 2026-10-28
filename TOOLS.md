@@ -51,6 +51,7 @@ _Source: `Brewfile.extra`._
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
 | [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
+| [bash-language-server](https://formulae.brew.sh/formula/bash-language-server) | Language Server for Bash (nvim LSP: bashls) |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
 | [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
