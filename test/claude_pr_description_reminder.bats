@@ -93,6 +93,14 @@ run_mcp_create() {
   [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
 }
 
+@test "reviewers run on Sonnet, security on Opus" {
+  run_hook_with_stdout "gh pr create --fill" "$PR_URL"
+  ctx="$(ctx_of)"
+  [[ "$ctx" == *"model sonnet"* ]]
+  [[ "$ctx" == *"model opus that reads ~/.claude/skills/security-audit/"* ]]
+  grep -q '^model: sonnet$' "$REPO_ROOT/claudecode/agents/review-correctness.md"
+}
+
 @test "with Codex enabled, Codex takes correctness, newest version" {
   codex_plugin true
   run_hook_with_stdout "gh pr create --fill" "$PR_URL"
@@ -114,11 +122,26 @@ run_mcp_create() {
   [[ "$output" != *"codex"* ]]
 }
 
-@test "a push alone asks for no review, only the description check" {
+@test "a push to an open PR asks for correctness on the new commits only, two rounds at most" {
   run_hook "git push"
   ctx="$(ctx_of)"
   [[ "$ctx" == *"pull-requests.md"* ]]
-  [[ "$ctx" != *"review"* ]]
+  [[ "$ctx" == *"review-correctness"* ]]
+  [[ "$ctx" == *"since the last review"* ]]
+  [[ "$ctx" == *"two"* ]]
+  [[ "$ctx" != *"SKILL.md"* ]]
+  codex_plugin true
+  run_hook "git push"
+  [[ "$(ctx_of)" == *"codex-companion.mjs"* ]]
+}
+
+@test "a push that publishes no new code asks for no review" {
+  for c in "git push origin --delete feat/x" "git push -d origin feat/x" \
+    "git push --dry-run" "git push -n origin HEAD" "git push --tags"; do
+    run_hook "$c"
+    [[ "$(ctx_of)" == *"pull-requests.md"* ]]
+    [[ "$(ctx_of)" != *"review"* ]]
+  done
 }
 
 @test "an MCP call that opened no PR stays silent" {

@@ -33,6 +33,9 @@ context=""
 # already loads; the reminder only points there, so the two never drift.
 if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
+  push_publishes_code=true
+  printf '%s' "$bare" | grep -qE "push[^;&|]*[[:space:]](--delete|-d|--dry-run|-n|--tags)([[:space:]]|\$)" \
+    && push_publishes_code=false
 fi
 
 # The URL in the response is the proof a PR exists; without one the create
@@ -50,23 +53,34 @@ fi
 # One review per new PR, not per push: pushes are many. Each viewpoint is a
 # sweep's own diff mode, so the door and the scheduled sweep look alike.
 # Codex takes correctness where enabled: a different model.
+companion=""
+if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
+  && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+  companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
+    | sort -V | tail -1)
+fi
+if [ -f "$companion" ]; then
+  correctness="\`node \"$companion\" review --base <the PR's base>\`"
+else
+  correctness="the review-correctness subagent"
+fi
+
 if [ -n "$url" ]; then
-  companion=""
-  if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
-    && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
-    companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
-      | sort -V | tail -1)
-  fi
   context="${context:+$context }Review $url once now, after fetching its base. Reviewers only report; you fix and push to the same PR. Give each only the repo path, the PR's commits not on its base, and its stated purpose, not your reasoning. Start, all with run_in_background:"
-  if [ -f "$companion" ]; then
-    context="$context \`node \"$companion\" review --base <the PR's base>\`;"
-  else
-    context="$context the review-correctness subagent;"
-  fi
+  context="$context $correctness;"
+  # Sonnet is enough to report; security misses cost the most, so Opus.
   for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-    context="$context a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
+    model=sonnet
+    [ "$sweep" = security-audit ] && model=opus
+    context="$context a subagent with model $model that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
   done
   context="${context%;}. When they return, fix what holds up and say which findings you dismissed. On a public repo, keep security findings out of the PR text."
+fi
+
+# After the review at open, a push brings only what changed since: correctness
+# on those commits is enough. Two rounds stop review and fix from looping.
+if [ "${push_publishes_code:-false}" = true ] && [ -z "$url" ]; then
+  context="$context If that PR was reviewed when it was opened, review the commits pushed since the last review with $correctness, run_in_background; reviewers only report, you fix. At most two such rounds per PR."
 fi
 
 [ -n "$context" ] || exit 0
