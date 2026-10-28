@@ -1,15 +1,14 @@
 #!/usr/bin/env bats
 
-# Regression test for the tmux OSC 133;A prompt-mark hook in .zshrc.
+# The tmux OSC 133;A prompt-mark hook in .zshrc must add its marker once.
 #
 # _tmux_prompt_mark runs as a precmd hook so tmux can track prompt positions
-# (next-prompt/previous-prompt in copy mode). It used to unconditionally
-# prepend the marker to $PROMPT every time, but $PROMPT is a persistent shell
+# (next-prompt/previous-prompt in copy mode). $PROMPT is a persistent shell
 # variable (starship sets it once, to a string containing a `$(...)` command
 # substitution that zsh re-evaluates at render time) — nothing resets it
-# between precmd calls. Without a guard, every single prompt draw in a
-# long-lived tmux session added another marker, so $PROMPT — and the escape
-# bytes sent to the terminal on every render — grew without bound.
+# between precmd calls. Without the guard, every prompt draw in a long-lived
+# tmux session adds another marker, so $PROMPT — and the escape bytes sent to
+# the terminal on every render — grows without bound.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"

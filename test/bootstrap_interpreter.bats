@@ -2,14 +2,12 @@
 
 # Guards how the repo's scripts (bin/, ci/, test/e2e/) launch each other.
 #
-# bin/mkworld.sh used to run its helpers as `sh "$BASE_DIR/bin/<script>"`. On
-# macOS that is harmless — /bin/sh there is bash in POSIX mode — but on Linux
-# /bin/sh is dash, and bin/setup_homebrew.sh opens with `set -euo pipefail`.
-# dash rejects it ("Illegal option -o pipefail") and, under mkworld's own
-# `set -e`, the whole bootstrap died at the Homebrew step: no submodules, no
-# tpm plugins, no Claude tmux hooks, no lefthook. Failing on the *first* Linux
-# machine to run it, and only there, is exactly the failure mode this repo's
-# CI cannot see, so pin it here instead.
+# A helper launched as `sh "$BASE_DIR/bin/<script>"` runs fine on macOS, where
+# /bin/sh is bash in POSIX mode, but on Linux /bin/sh is dash, which rejects
+# `set -euo pipefail` ("Illegal option -o pipefail"). Under mkworld's own
+# `set -e` the whole bootstrap then dies at that step, and only on the first
+# Linux machine to run it: a failure this repo's CI cannot see, so it is
+# pinned here instead.
 #
 # The rule: a script's shebang decides its interpreter. Helpers are executed
 # directly, which means they must also stay executable.

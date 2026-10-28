@@ -175,8 +175,8 @@ else
 fi
 
 # 8) The status bar draws without spawning a process per redraw. status-left
-#    shows one dot per session, which used to mean running `tmux list-sessions`
-#    on every redraw; #{S:...} loops over the sessions as a format instead.
+#    shows one dot per session; #{S:...} loops over the sessions as a format,
+#    where a `#(tmux list-sessions)` job would fork on every redraw.
 case "$(opt status-left)" in
   *'#('*) die "status-left runs a shell job again; #{S:...} needs no process per redraw" ;;
 esac

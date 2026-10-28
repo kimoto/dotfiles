@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 
-# Regression test for the completion `list-colors` style in .zshrc.
+# The completion `list-colors` style in .zshrc must see LS_COLORS.
 #
 # LS_COLORS is exported by the vivid-ls-colors plugin, which sheldon loads
 # through zsh-defer — i.e. after the first prompt. .zshrc runs long before
-# that, so the original `zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}`
-# captured an empty value and every completion candidate was listed
-# uncoloured, on every machine. The style is now registered with `zstyle -e`,
+# that, so a plain `zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}`
+# would capture an empty value and list every completion candidate
+# uncoloured, on every machine. The style is registered with `zstyle -e`,
 # which evaluates its body at each lookup, so it sees whatever LS_COLORS holds
 # by the time a completion actually runs.
 #
