@@ -16,11 +16,11 @@ local POPUP_WIDTH = 520
 -- Before the page reports its real height; it grows or shrinks at once.
 local POPUP_START_HEIGHT = 120
 local POPUP_MAX_HEIGHT = 640
--- What the popup and the alerts call each job; translate.py --rewrite is the
--- one that keeps the language and changes the voice.
+-- The popup's title for each job; translate.py --rewrite is the one that
+-- keeps the language and changes the voice.
 local MODES = {
-   translate = { title = "翻訳", busy = "翻訳中…" },
-   rewrite = { title = "文面", busy = "書き換え中…" },
+   translate = { title = "翻訳" },
+   rewrite = { title = "文面" },
 }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
@@ -56,7 +56,7 @@ main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; 
 main.error { color: var(--err); font-size: 13px; }
 </style></head><body><div class="card">
 <header>
-  <span class="title">{{TITLE}}</span><span class="status busy" id="status">{{BUSY}}</span>
+  <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -113,7 +113,7 @@ end
 
 local function openPopup(mode)
    closePopup()
-   popup = { text = "", status = mode.busy, kind = "busy", ready = false }
+   popup = { text = "", status = "", kind = "busy", ready = false }
    local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
       local body = msg.body
       if not translatePopup then return end
@@ -139,7 +139,7 @@ local function openPopup(mode)
       :transparent(true)
       :shadow(true)
       :level(hs.drawing.windowLevels.floating)
-      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{BUSY}}", mode.busy)))
+      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title)))
       :show()
    -- Borderless windows never get key focus, so Esc is watched globally while
    -- the popup is up, and still let through: the app in front (nvim, a
@@ -153,9 +153,11 @@ local function openPopup(mode)
 end
 
 -- The API round trip takes a second or two, past the 1s a key press should
--- answer in: say at once that it was heard, then open the popup on the first
--- words and keep adding to it. A failure always lands in the popup, so
--- "nothing happened" cannot be mistaken for "still working".
+-- answer in: the popup opens at once with only a spinner, and the words are
+-- added as they arrive. A screen selection is the exception: a popup opened
+-- first would land in the region being captured, so an alert says the key was
+-- heard and the popup waits for the first words. A failure always lands in
+-- the popup, so "nothing happened" cannot be mistaken for "still working".
 translateTask = nil
 local runs = 0
 local function run(args, mode)
@@ -165,8 +167,13 @@ local function run(args, mode)
    if translateTask and translateTask:isRunning() then translateTask:terminate() end
    runs = runs + 1
    local id = runs
-   -- A non-number duration keeps the alert up until closeSpecific.
-   local busy = hs.alert.show(mode.busy, {}, hs.screen.mainScreen(), true)
+   local busy
+   if args[1] == "--screen" then
+      -- A non-number duration keeps the alert up until closeSpecific.
+      busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
+   else
+      openPopup(mode)
+   end
    local out, err = "", ""
    local function popupOpened()
       if busy then
@@ -199,7 +206,7 @@ local function run(args, mode)
       out, err = out .. (stdout or ""), err .. (stderr or "")
       if out:find("%S") then
          popupOpened()
-         setPopup(out, mode.busy, "busy")
+         setPopup(out, "", "busy")
       end
       return true
    end, argv)
