@@ -1,6 +1,6 @@
 ---
 name: review-rules
-description: 開いた PR の題・本文・commit・差分のコメントが、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所だけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「PR の URL」「見る範囲」だけ。⚠️ 直さない。
+description: これから開く PR の題・本文と、commit・差分のコメントが、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所だけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「使う予定の PR の題と本文」「見る範囲」だけ。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash
 
 ★**照らすのは書かれた決まりだけ。**自分の好みで指摘しない。指摘には必ず、どのファイルのどの決まりかを添える。
 
-⚠️ PR も commit も書き換えない。Bash は読むため（`gh pr view`・`git log`・`git diff`）にだけ使う。
+⚠️ PR も commit も書き換えない。Bash は読むため（`git log`・`git diff`）にだけ使う。
 
 ## 読む決まり
 
