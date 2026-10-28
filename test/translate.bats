@@ -104,7 +104,7 @@ done
 echo "$STUB_KEYCHAIN:$account"
 EOF
   printf '#!/bin/sh\necho clipboard text\n' >"$TMP/bin/pbpaste"
-  printf '#!/bin/sh\ncat >/dev/null\n' >"$TMP/bin/pbcopy"
+  printf '#!/bin/sh\ncat >"$CLIPBOARD"\n' >"$TMP/bin/pbcopy"
   printf '#!/bin/sh\nexit 0\n' >"$TMP/bin/osascript"
   chmod +x "$TMP/bin/"*
 
@@ -114,6 +114,8 @@ EOF
   ln -s "$(python3 -c 'import sys; print(sys.executable)')" "$TMP/bin/python3"
   mkdir -p "$TMP/home/.local/share/desktop-translate"
   CONFIG="$TMP/home/.local/share/desktop-translate/config.toml"
+  STYLE="$TMP/home/.local/share/desktop-translate/style.md"
+  export CLIPBOARD="$TMP/clipboard"
   export PATH="$TMP/bin:$PATH" PYTHONPATH="$TMP/py" STUB_KEYCHAIN=sk-from-keychain HOME="$TMP/home"
 }
 
@@ -279,4 +281,59 @@ EOF
 @test "each API error from a custom endpoint fails with its own message" {
   printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
   api_errors_fail_with_their_message
+}
+
+# --rewrite: rough notes → a message in the user's voice, from a style file
+# that stays on the machine.
+
+request_system() {
+  python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["system"])' "$REQUEST"
+}
+
+@test "--rewrite asks for the notes rewritten, not translated" {
+  echo "Ends sentences with ー." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite "明日 MTG 15時→16時 / 資料あとで"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Rewrite these notes as one message."*"明日 MTG 15時→16時 / 資料あとで" ]]
+  [[ "$(request_text)" != *"Translate"* ]]
+}
+
+@test "--rewrite puts the style file in the instructions, and forbids adding facts" {
+  echo "Ends sentences with ー." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [ "$status" -eq 0 ]
+  [[ "$(request_system)" == *"Ends sentences with ー."* ]]
+  [[ "$(request_system)" == *"add no facts that are not there"* ]]
+}
+
+@test "--rewrite without a style file fails before anything is sent, naming the file" {
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"style.md"* ]]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--rewrite copies the message, with the translation's key" {
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite --clipboard
+  [ "$status" -eq 0 ]
+  [ "$output" = "TRANSLATED" ]
+  [[ "$(request_text)" == *"clipboard text"* ]]
+  [ "$(cat "$CLIPBOARD")" = "TRANSLATED" ]
+  [ "$(cat "$REQUEST.key")" = "sk-from-keychain:anthropic" ]
+}
+
+@test "--rewrite goes to a custom endpoint with the style in its instructions" {
+  echo "Ends sentences with ー." >"$STYLE"
+  printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [ "$status" -eq 0 ]
+  python3 -c 'import json, sys; assert "Ends sentences with" in json.load(open(sys.argv[1]))["instructions"]' "$REQUEST"
+}
+
+@test "--rewrite with --to is refused" {
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite --to en "hello"
+  [ "$status" -ne 0 ]
+  [ ! -e "$REQUEST" ]
 }

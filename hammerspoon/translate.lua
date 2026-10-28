@@ -16,6 +16,12 @@ local POPUP_WIDTH = 520
 -- Before the page reports its real height; it grows or shrinks at once.
 local POPUP_START_HEIGHT = 120
 local POPUP_MAX_HEIGHT = 640
+-- What the popup and the alerts call each job; translate.py --rewrite is the
+-- one that keeps the language and changes the voice.
+local MODES = {
+   translate = { title = "翻訳", busy = "翻訳中…" },
+   rewrite = { title = "文面", busy = "書き換え中…" },
+}
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
 -- The page draws the whole window (no title bar), takes the text through
@@ -50,7 +56,7 @@ main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; 
 main.error { color: var(--err); font-size: 13px; }
 </style></head><body><div class="card">
 <header>
-  <span class="title">翻訳</span><span class="status busy" id="status">翻訳中…</span>
+  <span class="title">{{TITLE}}</span><span class="status busy" id="status">{{BUSY}}</span>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -105,9 +111,9 @@ local function fitPopup(height)
    translatePopup:frame(f)
 end
 
-local function openPopup()
+local function openPopup(mode)
    closePopup()
-   popup = { text = "", status = "翻訳中…", kind = "busy", ready = false }
+   popup = { text = "", status = mode.busy, kind = "busy", ready = false }
    local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
       local body = msg.body
       if not translatePopup then return end
@@ -133,7 +139,7 @@ local function openPopup()
       :transparent(true)
       :shadow(true)
       :level(hs.drawing.windowLevels.floating)
-      :html(POPUP_HTML)
+      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{BUSY}}", mode.busy)))
       :show()
    -- Borderless windows never get key focus, so Esc is watched globally while
    -- the popup is up, and still let through: the app in front (nvim, a
@@ -152,20 +158,21 @@ end
 -- "nothing happened" cannot be mistaken for "still working".
 translateTask = nil
 local runs = 0
-local function run(args)
+local function run(args, mode)
+   mode = mode or MODES.translate
    local argv = { SCRIPT, "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
    if translateTask and translateTask:isRunning() then translateTask:terminate() end
    runs = runs + 1
    local id = runs
    -- A non-number duration keeps the alert up until closeSpecific.
-   local busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
+   local busy = hs.alert.show(mode.busy, {}, hs.screen.mainScreen(), true)
    local out, err = "", ""
    local function popupOpened()
       if busy then
          hs.alert.closeSpecific(busy)
          busy = nil
-         openPopup()
+         openPopup(mode)
       end
    end
    translateTask = hs.task.new(PYTHON, function(code, stdout, stderr)
@@ -192,7 +199,7 @@ local function run(args)
       out, err = out .. (stdout or ""), err .. (stderr or "")
       if out:find("%S") then
          popupOpened()
-         setPopup(out, "翻訳中…", "busy")
+         setPopup(out, mode.busy, "busy")
       end
       return true
    end, argv)
@@ -218,7 +225,7 @@ end
 -- translating whatever was copied before would answer the wrong question.
 -- A global: a timer only its own callback refers to can be collected.
 translateCopyPoll = nil
-local function translateSelection()
+local function translateSelection(args, mode)
    local before = hs.pasteboard.changeCount()
    local deadline = hs.timer.secondsSinceEpoch() + COPY_TIMEOUT
    hs.eventtap.keyStroke({ "cmd" }, "c")
@@ -226,7 +233,7 @@ local function translateSelection()
    translateCopyPoll = hs.timer.doEvery(0.05, function()
       if hs.pasteboard.changeCount() ~= before then
          translateCopyPoll:stop()
-         run({ "--clipboard" })
+         run(args or { "--clipboard" }, mode)
       elseif hs.timer.secondsSinceEpoch() > deadline then
          translateCopyPoll:stop()
          hs.alert.show("選択された文がありません")
@@ -261,12 +268,17 @@ end)
 translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, function() translateSelection() end)
+-- Rough notes selected in a message box → the same notes as a message in the
+-- user's own voice (the style file: translate.py's header).
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
+   translateSelection({ "--rewrite", "--clipboard" }, MODES.rewrite)
+end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
    if not hs.screenRecordingState() then
-      openPopup()
+      openPopup(MODES.translate)
       setPopup("Hammerspoon に「画面収録」の許可がありません。\n"
          .. "システム設定 → プライバシーとセキュリティ → 画面収録 で許可し、Hammerspoon を再起動してください。",
          "画面を撮れません", "error")

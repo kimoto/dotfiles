@@ -11,6 +11,9 @@ Usage:
   translate.py --image foo.png      translate the text in an image file
   translate.py --to en "..."        fix the target language; by default
                                     Japanese becomes English, anything else Japanese
+  translate.py --rewrite --clipboard
+                                    rewrite rough notes as a message in the
+                                    user's own style (style file below)
   echo "..." | translate.py         stdin, when not --clipboard
 
 The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
@@ -39,6 +42,11 @@ exported ANTHROPIC_API_KEY also switches Claude Code to API billing.
 Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
 prompt. Not under ~/.config, which is this repo's config/.
+
+--rewrite needs ~/.local/share/desktop-translate/style.md: how the user writes
+(endings, greetings, emoji, line breaks) and a few real messages of theirs.
+It stays on the machine because it is the user's own writing, and this repo
+is public. Without it, --rewrite fails rather than guess a voice.
 """
 
 import argparse
@@ -58,6 +66,7 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 # Thinking cannot be turned off on this model; low effort keeps the wait short.
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
+STYLE = Path.home() / ".local/share/desktop-translate/style.md"
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -65,6 +74,17 @@ SYSTEM = """You are a translation tool on the user's desktop. Output only the tr
 no preamble, no notes, no quotation marks around it. Keep the original line breaks,
 lists, code, URLs, file paths and product names as they are. Translate naturally
 rather than word for word."""
+
+REWRITE_SYSTEM = """You turn the user's rough notes into a chat message they will send as their own.
+Output only the message: no preamble, no notes, no quotation marks around it.
+Write in the language of the notes, in the user's voice as the style guide below describes it.
+Keep every point in the notes and add no facts that are not there: no dates, numbers,
+names, promises or apologies the notes do not give. Keep URLs, code and names as they are.
+
+Style guide:
+"""
+
+REWRITE_INSTRUCTION = "Rewrite these notes as one message."
 
 
 def load_config() -> dict:
@@ -119,6 +139,12 @@ def instruction(target: str) -> str:
     return f"Translate the following into {LANG_NAMES[target]}."
 
 
+def rewrite_system_prompt() -> str:
+    if not STYLE.exists():
+        fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
+    return REWRITE_SYSTEM + STYLE.read_text(encoding="utf-8").strip()
+
+
 def system_prompt() -> str:
     if EXTRA_INSTRUCTIONS.exists():
         return SYSTEM + "\n\n" + EXTRA_INSTRUCTIONS.read_text(encoding="utf-8").strip()
@@ -145,7 +171,7 @@ def api_errors(sdk):
         fail("API に接続できません。")
 
 
-def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
+def translate_anthropic(content: list, system: str, config: dict) -> tuple[str, bool]:
     import anthropic
 
     client = anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
@@ -158,7 +184,7 @@ def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
         output_config={"effort": EFFORT},
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
-        system=system_prompt(),
+        system=system,
         messages=[{"role": "user", "content": content}],
     ) as stream:
         for chunk in stream.text_stream:
@@ -184,11 +210,11 @@ def openai_input(content: list) -> list:
     return [{"role": "user", "content": parts}]
 
 
-def translate_openai(content: list, config: dict) -> tuple[str, bool]:
+def translate_openai(content: list, system: str, config: dict) -> tuple[str, bool]:
     import openai
 
     client = openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
-    params = {"model": config["model"], "instructions": system_prompt(),
+    params = {"model": config["model"], "instructions": system,
               "input": openai_input(content), "max_output_tokens": 16000, "stream": True}
     if config.get("reasoning_effort"):
         params["reasoning"] = {"effort": config["reasoning_effort"]}
@@ -213,7 +239,7 @@ def translate_openai(content: list, config: dict) -> tuple[str, bool]:
     return "".join(pieces), truncated
 
 
-def translate(content: list) -> str:
+def translate(content: list, system: str) -> str:
     """Translate, writing the text to stdout as it arrives; return all of it.
 
     Streamed so the popup can show the first words while the rest is still
@@ -221,7 +247,7 @@ def translate(content: list) -> str:
     """
     config = load_config()
     run = translate_openai if config["provider"] == "openai" else translate_anthropic
-    text, truncated = run(content, config)
+    text, truncated = run(content, system, config)
     text = text.strip()
     if truncated:
         cut = "\n\n（長すぎて途中で切れました）"
@@ -262,17 +288,17 @@ def read_text(args) -> str:
     return subprocess.run(["pbpaste"], capture_output=True, text=True, check=False).stdout
 
 
-def show(text: str, quiet: bool) -> None:
-    """Copy the translation, which translate() already wrote to stdout."""
+def show(text: str, quiet: bool, title: str) -> None:
+    """Copy the result, which translate() already wrote to stdout."""
     subprocess.run(["pbcopy"], input=text, text=True, check=False)
     if not quiet:
         # The text goes in as argv, so AppleScript string escaping never applies.
         subprocess.run([
             "osascript",
             "-e", "on run argv",
-            "-e", 'display dialog (item 1 of argv) with title "翻訳（コピー済み）" buttons {"OK"} default button 1',
+            "-e", 'display dialog (item 1 of argv) with title (item 2 of argv) buttons {"OK"} default button 1',
             "-e", "end run",
-            text,
+            text, f"{title}（コピー済み）",
         ], capture_output=True, check=False)
 
 
@@ -293,9 +319,22 @@ def main() -> None:
     source = p.add_mutually_exclusive_group()
     source.add_argument("--screen", action="store_true", help="select a screen region and translate its text")
     source.add_argument("--image", type=Path, help="translate the text in an image file")
+    # Rewriting keeps the language, so it never goes with a target or an image.
+    source.add_argument("--rewrite", action="store_true", help="rewrite notes as a message in the user's style")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     args = p.parse_args()
+    if args.rewrite and args.to:
+        p.error("--rewrite keeps the language; it does not take --to")
+
+    if args.rewrite:
+        system = rewrite_system_prompt()
+        text = read_text(args)
+        if not text.strip():
+            fail("書き換える文がありません。")
+        content = [{"type": "text", "text": f"{REWRITE_INSTRUCTION}\n\n{text}"}]
+        show(translate(content, system), args.quiet, "文面")
+        return
 
     if args.screen or args.image:
         path = args.image or screenshot()
@@ -312,7 +351,7 @@ def main() -> None:
             fail("訳す文がありません。")
         content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
 
-    show(translate(content), args.quiet)
+    show(translate(content, system_prompt()), args.quiet, "翻訳")
 
 
 if __name__ == "__main__":
