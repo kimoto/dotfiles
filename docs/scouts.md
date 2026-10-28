@@ -139,3 +139,5 @@ a commit already on `main`, so it must stay an ancestor of `origin/main`.
   prose or shell config.
 - A prompt guard that blocks the `curl … | sh` spelling (#294): the risk is
   any fetched content reaching any interpreter, and one pattern only hides it.
+- A Raycast Script Command for the note rewrite (#580): registering its folder is a
+  manual step in Raycast's settings, and ⌃⌘⇧W already reaches the same script.
