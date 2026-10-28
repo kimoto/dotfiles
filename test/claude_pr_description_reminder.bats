@@ -84,6 +84,7 @@ run_mcp_create() {
     ctx="$(ctx_of)"
     [[ "$ctx" == *"$PR_URL"* ]]
     [[ "$ctx" == *"review-correctness"* ]]
+    [[ "$ctx" == *"the review-rules subagent"* ]]
     [[ "$ctx" == *"all with run_in_background"* ]]
     [[ "$ctx" == *"not your reasoning"* ]]
     [[ "$ctx" == *"keep security findings out of the PR text"* ]]
@@ -93,6 +94,7 @@ run_mcp_create() {
     done
   done
   [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
+  [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   CLAUDE_CODE_REMOTE=true run_mcp_create
   [[ "$(ctx_of)" == *"review-correctness"* ]]
   [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
