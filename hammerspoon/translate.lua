@@ -140,11 +140,31 @@ local function setPopup(text, status, kind, svg)
    renderPopup()
 end
 
+-- Where the complete UTF-8 characters at the start of `s` end: a piece of
+-- output can stop inside a character, and hs.json.encode cannot take half of
+-- one.
+local function completeUtf8(s)
+   for back = 1, math.min(3, #s) do
+      local byte = s:byte(#s - back + 1)
+      if byte >= 0xC0 then  -- the lead byte of the last character
+         local size = byte >= 0xF0 and 4 or byte >= 0xE0 and 3 or 2
+         return size > back and #s - back or #s
+      elseif byte < 0x80 then
+         return #s
+      end
+   end
+   return #s
+end
+
 -- A page not ready yet gets it with the rest in the update() sent on ready.
+-- Bytes of a character still arriving wait for the piece that finishes it.
 local function appendPopup(text)
    popup.text = popup.text .. text
-   if not (translatePopup and popup.ready) then return end
-   translatePopup:evaluateJavaScript("append(..." .. hs.json.encode({ text }) .. ")")
+   local held = (popup.held or "") .. text
+   local cut = completeUtf8(held)
+   popup.held = held:sub(cut + 1)
+   if cut == 0 or not (translatePopup and popup.ready) then return end
+   translatePopup:evaluateJavaScript("append(..." .. hs.json.encode({ held:sub(1, cut) }) .. ")")
 end
 
 -- The pasteboard takes an image object, not a data URL, so the PNG goes

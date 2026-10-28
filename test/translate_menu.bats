@@ -190,3 +190,21 @@ diagram() {
   [[ "${lines[1]}" == *'SECOND'* && "${lines[1]}" != *'FIRST'* ]]
   [[ "${lines[2]}" == *'FIRST SECOND'*'"done"'* ]]
 }
+
+@test "a character split across two pieces reaches the page whole" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    task.stream(task, 'A', '')
+    view:post({ ready = true })
+    local sent = #view.updates
+    local a = 'あ'
+    task.stream(task, a:sub(1, 2), '')
+    print(#view.updates - sent)
+    task.stream(task, a:sub(3), '')
+    print(stub.lastUpdate())"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 0 ]
+  [ "${lines[1]}" = 'append(...["あ"])' ]
+}
