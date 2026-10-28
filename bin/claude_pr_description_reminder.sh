@@ -68,11 +68,8 @@ fi
 if [ -n "$url" ]; then
   context="${context:+$context }Review $url once now, after fetching its base. Reviewers only report; you fix and push to the same PR. Give each only the repo path, the PR's commits not on its base, and its stated purpose, not your reasoning. Start, all with run_in_background:"
   context="$context $correctness;"
-  # Sonnet is enough to report; security misses cost the most, so Opus.
   for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-    model=sonnet
-    [ "$sweep" = security-audit ] && model=opus
-    context="$context a subagent with model $model that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
+    context="$context a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
   done
   context="${context%;}. When they return, fix what holds up and say which findings you dismissed. On a public repo, keep security findings out of the PR text."
 fi

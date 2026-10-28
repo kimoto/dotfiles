@@ -93,14 +93,6 @@ run_mcp_create() {
   [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
 }
 
-@test "reviewers run on Sonnet, security on Opus" {
-  run_hook_with_stdout "gh pr create --fill" "$PR_URL"
-  ctx="$(ctx_of)"
-  [[ "$ctx" == *"model sonnet"* ]]
-  [[ "$ctx" == *"model opus that reads ~/.claude/skills/security-audit/"* ]]
-  grep -q '^model: sonnet$' "$REPO_ROOT/claudecode/agents/review-correctness.md"
-}
-
 @test "with Codex enabled, Codex takes correctness, newest version" {
   codex_plugin true
   run_hook_with_stdout "gh pr create --fill" "$PR_URL"
