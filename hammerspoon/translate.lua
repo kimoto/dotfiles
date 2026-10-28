@@ -106,6 +106,11 @@ function update(text, status, kind, svg) {
   s.className = 'status ' + kind;
   fit();
 }
+// A streamed piece is added to what is shown, not sent again with all before it.
+function append(text) {
+  document.getElementById('text').insertAdjacentText('beforeend', text);
+  fit();
+}
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('copy').onclick = () => post({ copy: true });
 post({ ready: true });
@@ -133,6 +138,13 @@ end
 local function setPopup(text, status, kind, svg)
    popup.text, popup.status, popup.kind, popup.svg = text, status, kind, svg or false
    renderPopup()
+end
+
+-- A page not ready yet gets it with the rest in the update() sent on ready.
+local function appendPopup(text)
+   popup.text = popup.text .. text
+   if not (translatePopup and popup.ready) then return end
+   translatePopup:evaluateJavaScript("append(..." .. hs.json.encode({ text }) .. ")")
 end
 
 -- The pasteboard takes an image object, not a data URL, so the PNG goes
@@ -247,6 +259,7 @@ local function run(args, mode)
       openPopup(mode)
    end
    local out, err = "", ""
+   local streaming = false  -- the popup shows out so far, and takes the rest by appendPopup
    local function popupOpened()
       if busy then
          hs.alert.closeSpecific(busy)
@@ -281,9 +294,12 @@ local function run(args, mode)
       if id ~= runs then return false end
       out, err = out .. (stdout or ""), err .. (stderr or "")
       -- An SVG half written is only markup: the spinner stays until it is done.
-      if out:find("%S") and not mode.svg then
+      if streaming then
+         appendPopup(stdout or "")
+      elseif out:find("%S") and not mode.svg then
          popupOpened()
          setPopup(out, "", "busy")
+         streaming = true
       end
       return true
    end, argv)

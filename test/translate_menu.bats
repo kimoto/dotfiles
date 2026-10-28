@@ -170,3 +170,23 @@ diagram() {
   [ "$status" -eq 0 ]
   [ "$output" = "0" ]
 }
+
+# Resending the whole answer on every streamed piece grows with its square:
+# a 50,000-character answer sent 313 MB to the page this way.
+@test "streamed words go to the page one piece at a time, all of them once it is ready" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    task.stream(task, 'FIRST', '')
+    view:post({ ready = true })
+    print(stub.lastUpdate())
+    task.stream(task, ' SECOND', '')
+    print(stub.lastUpdate())
+    task.done(0, '', '')
+    print(stub.lastUpdate())"
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == *'FIRST'* ]]
+  [[ "${lines[1]}" == *'SECOND'* && "${lines[1]}" != *'FIRST'* ]]
+  [[ "${lines[2]}" == *'FIRST SECOND'*'"done"'* ]]
+}
