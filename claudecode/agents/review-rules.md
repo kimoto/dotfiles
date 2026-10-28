@@ -1,6 +1,6 @@
 ---
 name: review-rules
-description: 開いた PR の題・本文・commit・差分のコメントが、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所だけを返す。★PR を作った時の hook から呼ぶ。渡すのは「repo のパス」「PR の URL」「見る範囲」だけ。⚠️ 直さない。
+description: 開いた PR の題・本文・commit・差分のコメントが、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所だけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「PR の URL」「見る範囲」だけ。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 ---
 
