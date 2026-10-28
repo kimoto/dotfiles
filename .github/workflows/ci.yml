@@ -476,11 +476,21 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Cache the vim + neovim + tmux apt packages
+        # The same slow-mirror tail as the check-tools cache above: neovim's
+        # 7 MB of .debs sometimes take three minutes instead of one second.
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: /tmp/vim-guard-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-vim-neovim-tmux-v1
+
       - name: Ensure vim + neovim + tmux are present
         run: |
           set -e
+          sudo mkdir -p /tmp/vim-guard-apt/partial
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends vim neovim tmux
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::Archives=/tmp/vim-guard-apt vim neovim tmux
 
       - name: .vimrc guard (startup must be clean)
         run: ./test/e2e/vim_guard_test.sh
