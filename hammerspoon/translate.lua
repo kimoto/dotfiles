@@ -137,20 +137,19 @@ end
 
 -- The pasteboard takes an image object, not a data URL, so the PNG goes
 -- through a file. The file stays until the pasteboard has it: imageFromPath
--- reads it lazily. os.tmpname() creates a file of its own, removed with the
--- .png beside it that NSImage can tell the type of.
+-- reads it lazily. In the user's own temp dir, not os.tmpname()'s /tmp: there
+-- another account can plant a symlink at the .png name before io.open follows
+-- it. The .png suffix is what NSImage tells the type by.
 local function copyPng(dataUrl)
    local data = hs.base64.decode((dataUrl:gsub("^data:image/png;base64,", "")))
    if not data or data == "" then return false end
-   local base = os.tmpname()
-   local path = base .. ".png"
+   local path = (hs.fs.temporaryDirectory():gsub("/$", "")) .. "/desktop-translate-diagram.png"
    local f = assert(io.open(path, "wb"))
    f:write(data)
    f:close()
    local image = hs.image.imageFromPath(path)
    local ok = image ~= nil and hs.pasteboard.writeObjects(image)
    os.remove(path)
-   os.remove(base)
    return ok
 end
 

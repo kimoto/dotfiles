@@ -148,6 +148,17 @@ diagram() {
   [[ "$output" == "PNG:QUJD"*"画像をコピー済み"* ]]
 }
 
+# /tmp is shared: another account could plant a symlink at the name before
+# the PNG is written through it.
+@test "the PNG goes through the user's own temp dir, not the shared /tmp" {
+  run diagram "
+    task.done(0, '<svg width=\"480\"></svg>', '')
+    view:post({ png = 'data:image/png;base64,QUJD' })
+    print(stub.written[1])"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "$BATS_TEST_TMPDIR/"* ]]
+}
+
 @test "a message from a popup that was replaced is ignored" {
   run diagram "
     local old = view

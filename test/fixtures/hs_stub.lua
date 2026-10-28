@@ -56,6 +56,8 @@ hs = setmetatable({
    },
    keycodes = { map = { c = 8, escape = 53 } },
    json = { encode = json },
+   -- NSTemporaryDirectory(): the user's own, ending in a slash.
+   fs = { temporaryDirectory = function() return (os.getenv("BATS_TEST_TMPDIR") or "/tmp") .. "/" end },
    base64 = { decode = function(s) return "PNG:" .. s end },
    image = {
       imageFromPath = function(path)
