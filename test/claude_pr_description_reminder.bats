@@ -102,8 +102,20 @@ codex_plugin() {
   run_hook "git push"
   ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
   [[ "$ctx" == *"codex-companion.mjs"* ]]
-  [[ "$ctx" != *"subagent"* ]]
   [[ "$ctx" == *"two review rounds"* ]]
+}
+
+@test "a push asks for a separate performance reviewer beside the correctness one" {
+  run_hook "git push"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"correctness bugs"* ]]
+  [[ "$ctx" == *"performance"* ]]
+  codex_plugin true
+  run_hook "git push"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"codex-companion.mjs"* ]]
+  [[ "$ctx" == *"performance"* ]]
+  [[ "$ctx" != *"correctness bugs"* ]]
 }
 
 @test "a push that publishes no new code asks for no review" {

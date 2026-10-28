@@ -30,11 +30,12 @@ context=""
 # already loads; the reminder only points there, so the two never drift.
 if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
-  # A second reader for every push that publishes code. Codex where its plugin
-  # is enabled — that switch already says this machine's code may go to
-  # OpenAI, and a different model misses different things. Everywhere else, a
-  # subagent that has not seen the work: it gets the diff, not the author's
-  # reasoning, so it cannot inherit the author's blind spots. Advisory, so a
+  # Second readers for every push that publishes code, one per viewpoint, so
+  # neither crowds out the other. For correctness, Codex where its plugin is
+  # enabled — that switch already says this machine's code may go to OpenAI,
+  # and a different model misses different things. Otherwise, and always for
+  # performance, a subagent that has not seen the work: it gets the diff, not
+  # the author's reasoning, so it cannot inherit the author's blind spots. Advisory, so a
   # review that never runs costs nothing; the round cap keeps review, fix,
   # push from looping, though only as well as the agent keeps count.
   if ! printf '%s' "$bare" | grep -qE "push[^;&|]*[[:space:]](--delete|-d|--dry-run|-n|--tags)([[:space:]]|\$)"; then
@@ -44,13 +45,13 @@ if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:sp
       companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
         | sort -V | tail -1)
     fi
-    context="$context If it does, also have the pushed commits reviewed, after fetching the branch the PR targets, at most two review rounds per PR; past that, list what is left in the PR body instead."
+    context="$context If it does, also have the pushed commits reviewed, after fetching the branch the PR targets, at most two review rounds per PR; past that, list what is left in the PR body instead. Give each reviewer only the repo path, the pushed branch's commits that are not on the PR's base, and the PR's stated purpose, not your reasoning or what you think is wrong."
     if [ -f "$companion" ]; then
-      context="$context Start \`node \"$companion\" review --base <the branch the PR targets>\` with run_in_background from the pushed repo."
+      context="$context For correctness, start \`node \"$companion\" review --base <the branch the PR targets>\` with run_in_background from the pushed repo."
     else
-      context="$context Start the Agent tool with run_in_background as a subagent that has not seen this work, and give it only the repo path, the pushed branch's commits that are not on the PR's base, and the PR's stated purpose, not your reasoning or what you think is wrong. Ask for correctness bugs, each with a concrete input that breaks it."
+      context="$context For correctness, start a subagent that has not seen this work with the Agent tool and run_in_background, asking for correctness bugs, each with a concrete input that breaks it."
     fi
-    context="$context When the review returns, fix the findings that hold up and say which ones you dismissed."
+    context="$context At the same time, start another such subagent asking only about performance: work that grows with input size, repeated I/O or process spawns, slower startup, each with the case that makes it slow. When the reviews return, fix the findings that hold up and say which ones you dismissed."
   fi
 fi
 
