@@ -20,7 +20,7 @@ local POPUP_MAX_HEIGHT = 640
 -- keeps the language and changes the voice.
 local MODES = {
    translate = { title = "翻訳" },
-   rewrite = { title = "文面" },
+   rewrite = { title = "清書" },
 }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.

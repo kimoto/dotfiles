@@ -333,7 +333,7 @@ def main() -> None:
         if not text.strip():
             fail("書き換える文がありません。")
         content = [{"type": "text", "text": f"{REWRITE_INSTRUCTION}\n\n{text}"}]
-        show(translate(content, system), args.quiet, "文面")
+        show(translate(content, system), args.quiet, "清書")
         return
 
     if args.screen or args.image:
