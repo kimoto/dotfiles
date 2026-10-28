@@ -39,6 +39,8 @@ run_hook_with_stdout() {
 
 PR_URL="https://github.com/kimoto/dotfiles/pull/541"
 
+ctx_of() { jq -r '.hookSpecificOutput.additionalContext' <<<"$output"; }
+
 @test "a created PR asks for the watcher, naming its URL" {
   run_hook_with_stdout "gh pr create --title t --body-file -" "$PR_URL"
   [ "$status" -eq 0 ]
@@ -50,11 +52,10 @@ PR_URL="https://github.com/kimoto/dotfiles/pull/541"
 @test "a cloud session, which has its own PR subscription, gets no watcher" {
   CLAUDE_CODE_REMOTE=true run_hook_with_stdout "gh pr create --fill" "$PR_URL"
   [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
   CLAUDE_CODE_REMOTE=true run_hook_with_stdout "git push && gh pr create --fill" "$PR_URL"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"pull-requests.md"* ]]
-  [[ "$ctx" != *"watch_pr.sh"* ]]
+  [[ "$(ctx_of)" == *"pull-requests.md"* ]]
+  [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
 }
 
 # Install the Codex plugin under $HOME the way Claude Code lays it out, and
@@ -68,67 +69,61 @@ codex_plugin() {
   jq -n --argjson e "$enabled" '{enabledPlugins: {"codex@openai-codex": $e}}' >"$HOME/.claude/settings.json"
 }
 
-@test "a push with the Codex plugin enabled asks for its review, newest version" {
-  codex_plugin true
-  run_hook "git push"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"pull-requests.md"* ]]
-  [[ "$ctx" == *"codex/1.0.10/scripts/codex-companion.mjs\" review --base"* ]]
-  [[ "$ctx" == *"run_in_background"* ]]
+# A PR opened through the GitHub MCP tool, as a cloud session does.
+run_mcp_create() {
+  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
+    "$(jq -cn --arg u "$PR_URL" '{tool_name: "mcp__github__create_pull_request", tool_input: {title: "t"}, tool_response: {id: "1", url: $u}}')"
 }
 
-@test "no Codex review when the plugin is disabled, missing, or in a cloud session" {
+@test "a new PR, from gh or the MCP tool, gets one review: correctness and the sweeps' diff mode" {
+  for how in gh mcp; do
+    if [ "$how" = gh ]; then run_hook_with_stdout "gh pr create --fill" "$PR_URL"; else run_mcp_create; fi
+    ctx="$(ctx_of)"
+    [[ "$ctx" == *"$PR_URL"* ]]
+    [[ "$ctx" == *"review-correctness"* ]]
+    for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
+      [[ "$ctx" == *"skills/$sweep/SKILL.md"* ]]
+      grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
+    done
+  done
+  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
+  CLAUDE_CODE_REMOTE=true run_mcp_create
+  [[ "$(ctx_of)" == *"review-correctness"* ]]
+  [[ "$(ctx_of)" != *"watch_pr.sh"* ]]
+}
+
+@test "with Codex enabled, Codex takes correctness, newest version" {
+  codex_plugin true
+  run_hook_with_stdout "gh pr create --fill" "$PR_URL"
+  ctx="$(ctx_of)"
+  [[ "$ctx" == *"codex/1.0.10/scripts/codex-companion.mjs\" review --base"* ]]
+  [[ "$ctx" != *"review-correctness"* ]]
+  [[ "$ctx" == *"skills/test-sweep/SKILL.md"* ]]
+}
+
+@test "no Codex when the plugin is disabled, missing, or in a cloud session" {
   codex_plugin false
-  run_hook "git push"
+  run_hook_with_stdout "gh pr create --fill" "$PR_URL"
   [[ "$output" != *"codex"* ]]
   rm -rf "$HOME/.claude"
-  run_hook "git push"
+  run_hook_with_stdout "gh pr create --fill" "$PR_URL"
   [[ "$output" != *"codex"* ]]
   codex_plugin true
-  CLAUDE_CODE_REMOTE=true run_hook "git push"
+  CLAUDE_CODE_REMOTE=true run_mcp_create
   [[ "$output" != *"codex"* ]]
-  run_hook "git status"
+}
+
+@test "a push alone asks for no review, only the description check" {
+  run_hook "git push"
+  ctx="$(ctx_of)"
+  [[ "$ctx" == *"pull-requests.md"* ]]
+  [[ "$ctx" != *"review"* ]]
+}
+
+@test "an MCP call that opened no PR stays silent" {
+  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
+    "$(jq -cn '{tool_name: "mcp__github__create_pull_request", tool_response: {error: "422"}}')"
   [ -z "$output" ]
-}
-
-@test "without Codex, a push asks for a fresh-context subagent review instead" {
-  run_hook "git push"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"subagent"* ]]
-  [[ "$ctx" == *"two review rounds"* ]]
-  CLAUDE_CODE_REMOTE=true run_hook "git push"
-  [[ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" == *"subagent"* ]]
-  codex_plugin true
-  run_hook "git push"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"codex-companion.mjs"* ]]
-  [[ "$ctx" == *"two review rounds"* ]]
-}
-
-@test "a push names the shared reviewer agents, which exist where ~/.claude/agents points" {
-  run_hook "git push"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" == *"review-correctness"* ]]
-  [[ "$ctx" == *"review-performance"* ]]
-  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
-  [ -f "$REPO_ROOT/claudecode/agents/review-performance.md" ]
-  codex_plugin true
-  run_hook "git push"
-  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-  [[ "$ctx" != *"review-correctness"* ]]
-  [[ "$ctx" == *"review-performance"* ]]
-}
-
-@test "a push that publishes no new code asks for no review" {
-  for c in "git push origin --delete feat/x" "git push -d origin feat/x" \
-    "git push --dry-run" "git push -n origin HEAD" "git push --tags"; do
-    run_hook "$c"
-    ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
-    [[ "$ctx" == *"pull-requests.md"* ]]
-    [[ "$ctx" != *"review"* ]]
-  done
-  run_hook "git push -u origin feat/dry-run"
-  [[ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" == *"subagent"* ]]
 }
 
 @test "the watcher the reminder names exists where ~/bin points" {
@@ -208,10 +203,12 @@ count_ours() {
      | select(.command | contains("claude_pr_description_reminder.sh"))] | length' "$SETTINGS"
 }
 
-@test "install registers the hook on Bash PostToolUse, guarded on ~/bin" {
+MATCHER='Bash|mcp__.*__create_pull_request'
+
+@test "install registers the hook for Bash and PR creation, guarded on ~/bin" {
   run "$INSTALLER"
   [ "$status" -eq 0 ]
-  [ "$(jq -r '.hooks.PostToolUse[0].matcher' "$SETTINGS")" = Bash ]
+  [ "$(jq -r '.hooks.PostToolUse[0].matcher' "$SETTINGS")" = "$MATCHER" ]
   cmd="$(jq -r '.hooks.PostToolUse[0].hooks[0].command' "$SETTINGS")"
   [[ "$cmd" == *'[ ! -x "$HOME/bin/claude_pr_description_reminder.sh" ]'* ]]
 }
@@ -259,8 +256,8 @@ JSON
   [ "$(cat "$SETTINGS")" = "not json" ]
 }
 
-@test "the cloud settings run the same handler on Bash PostToolUse" {
-  jq -e '.hooks.PostToolUse[] | select(.matcher == "Bash") | .hooks[].command
+@test "the cloud settings run the same handler on the same matcher" {
+  jq -e --arg m "$MATCHER" '.hooks.PostToolUse[] | select(.matcher == $m) | .hooks[].command
     | select(contains("claude_pr_description_reminder.sh"))' \
     "$REPO_ROOT/claudecode/settings-cloud.json" >/dev/null
 }

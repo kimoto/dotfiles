@@ -1,10 +1,9 @@
 #!/bin/bash
-# Claude Code PostToolUse hook for Bash calls (registered in every repo by
-# bin/install_claude_pr_hooks.sh, and by settings-cloud.json in a container):
-# after a push, remind the agent that the PR description may no longer hold;
-# after `gh pr create`, have it watch the new PR so a merge, a close or a
-# failing check reaches the session the way a cloud session's PR subscription
-# would.
+# Claude Code PostToolUse hook for Bash calls and for opening a PR through a
+# GitHub MCP tool (registered in every repo by bin/install_claude_pr_hooks.sh,
+# and by settings-cloud.json in a container): after a push, remind the agent
+# that the PR description may no longer hold; after a PR is opened, have it
+# reviewed once, and watched where no PR subscription exists.
 #
 # Claude Code sends the tool call as JSON on stdin and reads hookSpecificOutput
 # JSON back on stdout; printing nothing means "no comment". Quoted text is
@@ -16,7 +15,11 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 payload=$(cat)
 cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null) || exit 0
-[ -n "$cmd" ] || exit 0
+tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null)
+pr_url() {
+  jq -r '.tool_response | tostring' <<<"$payload" 2>/dev/null \
+    | grep -oE 'https://github\.com/[^/[:space:]"]+/[^/[:space:]"]+/pull/[0-9]+' | head -1
+}
 
 # Drop quoted strings, so only commands that actually ran are matched, at the
 # start of a command in the line.
@@ -30,40 +33,40 @@ context=""
 # already loads; the reminder only points there, so the two never drift.
 if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
-  # Second readers for every push that publishes code, one per viewpoint, so
-  # neither crowds out the other. What each viewpoint looks for lives in its
-  # agent under claudecode/agents/, shared with the sweeps; this text only
-  # says when. For correctness, Codex where its plugin is enabled — that
-  # switch already says this machine's code may go to OpenAI, and a different
-  # model misses different things. The agents get the diff, not the author's
-  # reasoning, so they cannot inherit the author's blind spots. Advisory, so a
-  # review that never runs costs nothing; the round cap keeps review, fix,
-  # push from looping, though only as well as the agent keeps count.
-  if ! printf '%s' "$bare" | grep -qE "push[^;&|]*[[:space:]](--delete|-d|--dry-run|-n|--tags)([[:space:]]|\$)"; then
-    companion=""
-    if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
-      && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
-      companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
-        | sort -V | tail -1)
-    fi
-    context="$context If it does, also have the pushed commits reviewed, after fetching the branch the PR targets, at most two review rounds per PR; past that, list what is left in the PR body instead. Give each reviewer only the repo path, the pushed branch's commits that are not on the PR's base, and the PR's stated purpose, not your reasoning."
-    if [ -f "$companion" ]; then
-      context="$context Start \`node \"$companion\" review --base <the branch the PR targets>\` and the review-performance subagent, both with run_in_background."
-    else
-      context="$context Start the review-correctness and review-performance subagents, both with run_in_background."
-    fi
-    context="$context When they return, fix the findings that hold up and say which ones you dismissed."
+fi
+
+# The URL in the response is the proof a PR exists; without one the create
+# failed. A cloud session already hears its PRs, and may have no gh.
+url=""
+if [[ "$tool" == *__create_pull_request ]]; then
+  url=$(pr_url)
+elif printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)"; then
+  url=$(pr_url)
+  if [ -n "$url" ] && [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
+    context="${context:+$context }A pull request was just created: $url. Unless this session can subscribe to PR activity, start \`~/bin/watch_pr.sh $url\` with run_in_background now, so its merge, close or failing check reaches you; re-arm it after you push a fix for a failed check."
   fi
 fi
 
-# The URL gh prints is the proof a PR exists; without one the create failed.
-# A cloud session already hears its PRs, and its container may have no gh.
-if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)"; then
-  url=$(jq -r '.tool_response | tostring' <<<"$payload" 2>/dev/null \
-    | grep -oE 'https://github\.com/[^/[:space:]"]+/[^/[:space:]"]+/pull/[0-9]+' | head -1)
-  if [ -n "$url" ]; then
-    context="${context:+$context }A pull request was just created: $url. Unless this session can subscribe to PR activity, start \`~/bin/watch_pr.sh $url\` with run_in_background now, so its merge, close or failing check reaches you; re-arm it after you push a fix for a failed check."
+# One review per new PR, not per push: pushes are many. Each viewpoint is a
+# sweep's own diff mode, so the door and the scheduled sweep look alike.
+# Codex takes correctness where enabled: a different model.
+if [ -n "$url" ]; then
+  companion=""
+  if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
+    && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+    companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
+      | sort -V | tail -1)
   fi
+  context="${context:+$context }Review $url once now, after fetching its base. Reviewers only report; you fix and push to the same PR. Give each only the repo path, the PR's commits not on its base, and its stated purpose, not your reasoning. Start, all with run_in_background:"
+  if [ -f "$companion" ]; then
+    context="$context \`node \"$companion\" review --base <the PR's base>\`;"
+  else
+    context="$context the review-correctness subagent;"
+  fi
+  for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
+    context="$context a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
+  done
+  context="${context%;}. When they return, fix what holds up and say which findings you dismissed. On a public repo, keep security findings out of the PR text."
 fi
 
 [ -n "$context" ] || exit 0
