@@ -26,15 +26,18 @@ teardown() {
   rm -rf "$TMP"
 }
 
-# Feed one command through the hook the way Claude Code does.
+# Feed one tool-call payload through the hook the way Claude Code does.
+run_payload() {
+  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ "$1"
+}
+
 run_hook() {
-  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ "$(jq -cn --arg c "$1" '{tool_input: {command: $c}}')"
+  run_payload "$(jq -cn --arg c "$1" '{tool_input: {command: $c}}')"
 }
 
 # Same, with what the command printed, as Claude Code passes it back.
 run_hook_with_stdout() {
-  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
-    "$(jq -cn --arg c "$1" --arg o "$2" '{tool_input: {command: $c}, tool_response: {stdout: $o}}')"
+  run_payload "$(jq -cn --arg c "$1" --arg o "$2" '{tool_input: {command: $c}, tool_response: {stdout: $o}}')"
 }
 
 PR_URL="https://github.com/kimoto/dotfiles/pull/541"
@@ -71,9 +74,8 @@ codex_plugin() {
 
 # A PR opened through the GitHub MCP tool, as a cloud session does.
 run_mcp_create() {
-  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
-    "$(jq -cn --arg u "$PR_URL" '{tool_name: "mcp__github__create_pull_request",
-      tool_input: {title: "t"}, tool_response: {id: "1", url: $u}}')"
+  run_payload "$(jq -cn --arg u "$PR_URL" '{tool_name: "mcp__github__create_pull_request",
+    tool_input: {title: "t"}, tool_response: {id: "1", url: $u}}')"
 }
 
 @test "a new PR, from gh or the MCP tool, gets one review: correctness and the sweeps' diff mode" {
@@ -82,6 +84,9 @@ run_mcp_create() {
     ctx="$(ctx_of)"
     [[ "$ctx" == *"$PR_URL"* ]]
     [[ "$ctx" == *"review-correctness"* ]]
+    [[ "$ctx" == *"all with run_in_background"* ]]
+    [[ "$ctx" == *"not your reasoning"* ]]
+    [[ "$ctx" == *"keep security findings out of the PR text"* ]]
     for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
       [[ "$ctx" == *"skills/$sweep/SKILL.md"* ]]
       grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
@@ -121,6 +126,8 @@ run_mcp_create() {
   [[ "$ctx" == *"review-correctness"* ]]
   [[ "$ctx" == *"since the last review"* ]]
   [[ "$ctx" == *"earlier findings"* ]]
+  [[ "$ctx" == *"not why you dismissed"* ]]
+  [[ "$ctx" == *"run_in_background"* ]]
   [[ "$ctx" == *"two"* ]]
   [[ "$ctx" != *"SKILL.md"* ]]
   codex_plugin true
@@ -128,9 +135,20 @@ run_mcp_create() {
   [[ "$(ctx_of)" == *"codex-companion.mjs"* ]]
 }
 
+@test "a flag in a later command does not hide a real push" {
+  run_hook "git push; git log -n 3"
+  [[ "$(ctx_of)" == *"since the last review"* ]]
+}
+
+@test "a push that opens the PR in the same call gets the open review, not a re-review" {
+  run_hook_with_stdout "git push -u origin feat/x && gh pr create --fill" "$PR_URL"
+  [[ "$(ctx_of)" == *"Review $PR_URL once"* ]]
+  [[ "$(ctx_of)" != *"since the last review"* ]]
+}
+
 @test "a push that publishes no new code asks for no review" {
   for c in "git push origin --delete feat/x" "git push -d origin feat/x" \
-    "git push --dry-run" "git push -n origin HEAD" "git push --tags"; do
+    "git push --dry-run" "git push -n origin HEAD" "git push --tags" "git push origin :feat/x"; do
     run_hook "$c"
     [[ "$(ctx_of)" == *"pull-requests.md"* ]]
     [[ "$(ctx_of)" != *"review"* ]]
@@ -138,8 +156,7 @@ run_mcp_create() {
 }
 
 @test "an MCP call that opened no PR stays silent" {
-  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
-    "$(jq -cn '{tool_name: "mcp__github__create_pull_request", tool_response: {error: "422"}}')"
+  run_payload "$(jq -cn '{tool_name: "mcp__github__create_pull_request", tool_response: {error: "422"}}')"
   [ -z "$output" ]
 }
 
