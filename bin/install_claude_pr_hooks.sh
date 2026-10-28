@@ -22,7 +22,7 @@ else
   jq --arg cmd "$GUARDED" "$STRIP"'
     strip_pr
     | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
-        + [{matcher: "Bash|mcp__.*__create_pull_request", hooks: [{type: "command", command: $cmd}]}])
+        + [{matcher: "Bash", hooks: [{type: "command", command: $cmd}]}])
   ' "$SETTINGS" >"$tmp"
 fi
 

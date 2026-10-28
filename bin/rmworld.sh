@@ -20,6 +20,7 @@ cd "$HOME" || exit 1
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_context_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_secret_scan_hook.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_review_gate.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_pr_hooks.sh" --uninstall || true
 
 # このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。
