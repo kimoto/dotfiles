@@ -14,6 +14,11 @@ Usage:
   translate.py --rewrite --clipboard
                                     rewrite rough notes as a message in the
                                     user's own style (style file below)
+  translate.py --reply --clipboard  draft a reply to a message, in that style
+  translate.py --summarize --clipboard
+                                    summarize the text in Japanese
+  translate.py --proofread --clipboard
+                                    fix typos and wrong words, nothing else
   echo "..." | translate.py         stdin, when not --clipboard
 
 The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
@@ -43,10 +48,10 @@ Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
 prompt. Not under ~/.config, which is this repo's config/.
 
---rewrite needs ~/.local/share/desktop-translate/style.md: how the user writes
-(endings, greetings, emoji, line breaks) and a few real messages of theirs.
-It stays on the machine because it is the user's own writing, and this repo
-is public. Without it, --rewrite fails rather than guess a voice.
+--rewrite and --reply need ~/.local/share/desktop-translate/style.md: how the
+user writes (endings, greetings, emoji, line breaks) and a few real messages of
+theirs. It stays on the machine because it is the user's own writing, and this
+repo is public. Without it, both fail rather than guess a voice.
 """
 
 import argparse
@@ -57,6 +62,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 
 KEYCHAIN_SERVICE = "desktop-translate"
@@ -84,7 +90,44 @@ names, promises or apologies the notes do not give. Keep URLs, code and names as
 Style guide:
 """
 
-REWRITE_INSTRUCTION = "Rewrite these notes as one message."
+REPLY_SYSTEM = """You draft the user's reply to a chat message someone sent them.
+Output only the reply: no preamble, no notes, no quotation marks around it.
+Write in the language of the message, in the user's voice as the style guide below describes it.
+Answer what the message asks, and decide nothing on the user's behalf: where the reply needs
+a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
+
+Style guide:
+"""
+
+SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
+whatever the language of the text: a one-line gist, then the points that matter as short
+bullets. Keep decisions, dates, numbers, names and open questions; drop greetings and
+repetition. Add nothing that is not in the text."""
+
+PROOFREAD_SYSTEM = """You proofread the user's text before they send it. Output only the corrected text:
+no preamble, no list of changes, no quotation marks around it. Fix typos, wrong kanji
+conversions, missing or doubled characters, and grammar slips. Change nothing else: keep the
+wording, tone, line breaks and emoji. If there is nothing to fix, output the text unchanged."""
+
+
+@dataclass(frozen=True)
+class Task:
+    """A job that keeps the text's own language, unlike translation."""
+    system: str
+    instruction: str
+    needs_style: bool
+    title: str  # the dialog's title
+    empty: str  # what fail() says when there is no text
+
+
+TASKS = {
+    "rewrite": Task(REWRITE_SYSTEM, "Rewrite these notes as one message.", True, "清書",
+                    "書き換える文がありません。"),
+    "reply": Task(REPLY_SYSTEM, "Draft my reply to this message.", True, "返信案",
+                  "返信する相手のメッセージがありません。"),
+    "summarize": Task(SUMMARY_SYSTEM, "Summarize this.", False, "要約", "要約する文がありません。"),
+    "proofread": Task(PROOFREAD_SYSTEM, "Proofread this.", False, "誤字チェック", "見直す文がありません。"),
+}
 
 
 def load_config() -> dict:
@@ -139,10 +182,12 @@ def instruction(target: str) -> str:
     return f"Translate the following into {LANG_NAMES[target]}."
 
 
-def rewrite_system_prompt() -> str:
+def task_system_prompt(task: Task) -> str:
+    if not task.needs_style:
+        return task.system
     if not STYLE.exists():
         fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
-    return REWRITE_SYSTEM + STYLE.read_text(encoding="utf-8").strip()
+    return task.system + STYLE.read_text(encoding="utf-8").strip()
 
 
 def system_prompt() -> str:
@@ -319,21 +364,29 @@ def main() -> None:
     source = p.add_mutually_exclusive_group()
     source.add_argument("--screen", action="store_true", help="select a screen region and translate its text")
     source.add_argument("--image", type=Path, help="translate the text in an image file")
-    # Rewriting keeps the language, so it never goes with a target or an image.
-    source.add_argument("--rewrite", action="store_true", help="rewrite notes as a message in the user's style")
+    # These keep the language, so they never go with a target or an image.
+    source.add_argument("--rewrite", dest="task", action="store_const", const="rewrite",
+                        help="rewrite notes as a message in the user's style")
+    source.add_argument("--reply", dest="task", action="store_const", const="reply",
+                        help="draft a reply to a message, in the user's style")
+    source.add_argument("--summarize", dest="task", action="store_const", const="summarize",
+                        help="summarize the text in Japanese")
+    source.add_argument("--proofread", dest="task", action="store_const", const="proofread",
+                        help="fix typos and wrong words, nothing else")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     args = p.parse_args()
-    if args.rewrite and args.to:
-        p.error("--rewrite keeps the language; it does not take --to")
+    if args.task and args.to:
+        p.error(f"--{args.task} keeps the language; it does not take --to")
 
-    if args.rewrite:
-        system = rewrite_system_prompt()
+    if args.task:
+        task = TASKS[args.task]
+        system = task_system_prompt(task)
         text = read_text(args)
         if not text.strip():
-            fail("書き換える文がありません。")
-        content = [{"type": "text", "text": f"{REWRITE_INSTRUCTION}\n\n{text}"}]
-        show(translate(content, system), args.quiet, "清書")
+            fail(task.empty)
+        content = [{"type": "text", "text": f"{task.instruction}\n\n{text}"}]
+        show(translate(content, system), args.quiet, task.title)
         return
 
     if args.screen or args.image:

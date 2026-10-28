@@ -79,7 +79,7 @@ DeepL's keys, so the DeepL app's own shortcuts are turned off.
 | ⌘+C+C | Same (hold ⌘, press C twice) |
 | ⌘+⇧+C+C | Same, choosing the target language first |
 | ⌃+⌘+⇧+L | Region → translate the text in it |
-| ⌃+⌘+⇧+W | Rewrite the selected rough notes as a message in your own voice, into the same popup (needs `~/.local/share/desktop-translate/style.md`) |
+| ⌃+⌘+⇧+W | Menu for the selection, into the same popup: 清書 (rough notes → a message in your own voice), 返信案 (a reply in your voice), 要約 (summary in Japanese), 誤字チェック (typos only), 翻訳. The first two need `~/.local/share/desktop-translate/style.md` |
 
 ---
 

@@ -141,3 +141,6 @@ a commit already on `main`, so it must stay an ancestor of `origin/main`.
   any fetched content reaching any interpreter, and one pattern only hides it.
 - A Raycast Script Command for the note rewrite (#580): registering its folder is a
   manual step in Raycast's settings, and ⌃⌘⇧W already reaches the same script.
+- A macOS CI e2e that drives the Hammerspoon popup with real keys (2026-10-28): the
+  owner deferred it; whether the runner can grant Accessibility is untried, and
+  `test/translate_menu.bats` covers the wiring.

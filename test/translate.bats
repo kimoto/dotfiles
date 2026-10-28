@@ -337,3 +337,44 @@ request_system() {
   [ "$status" -ne 0 ]
   [ ! -e "$REQUEST" ]
 }
+
+# --reply and --summarize: the same path as --rewrite, each with its own ask.
+
+@test "--reply drafts a reply in the user's style, leaving decisions to them" {
+  echo "Ends sentences with ー." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --reply "明日来られますか？"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Draft my reply to this message."*"明日来られますか？" ]]
+  [[ "$(request_system)" == *"Ends sentences with ー."* ]]
+  [[ "$(request_system)" == *"decide nothing on the user's behalf"* ]]
+}
+
+@test "--reply without a style file fails before anything is sent" {
+  run python3 "$SCRIPT" --quiet --reply "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"style.md"* ]]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--summarize needs no style file and asks for Japanese whatever the text" {
+  run python3 "$SCRIPT" --quiet --summarize "A long English thread"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Summarize this."*"A long English thread" ]]
+  [[ "$(request_system)" == *"in Japanese"* ]]
+  [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+@test "two jobs at once are refused" {
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite --summarize "hello"
+  [ "$status" -ne 0 ]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--proofread fixes slips only, without the style file" {
+  run python3 "$SCRIPT" --quiet --proofread "明日わ休みです"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Proofread this."*"明日わ休みです" ]]
+  [[ "$(request_system)" == *"Change nothing else"* ]]
+  [[ "$(request_system)" != *"Style guide"* ]]
+}

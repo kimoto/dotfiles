@@ -16,11 +16,14 @@ local POPUP_WIDTH = 520
 -- Before the page reports its real height; it grows or shrinks at once.
 local POPUP_START_HEIGHT = 120
 local POPUP_MAX_HEIGHT = 640
--- The popup's title for each job; translate.py --rewrite is the one that
--- keeps the language and changes the voice.
+-- The popup's title for each job. Every job but translate keeps the text's
+-- language; translate.py's TASKS says what each one asks for.
 local MODES = {
    translate = { title = "翻訳" },
    rewrite = { title = "清書" },
+   reply = { title = "返信案" },
+   summarize = { title = "要約" },
+   proofread = { title = "誤字チェック" },
 }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
@@ -227,12 +230,12 @@ local function chooseLanguageThen(args)
    chooser:show()
 end
 
--- Copy the selection, then translate it. Waiting on the clipboard's change
+-- Copy the selection, then hand it on. Waiting on the clipboard's change
 -- count, not a fixed delay: with nothing selected ⌘C changes nothing, and
--- translating whatever was copied before would answer the wrong question.
+-- working on whatever was copied before would answer the wrong question.
 -- A global: a timer only its own callback refers to can be collected.
 translateCopyPoll = nil
-local function translateSelection(args, mode)
+local function copySelectionThen(andThen)
    local before = hs.pasteboard.changeCount()
    local deadline = hs.timer.secondsSinceEpoch() + COPY_TIMEOUT
    hs.eventtap.keyStroke({ "cmd" }, "c")
@@ -240,12 +243,37 @@ local function translateSelection(args, mode)
    translateCopyPoll = hs.timer.doEvery(0.05, function()
       if hs.pasteboard.changeCount() ~= before then
          translateCopyPoll:stop()
-         run(args or { "--clipboard" }, mode)
+         andThen()
       elseif hs.timer.secondsSinceEpoch() > deadline then
          translateCopyPoll:stop()
          hs.alert.show("選択された文がありません")
       end
    end)
+end
+
+local function translateSelection()
+   copySelectionThen(function() run({ "--clipboard" }) end)
+end
+
+-- One key for every job, so adding a job adds a menu row, not a key to learn.
+-- The selection is copied before the menu opens: the menu takes the focus,
+-- and ⌘C sent after that would reach the menu, not the app.
+local MENU = {
+   { text = "清書", subText = "箇条書きを自分の口調のメッセージに", job = "rewrite" },
+   { text = "返信案", subText = "選んだメッセージへの返事を自分の口調で", job = "reply" },
+   { text = "要約", subText = "要点を日本語で数行に", job = "summarize" },
+   { text = "誤字チェック", subText = "誤字・変換ミスだけ直す（口調は変えない）", job = "proofread" },
+   { text = "翻訳", subText = "日本語 ⇄ 英語", job = "translate" },
+}
+local function chooseJob()
+   local chooser = hs.chooser.new(function(choice)
+      if not choice then return end
+      local args = { "--clipboard" }
+      if choice.job ~= "translate" then table.insert(args, 1, "--" .. choice.job) end
+      run(args, MODES[choice.job])
+   end)
+   chooser:choices(MENU)
+   chooser:show()
 end
 
 local lastCopy = 0
@@ -275,12 +303,10 @@ end)
 translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, function() translateSelection() end)
--- Rough notes selected in a message box → the same notes as a message in the
--- user's own voice (the style file: translate.py's header).
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
-   translateSelection({ "--rewrite", "--clipboard" }, MODES.rewrite)
-end)
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
+-- The jobs that write in the user's voice need the style file (translate.py's
+-- header).
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function() copySelectionThen(chooseJob) end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
