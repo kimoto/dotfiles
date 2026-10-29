@@ -286,7 +286,7 @@ EOF
 }
 
 # --rewrite: rough notes → a message in the user's voice, from a style file
-# that stays on the machine.
+# that stays on the machine, or in a plain voice without one.
 
 request_system() {
   python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["system"])' "$REQUEST"
@@ -308,11 +308,13 @@ request_system() {
   [[ "$(request_system)" == *"add no facts that are not there"* ]]
 }
 
-@test "--rewrite without a style file fails before anything is sent, naming the file" {
+@test "--rewrite without a style file still rewrites, as tidy bullets that add no facts" {
   run python3 "$SCRIPT" --quiet --rewrite "hello"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"style.md"* ]]
-  [ ! -e "$REQUEST" ]
+  [ "$status" -eq 0 ]
+  [ "$output" = "TRANSLATED" ]
+  [[ "$(request_system)" == *"Keep it as bullet points"* ]]
+  [[ "$(request_system)" == *"add no facts that are not there"* ]]
+  [[ "$(request_system)" != *"style guide"* ]]
 }
 
 @test "--rewrite copies the message, with the translation's key" {

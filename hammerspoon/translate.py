@@ -51,10 +51,12 @@ Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
 prompt. Not under ~/.config, which is this repo's config/.
 
---rewrite and --reply need ~/.local/share/desktop-translate/style.md: how the
-user writes (endings, greetings, emoji, line breaks) and a few real messages of
-theirs. It stays on the machine because it is the user's own writing, and this
-repo is public. Without it, both fail rather than guess a voice.
+--rewrite and --reply write in the user's voice from
+~/.local/share/desktop-translate/style.md: how the user writes (endings,
+greetings, emoji, line breaks) and a few real messages of theirs. It stays on
+the machine because it is the user's own writing, and this repo is public.
+Without it, --rewrite tidies the notes into polite bullet points that a reader
+who did not write them can follow, and --reply fails rather than guess a voice.
 """
 
 import argparse
@@ -87,20 +89,23 @@ rather than word for word."""
 
 REWRITE_SYSTEM = """You turn the user's rough notes into a chat message they will send as their own.
 Output only the message: no preamble, no notes, no quotation marks around it.
-Write in the language of the notes, in the user's voice as the style guide below describes it.
+Write in the language of the notes.
 Keep every point in the notes and add no facts that are not there: no dates, numbers,
 names, promises or apologies the notes do not give. Keep URLs, code and names as they are.
-
-Style guide:
 """
+
+VOICE = "Write in the user's voice as this style guide describes it:\n"
+# Without a style file: the user's own preference, bullets, made readable for
+# someone who did not write the notes, with no persona invented.
+REWRITE_PLAIN_VOICE = ("Keep it as bullet points, one point each, in short polite sentences that someone "
+                       "who did not write the notes can follow. No greeting, sign-off or request "
+                       "the notes do not ask for.")
 
 REPLY_SYSTEM = """You draft the user's reply to a chat message someone sent them.
 Output only the reply: no preamble, no notes, no quotation marks around it.
-Write in the language of the message, in the user's voice as the style guide below describes it.
+Write in the language of the message.
 Answer what the message asks, and decide nothing on the user's behalf: where the reply needs
 a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
-
-Style guide:
 """
 
 SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
@@ -128,15 +133,16 @@ class Task:
     """A job that keeps the text's own language, unlike translation."""
     system: str
     instruction: str
-    needs_style: bool
+    needs_style: bool  # writes in the user's voice, from the style file
     title: str  # the dialog's title
     empty: str  # what fail() says when there is no text
     svg: bool = False  # the answer is an SVG, which only the popup can show and copy
+    plain_voice: str | None = None  # the voice without a style file; None fails instead
 
 
 TASKS = {
     "rewrite": Task(REWRITE_SYSTEM, "Rewrite these notes as one message.", True, "清書",
-                    "書き換える文がありません。"),
+                    "書き換える文がありません。", plain_voice=REWRITE_PLAIN_VOICE),
     "reply": Task(REPLY_SYSTEM, "Draft my reply to this message.", True, "返信案",
                   "返信する相手のメッセージがありません。"),
     "summarize": Task(SUMMARY_SYSTEM, "Summarize this.", False, "要約", "要約する文がありません。"),
@@ -200,9 +206,11 @@ def instruction(target: str) -> str:
 def task_system_prompt(task: Task) -> str:
     if not task.needs_style:
         return task.system
-    if not STYLE.exists():
-        fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
-    return task.system + STYLE.read_text(encoding="utf-8").strip()
+    if STYLE.exists():
+        return task.system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
+    if task.plain_voice:
+        return task.system + "\n" + task.plain_voice
+    fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
 
 
 def system_prompt() -> str:
