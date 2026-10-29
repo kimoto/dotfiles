@@ -337,6 +337,19 @@ diagram() {
   [ "${lines[1]}" = $'要約\t300\t400\ttrue' ]
 }
 
+@test "copied text that reads like a flag is still the text a second tab reruns" {
+  run drive "
+    stub.clipboard = '--clipboard'
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    stub.clipboard = 'the translation'
+    stub.popups[#stub.popups]:post({ job = 'summarize' })
+    stub.popups[#stub.popups]:post({ job = 'reply' })
+    print(stub.sent(stub.tasks[#stub.tasks]))"
+  [ "$status" -eq 0 ]
+  [ "$output" = "--quiet --reply -- --clipboard" ]
+}
+
 @test "a retry after a tab names the text once" {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+d']()

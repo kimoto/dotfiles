@@ -461,8 +461,8 @@ function run(args, mode, ready, at)
    ready = ready or prepare()
    local source
    for i, a in ipairs(args) do
+      if a == "--" then source = args[i + 1]; break end  -- the text, even if it reads like a flag
       if a == "--clipboard" then source = hs.pasteboard.getContents() end
-      if a == "--" then source = args[i + 1] end
    end
    local argv = { "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
