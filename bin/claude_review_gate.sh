@@ -106,10 +106,10 @@ fi
 [ -f "$(mark_file "$head")" ] && exit 0
 
 dir=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '<the repo dir>')
-# Sonnet, as the two agents' frontmatter also pins: six Opus reviewers cost
-# about 300k tokens even on a one-line diff, mostly the fixed cost of reading
-# each skill. Security stays on Opus, where a miss costs the most.
-reason="Review this branch ($head) before opening its PR, after fetching the base. Reviewers only report; you fix, commit and push. Give each only the repo path, the branch's commits not on the base, and the PR's purpose, not your reasoning. Start, all with run_in_background and model: sonnet unless one says otherwise: $(correctness_reviewer); the review-rules subagent, also given the PR title and body you are about to use;"
+# Subagents run on Sonnet, as the two agents' frontmatter also pins: on a small
+# diff the fixed cost of reading each skill dominates. Security stays on Opus,
+# where a miss costs the most. Codex picks its own model.
+reason="Review this branch ($head) before opening its PR, after fetching the base. Reviewers only report; you fix, commit and push. Give each only the repo path, the branch's commits not on the base, and the PR's purpose, not your reasoning. Start, all with run_in_background, and give each subagent model: sonnet unless it names another: $(correctness_reviewer); the review-rules subagent, also given the PR title and body you are about to use;"
 for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
   model=""
   [ "$sweep" != security-audit ] || model=", with model: opus"
