@@ -298,9 +298,6 @@ jobs:
           name: zsh-startup-bench
           path: ${{ runner.temp }}/zsh-startup-bench.txt
 
-      - name: tmux e2e suite
-        run: ./ci/tmux_suite.sh
-
       - name: Starship prompt e2e (render in a real terminal, assert segments)
         run: ./test/e2e/starship_test.sh
 
@@ -313,12 +310,12 @@ jobs:
       - name: Interactive e2e for completion candidate colours (list-colors)
         run: ./test/e2e/completion_colors_test.sh
 
-  # zsh_loading_test runs whatever tmux the brew cache holds, and that cache only
-  # rebuilds when Brewfile.standard changes, so it stays on an old release for
-  # months. That old one is worth keeping: it catches config an older tmux cannot
-  # parse. This job runs the tmux suite again on Homebrew's current release,
-  # where the newer-only bindings are actually live. Its own job rather than a
-  # second pass in that one: the two cannot share one tmux on PATH.
+  # The tmux suite on two releases. The brew cache only rebuilds when
+  # Brewfile.standard changes, so its tmux stays on an old release for months.
+  # That old one is worth keeping: it catches config an older tmux cannot parse.
+  # Homebrew's current release is where the newer-only bindings are actually
+  # live. Both passes live here, not one in zsh_loading_test: that job is the
+  # longest on every push, and the suite is over a quarter of it.
   tmux_latest_test:
     needs: scope
     if: ${{ !cancelled() && needs.scope.outputs.e2e != 'false' }}
@@ -356,11 +353,18 @@ jobs:
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
+      - name: tmux e2e suite (cached release)
+        id: cached
+        run: |
+          echo "version=$(tmux -V)" >>"$GITHUB_OUTPUT"
+          ./ci/tmux_suite.sh
+
       - name: Upgrade tmux to Homebrew's current release
         id: upgrade
+        if: (success() || failure()) && steps.cached.outcome != 'skipped'
         # Fails rather than passes when the upgrade leaves tmux below 3.8: every
         # 3.8-only case skips itself on an older tmux, so this job would go green
-        # while testing the same release as zsh_loading_test.
+        # while testing the same release as the pass above.
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew update --quiet
@@ -371,8 +375,13 @@ jobs:
             echo "::error::tmux $v is older than 3.8"
             exit 1
           fi
+          echo "version=$(tmux -V)" >>"$GITHUB_OUTPUT"
 
-      - name: tmux e2e suite
+      - name: tmux e2e suite (current release)
+        # The same release twice would only repeat the pass above.
+        if: >-
+          (success() || failure()) && steps.upgrade.outcome == 'success'
+          && steps.upgrade.outputs.version != steps.cached.outputs.version
         run: ./ci/tmux_suite.sh
 
       # The golden is drawn by the latest release, so only this job can compare
