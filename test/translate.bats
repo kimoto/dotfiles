@@ -373,7 +373,23 @@ request_field() {
   [ "$status" -eq 0 ]
   [[ "$(request_text)" == "Summarize this."*"A long English thread" ]]
   [[ "$(request_system)" == *"in Japanese"* ]]
+  [[ "$(request_system)" == *"at most five"*"half the length"* ]]
   [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+# The popup shows text as it is: on the Mac both models bolded labels with **.
+@test "the written jobs ask for plain text; translation and proofreading keep the text's own marks" {
+  echo "Plain." >"$STYLE"
+  local job
+  for job in --rewrite --reply --summarize; do
+    run python3 "$SCRIPT" --quiet "$job" "hello"
+    [ "$status" -eq 0 ] || { echo "$job: $output"; return 1; }
+    [[ "$(request_system)" == *"no Markdown"* ]] || { echo "$job asks for none"; return 1; }
+  done
+  run python3 "$SCRIPT" --quiet --proofread "hello"
+  [[ "$(request_system)" != *"no Markdown"* ]]
+  run python3 "$SCRIPT" --quiet "hello"
+  [[ "$(request_system)" != *"no Markdown"* ]]
 }
 
 @test "two jobs at once are refused" {
@@ -449,8 +465,8 @@ request_field() {
 }
 
 @test "a job given Haiku in the config asks for no thinking and no fallback; the others keep theirs" {
-  printf '[models]\nsummarize = "claude-haiku-5-5"\n' >"$CONFIG"
-  run python3 "$SCRIPT" --quiet --summarize "hello"
+  printf '[models]\nproofread = "claude-haiku-5-5"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --proofread "hello"
   [ "$status" -eq 0 ]
   [ "$(request_field model)" = "claude-haiku-5-5" ]
   [ "$(request_field thinking)" = "{'type': 'disabled'}" ]
@@ -459,6 +475,15 @@ request_field() {
   [ "$(request_field model)" = "claude-opus-5-5" ]
   [ "$(request_field thinking)" = "None" ]
   [ "$(request_field fallbacks)" = "default" ]
+}
+
+@test "a summary goes to Haiku unless the config names a model" {
+  run python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-haiku-5-5" ]
+  printf 'model = "claude-opus-5-5"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$(request_field model)" = "claude-opus-5-5" ]
 }
 
 # Edits to a rewrite: what the user changed in the popup before copying it is

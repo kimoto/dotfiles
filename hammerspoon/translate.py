@@ -92,6 +92,10 @@ KEYCHAIN_SERVICE = "desktop-translate"
 CONFIG = Path.home() / ".local/share/desktop-translate/config.toml"
 PROVIDERS = ("anthropic", "openai")
 ANTHROPIC_MODEL = "claude-opus-5-5"
+# Measured on the Mac on a 469-character text: Haiku's summary started in 1.5 s
+# against Opus's 2.0-6.5 s and read as well. A summary is read, not sent, so a
+# slip costs less there than in a rewrite or a reply.
+JOB_MODELS = {"summarize": "claude-haiku-5-5"}
 # Thinking cannot be turned off on this model; low effort keeps the wait short.
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
@@ -110,6 +114,9 @@ EXAMPLE_EDITS = 5
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
+# The popup and the clipboard take text as it is, so Markdown marks would show.
+PLAIN_TEXT = "Write plain text with no Markdown: no ** or # marks. Start each list item with ・ ."
+
 SYSTEM = """You are a translation tool on the user's desktop. Output only the translation:
 no preamble, no notes, no quotation marks around it. Keep the original line breaks,
 lists, code, URLs, file paths and product names as they are. Translate naturally
@@ -120,7 +127,7 @@ Output only the message: no preamble, no notes, no quotation marks around it.
 Write in the language of the notes.
 Keep every point in the notes and add no facts that are not there: no dates, numbers,
 names, promises or apologies the notes do not give. Keep URLs, code and names as they are.
-"""
+""" + PLAIN_TEXT + "\n"
 
 VOICE = "Write in the user's voice as this style guide describes it:\n"
 # Without a style file: the user's own preference, bullets, made readable for
@@ -134,12 +141,15 @@ Output only the reply: no preamble, no notes, no quotation marks around it.
 Write in the language of the message.
 Answer what the message asks, and decide nothing on the user's behalf: where the reply needs
 a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
-"""
+""" + PLAIN_TEXT + "\n"
 
 SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
-whatever the language of the text: a one-line gist, then the points that matter as short
-bullets. Keep decisions, dates, numbers, names and open questions; drop greetings and
-repetition. Add nothing that is not in the text."""
+whatever the language of the text: a one-line gist, then at most five short bullets, the
+whole well under half the length of the text. Merge related points instead of following the
+text sentence by sentence; where everything looks important, keep what the reader must act on
+or decide first, then dates and numbers. Drop greetings and repetition. Add nothing that is
+not in the text, and name people and roles as the text does.
+""" + PLAIN_TEXT
 
 PROOFREAD_SYSTEM = """You proofread the user's text before they send it. Output only the corrected text:
 no preamble, no list of changes, no quotation marks around it. Fix typos, wrong kanji
@@ -302,7 +312,7 @@ def system_prompt() -> str:
 
 def model_for(config: dict, job: str) -> str:
     return (os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("models", {}).get(job)
-            or config.get("model") or ANTHROPIC_MODEL)
+            or config.get("model") or JOB_MODELS.get(job) or ANTHROPIC_MODEL)
 
 
 def connect(config: dict):
