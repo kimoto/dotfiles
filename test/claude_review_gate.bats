@@ -228,7 +228,61 @@ with_remote() {
   git -C "$REPO" switch -q main
   git -C "$REPO" branch -q -D feat/x
   "$GATE" mark "$REPO" s1
-  [ "$(ls "$XDG_STATE_HOME/claude-review")" = main ]
+  [[ "$(ls "$XDG_STATE_HOME/claude-review")" == main@* ]]
+  [ "$(ls "$XDG_STATE_HOME/claude-review" | wc -l | tr -d ' ')" = 1 ]
+}
+
+@test "the same branch name in two repos keeps two marks" {
+  git init -q -b main "$TMP/other"
+  git -C "$TMP/other" commit -q --allow-empty -m init
+  git -C "$REPO" switch -q main
+  "$GATE" mark "$REPO" s1
+  "$GATE" mark "$TMP/other" s1
+  pre_bash "git push"
+  [ -z "$output" ]
+}
+
+@test "a PR text check is asked again for a reused branch name elsewhere" {
+  pre_bash "gh pr create --fill"
+  [ "$(decision)" = deny ]
+  git init -q -b feat/x "$TMP/other"
+  git -C "$TMP/other" commit -q --allow-empty -m init
+  pre_bash "gh pr create --fill" "$TMP/other"
+  [ "$(decision)" = deny ]
+}
+
+@test "commits pulled in after the mark are not re-checked" {
+  with_remote feat/x
+  "$GATE" mark "$REPO" s1
+  git clone -q -b feat/x "$TMP/remote.git" "$TMP/peer"
+  git -C "$TMP/peer" -c user.name=p -c user.email=p@example.com commit -q --allow-empty -m theirs
+  git -C "$TMP/peer" push -q origin feat/x
+  git -C "$REPO" pull -q --ff-only origin feat/x
+  pre_bash "git push"
+  [ -z "$output" ]
+}
+
+@test "a push naming another branch is judged by that branch" {
+  git -C "$REPO" switch -q main
+  "$GATE" mark "$REPO" s1
+  pre_bash "git push origin feat/x"
+  [ "$(decision)" = deny ]
+  [[ "$(reason)" == *"on feat/x"* ]]
+}
+
+@test "a push that carries no commits passes" {
+  pre_bash "git push origin --delete old"
+  [ -z "$output" ]
+  pre_bash "git push --tags"
+  [ -z "$output" ]
+}
+
+@test "cd before the push and an env prefix are followed" {
+  pre_bash "cd '$REPO' && git push" "$TMP"
+  [ "$(decision)" = deny ]
+  git -C "$REPO" commit -q --allow-empty -m more
+  pre_bash "GIT_TRACE=0 git push"
+  [ "$(decision)" = deny ]
 }
 
 @test "a Stop no longer does anything" {

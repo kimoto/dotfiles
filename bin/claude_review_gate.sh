@@ -14,8 +14,8 @@
 #
 # Each stop happens once per HEAD (or once per branch for a PR): pushing or
 # creating again goes through, so a change that needs no review costs one
-# retry. The agent can still mark without reviewing, but it can no longer skip
-# review by not remembering it.
+# retry. The agent can still mark without reviewing; what the gate rules out is
+# skipping review by not remembering it.
 set -uo pipefail
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-review"
@@ -26,7 +26,9 @@ pr_dir="$state_dir-pr"
 max_rounds=2
 
 branch_key() { printf '%s' "$1" | tr '/' '%'; }
-mark_file() { printf '%s/%s' "$state_dir" "$(branch_key "$1")"; }
+# One file per repo and branch: two repos each have a main.
+repo_key() { printf '%s@%s' "$(branch_key "$2")" "$(printf '%s' "$1" | shasum | cut -c1-12)"; }
+mark_file() { printf '%s/%s' "$state_dir" "$(repo_key "$1" "$2")"; }
 
 # The path this hook ran from, quoted for the agent to paste: a container has
 # the repo's bin/, not ~/bin. Only built where an instruction needs it, since
@@ -40,13 +42,17 @@ if [ "${1:-}" = mark ]; then
   sha=$(git -C "$dir" rev-parse HEAD) || exit 1
   dir=$(git -C "$dir" rev-parse --show-toplevel) || exit 1
   mkdir -p "$state_dir"
-  # Marks of branches that are gone would otherwise pile up forever.
+  # Marks of branches that are gone, and stops nobody will hit again, would
+  # otherwise pile up forever.
   for f in "$state_dir"/*; do
     [ -f "$f" ] || continue
     read -r _ _ _ fdir <"$f"
-    git -C "$fdir" rev-parse -q --verify "refs/heads/$(basename "$f" | tr '%' '/')" >/dev/null 2>&1 || rm -f "$f"
+    name=$(basename "$f")
+    git -C "$fdir" rev-parse -q --verify "refs/heads/$(printf '%s' "${name%@*}" | tr '%' '/')" >/dev/null 2>&1 \
+      || rm -f "$f"
   done
-  f=$(mark_file "$branch")
+  find "$pushed_dir" "$pr_dir" -type f -mtime +30 -delete 2>/dev/null
+  f=$(mark_file "$dir" "$branch")
   rounds=-1
   [ -f "$f" ] && read -r _ rounds _ _ <"$f"
   printf '%s %s %s %s\n' "$sha" "$((rounds + 1))" "$session" "$dir" >"$f"
@@ -69,9 +75,11 @@ esac
   IFS= read -r cwd
   IFS= read -r tool
   IFS= read -r head
+  IFS= read -r gh_repo
   IFS= read -r cmd
 } < <(jq -r '(.hook_event_name // ""), (.session_id // ""), (.cwd // ""), (.tool_name // ""),
-  (.tool_input.head // ""), (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null)
+  (.tool_input.head // ""), ((.tool_input.owner // "") + "/" + (.tool_input.repo // "")),
+  (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null)
 
 [ "$event" = PreToolUse ] || exit 0
 
@@ -119,32 +127,68 @@ other_reviewers() {
 }
 
 bare=$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
-starts='(^|[;&|(]|&&|\|\|)[[:space:]]*'
+starts='(^|[;&|(]|&&|\|\|)[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
+unquote() { sed -E "s/^['\"]//; s/['\"]\$//"; }
 
-# git with any options (e.g. -C <dir>), then the push subcommand.
+# git with any options (e.g. -C <dir>), then the push subcommand. A wrapper
+# such as sudo or bash -c is not followed: the gate stops forgetting, not
+# evasion.
 if [ "$tool" = Bash ] && printf '%s' "$bare" \
   | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   dir=$cwd
+  # The last cd before the push, then git -C relative to it.
+  cd_dir=$(printf '%s' "$cmd" | grep -oE "(^|[;&|(])[[:space:]]*cd[[:space:]]+('[^']*'|\"[^\"]*\"|[^[:space:];&|]+)" | tail -1 \
+    | sed -E 's/^[;&|(]?[[:space:]]*cd[[:space:]]+//' | unquote)
+  if [ -n "$cd_dir" ]; then
+    case $cd_dir in /*) dir=$cd_dir ;; *) dir="$dir/$cd_dir" ;; esac
+  fi
   c_dir=$(printf '%s' "$cmd" | grep -oE "git[[:space:]]+-C[[:space:]]+('[^']*'|\"[^\"]*\"|[^[:space:]]+)" | head -1 \
-    | sed -E "s/^git[[:space:]]+-C[[:space:]]+//; s/^['\"]//; s/['\"]\$//")
+    | sed -E 's/^git[[:space:]]+-C[[:space:]]+//' | unquote)
   if [ -n "$c_dir" ]; then
-    case $c_dir in /*) dir=$c_dir ;; *) dir="$cwd/$c_dir" ;; esac
+    case $c_dir in /*) dir=$c_dir ;; *) dir="$dir/$c_dir" ;; esac
   fi
   dir=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
-  # The branch checked out stands for what is pushed; a push naming another
-  # refspec is judged by this one.
-  branch=$(git -C "$dir" symbolic-ref --short -q HEAD) || exit 0
-  now=$(git -C "$dir" rev-parse HEAD) || exit 0
-  pushed="$pushed_dir/$(branch_key "$branch")"
+
+  # What is pushed: the first refspec's source when it is a local branch,
+  # else the branch checked out. A delete or a tags-only push carries no
+  # commits to review.
+  set -f
+  # shellcheck disable=SC2046 # split the push's own words
+  set -- $(printf '%s' "$bare" | sed -E 's/.*[[:space:]]push([[:space:]]|$)//; s/[;&|)].*//')
+  set +f
+  words=() tags=0
+  for w in "$@"; do
+    case $w in
+      --delete | -d | :*) exit 0 ;;
+      --tags) tags=1 ;;
+      -*) ;;
+      *) words+=("$w") ;;
+    esac
+  done
+  branch=""
+  if [ "${#words[@]}" -ge 2 ]; then
+    src=${words[1]#+} src=${src%%:*}
+    if [ -n "$src" ] && [ "$src" != HEAD ]; then
+      git -C "$dir" rev-parse -q --verify "refs/heads/$src" >/dev/null || exit 0
+      branch=$src
+    fi
+  elif [ "$tags" -eq 1 ]; then
+    exit 0
+  fi
+  [ -n "$branch" ] || branch=$(git -C "$dir" symbolic-ref --short -q HEAD) || exit 0
+  now=$(git -C "$dir" rev-parse "refs/heads/$branch") || exit 0
+  pushed="$pushed_dir/$(repo_key "$dir" "$branch")"
   [ "$(cat "$pushed" 2>/dev/null)" = "$now" ] && exit 0
 
   sha="" rounds=0
-  [ -f "$(mark_file "$branch")" ] && read -r sha rounds _ _ <"$(mark_file "$branch")"
+  [ -f "$(mark_file "$dir" "$branch")" ] && read -r sha rounds _ _ <"$(mark_file "$dir" "$branch")"
   [ "$sha" = "$now" ] && exit 0
   if [ -n "$sha" ] && git -C "$dir" merge-base --is-ancestor "$sha" "$now" 2>/dev/null; then
-    [ "$rounds" -lt "$max_rounds" ] || exit 0
+    # Commits a pull brought in are already on a remote; only new ones count.
+    count=$(git -C "$dir" rev-list --count "$sha..$now" --not --remotes 2>/dev/null) || exit 0
+    [ "$count" -gt 0 ] && [ "$rounds" -lt "$max_rounds" ] || exit 0
     mkdir -p "$pushed_dir" && printf '%s\n' "$now" >"$pushed"
-    deny "Before this push, re-check the commits made since the last review ($sha..$branch in $dir) with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Reviewers only report; you fix and commit. Then run \`$(gate_cmd) mark '$dir' $session\` and push again."
+    deny "Before this push, re-check the commits made since the last review (\`git -C '$dir' log $sha..$branch --not --remotes\`) with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Reviewers only report; you fix and commit. Then run \`$(gate_cmd) mark '$dir' $session\` and push again."
   fi
 
   count=$(git -C "$dir" rev-list --count "$now" --not --remotes 2>/dev/null) || exit 0
@@ -154,15 +198,19 @@ if [ "$tool" = Bash ] && printf '%s' "$bare" \
 fi
 
 # Which branch the PR is for: the MCP tool says it; gh takes --head/-H, or
-# else the branch the session's checkout is on.
-if [[ "$tool" != *__create_pull_request ]]; then
+# else the branch the session's checkout is on. The ask is kept per repo and
+# branch tip, so a branch name used again later is asked again.
+dir=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '<the repo dir>')
+if [[ "$tool" == *__create_pull_request ]]; then
+  where=$gh_repo tip=""
+else
   printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)" || exit 0
   head=$(printf '%s' "$cmd" | grep -oE '(--head|-H)[= ]+[^[:space:]]+' | head -1 | sed -E 's/^(--head|-H)[= ]+//')
   [ -n "$head" ] || head=$(git -C "$cwd" symbolic-ref --short -q HEAD 2>/dev/null)
+  where=$dir tip=$(git -C "$cwd" rev-parse -q --verify "refs/heads/$head" 2>/dev/null)
 fi
 [ -n "$head" ] || exit 0
-asked="$pr_dir/$(branch_key "$head")"
+asked="$pr_dir/$(repo_key "$where$tip" "$head")"
 [ -f "$asked" ] && exit 0
 mkdir -p "$pr_dir" && : >"$asked"
-dir=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '<the repo dir>')
 deny "Before opening the PR for $head, have the review-rules subagent check the title and body you are about to use, given only the repo path ($dir), the branch and that text, run in the foreground since it is short. It only reports; you fix the text, then create the PR again. Keep security findings out of the PR text on a public repo."
