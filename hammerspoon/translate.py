@@ -43,10 +43,10 @@ Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
 prompt. Not under ~/.config, which is this repo's config/.
 
---rewrite needs ~/.local/share/desktop-translate/style.md: how the user writes
-(endings, greetings, emoji, line breaks) and a few real messages of theirs.
-It stays on the machine because it is the user's own writing, and this repo
-is public. Without it, --rewrite fails rather than guess a voice.
+Optional: ~/.local/share/desktop-translate/style.md for --rewrite: how the
+user writes (endings, greetings, emoji, line breaks) and a few real messages
+of theirs. It stays on the machine because it is the user's own writing, and
+this repo is public. Without it, --rewrite writes a plain, polite message.
 """
 
 import argparse
@@ -77,12 +77,15 @@ rather than word for word."""
 
 REWRITE_SYSTEM = """You turn the user's rough notes into a chat message they will send as their own.
 Output only the message: no preamble, no notes, no quotation marks around it.
-Write in the language of the notes, in the user's voice as the style guide below describes it.
+Write in the language of the notes.
 Keep every point in the notes and add no facts that are not there: no dates, numbers,
 names, promises or apologies the notes do not give. Keep URLs, code and names as they are.
-
-Style guide:
 """
+
+REWRITE_VOICE = "Write in the user's voice as this style guide describes it:\n"
+# Without a style file: a voice that fits most work chats and invents no persona.
+REWRITE_PLAIN_VOICE = ("Write it as a plain, polite chat message to colleagues, "
+                       "with no greeting or sign-off the notes do not ask for.")
 
 REWRITE_INSTRUCTION = "Rewrite these notes as one message."
 
@@ -141,8 +144,8 @@ def instruction(target: str) -> str:
 
 def rewrite_system_prompt() -> str:
     if not STYLE.exists():
-        fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
-    return REWRITE_SYSTEM + STYLE.read_text(encoding="utf-8").strip()
+        return REWRITE_SYSTEM + "\n" + REWRITE_PLAIN_VOICE
+    return REWRITE_SYSTEM + "\n" + REWRITE_VOICE + STYLE.read_text(encoding="utf-8").strip()
 
 
 def system_prompt() -> str:

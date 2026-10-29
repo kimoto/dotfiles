@@ -282,7 +282,7 @@ translateCopyWatcher:start()
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, function() translateSelection() end)
 -- Rough notes selected in a message box → the same notes as a message in the
--- user's own voice (the style file: translate.py's header).
+-- user's own voice, or a plain one without the style file (translate.py's header).
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
    translateSelection({ "--rewrite", "--clipboard" }, MODES.rewrite)
 end)
