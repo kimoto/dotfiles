@@ -306,11 +306,11 @@ request_system() {
   [[ "$(request_system)" == *"add no facts that are not there"* ]]
 }
 
-@test "--rewrite without a style file still rewrites, in a plain voice that adds no facts" {
+@test "--rewrite without a style file still rewrites, as tidy bullets that add no facts" {
   run python3 "$SCRIPT" --quiet --rewrite "hello"
   [ "$status" -eq 0 ]
   [ "$output" = "TRANSLATED" ]
-  [[ "$(request_system)" == *"plain, polite chat message"* ]]
+  [[ "$(request_system)" == *"Keep it as bullet points"* ]]
   [[ "$(request_system)" == *"add no facts that are not there"* ]]
   [[ "$(request_system)" != *"style guide"* ]]
 }

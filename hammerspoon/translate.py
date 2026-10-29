@@ -46,7 +46,8 @@ prompt. Not under ~/.config, which is this repo's config/.
 Optional: ~/.local/share/desktop-translate/style.md for --rewrite: how the
 user writes (endings, greetings, emoji, line breaks) and a few real messages
 of theirs. It stays on the machine because it is the user's own writing, and
-this repo is public. Without it, --rewrite writes a plain, polite message.
+this repo is public. Without it, --rewrite tidies the notes into polite
+bullet points that a reader who did not write them can follow.
 """
 
 import argparse
@@ -83,9 +84,11 @@ names, promises or apologies the notes do not give. Keep URLs, code and names as
 """
 
 REWRITE_VOICE = "Write in the user's voice as this style guide describes it:\n"
-# Without a style file: a voice that fits most work chats and invents no persona.
-REWRITE_PLAIN_VOICE = ("Write it as a plain, polite chat message to colleagues, "
-                       "with no greeting or sign-off the notes do not ask for.")
+# Without a style file: the user's own preference, bullets, made readable for
+# someone who did not write the notes, with no persona invented.
+REWRITE_PLAIN_VOICE = ("Keep it as bullet points, one point each, in short polite sentences that someone "
+                       "who did not write the notes can follow. No greeting, sign-off or request "
+                       "the notes do not ask for.")
 
 REWRITE_INSTRUCTION = "Rewrite these notes as one message."
 
