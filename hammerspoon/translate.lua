@@ -278,8 +278,13 @@ local function prepare()
       if handlers.stream then return handlers.stream(...) end
       return true
    end, { SCRIPT, "--wait" })
-   task:start()
-   return { task = task, handlers = handlers, cancel = function() task:terminate() end }
+   local started = task and task:start()
+   return {
+      task = task,
+      handlers = handlers,
+      started = started,
+      cancel = function() if started then task:terminate() end end,
+   }
 end
 
 local function run(args, mode, ready)
@@ -346,6 +351,13 @@ local function run(args, mode, ready)
       return true
    end
    translateTask = ready.task
+   -- A missing venv never calls back, so the spinner would turn for good.
+   if not ready.started then
+      popupOpened()
+      setPopup(PYTHON .. " を起動できません。\n準備の手順は translate.py の先頭にあります。",
+         "起動できません", "error")
+      return
+   end
    local exited = ready.handlers.exited
    if exited then return ready.handlers.done(exited[1], exited[2], exited[3]) end
    translateTask:setInput(hs.json.encode(argv) .. "\n")

@@ -69,6 +69,23 @@ pick() {
   [[ "$output" == *"No module named anthropic"*"error"* ]]
 }
 
+@test "a translator that cannot start ends in its reason, not a spinner" {
+  run drive "
+    local new = hs.task.new
+    hs.task.new = function(...)
+      local t = new(...)
+      function t:start() return false end
+      return t
+    end
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choose('要約')
+    stub.popups[#stub.popups]:post({ ready = true })
+    print(stub.lastUpdate(), tostring(stub.sent(stub.tasks[1])))"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"を起動できません"*"error"*"nil" ]]
+}
+
 @test "the waiting translate.py is ended when the menu is dismissed or nothing was selected" {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
