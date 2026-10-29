@@ -2,15 +2,21 @@
 
 # Tests for hammerspoon/markdown.js, the popup's Markdown renderer. What must
 # hold: text from the model never becomes a tag, and a list's plain text keeps
-# its bullets. Run through macOS's own JavaScript (osascript), so they skip on
-# Linux, where CI runs bats.
+# its bullets. Run through macOS's own JavaScript (osascript), or node where
+# there is none, so CI's Linux runs the escaping check too.
 
 setup() {
-  command -v osascript >/dev/null || skip "needs osascript (macOS)"
+  command -v osascript >/dev/null || command -v node >/dev/null || skip "needs osascript or node"
   RENDERER="$BATS_TEST_DIRNAME/../hammerspoon/markdown.js"
 }
 
 render() {
+  if ! command -v osascript >/dev/null; then
+    node -e '
+      eval(require("fs").readFileSync(process.argv[1], "utf8"));
+      process.stdout.write(renderMarkdown(process.argv[2]))' "$RENDERER" "$1"
+    return
+  fi
   osascript -l JavaScript -e '
     ObjC.import("Foundation");
     function run(argv) {
