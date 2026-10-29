@@ -7,8 +7,6 @@
 brew "actionlint"
 # Code searching, linting, rewriting tool that understands syntax (AST-based grep)
 brew "ast-grep"
-# Language Server for Bash (nvim LSP: bashls)
-brew "bash-language-server"
 # Bash Automated Testing System (bin/run_tests.sh)
 brew "bats-core"
 # Searches a binary image for embedded files and executable code

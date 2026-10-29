@@ -66,15 +66,38 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   r="$(reason)"
   [[ "$r" == *"review-correctness"* ]]
   [[ "$r" == *"review-rules"* ]]
-  for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-    [[ "$r" == *"skills/$sweep/SKILL.md"* ]]
+  for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
+    review-speed:bottleneck-sweep; do
+    agent=${pair%%:*} sweep=${pair#*:}
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want;"* || \
+      "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want."* ]]
+    grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
-  [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
+  for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
+  done
+  for agent in review-correctness review-refactor review-tests review-security review-speed; do
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
+  done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+}
+
+@test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
+  mkdir -p "$HOME/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
+  pre_bash "gh pr create --fill"
+  r="$(reason)"
+  [[ "$r" == *"the review-security subagent"* ]]
+  [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
+  [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
 }
 
 @test "once marked, the create goes through" {
