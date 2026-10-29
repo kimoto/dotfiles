@@ -55,8 +55,8 @@ typeset -U manpath
 # /home/linuxbrew is added on Linux only: on macOS /home is an autofs mount,
 # so even stat()ing /home/* (which the (N-/) glob does) can fire a Directory
 # Services lookup — with corporate AD binding that is a network round trip per
-# shell. Same reason the inherited $path is scrubbed of it off-Linux (a tmux
-# server started before this fix may still inject it).
+# shell. Same reason the inherited $path is scrubbed of it off-Linux (a
+# long-lived tmux server can still pass it down from an older environment).
 _brew_bins=(/opt/homebrew/bin)
 if [[ $OSTYPE == linux* ]]; then
   _brew_bins+=(/home/linuxbrew/.linuxbrew/bin)
