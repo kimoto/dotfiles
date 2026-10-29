@@ -355,7 +355,10 @@ jobs:
 
       - name: tmux e2e suite (cached release)
         id: cached
+        # The suite puts Homebrew first on PATH itself; without that, tmux -V
+        # here would name the runner's apt tmux.
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           echo "version=$(tmux -V)" >>"$GITHUB_OUTPUT"
           ./ci/tmux_suite.sh
 
