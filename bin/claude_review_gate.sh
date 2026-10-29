@@ -16,10 +16,23 @@
 set -uo pipefail
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-review"
-gate="$HOME/bin/claude_review_gate.sh"
+# When a re-check was last asked for, and for which HEAD. A sibling of
+# state_dir, so no branch name can collide with it.
+asked_dir="$state_dir-asked"
 max_rounds=2
+# A re-review takes under a minute; a stop past this with no mark means the
+# ask was ignored, so it is made once more, and then left to the mark.
+reask_after=600
+max_asks=2
 
-mark_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$1" | tr '/' '%')"; }
+branch_key() { printf '%s' "$1" | tr '/' '%'; }
+mark_file() { printf '%s/%s' "$state_dir" "$(branch_key "$1")"; }
+asked_file() { printf '%s/%s' "$asked_dir" "$(branch_key "$1")"; }
+
+# The path this hook ran from, quoted for the agent to paste: a container has
+# the repo's bin/, not ~/bin. Only built where an instruction needs it, since
+# every Bash call runs this script.
+gate_cmd() { printf "'%s/%s'" "$(cd "$(dirname "$0")" && pwd -P)" "$(basename "$0")"; }
 
 if [ "${1:-}" = mark ]; then
   dir=${2:?usage: claude_review_gate.sh mark <repo-dir> <session-id>}
@@ -82,9 +95,19 @@ if [ "$event" = Stop ]; then
     [ -f "$f" ] || continue
     branch=$(basename "$f" | tr '%' '/')
     read -r sha rounds owner dir <"$f"
-    now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f"; continue; }
+    now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f" "$(asked_file "$branch")"; continue; }
     [ "$owner" = "$session" ] && [ "$now" != "$sha" ] && [ "$rounds" -lt "$max_rounds" ] || continue
-    todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$gate mark '$dir' $session\`."
+    asked_path=$(asked_file "$branch")
+    asked_sha="" asked_at=0 asks=0
+    [ -f "$asked_path" ] && read -r asked_sha asked_at asks <"$asked_path"
+    if [ "$asked_sha" = "$now" ]; then
+      [ $(($(date +%s) - asked_at)) -gt "$reask_after" ] && [ "${asks:-0}" -lt "$max_asks" ] || continue
+    else
+      asks=0
+    fi
+    mkdir -p "$asked_dir"
+    printf '%s %s %s\n' "$now" "$(date +%s)" "$((${asks:-0} + 1))" >"$asked_path"
+    todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$(gate_cmd) mark '$dir' $session\`."
   done
   [ -n "$todo" ] || exit 0
   jq -cn --arg r "Before stopping, re-check the commits made since the last review. Reviewers only report; you fix.$todo" \
@@ -122,6 +145,6 @@ for reviewer in review-refactor:refactor-sweep review-tests:test-sweep \
     reason="$reason a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード)${model:+, with model: $model};"
   fi
 done
-reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$gate mark '$dir' $session\` and create the PR again."
+reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$(gate_cmd) mark '$dir' $session\` and create the PR again."
 jq -cn --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse",
   permissionDecision: "deny", permissionDecisionReason: $r}}'
