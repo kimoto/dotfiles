@@ -98,6 +98,7 @@ const t = document.getElementById('text');
 t.oninput = fit;
 // The answer as it came, rendered again whole as each piece arrives.
 let raw = '';
+let autoCopied = null;
 function show(kind) {
   if (markdown && kind !== 'error') { t.classList.add('markdown'); t.innerHTML = renderMarkdown(raw); }
   else t.textContent = raw;
@@ -131,6 +132,9 @@ function showSvg(t, svg) {
 function update(text, status, kind, svg, retry) {
   t.className = kind === 'error' ? 'error' : '';
   if (svg && text) showSvg(t, text); else { shownSvg = null; raw = text; show(kind); }
+  // translate.py copied the Markdown; a finished answer is copied again as it
+  // is shown, once: the status updates after a copy come back here too.
+  if (markdown && kind === 'done' && autoCopied !== raw) { autoCopied = raw; copyRendered(true); }
   document.getElementById('best').hidden = !retry;
   // Only a finished answer: an edit mid-stream would be overwritten by the next words.
   t.contentEditable = editable && kind === 'done' ? 'plaintext-only' : 'false';
@@ -149,12 +153,15 @@ function append(text) {
 // ・ dropped), or with ⌥ the Markdown as it came.
 const copy = document.getElementById('copy');
 if (markdown) copy.title = 'コピー（⌥ クリックで Markdown のまま）';
+function copyRendered(auto) {
+  const rich = t.cloneNode(true);
+  rich.querySelectorAll('.mark').forEach((m) => m.remove());
+  post({ copy: true, auto, text: t.innerText, html: rich.innerHTML });
+}
 copy.onclick = (e) => {
   if (!markdown || t.className === 'error') return post({ copy: true, text: t.innerText });
   if (e.altKey) return post({ copy: true, markdown: true });
-  const rich = t.cloneNode(true);
-  rich.querySelectorAll('.mark').forEach((m) => m.remove());
-  post({ copy: true, text: t.innerText, html: rich.innerHTML });
+  copyRendered(false);
 };
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('best').onclick = () => post({ best: true });
@@ -307,6 +314,7 @@ local function openPopup(mode)
          else
             hs.pasteboard.setContents(text)
          end
+         if body.auto then return end  -- the status already says コピー済み
          local edited = mode.editable and popup.kind == "done" and text ~= popup.text
          if edited then recordEdit(text) end
          -- A rendered answer keeps its Markdown, which the plain text lost.

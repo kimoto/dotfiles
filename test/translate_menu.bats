@@ -275,6 +275,21 @@ diagram() {
   [ "${lines[1]}" = $'- **A**\ttrue' ]
 }
 
+@test "the page's own copy of a finished summary replaces the Markdown, and keeps the status" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choose('要約')
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    view:post({ ready = true })
+    task.done(0, '- **A**', '')
+    local before = #view.updates
+    view:post({ copy = true, auto = true, text = '・A', html = '<ul><li>A</li></ul>' })
+    print(stub.pasted[#stub.pasted]['public.utf8-plain-text'], #view.updates - before)"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'・A\t0' ]
+}
+
 @test "a translation is not rendered, so its own marks stay as they are" {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+d']()
