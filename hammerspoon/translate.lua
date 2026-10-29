@@ -210,7 +210,12 @@ local function run(args, mode)
       end
       return true
    end, argv)
-   translateTask:start()
+   -- A missing venv never calls back, so the spinner would turn for good.
+   if not (translateTask and translateTask:start()) then
+      popupOpened()
+      setPopup(PYTHON .. " を起動できません。\n準備の手順は translate.py の先頭にあります。",
+         "起動できません", "error")
+   end
 end
 
 local function chooseLanguageThen(args)
