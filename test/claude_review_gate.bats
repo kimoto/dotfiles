@@ -78,7 +78,8 @@ with_remote() {
 
 @test "the review-branch skill names every reviewer, and each exists as pinned" {
   full=$(sed -n '/^## 全体のレビュー/,/^## 再確認/p' "$SKILL")
-  grep -q '`review-correctness` agent' <<<"$full"
+  # Codex is added beside correctness, never instead of it.
+  grep -q '^1\. \*\*正しさ\*\*: `review-correctness` agent。' <<<"$full"
   grep -q '`review-rules` agent' <<<"$full"
   grep -q 'codex-companion.mjs review --base' <<<"$full"
   grep -q 'run_in_background' <<<"$full"
