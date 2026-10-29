@@ -103,7 +103,10 @@ with_remote() {
     want=sonnet
     [ "$agent" != review-security ] || want=opus
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
-    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
+    tools='Read, Grep, Glob, Bash'
+    # The correctness reviewer runs the bundled /code-review, so it needs Skill.
+    [ "$agent" != review-correctness ] || tools="$tools, Skill"
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "tools: $tools"
   done
   for agent in review-correctness review-portability review-refactor review-tests review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
