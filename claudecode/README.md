@@ -63,7 +63,5 @@ ignore rule would apply in every repo on the machine.
   (`bin/claude_review_gate.sh`, registered by `install_claude_review_gate.sh`)
   holds back the first PR create on a branch until its review is marked done,
   and on `Stop` sends the session back to re-check commits made since.
-  `settings-cloud.json` sets `advisorModel` to Fable because Fable is inside the subscription on this
-  account; if Fable starts billing to usage credits, drop the key.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.
