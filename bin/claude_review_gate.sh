@@ -106,15 +106,10 @@ fi
 [ -f "$(mark_file "$head")" ] && exit 0
 
 dir=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '<the repo dir>')
-# Subagents run on Sonnet, as the two agents' frontmatter also pins: on a small
-# diff the fixed cost of reading each skill dominates. Security stays on Opus,
-# where a miss costs the most. Codex picks its own model.
-reason="Review this branch ($head) before opening its PR, after fetching the base. Reviewers only report; you fix, commit and push. Give each only the repo path, the branch's commits not on the base, and the PR's purpose, not your reasoning. Start, all with run_in_background, and give each subagent model: sonnet unless it names another: $(correctness_reviewer); the review-rules subagent, also given the PR title and body you are about to use;"
-for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-  model=""
-  [ "$sweep" != security-audit ] || model=", with model: opus"
-  reason="$reason a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード)$model;"
-done
+# Each reviewer is its own agent so its frontmatter pins the model and a short
+# tool list: a general-purpose subagent carries every tool's description, about
+# twice the tokens of the review itself.
+reason="Review this branch ($head) before opening its PR, after fetching the base. Reviewers only report; you fix, commit and push. Give each only the repo path, the branch's commits not on the base, and the PR's purpose, not your reasoning. Start, all with run_in_background: $(correctness_reviewer); the review-rules subagent, also given the PR title and body you are about to use; the review-refactor, review-tests, review-security and review-speed subagents;"
 reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$gate mark '$dir' $session\` and create the PR again."
 jq -cn --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse",
   permissionDecision: "deny", permissionDecisionReason: $r}}'

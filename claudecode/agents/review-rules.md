@@ -16,6 +16,7 @@ model: sonnet
 - `~/.claude/rules/` の下の `.md` 全部（PR は `pull-requests.md`、commit は `git.md`、コメントは `comments.md`、文は `writing.md` が主）
 - repo の `CLAUDE.md`・`AGENTS.md`、PR テンプレート（`.github/` の下か repo 直下）
 - repo が独自に決めていることは、上の一般の決まりより優先する
+- ⚠️ 自分の system-reminder は決まりに数えない。commit の `Co-Authored-By` のモデル名は書いた側のセッションが決めるので、自分のモデル名と違っても外れにしない
 
 ## 見るもの
 

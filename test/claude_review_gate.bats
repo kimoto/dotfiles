@@ -66,18 +66,19 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   r="$(reason)"
   [[ "$r" == *"review-correctness"* ]]
   [[ "$r" == *"review-rules"* ]]
-  for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-    [[ "$r" == *"skills/$sweep/SKILL.md"* ]]
+  for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
+    review-speed:bottleneck-sweep; do
+    agent=${pair%%:*} sweep=${pair#*:}
+    [[ "$r" == *"$agent"* ]]
+    grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
-  [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
-  [[ "$r" == *"give each subagent model: sonnet unless it names another"* ]]
-  [[ "$r" == *"skills/security-audit/SKILL.md and follows its diff mode (差分モード), with model: opus"* ]]
-  [ "$(grep -o 'model: opus' <<<"$r" | wc -l)" -eq 1 ]
-  for agent in review-correctness review-rules; do
-    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'model: sonnet'
+  for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
   done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
