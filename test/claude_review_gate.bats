@@ -171,6 +171,13 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
   stop
   [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m again
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  read -r sha _ n <"$f"
+  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
 }
 
 @test "a branch named like the ask store still gets its re-check" {
