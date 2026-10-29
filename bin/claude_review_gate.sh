@@ -118,6 +118,14 @@ resolve() {
   printf '%s' "$p"
 }
 
+# dir after a cd or git -C to p: an absolute p replaces it, a relative one is
+# taken from it, and one resolve cannot read leaves it as it was.
+walk() {
+  local p
+  p=$(resolve "$2")
+  case $p in '') printf '%s' "$1" ;; /*) printf '%s' "$p" ;; *) printf '%s/%s' "$1" "$p" ;; esac
+}
+
 # Deny the push when this branch carries commits no review has seen. Returns
 # when it may go.
 judge_branch() {
@@ -154,16 +162,10 @@ push_gate() {
   pre=${BASH_REMATCH[1]}
   cd_dir=$(printf '%s' "$pre" | grep -oE "(^|[;&|])[[:space:]]*cd[[:space:]]+('[^']*'|\"[^\"]*\"|[^[:space:];&|]+)" | tail -1 \
     | sed -E 's/^[;&|]?[[:space:]]*cd[[:space:]]+//' | unquote)
-  if [ -n "$cd_dir" ]; then
-    cd_dir=$(resolve "$cd_dir")
-    case $cd_dir in '') ;; /*) dir=$cd_dir ;; *) dir="$dir/$cd_dir" ;; esac
-  fi
+  dir=$(walk "$dir" "$cd_dir")
   c_dir=$(printf '%s' "${BASH_REMATCH[0]#"$pre"}" | grep -oE "git[[:space:]]+-C[[:space:]]+('[^']*'|\"[^\"]*\"|[^[:space:]]+)" \
     | head -1 | sed -E 's/^git[[:space:]]+-C[[:space:]]+//' | unquote)
-  if [ -n "$c_dir" ]; then
-    c_dir=$(resolve "$c_dir")
-    case $c_dir in '') ;; /*) dir=$c_dir ;; *) dir="$dir/$c_dir" ;; esac
-  fi
+  dir=$(walk "$dir" "$c_dir")
   dir=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || return 0
 
   # What is pushed: every refspec whose source is a local branch, else the
