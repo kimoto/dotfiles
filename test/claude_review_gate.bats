@@ -72,7 +72,7 @@ with_remote() {
   r="$(reason)"
   [[ "$r" == *"publishes 2 commit(s) on feat/x"* ]]
   [[ "$r" == *"the review-branch skill ($SKILL)"* ]]
-  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"\`'$GATE' mark $REPO s1\`"* ]]
   [[ "$r" == *"push again"* ]]
 }
 
@@ -104,7 +104,7 @@ with_remote() {
   for agent in review-correctness review-correctness-checklist review-rules review-portability review-refactor \
     review-tests review-security review-speed; do
     want=sonnet
-    case $agent in review-security | review-correctness*) want=opus ;; esac
+    case $agent in review-security | review-correctness) want=opus ;; esac
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
     tools='Read, Grep, Glob, Bash'
     # The correctness reviewer runs the bundled /code-review, so it needs Skill.
@@ -148,7 +148,7 @@ with_remote() {
 @test "git -C names the repo, wherever the session stands" {
   pre_bash "git -C '$REPO' push" "$TMP"
   [ "$(decision)" = deny ]
-  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$(reason)" == *"\`'$GATE' mark $REPO s1\`"* ]]
 }
 
 @test "a machine that has linked the skill is pointed at its linked copy" {
@@ -167,7 +167,7 @@ with_remote() {
   r="$(reason)"
   [[ "$r" == *"1 commit(s) on feat/x that no review has seen"* ]]
   [[ "$r" == *"log $marked..feat/x --not --remotes"* ]]
-  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"\`'$GATE' mark $REPO s1\`"* ]]
   # How widely to look is the agent's call, and the skill says so.
   grep -q '最終的な差分を通しで' "$SKILL"
 }
@@ -185,6 +185,16 @@ with_remote() {
   git -C "$REPO" switch -q -c 'x$(id)'
   pre_bash "git push"
   [[ "$(reason)" == *'log x\$\(id\) --not --remotes'* ]]
+}
+
+@test "a repo path with a quote is quoted in the commands to paste" {
+  q="$TMP/it's"
+  git init -q -b main "$q"
+  git -C "$q" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+  pre_bash "git push" "$q"
+  r="$(reason)"
+  [[ "$r" == *"git -C $(printf '%q' "$q") log main"* ]]
+  [[ "$r" == *"mark $(printf '%q' "$q") s1"* ]]
 }
 
 @test "a mark left behind by a rebase gives a full review again" {
