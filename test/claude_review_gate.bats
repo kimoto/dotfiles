@@ -69,7 +69,10 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
-    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode"* ]]
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want;"* || \
+      "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want."* ]]
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
