@@ -7,6 +7,8 @@
 # a base64 block, and the key comes from the Keychain only — never from the
 # environment, where every child process would see it.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/hammerspoon/translate.py"
@@ -30,11 +32,13 @@ def _raise_stub_error():
 class _Obj:
     def __init__(self, **kw): self.__dict__.update(kw)
 class _Stream:
-    text_stream = ["TRANS", "LATED"]
+    # STUB_TEXT replaces the answer, for a test that needs a particular one.
+    text_stream = [os.environ["STUB_TEXT"]] if os.environ.get("STUB_TEXT") else ["TRANS", "LATED"]
     def __enter__(self): return self
     def __exit__(self, *exc): return False
     def get_final_message(self):
-        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text="TRANSLATED")])
+        text = os.environ.get("STUB_TEXT") or "TRANSLATED"
+        return _Obj(stop_reason="end_turn", content=[_Obj(type="text", text=text)])
 class _Messages:
     def stream(self, **kw):
         with open(os.environ["REQUEST"], "w") as f:
@@ -187,6 +191,7 @@ request_text() {
   run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 1 ]
   [ ! -e "$REQUEST.key" ]
+  [[ "$output" == *"security add-generic-password -s desktop-translate -a anthropic -w" ]]
 }
 
 @test "--screen and --image together are refused, and the image is left alone" {
@@ -292,6 +297,11 @@ request_system() {
   python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["system"])' "$REQUEST"
 }
 
+# One top-level field of the recorded request, as Python prints it; None when absent.
+request_field() {
+  python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]))' "$REQUEST" "$1"
+}
+
 @test "--rewrite asks for the notes rewritten, not translated" {
   echo "Ends sentences with ー." >"$STYLE"
   run python3 "$SCRIPT" --quiet --rewrite "明日 MTG 15時→16時 / 資料あとで"
@@ -340,6 +350,170 @@ request_system() {
   run python3 "$SCRIPT" --quiet --rewrite --to en "hello"
   [ "$status" -ne 0 ]
   [ ! -e "$REQUEST" ]
+}
+
+# --reply and --summarize: the same path as --rewrite, each with its own ask.
+
+@test "--reply drafts a reply in the user's style, leaving decisions to them" {
+  echo "Ends sentences with ー." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --reply "明日来られますか？"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Draft my reply to this message."*"明日来られますか？" ]]
+  [[ "$(request_system)" == *"Ends sentences with ー."* ]]
+  [[ "$(request_system)" == *"decide nothing on the user's behalf"* ]]
+}
+
+@test "--reply without a style file fails before anything is sent" {
+  run python3 "$SCRIPT" --quiet --reply "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"style.md"* ]]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--summarize needs no style file and asks for Japanese whatever the text" {
+  run python3 "$SCRIPT" --quiet --summarize "A long English thread"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Summarize this."*"A long English thread" ]]
+  [[ "$(request_system)" == *"in Japanese"* ]]
+  [[ "$(request_system)" == *"at most five"*"half the length"* ]]
+  [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+# The popup shows text as it is: on the Mac both models bolded labels with **.
+@test "a rewrite asks for plain text, a reply or summary for light Markdown, the rest for neither" {
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [[ "$(request_system)" == *"no Markdown"* ]]
+  local job
+  for job in --reply --summarize; do
+    run python3 "$SCRIPT" --quiet "$job" "hello"
+    [ "$status" -eq 0 ] || { echo "$job: $output"; return 1; }
+    [[ "$(request_system)" == *"light Markdown"* ]] || { echo "$job asks for none"; return 1; }
+    [[ "$(request_system)" != *"no Markdown"* ]]
+  done
+  for job in --proofread --to=ja; do
+    run python3 "$SCRIPT" --quiet "$job" "hello"
+    [[ "$(request_system)" != *"Markdown"* ]] || { echo "$job asks for marks"; return 1; }
+  done
+}
+
+@test "two jobs at once are refused" {
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite --summarize "hello"
+  [ "$status" -ne 0 ]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--proofread fixes slips only, without the style file" {
+  run python3 "$SCRIPT" --quiet --proofread "明日わ休みです"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Proofread this."*"明日わ休みです" ]]
+  [[ "$(request_system)" == *"Change nothing else"* ]]
+  [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+# --diagram: the answer is an SVG for the popup to show and copy as an image.
+
+@test "--diagram asks for one SVG and leaves the clipboard to the popup" {
+  STUB_TEXT='<svg width="480"><rect/></svg>' run python3 "$SCRIPT" --quiet --diagram "A → B → C"
+  [ "$status" -eq 0 ]
+  [ "$output" = '<svg width="480"><rect/></svg>' ]
+  [[ "$(request_text)" == "Draw this as a diagram."*"A → B → C" ]]
+  [[ "$(request_system)" == *"Output only SVG markup"* ]]
+  [[ "$(request_system)" == *"No script"* ]]
+  [ ! -e "$CLIPBOARD" ]
+}
+
+@test "--diagram fails when the answer is not an SVG" {
+  STUB_TEXT='Here is your diagram: <svg></svg>' run python3 "$SCRIPT" --quiet --diagram "A → B"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"SVG 以外"* ]]
+}
+
+@test "--diagram cut short says so, rather than that it was not an SVG" {
+  printf 'provider = "openai"\nmodel = "some-model"\n' >"$CONFIG"
+  STUB_INCOMPLETE=1 run python3 "$SCRIPT" --quiet --diagram "A → B"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"図が長すぎて"* ]]
+}
+
+@test "--wait makes the client before the job arrives, then runs the job it finds" {
+  python3 "$SCRIPT" --wait "$TMP/job.json" >"$TMP/out" 2>"$TMP/err" &
+  for _ in $(seq 50); do [ -e "$REQUEST.key" ] && break; sleep 0.1; done
+  # Read before the job goes in, but checked after: a failed check here
+  # would leave the waiting script holding the test for JOB_WAIT.
+  local made=no sent=no
+  [ -e "$REQUEST.key" ] && made=yes
+  [ -e "$REQUEST" ] && sent=yes
+  echo '["--quiet", "--summarize", "--clipboard"]' >"$TMP/job.json"
+  wait $!
+  [ "$made" = yes ]
+  [ "$sent" = no ]
+  [ "$(cat "$TMP/out")" = "TRANSLATED" ]
+  [[ "$(request_text)" == "Summarize this."*"clipboard text" ]]
+  [ ! -e "$TMP/job.json" ]
+}
+
+@test "--wait sends nothing when no job comes in time" {
+  cp "$SCRIPT" "$TMP/translate.py"
+  # perl, not sed -i: BSD sed on a Mac takes the script for a backup suffix.
+  perl -pi -e 's/^JOB_WAIT = .*/JOB_WAIT = 0.2/' "$TMP/translate.py"
+  run python3 "$TMP/translate.py" --wait "$TMP/never.json"
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+  [ ! -e "$REQUEST" ]
+}
+
+@test "--timing says when the first words came, after the answer" {
+  run python3 "$SCRIPT" --quiet --timing "hello"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "TRANSLATED"*"最初の文字 "*"s / 全体 "*"claude-opus-5-5"* ]]
+}
+
+@test "a job given Haiku in the config asks for no thinking and no fallback; the others keep theirs" {
+  printf '[models]\nproofread = "claude-haiku-5-5"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --proofread "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-haiku-5-5" ]
+  [ "$(request_field thinking)" = "{'type': 'disabled'}" ]
+  [ "$(request_field fallbacks)" = "None" ]
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$(request_field model)" = "claude-opus-5-5" ]
+  [ "$(request_field thinking)" = "None" ]
+  [ "$(request_field fallbacks)" = "default" ]
+}
+
+@test "a summary goes to Haiku unless the config names a model" {
+  run python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-haiku-5-5" ]
+  printf 'model = "claude-opus-5-5"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$(request_field model)" = "claude-opus-5-5" ]
+}
+
+@test "an answer from a job's faster model says so on stderr, and --best asks the default model" {
+  run --separate-stderr python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$status" -eq 0 ]
+  [ "$output" = "TRANSLATED" ]
+  [ "$stderr" = "@fast-model claude-haiku-5-5" ]
+  run --separate-stderr python3 "$SCRIPT" --quiet --summarize --best "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-opus-5-5" ]
+  [ "$stderr" = "" ]
+}
+
+@test "the config's [models] counts as a faster model too" {
+  printf '[models]\nproofread = "claude-haiku-5-5"\n' >"$CONFIG"
+  run --separate-stderr python3 "$SCRIPT" --quiet --proofread "hello"
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "@fast-model claude-haiku-5-5" ]
+}
+
+@test "the default model's answer says nothing about a faster one" {
+  run --separate-stderr python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "" ]
 }
 
 # Edits to a rewrite: what the user changed in the popup before copying it is
@@ -392,12 +566,15 @@ assert [json.loads(l) for l in lines] == want, lines
   [ ! -e "$EDITS" ]
 }
 
-@test "--rewrite shows the latest five edits as examples, and none for a translation" {
+@test "--rewrite shows the latest five edits as examples, and none for a translation or a reply" {
   for i in 1 2 3 4 5 6 7; do record_edit "notes$i" "draft$i" "final$i"; done
   run python3 "$SCRIPT" --quiet --rewrite "hello"
   [ "$status" -eq 0 ]
   [[ "$(request_system)" == *"final3"*"final7"* ]]
   [[ "$(request_system)" != *"final2"* ]]
   run python3 "$SCRIPT" --quiet "hello"
+  [[ "$(request_system)" != *"final7"* ]]
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --reply "hello"
   [[ "$(request_system)" != *"final7"* ]]
 }
