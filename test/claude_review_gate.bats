@@ -101,7 +101,7 @@ with_remote() {
   for agent in review-correctness review-rules review-portability review-refactor review-tests review-security \
     review-speed; do
     want=sonnet
-    [ "$agent" != review-security ] || want=opus
+    case $agent in review-security | review-correctness) want=opus ;; esac
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
     tools='Read, Grep, Glob, Bash'
     # The correctness reviewer runs the bundled /code-review, so it needs Skill.

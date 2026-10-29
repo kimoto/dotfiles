@@ -2,7 +2,7 @@
 name: review-correctness
 description: 渡された範囲（差分 `<base>..HEAD` か、ファイル・ディレクトリ）から、バグだけを具体的な壊れ方つきで返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash, Skill
-model: sonnet
+model: opus
 omitClaudeMd: true
 ---
 
@@ -12,6 +12,8 @@ omitClaudeMd: true
 
 1. Skill tool で `code-review` を、args `medium <範囲>` で呼ぶ。範囲は、渡された branch・パス、または `<base>..HEAD`。
 2. 返った指摘をそのまま、下の形で返す。
+
+model が opus なのは、答えの分かっている同じ差分で、sonnet が本物のバグの半分以上を見落としたため。
 
 ⚠️ `--fix`・`--comment` は付けない。ファイルを書き換えず、どこにも投稿しない。
 
