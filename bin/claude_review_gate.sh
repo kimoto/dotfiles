@@ -16,10 +16,14 @@
 set -uo pipefail
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-review"
-gate="$HOME/bin/claude_review_gate.sh"
+# The path this hook ran from: a container has the repo's bin/, not ~/bin.
+gate="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
 max_rounds=2
 
 mark_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$1" | tr '/' '%')"; }
+# The HEAD a re-check was last asked for, so a stop while the reviewer still
+# runs does not ask for a second one.
+asked_file() { printf '%s/asked/%s' "$state_dir" "$(printf '%s' "$1" | tr '/' '%')"; }
 
 if [ "${1:-}" = mark ]; then
   dir=${2:?usage: claude_review_gate.sh mark <repo-dir> <session-id>}
@@ -32,6 +36,7 @@ if [ "${1:-}" = mark ]; then
   rounds=-1
   [ -f "$f" ] && read -r _ rounds _ _ <"$f"
   printf '%s %s %s %s\n' "$sha" "$((rounds + 1))" "$session" "$dir" >"$f"
+  rm -f "$(asked_file "$branch")"
   exit 0
 fi
 
@@ -82,8 +87,11 @@ if [ "$event" = Stop ]; then
     [ -f "$f" ] || continue
     branch=$(basename "$f" | tr '%' '/')
     read -r sha rounds owner dir <"$f"
-    now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f"; continue; }
+    now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f" "$(asked_file "$branch")"; continue; }
     [ "$owner" = "$session" ] && [ "$now" != "$sha" ] && [ "$rounds" -lt "$max_rounds" ] || continue
+    asked=$(asked_file "$branch")
+    [ "$(cat "$asked" 2>/dev/null)" != "$now" ] || continue
+    mkdir -p "$state_dir/asked" && printf '%s\n' "$now" >"$asked"
     todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$gate mark '$dir' $session\`."
   done
   [ -n "$todo" ] || exit 0

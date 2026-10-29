@@ -74,7 +74,7 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
   [[ "$r" == *"not your reasoning"* ]]
-  [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
+  [[ "$r" == *"\`$GATE mark '$REPO' s1\`"* ]]
 }
 
 @test "once marked, the create goes through" {
@@ -142,6 +142,19 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   git -C "$REPO" commit -q --allow-empty -m last
   stop
   [ -z "$output" ]
+}
+
+@test "a re-check is asked once per new commit, not at every stop while it runs" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [[ "$(reason)" == *"\`$GATE mark '$REPO' s1\`"* ]]
+  stop
+  [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m again
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
 }
 
 @test "a deleted branch drops its mark" {
