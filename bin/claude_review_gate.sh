@@ -21,8 +21,9 @@ state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-review"
 asked_dir="$state_dir-asked"
 max_rounds=2
 # A re-review takes under a minute; a stop past this with no mark means the
-# ask was ignored, so it is made again.
+# ask was ignored, so it is made once more, and then left to the mark.
 reask_after=600
+max_asks=2
 
 branch_key() { printf '%s' "$1" | tr '/' '%'; }
 mark_file() { printf '%s/%s' "$state_dir" "$(branch_key "$1")"; }
@@ -31,11 +32,7 @@ asked_file() { printf '%s/%s' "$asked_dir" "$(branch_key "$1")"; }
 # The path this hook ran from, quoted for the agent to paste: a container has
 # the repo's bin/, not ~/bin. Only built where an instruction needs it, since
 # every Bash call runs this script.
-gate_cmd() {
-  local self=$0
-  [[ "$self" == */* ]] || self=$(command -v "$self")
-  printf "'%s/%s'" "$(cd "$(dirname "$self")" && pwd -P)" "$(basename "$self")"
-}
+gate_cmd() { printf "'%s/%s'" "$(cd "$(dirname "$0")" && pwd -P)" "$(basename "$0")"; }
 
 if [ "${1:-}" = mark ]; then
   dir=${2:?usage: claude_review_gate.sh mark <repo-dir> <session-id>}
@@ -101,11 +98,15 @@ if [ "$event" = Stop ]; then
     now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f" "$(asked_file "$branch")"; continue; }
     [ "$owner" = "$session" ] && [ "$now" != "$sha" ] && [ "$rounds" -lt "$max_rounds" ] || continue
     asked_path=$(asked_file "$branch")
-    asked_sha="" asked_at=0
-    [ -f "$asked_path" ] && read -r asked_sha asked_at <"$asked_path"
-    [ "$asked_sha" != "$now" ] || [ $(($(date +%s) - asked_at)) -gt "$reask_after" ] || continue
+    asked_sha="" asked_at=0 asks=0
+    [ -f "$asked_path" ] && read -r asked_sha asked_at asks <"$asked_path"
+    if [ "$asked_sha" = "$now" ]; then
+      [ $(($(date +%s) - asked_at)) -gt "$reask_after" ] && [ "${asks:-0}" -lt "$max_asks" ] || continue
+    else
+      asks=0
+    fi
     mkdir -p "$asked_dir"
-    printf '%s %s\n' "$now" "$(date +%s)" >"$asked_path"
+    printf '%s %s %s\n' "$now" "$(date +%s)" "$((${asks:-0} + 1))" >"$asked_path"
     todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$(gate_cmd) mark '$dir' $session\`."
   done
   [ -n "$todo" ] || exit 0

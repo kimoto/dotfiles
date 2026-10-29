@@ -164,9 +164,13 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ "$(jq -r '.decision' <<<"$output")" = block ]
   f="$XDG_STATE_HOME/claude-review-asked/feat%x"
   read -r sha _ <"$f"
-  printf '%s %s\n' "$sha" "$(($(date +%s) - 601))" >"$f"
+  printf '%s %s 1\n' "$sha" "$(($(date +%s) - 601))" >"$f"
   stop
   [ "$(jq -r '.decision' <<<"$output")" = block ]
+  read -r sha _ n <"$f"
+  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
+  stop
+  [ -z "$output" ]
 }
 
 @test "a branch named like the ask store still gets its re-check" {
