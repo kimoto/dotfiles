@@ -10,10 +10,13 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 ## 範囲
 
-- 言われた範囲があればそれ。
-- 無ければ、まだ push していない分: `git -C <repo> log <branch> --not --remotes`。base は先に fetch しておく。
-- 一度レビューした後の直しだけなら、下の「再確認」。
-- revert だけなら回さない。docs だけなら `review-rules` だけ回す（差分の外で古くなった文章を見るため）。どちらも、そう判断した理由を一言返す。
+どこまで・誰に見せるかは呼んだ側が決める。迷ったら広く見る。
+
+- 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。base は先に fetch しておく。
+- ★**既定は、最終的な差分を通しで（`<base>..HEAD`）全員で見る。**重複や security の穴は、足した分だけを見ても分からない。
+- 前回の指摘を直しただけの小さな commit なら、その分を下の 1 と 2 だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
+- revert だけなら回さない。docs だけなら `review-rules` だけ回す（差分の外で古くなった文章を見るため）。
+- 全員より狭くしたときは、そう判断した理由を一言返す。
 
 ## 全体のレビュー: 全員を `run_in_background` で並べて回す
 
@@ -25,13 +28,9 @@ description: いま居る repo の commit（か、これから開く PR の題�
    ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
    sweep の無い correctness・correctness-checklist・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から2つ上）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
 
-## 再確認
-
-前にレビューした commit から先（`<前回の commit>..<branch>`）を、上の 1 と 2 だけで見る。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**直しが効いているか、新しい commit にバグが無いかを見てもらう。2 回やっても残るなら、それ以上は回さず本人に聞く。
-
 ## 終わったら
 
-1. 指摘を直して commit する。直さないものは、なぜかを返事に書く。
+1. 指摘を直して commit する。直さないものは、なぜかを返事に書く。直しても指摘が続いて終わらないなら、それ以上は回さず本人に聞く。
 2. レビューを求めてきた側（push を止めた hook など）が完了の印を頼んでいたら、そのとおりにする。
 3. push や PR 作成を止められていたなら、もう一度やる。
 

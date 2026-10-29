@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for bin/claude_review_gate.sh: a push carrying unreviewed commits is
-# stopped once for a code review, commits after a mark are re-checked at the
+# stopped once for a code review, commits after a mark are stopped again at the
 # next push, and the first PR create on a branch is stopped once for its text.
 
 setup() {
@@ -77,7 +77,7 @@ with_remote() {
 }
 
 @test "the review-branch skill names every reviewer, and each exists as pinned" {
-  full=$(sed -n '/^## 全体のレビュー/,/^## 再確認/p' "$SKILL")
+  full=$(sed -n '/^## 全体のレビュー/,/^## 終わったら/p' "$SKILL")
   # Codex is added beside correctness, never instead of it.
   grep -q '^1\. \*\*正しさ\*\*: `review-correctness` agent。$' <<<"$full"
   grep -q '^2\. \*\*Codex\*\*: .*codex-companion.mjs review --base' <<<"$full"
@@ -158,30 +158,33 @@ with_remote() {
   [[ "$(reason)" == *"the review-branch skill ($HOME/.claude/skills/review-branch/SKILL.md)"* ]]
 }
 
-@test "commits after the mark are re-checked at the next push, with the earlier findings" {
+@test "commits after the mark are stopped at the next push, named from the mark" {
   "$GATE" mark "$REPO" s1
   marked="$(git -C "$REPO" rev-parse HEAD)"
   git -C "$REPO" commit -q --allow-empty -m fix
   pre_bash "git push"
   [ "$(decision)" = deny ]
   r="$(reason)"
-  [[ "$r" == *"$marked..feat/x"* ]]
-  [[ "$r" == *"under 再確認"* ]]
-  grep -q '^## 再確認' "$SKILL"
+  [[ "$r" == *"1 commit(s) on feat/x that no review has seen"* ]]
+  [[ "$r" == *"log $marked..feat/x --not --remotes"* ]]
   [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  # How widely to look is the agent's call, and the skill says so.
+  grep -q '最終的な差分を通しで' "$SKILL"
 }
 
-@test "the re-check stops after two rounds" {
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m one
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m two
+@test "new commits are stopped however many marks came before" {
+  for n in 1 2 3; do
+    "$GATE" mark "$REPO" s1
+    git -C "$REPO" commit -q --allow-empty -m "c$n"
+    pre_bash "git push"
+    [ "$(decision)" = deny ]
+  done
+}
+
+@test "a branch name with shell syntax is quoted in the command to paste" {
+  git -C "$REPO" switch -q -c 'x$(id)'
   pre_bash "git push"
-  [ "$(decision)" = deny ]
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m three
-  pre_bash "git push"
-  [ -z "$output" ]
+  [[ "$(reason)" == *'log x\$\(id\) --not --remotes'* ]]
 }
 
 @test "a mark left behind by a rebase gives a full review again" {
@@ -257,7 +260,7 @@ with_remote() {
   [ "$(decision)" = deny ]
 }
 
-@test "commits pulled in after the mark are not re-checked" {
+@test "commits pulled in after the mark are not counted" {
   with_remote feat/x
   "$GATE" mark "$REPO" s1
   git clone -q -b feat/x "$TMP/remote.git" "$TMP/peer"
