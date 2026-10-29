@@ -5,7 +5,7 @@
 # commits after the last mark is sent back to re-check them.
 
 setup() {
-  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd -P)"
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
@@ -74,7 +74,7 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
   [[ "$r" == *"not your reasoning"* ]]
-  [[ "$r" == *"\`$GATE mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
 @test "once marked, the create goes through" {
@@ -124,7 +124,7 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [[ "$r" == *"$marked..feat/x"* ]]
   [[ "$r" == *"earlier findings"* ]]
   [[ "$r" == *"not why you dismissed"* ]]
-  [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
+  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
 @test "the re-check stops after two rounds, and never blocks twice in a row" {
@@ -149,10 +149,30 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   git -C "$REPO" commit -q --allow-empty -m more
   stop
   [ "$(jq -r '.decision' <<<"$output")" = block ]
-  [[ "$(reason)" == *"\`$GATE mark '$REPO' s1\`"* ]]
+  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
   stop
   [ -z "$output" ]
   git -C "$REPO" commit -q --allow-empty -m again
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+}
+
+@test "an ask left unanswered is repeated once the reviewer would have finished" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  f="$XDG_STATE_HOME/claude-review-asked/feat%x"
+  read -r sha _ <"$f"
+  printf '%s %s\n' "$sha" "$(($(date +%s) - 601))" >"$f"
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+}
+
+@test "a branch named like the ask store still gets its re-check" {
+  git -C "$REPO" switch -q -c asked
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
   stop
   [ "$(jq -r '.decision' <<<"$output")" = block ]
 }
@@ -164,6 +184,17 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   stop
   [ -z "$output" ]
   [ -z "$(ls "$XDG_STATE_HOME/claude-review")" ]
+}
+
+@test "a deleted branch drops its ask too" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ -n "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
+  git -C "$REPO" switch -q main
+  git -C "$REPO" branch -q -D feat/x
+  stop
+  [ -z "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
 }
 
 @test "install registers the gate before PR creation and on Stop, and uninstall removes it" {

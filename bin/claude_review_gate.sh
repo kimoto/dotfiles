@@ -16,14 +16,26 @@
 set -uo pipefail
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-review"
-# The path this hook ran from: a container has the repo's bin/, not ~/bin.
-gate="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
+# When a re-check was last asked for, and for which HEAD. A sibling of
+# state_dir, so no branch name can collide with it.
+asked_dir="$state_dir-asked"
 max_rounds=2
+# A re-review takes under a minute; a stop past this with no mark means the
+# ask was ignored, so it is made again.
+reask_after=600
 
-mark_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$1" | tr '/' '%')"; }
-# The HEAD a re-check was last asked for, so a stop while the reviewer still
-# runs does not ask for a second one.
-asked_file() { printf '%s/asked/%s' "$state_dir" "$(printf '%s' "$1" | tr '/' '%')"; }
+branch_key() { printf '%s' "$1" | tr '/' '%'; }
+mark_file() { printf '%s/%s' "$state_dir" "$(branch_key "$1")"; }
+asked_file() { printf '%s/%s' "$asked_dir" "$(branch_key "$1")"; }
+
+# The path this hook ran from, quoted for the agent to paste: a container has
+# the repo's bin/, not ~/bin. Only built where an instruction needs it, since
+# every Bash call runs this script.
+gate_cmd() {
+  local self=$0
+  [[ "$self" == */* ]] || self=$(command -v "$self")
+  printf "'%s/%s'" "$(cd "$(dirname "$self")" && pwd -P)" "$(basename "$self")"
+}
 
 if [ "${1:-}" = mark ]; then
   dir=${2:?usage: claude_review_gate.sh mark <repo-dir> <session-id>}
@@ -36,7 +48,6 @@ if [ "${1:-}" = mark ]; then
   rounds=-1
   [ -f "$f" ] && read -r _ rounds _ _ <"$f"
   printf '%s %s %s %s\n' "$sha" "$((rounds + 1))" "$session" "$dir" >"$f"
-  rm -f "$(asked_file "$branch")"
   exit 0
 fi
 
@@ -89,10 +100,13 @@ if [ "$event" = Stop ]; then
     read -r sha rounds owner dir <"$f"
     now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || { rm -f "$f" "$(asked_file "$branch")"; continue; }
     [ "$owner" = "$session" ] && [ "$now" != "$sha" ] && [ "$rounds" -lt "$max_rounds" ] || continue
-    asked=$(asked_file "$branch")
-    [ "$(cat "$asked" 2>/dev/null)" != "$now" ] || continue
-    mkdir -p "$state_dir/asked" && printf '%s\n' "$now" >"$asked"
-    todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$gate mark '$dir' $session\`."
+    asked_path=$(asked_file "$branch")
+    asked_sha="" asked_at=0
+    [ -f "$asked_path" ] && read -r asked_sha asked_at <"$asked_path"
+    [ "$asked_sha" != "$now" ] || [ $(($(date +%s) - asked_at)) -gt "$reask_after" ] || continue
+    mkdir -p "$asked_dir"
+    printf '%s %s\n' "$now" "$(date +%s)" >"$asked_path"
+    todo="$todo In $dir, review $sha..$branch with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Then run \`$(gate_cmd) mark '$dir' $session\`."
   done
   [ -n "$todo" ] || exit 0
   jq -cn --arg r "Before stopping, re-check the commits made since the last review. Reviewers only report; you fix.$todo" \
@@ -118,6 +132,6 @@ reason="Review this branch ($head) before opening its PR, after fetching the bas
 for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
   reason="$reason a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
 done
-reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$gate mark '$dir' $session\` and create the PR again."
+reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$(gate_cmd) mark '$dir' $session\` and create the PR again."
 jq -cn --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse",
   permissionDecision: "deny", permissionDecisionReason: $r}}'
