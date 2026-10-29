@@ -1,27 +1,29 @@
 #!/bin/bash
-# End-to-end test for the translation shortcuts (hammerspoon/translate.lua) on
-# the Mac they run on: real key presses into the running Hammerspoon, real
-# translations from the API, and the result read off the clipboard and the
-# popup window. test/translate.bats covers what translate.py sends; what only
-# this can prove is the wiring — the hotkeys fire, the copy lands before the
-# translation reads it, the popup opens and Esc closes it, and the screen
-# region goes through screencapture.
+# End-to-end test for the translation and rewrite shortcuts
+# (hammerspoon/translate.lua) on the Mac they run on: real key presses into
+# the running Hammerspoon, real answers from the API, and the result read off
+# the clipboard and the popup window. test/translate.bats covers what
+# translate.py sends; what only this can prove is the wiring — the hotkeys
+# fire, the copy lands before the translation reads it, the popup opens and
+# Esc closes it, and the screen region goes through screencapture.
 #
 # Run by hand on a Mac, never in CI: it needs the GUI, Hammerspoon's
 # Accessibility and Screen Recording permissions, the API key in the Keychain,
-# and it pays for four translations. The terminal running it needs
-# Accessibility too (System Events sends the keys).
+# and it pays for five API calls. The terminal running it needs Accessibility
+# too (System Events sends the keys).
 #
 #   test/e2e/hammerspoon_translate_test.sh [--record DIR]
 #
-# --record keeps a screen recording of the whole run and a screenshot after
-# each case in DIR, for whoever was not at the screen.
+# --record keeps a video and a screenshot of each case in DIR, for whoever
+# was not at the screen.
 #
 # Every key goes to the TextEdit document this test opens, and only after
 # checking it is in front. A key sent to the terminal instead reaches the
 # program running there — an Esc interrupts a Claude Code session mid-turn.
 #
-# The clipboard is put back on exit; the document is closed unsaved.
+# The rewrite uses the user's style file if there is one, and is never handed
+# one by the test. The clipboard is put back on exit; the document is closed
+# unsaved.
 #
 # shellcheck disable=SC2329  # the predicates run through expect, by name.
 set -euo pipefail
@@ -42,11 +44,13 @@ TRANSLATE_TIMEOUT=30
 # Matches POPUP_WIDTH in translate.lua; the chooser and the console differ.
 POPUP_WIDTH=520
 SOURCE="The quick brown fox jumps over the lazy dog."
+NOTES="・明日の定例 15時→16時に変更
+・資料は今日中に共有する
+・欠席なら連絡ほしい"
 SENTINEL="hammerspoon-e2e-sentinel"
-
-# screencapture writes the movie only when its time limit runs out — a signal
-# loses it — so the limit is the whole run, and the end waits for it.
-RECORD_SECONDS=100
+# screencapture writes a movie only when its time limit runs out — a signal
+# loses it — so each case is recorded for a fixed length and waited out.
+CASE_SECONDS=15
 
 TMP="$(mktemp -d)"
 DOC="hammerspoon-e2e-$$.txt"
@@ -55,29 +59,39 @@ pbpaste >"$TMP/clipboard"
 textedit_was_running=""
 pgrep -x TextEdit >/dev/null && textedit_was_running=1
 recorder=""
+end_case() {
+  [ -n "$recorder" ] || return 0
+  wait "$recorder" 2>/dev/null || true
+  recorder=""
+}
 cleanup() {
+  end_case
   osascript -e "tell application \"TextEdit\" to close (every document whose name is \"$DOC\") saving no" \
     >/dev/null 2>&1 || true
   # ⇧⌘C opens TextEdit's Colors panel; quitting takes it along.
   [ -n "$textedit_was_running" ] || osascript -e 'tell application "TextEdit" to quit' >/dev/null 2>&1 || true
   pbcopy <"$TMP/clipboard"
   rm -rf "$TMP"
-  if [ -n "$recorder" ]; then
-    echo "waiting for the ${RECORD_SECONDS}s recording to end: $RECORD/run.mov"
-    wait "$recorder" 2>/dev/null || true
-  fi
 }
 trap cleanup EXIT
 
-if [ -n "$RECORD" ]; then
-  screencapture -x -v -V "$RECORD_SECONDS" "$RECORD/run.mov" </dev/null &
+cases=0
+case_name=""
+# begin_case SLUG TITLE: ends the case before, and records this one.
+begin_case() {
+  end_case
+  cases=$((cases + 1))
+  case_name="$(printf '%02d' "$cases")-$1"
+  echo "== $2 =="
+  [ -n "$RECORD" ] || return 0
+  screencapture -x -v -V "$CASE_SECONDS" "$RECORD/$case_name.mov" </dev/null &
   recorder=$!
-fi
-shots=0
+  # The recording starts a moment after the process does.
+  sleep 1
+}
 snapshot() {
   [ -n "$RECORD" ] || return 0
-  shots=$((shots + 1))
-  screencapture -x "$RECORD/$(printf '%02d' "$shots")-$1.png"
+  screencapture -x "$RECORD/$case_name.png"
 }
 
 # Brings the test's document to the front, then sends the System Events
@@ -98,8 +112,15 @@ SELECT_ALL="$(se 'keystroke "a" using command down')"
 COPY="$(se 'keystroke "c" using command down')"
 COPY_SHIFT="$(se 'keystroke "c" using {command down, shift down}')"
 TRANSLATE_SELECTION="$(se 'key code 2 using {control down, command down, shift down}')"   # ⌃⌘⇧D
+REWRITE_SELECTION="$(se 'key code 13 using {control down, command down, shift down}')"    # ⌃⌘⇧W
 TRANSLATE_SCREEN="$(se 'key code 37 using {control down, command down, shift down}')"     # ⌃⌘⇧L
 ESC="$(se 'key code 53')"
+set_document_text() {
+  osascript -e 'on run argv' \
+    -e "tell application \"TextEdit\" to set text of document \"$DOC\" to item 1 of argv" \
+    -e "tell application \"TextEdit\" to set size of text of document \"$DOC\" to 28" \
+    -e 'end run' "$1" >/dev/null
+}
 
 popups() {
   osascript -e 'tell application "System Events" to get size of windows of process "Hammerspoon"' |
@@ -110,19 +131,23 @@ has_japanese() {
 }
 running() { pgrep -f 'screencapture -i|translate.py' >/dev/null; }
 
-clipboard_is_sentinel() { [ "$(pbpaste)" = "$SENTINEL" ]; }
+clipboard_is() { [ "$(pbpaste)" = "$1" ]; }
+clipboard_is_sentinel() { clipboard_is "$SENTINEL"; }
 popups_are() { [ "$(popups)" = "$1" ]; }
-# Waits for a translation to replace the sentinel, then for the run to end:
-# the clipboard is written once, after the whole answer has streamed in.
+# translated [COPIED]: waits for an answer to replace the sentinel (and the
+# COPIED text the shortcut's own ⌘C put there), then for the run to end: the
+# clipboard is written once, after the whole answer has streamed in.
 translated() {
   local deadline=$((SECONDS + TRANSLATE_TIMEOUT))
-  until ! clipboard_is_sentinel && [ -n "$(pbpaste)" ] && ! running; do
+  until ! clipboard_is_sentinel && [ -n "$(pbpaste)" ] && ! { [ -n "${1:-}" ] && clipboard_is "$1"; } &&
+    ! running; do
     [ "$SECONDS" -lt "$deadline" ] || return 1
     sleep 0.5
   done
 }
-translated_into_japanese() { translated && pbpaste | has_japanese; }
+translated_into_japanese() { translated "$SOURCE" && pbpaste | has_japanese; }
 translated_into_english() { translated && ! pbpaste | has_japanese; }
+rewritten_in_japanese() { translated "$NOTES" && pbpaste | has_japanese; }
 wait_popups() {
   local _
   for _ in $(seq 1 20); do
@@ -159,54 +184,49 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 # Large enough for the screen case to read back from a screenshot.
-osascript -e "tell application \"TextEdit\" to set size of text of document \"$DOC\" to 28"
+set_document_text "$SOURCE"
 close_popup
 
-echo "== ⌃⌘⇧D translates the selection =="
+begin_case selection "⌃⌘⇧D translates the selection, and Esc closes the popup"
 printf '%s' "$SENTINEL" | pbcopy
 keys "$SELECT_ALL" "$TRANSLATE_SELECTION"
 expect "clipboard holds the Japanese translation" translated_into_japanese
 expect "popup is open" popups_are 1
-snapshot selection
-
-echo "== Esc closes the popup =="
+snapshot
 keys "$ESC"
 expect "popup is gone" wait_popups 0
 
-echo "== ⌘C+C translates what it copied =="
+begin_case copy-copy "⌘C+C translates what it copied"
 printf '%s' "$SENTINEL" | pbcopy
 keys "$SELECT_ALL" "$COPY" 'delay 0.1' "$COPY"
-# The first ⌘C itself replaces the sentinel with the source; wait past it.
-sleep 1
 expect "clipboard holds the Japanese translation" translated_into_japanese
 expect "popup is open" popups_are 1
-snapshot copy-copy
+snapshot
 close_popup
 
-echo "== ⌃⌘⇧D with nothing selected translates nothing =="
+begin_case nothing-selected "⌃⌘⇧D with nothing selected translates nothing"
 printf '%s' "$SENTINEL" | pbcopy
 keys "$(se 'key code 124')" "$TRANSLATE_SELECTION"   # → collapses the selection
 sleep 0.3
-snapshot nothing-selected
+snapshot
 sleep 1.7
 expect "clipboard is untouched" clipboard_is_sentinel
 expect "no popup" popups_are 0
 
-echo "== ⇧⌘C+C asks for the language, and the answer is used =="
+begin_case chooser "⇧⌘C+C asks for the language, and the answer is used"
 # ⇧⌘C is no copy in TextEdit, so the clipboard is filled first; ⇧⌘C+C
 # translates whatever is on it. The pause outlasts DOUBLE_PRESS, or the ⌘C
 # and the first ⇧⌘C would count as the pair.
 keys "$SELECT_ALL" "$COPY" 'delay 0.8' "$COPY_SHIFT" 'delay 0.1' "$COPY_SHIFT" 'delay 1'
-snapshot chooser
+snapshot
 keys "$(se 'key code 125')" 'delay 0.2' "$(se 'key code 36')"   # ↓ to 英語へ, ⏎
 sleep 1
 # English into English has no Japanese, which the automatic target would give.
 expect "translated into English" translated_into_english
 expect "popup is open" popups_are 1
-snapshot chooser-english
 close_popup
 
-echo "== ⌃⌘⇧L translates a screen region =="
+begin_case screen "⌃⌘⇧L translates a screen region"
 printf '%s' "$SENTINEL" | pbcopy
 read -r L T R _ < <(
   osascript -e "tell application \"TextEdit\" to get bounds of (first window whose name is \"$DOC\")" |
@@ -216,14 +236,14 @@ wait_screencapture
 swift "$DIR/mouse_drag.swift" $((L + 5)) $((T + 25)) $((R - 5)) $((T + 160))
 expect "clipboard holds the Japanese translation" translated_into_japanese
 expect "popup is open" popups_are 1
-snapshot screen
+snapshot
 close_popup
 
-echo "== a cancelled ⌃⌘⇧L translates nothing =="
+begin_case screen-cancelled "a cancelled ⌃⌘⇧L translates nothing"
 printf '%s' "$SENTINEL" | pbcopy
 keys "$TRANSLATE_SCREEN"
 wait_screencapture
-snapshot screen-crosshair
+snapshot
 # Stopped, not sent Esc: while the crosshair is up, TextEdit still reports
 # itself in front but an Esc can land in the terminal. Both leave the same
 # empty file behind, which is what translate.py has to handle.
@@ -232,6 +252,17 @@ sleep 2
 expect "nothing left running" nothing_running
 expect "clipboard is untouched" clipboard_is_sentinel
 expect "no popup" popups_are 0
+
+set_document_text "$NOTES"
+
+begin_case rewrite "⌃⌘⇧W rewrites the notes as a message"
+printf '%s' "$SENTINEL" | pbcopy
+keys "$SELECT_ALL" "$REWRITE_SELECTION"
+expect "clipboard holds a Japanese message, not the notes" rewritten_in_japanese
+expect "popup is open" popups_are 1
+snapshot
+close_popup
+end_case
 
 echo
 if [ "$failures" -eq 0 ]; then echo "PASS"; else echo "FAIL: $failures check(s)"; fi
