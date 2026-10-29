@@ -285,6 +285,38 @@ with_remote() {
   [ "$(decision)" = deny ]
 }
 
+@test "only a cd before the push counts, and ~ is expanded" {
+  pre_bash "git push origin feat/x && cd /tmp"
+  [ "$(decision)" = deny ]
+  git -C "$REPO" commit -q --allow-empty -m more
+  pre_bash "cd ~/../repo && git push" "$TMP"
+  [ "$(decision)" = deny ]
+  git -C "$REPO" commit -q --allow-empty -m again
+  pre_bash "(cd /tmp && ls); git push"
+  [ "$(decision)" = deny ]
+}
+
+@test "option values and full ref names do not hide the pushed branch" {
+  git -C "$REPO" switch -q main
+  "$GATE" mark "$REPO" s1
+  pre_bash "git push -o ci.skip origin feat/x"
+  [ "$(decision)" = deny ]
+  [[ "$(reason)" == *"on feat/x"* ]]
+  rm -rf "$XDG_STATE_HOME/claude-review-pushed"
+  pre_bash "git push origin refs/heads/feat/x"
+  [ "$(decision)" = deny ]
+  rm -rf "$XDG_STATE_HOME/claude-review-pushed"
+  pre_bash "git push origin main feat/x"
+  [ "$(decision)" = deny ]
+}
+
+@test "a push that passes still lets a PR create on the same line be asked" {
+  "$GATE" mark "$REPO" s1
+  pre_bash "git push -u origin feat/x && gh pr create --fill"
+  [ "$(decision)" = deny ]
+  [[ "$(reason)" == *"title and body"* ]]
+}
+
 @test "a Stop no longer does anything" {
   "$GATE" mark "$REPO" s1
   git -C "$REPO" commit -q --allow-empty -m more
