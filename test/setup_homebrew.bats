@@ -82,9 +82,8 @@ bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
   [[ "$(bundles)" == *"Brewfile.extra"* ]]
 }
 
-# Without curl the installer is never fetched, and the only line left was "brew
-# not found after installation", which names the wrong thing. A fresh Ubuntu
-# ships wget, which README's install line uses, but not curl.
+# A fresh Ubuntu ships wget, which README's install line uses, but not curl, so
+# the first failure a new machine meets has to name curl.
 @test "no curl and no brew: the error names curl" {
   unset BREW_BIN
   BIN="$TMP/nocurl"
@@ -93,4 +92,5 @@ bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
   PATH="$BIN" run "$REPO/bin/setup_homebrew.sh"
   [ "$status" -ne 0 ]
   [[ "$output" == *"setup_homebrew: curl"* ]]
+  [[ "$output" != *"brew not found"* ]]
 }
