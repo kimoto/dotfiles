@@ -20,7 +20,7 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 ## 全体のレビュー: 全員を呼んだ側が1つのメッセージで起動する
 
-下の全員を、呼んだ側が自分で、1つのメッセージの中で起動する。subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。agent は `run_in_background` を付けずに起動すれば並列に走り、報告がまとめて届く。環境が background に回したときは報告が1通ずつ届くが、全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。
+下の全員を、呼んだ側が自分で、1つのメッセージの中で起動する。subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。報告は1通ずつ届くことがあるが、全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。
 
 1. **正しさ**: `review-correctness` agent。
 2. **Codex**: `run_in_background` で `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。

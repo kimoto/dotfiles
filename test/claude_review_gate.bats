@@ -91,6 +91,8 @@ with_remote() {
   grep -q '1つのメッセージ' <<<"$body"
   grep -q 'Agent tool が無い' <<<"$body"
   grep -q 'そろうまで' <<<"$body"
+  # The caller cannot choose how reports arrive, so the skill does not promise it.
+  [ -z "$(grep 'まとめて届く' <<<"$body")" ]
   # Codex runs in Bash, whose foreground timeout a whole-branch review can outlast.
   grep -q '^2\. \*\*Codex\*\*: `run_in_background` で' <<<"$body"
   [ -z "$(grep 'まとめ役' "$SKILL")" ]
