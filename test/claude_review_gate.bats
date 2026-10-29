@@ -113,6 +113,8 @@ with_remote() {
     # The correctness reviewer runs the bundled /code-review, so it needs Skill.
     [ "$agent" != review-correctness ] || tools="$tools, Skill"
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "tools: $tools"
+    # Pinned, not inherited from whatever the calling session runs at.
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'effort: medium'
   done
   for agent in review-correctness review-correctness-checklist review-portability review-refactor review-tests \
     review-security review-speed; do

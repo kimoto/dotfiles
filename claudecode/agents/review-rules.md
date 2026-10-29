@@ -3,6 +3,8 @@ name: review-rules
 description: 渡された範囲の commit メッセージ・差分のコメントと、あれば PR の題・本文が、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所と、差分のせいで古くなった差分の外の文章だけを返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」と、あれば「使う予定の PR の題と本文」だけ。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
+# medium: the level every reviewer was measured at; lower it only after measuring again.
+effort: medium
 ---
 
 # 決まりどおりかを見る係

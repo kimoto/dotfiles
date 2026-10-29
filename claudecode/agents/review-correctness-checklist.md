@@ -3,6 +3,8 @@ name: review-correctness-checklist
 description: 渡された範囲（差分 `<base>..HEAD` か、ファイル・ディレクトリ）を、壊れやすい所の一覧に沿って読み、バグだけを具体的な壊れ方つきで返す。★Codex が無い環境で、`review-correctness` の横に並べる2人目として review-branch skill から呼ぶ。範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
+# medium: the level every reviewer was measured at; lower it only after measuring again.
+effort: medium
 omitClaudeMd: true
 ---
 
