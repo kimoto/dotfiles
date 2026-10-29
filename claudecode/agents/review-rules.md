@@ -2,6 +2,7 @@
 name: review-rules
 description: これから開く PR の題・本文と、commit・差分のコメントが、決まり（`~/.claude/rules/` と repo の `CLAUDE.md`・`AGENTS.md`・PR テンプレート）どおりかを照らし、外れている所だけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「使う予定の PR の題と本文」「見る範囲」だけ。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 # 決まりどおりかを見る係

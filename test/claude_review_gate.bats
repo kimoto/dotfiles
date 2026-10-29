@@ -73,6 +73,11 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
   [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
+  [[ "$r" == *"model: sonnet"* ]]
+  [[ "$r" == *"skills/security-audit/SKILL.md and follows its diff mode (差分モード), with model: opus"* ]]
+  for agent in review-correctness review-rules; do
+    grep -qx 'model: sonnet' "$REPO_ROOT/claudecode/agents/$agent.md"
+  done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
 }
