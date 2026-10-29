@@ -5,7 +5,9 @@
 -- test says. Everything else answers with an object that accepts any call.
 
 stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, changeCount = 0,
-         popups = {}, pasted = {}, written = {}, clipboard = "the copied text" }
+         popups = {}, pasted = {}, written = {}, clipboard = "the copied text",
+         -- Where the selection is: the app in front, and the role of its focused element.
+         app = "com.apple.TextEdit", role = "AXStaticText" }
 
 local any
 any = setmetatable({}, {
@@ -89,6 +91,17 @@ hs = setmetatable({
          return view
       end,
    },
+   application = {
+      frontmostApplication = function() return { bundleID = function() return stub.app end } end,
+   },
+   axuielement = {
+      systemWideElement = function()
+         return { attributeValue = function()
+            if not stub.role then return nil end
+            return { attributeValue = function() return stub.role end }
+         end }
+      end,
+   },
    pasteboard = {
       changeCount = function() return stub.changeCount end,
       getContents = function() return stub.clipboard end,
@@ -146,13 +159,15 @@ function stub.sent(t)
    return table.concat(args, " ")
 end
 
--- Picks the menu row whose text is `label` in the last menu shown.
-function stub.choose(label)
-   local c = stub.choosers[#stub.choosers]
-   for _, row in ipairs(c.list) do
-      if row.text == label then return c.callback(row) end
+-- Clicks the tab titled `label` in the newest popup, as its page would; the
+-- tab of the job already shown does nothing.
+function stub.tab(label)
+   local view = stub.popups[#stub.popups]
+   if view.page:match('class="title">([^<]*)<') == label then return end
+   for job, title in view.page:match("const tabs = (%S+);"):gmatch('%["(%w+)","([^"]+)"%]') do
+      if title == label then return view:post({ job = job }) end
    end
-   error("no menu row " .. label)
+   error("no tab " .. label)
 end
 
 -- The last update() the newest popup was sent, as the JSON of its arguments.

@@ -167,6 +167,11 @@ popup_frame() {
     tr -d ' ' | tr ',' '\n' | paste - - - - |
     awk -v w="$POPUP_WIDTH" '$3 >= w - 1 && $3 <= w + 1 { print $1, $2, $3, $4; exit }'
 }
+popup_is_at() { read -r x y _ < <(popup_frame) && [ "$x" = "$1" ] && [ "$y" = "$2" ]; }
+# The 要約 tab, from the popup's top left: under the 43-point header, past
+# the 清書 and 返信案 tabs.
+TAB_SUMMARY_X=126
+TAB_Y=59
 # click X Y: a drag that goes nowhere.
 click() { swift "$DIR/mouse_drag.swift" "$1" "$2" "$1" "$2"; }
 edits_logged() { [ -f "$EDITS" ] && wc -l <"$EDITS" | tr -d ' ' || echo 0; }
@@ -301,10 +306,10 @@ expect "no popup" popups_are 0
 
 set_document_text "$NOTES"
 
-begin_case rewrite "⌃⌘⇧W, then 清書, rewrites the notes as a message"
+begin_case rewrite "⌃⌘⇧W on notes in a text field rewrites them as a message"
 printf '%s' "$SENTINEL" | pbcopy
-# 清書 is the menu's first row, so ⏎ picks it.
-keys "$SELECT_ALL" "$MENU" 'delay 1' "$(se 'key code 36')"
+# No menu: a selection in TextEdit's text is a draft, so the guess is 清書.
+keys "$SELECT_ALL" "$MENU"
 expect "clipboard holds a Japanese message, not the notes" rewritten_in_japanese
 expect "popup is open" popups_are 1
 snapshot
@@ -321,6 +326,15 @@ click $((PX + PW - 57)) $((PY + 21))   # the copy button
 sleep 2
 expect "clipboard holds the edited message" clipboard_ends_with_edit
 expect "the edit is logged" edit_was_logged
+snapshot
+
+begin_case tab "a tab reruns the notes as another job, in the same popup"
+read -r PX PY PW PH < <(popup_frame)
+printf '%s' "$SENTINEL" | pbcopy
+click $((PX + TAB_SUMMARY_X)) $((PY + TAB_Y))   # 要約, the third tab
+# The notes, not the edited message on the clipboard, are what is summarized.
+expect "clipboard holds a Japanese summary" rewritten_in_japanese
+expect "popup is open where it was" popup_is_at "$PX" "$PY"
 snapshot
 close_popup
 end_case

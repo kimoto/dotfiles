@@ -2,12 +2,11 @@
 
 # Tests for hammerspoon/translate.lua's keys, under plain luajit with a fake
 # `hs` (test/fixtures/hs_stub.lua), since Hammerspoon runs only on a Mac. What
-# must hold: ⌃⌘⇧W copies the selection before the menu opens (the menu takes
-# the focus, so a later ⌘C would miss the app), each menu row starts
-# translate.py with its own job and the clipboard under its own popup title,
-# and a diagram never shows as SVG markup, ends in a reason when it fails, and
-# is pasted as an image. The popup's look and the real keys are checked by
-# hand on a Mac.
+# must hold: ⌃⌘⇧W guesses the job from where the selection is and runs it on
+# the clipboard, each popup tab reruns the copied text as its own job under its
+# own title, and a diagram never shows as SVG markup, ends in a reason when it
+# fails, and is pasted as an image. The popup's look and the real keys are
+# checked by hand on a Mac.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -23,26 +22,51 @@ drive() {
     $1"
 }
 
-# Presses ⌃⌘⇧W, lets the copy land, picks the row, and prints the job sent to
+# Presses ⌃⌘⇧W, lets the copy land, clicks the tab, and prints the job sent to
 # translate.py.
 pick() {
   drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
-    assert(#stub.choosers == 0, 'menu opened before the copy landed')
     stub.tick()
-    stub.choose('$1')
+    stub.tab('$1')
     print(stub.sent(stub.tasks[#stub.tasks]))"
 }
 
-@test "⌃⌘⇧W copies the selection, then opens the menu" {
+@test "⌃⌘⇧W copies the selection, then runs the guessed job on it, with no menu" {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
-    print(table.concat(stub.keystrokes, ','), #stub.choosers)
+    print(table.concat(stub.keystrokes, ','), tostring(stub.sent(stub.tasks[1])))
     stub.tick()
-    print(#stub.choosers)"
+    print(#stub.choosers, stub.sent(stub.tasks[1]))"
   [ "$status" -eq 0 ]
-  [ "${lines[0]}" = "$(printf 'cmd+c\t0')" ]
-  [ "${lines[1]}" = "1" ]
+  [ "${lines[0]}" = "$(printf 'cmd+c\tnil')" ]
+  [ "${lines[1]}" = "$(printf '0\t--quiet --summarize --clipboard')" ]
+}
+
+# What the guess reads: the app in front, the role of the element the
+# selection is in, and how long the selection is.
+@test "the guess: a text field is a draft, a chat message gets a reply, the rest a summary" {
+  local app role text expected
+  while IFS='|' read -r app role text expected; do
+    run drive "
+      stub.app, stub.role = '$app', '$role' ~= 'none' and '$role' or nil
+      stub.clipboard = ('$text'):gsub('^long$', string.rep('あ', 601))
+      stub.hotkeys['ctrl+cmd+shift+w']()
+      stub.tick()
+      print(stub.sent(stub.tasks[1]))"
+    [ "$status" -eq 0 ] || { echo "$app $role: $output"; return 1; }
+    [ "$output" = "--quiet --$expected --clipboard" ] || { echo "$app $role $text: got '$output'"; return 1; }
+  done <<'ROWS'
+com.apple.TextEdit|AXTextArea|notes|rewrite
+com.tinyspeck.slackmacgap|AXTextArea|draft|rewrite
+com.google.Chrome|AXTextField|draft|rewrite
+com.tinyspeck.slackmacgap|AXStaticText|their message|reply
+com.tinyspeck.slackmacgap|none|their message|reply
+com.apple.mail|AXWebArea|their mail|reply
+com.tinyspeck.slackmacgap|AXStaticText|long|summarize
+com.google.Chrome|AXWebArea|an article|summarize
+com.apple.TextEdit|none|a document|summarize
+ROWS
 }
 
 @test "translate.py starts getting ready at the key press, and gets its job from the menu in a file of the user's" {
@@ -55,7 +79,7 @@ pick() {
     local task = stub.tasks[1]
     print(#stub.tasks, task.argv[2], tostring(stub.sent(task)))
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     local own = task.argv[3]:find(os.getenv('BATS_TEST_TMPDIR'), 1, true) == 1
     print(#stub.tasks, stub.sent(task), tostring(own), tostring(io.open(task.argv[3] .. '.part')))
     assert(not written[task.argv[3]], 'job written in place')"
@@ -69,7 +93,7 @@ pick() {
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tasks[1].done(1, '', 'No module named anthropic')
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     stub.popups[#stub.popups]:post({ ready = true })
     print(stub.lastUpdate())"
   [ "$status" -eq 0 ]
@@ -86,20 +110,22 @@ pick() {
     end
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     stub.popups[#stub.popups]:post({ ready = true })
     print(stub.lastUpdate(), tostring(stub.sent(stub.tasks[1])))"
   [ "$status" -eq 0 ]
   [[ "$output" == *"を起動できません"*"error"*"nil" ]]
 }
 
-@test "the waiting translate.py is ended when the menu is dismissed or nothing was selected" {
+@test "the waiting translate.py is ended when nothing was selected" {
   run drive "
-    stub.hotkeys['ctrl+cmd+shift+w']()
-    stub.tick()
-    stub.choosers[1].callback(nil)
-    print(tostring(stub.tasks[1].terminated), tostring(stub.sent(stub.tasks[1])))
     hs.eventtap.keyStroke = function() end  -- the app copies nothing
+    hs.timer.secondsSinceEpoch = function() return 0 end
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    hs.timer.secondsSinceEpoch = function() return 10 end
+    stub.tick()
+    print(tostring(stub.tasks[1].terminated), tostring(stub.sent(stub.tasks[1])))
+    hs.timer.secondsSinceEpoch = function() return 0 end
     stub.hotkeys['ctrl+cmd+shift+d']()
     hs.timer.secondsSinceEpoch = function() return 10 end
     stub.tick()
@@ -109,27 +135,28 @@ pick() {
   [ "${lines[1]}" = "$(printf 'true\tnil')" ]
 }
 
-@test "each menu row starts translate.py with its own job on the clipboard" {
+@test "each tab starts translate.py with its own job on the copied text" {
   local label expected
   while IFS='|' read -r label expected; do
     run pick "$label"
     [ "$status" -eq 0 ] || { echo "$label: $output"; return 1; }
     [ "$output" = "$expected" ] || { echo "$label: got '$output'"; return 1; }
   done <<'ROWS'
-清書|--quiet --rewrite --clipboard
-返信案|--quiet --reply --clipboard
+清書|--quiet --rewrite -- the copied text
+返信案|--quiet --reply -- the copied text
 要約|--quiet --summarize --clipboard
-誤字チェック|--quiet --proofread --clipboard
-図解|--quiet --diagram --clipboard
-翻訳|--quiet --clipboard
+誤字チェック|--quiet --proofread -- the copied text
+図解|--quiet --diagram -- the copied text
+翻訳|--quiet -- the copied text
 ROWS
 }
 
-@test "every menu row names a job translate.py knows" {
-  run drive "for _, row in ipairs((function()
-      stub.hotkeys['ctrl+cmd+shift+w'](); stub.tick()
-      return stub.choosers[#stub.choosers].list end)()) do print(row.job) end"
+@test "every tab names a job translate.py knows" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w'](); stub.tick()
+    for job in stub.popups[1].page:match('const tabs = (%S+);'):gmatch('%[\"(%w+)\"') do print(job) end"
   [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 6 ]
   for job in "${lines[@]}"; do
     [ "$job" = translate ] && continue
     grep -q "const=\"$job\"" "$REPO_ROOT/hammerspoon/translate.py" || { echo "unknown job $job"; return 1; }
@@ -151,7 +178,7 @@ ROWS
   run drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
     view:post({ ready = true })
     stub.clipboard = 'the summary'
@@ -166,9 +193,9 @@ ROWS
 
 @test "an answer from the default model offers no retry" {
   run drive "
+    stub.role = 'AXTextArea'  -- a draft: 清書, on the default model
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('清書')
     local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
     view:post({ ready = true })
     task.done(0, 'the message', '')
@@ -183,7 +210,7 @@ diagram() {
   drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('図解')
+    stub.tab('図解')
     local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
     view:post({ ready = true })
     $1"
@@ -195,7 +222,7 @@ diagram() {
     run drive "
       stub.hotkeys['ctrl+cmd+shift+w']()
       stub.tick()
-      stub.choose('$label')
+      stub.tab('$label')
       print(stub.popups[#stub.popups].page:match('class=\"title\">([^<]*)<'))"
     [ "$status" -eq 0 ] || { echo "$label: $output"; return 1; }
     [ "$output" = "$label" ] || { echo "$label: titled '$output'"; return 1; }
@@ -261,7 +288,7 @@ diagram() {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
     view:post({ ready = true })
     task.done(0, '- **A**', '')
@@ -279,7 +306,7 @@ diagram() {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('要約')
+    stub.tab('要約')
     local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
     view:post({ ready = true })
     task.done(0, '- **A**', '')
@@ -356,7 +383,7 @@ diagram() {
     local old = view
     stub.hotkeys['ctrl+cmd+shift+w']()
     stub.tick()
-    stub.choose('清書')
+    stub.tab('清書')
     old:post({ png = 'data:image/png;base64,QUJD' })
     print(#stub.pasted)"
   [ "$status" -eq 0 ]

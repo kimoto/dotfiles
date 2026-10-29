@@ -586,26 +586,35 @@ local function translateSelection()
    copySelectionThen(function() run({ "--clipboard" }, nil, ready) end, ready)
 end
 
--- One key for every job, so adding a job adds a menu row, not a key to learn.
--- The selection is copied before the menu opens: the menu takes the focus,
--- and ⌘C sent after that would reach the menu, not the app.
-local MENU = {
-   { text = "清書", subText = "箇条書きを自分の口調のメッセージに", job = "rewrite" },
-   { text = "返信案", subText = "選んだメッセージへの返事を自分の口調で", job = "reply" },
-   { text = "要約", subText = "要点を日本語で数行に", job = "summarize" },
-   { text = "誤字チェック", subText = "誤字・変換ミスだけ直す（口調は変えない）", job = "proofread" },
-   { text = "図解", subText = "選んだ文を図にする（画像でコピー）", job = "diagram" },
-   { text = "翻訳", subText = "日本語 ⇄ 英語", job = "translate" },
+-- One key for every job, and no menu to pick from first: the job is guessed
+-- from where the selection is, and a wrong guess is one tab away. Only the
+-- written jobs are guessed; ⌃⌘⇧D is translation.
+local CHAT_APPS = {
+   ["com.tinyspeck.slackmacgap"] = true,
+   ["com.hnc.Discord"] = true,
+   ["com.apple.MobileSMS"] = true,
+   ["com.microsoft.teams2"] = true,
+   ["jp.naver.line.mac"] = true,
+   ["com.apple.mail"] = true,
 }
-local function chooseJob(ready)
-   local chooser = hs.chooser.new(function(choice)
-      if not choice then return ready.cancel() end
-      local args = { "--clipboard" }
-      if choice.job ~= "translate" then table.insert(args, 1, "--" .. choice.job) end
-      run(args, MODES[choice.job], ready)
-   end)
-   chooser:choices(MENU)
-   chooser:show()
+-- A selection in one of these is the user's own draft.
+local TEXT_ROLES = { AXTextArea = true, AXTextField = true, AXComboBox = true }
+-- Longer than a chat message is worth answering line by line: summarize it.
+local REPLY_MAX_CHARS = 600
+
+local function guessJob(bundleID, role, text)
+   if TEXT_ROLES[role] then return "rewrite" end
+   local chars = select(2, (text or ""):gsub("[^\128-\191]", ""))
+   if CHAT_APPS[bundleID] and chars <= REPLY_MAX_CHARS then return "reply" end
+   return "summarize"
+end
+
+-- Read before the copy, while the app with the selection is still in front.
+-- An app that exposes no focused element reads as not a text field.
+local function whereSelected()
+   local app = hs.application.frontmostApplication()
+   local focused = hs.axuielement.systemWideElement():attributeValue("AXFocusedUIElement")
+   return app and app:bundleID(), focused and focused:attributeValue("AXRole")
 end
 
 local lastCopy = 0
@@ -641,7 +650,11 @@ hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
 -- to a plain one without it (translate.py's header).
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
    local ready = prepare()
-   copySelectionThen(function() chooseJob(ready) end, ready)
+   local bundleID, role = whereSelected()
+   copySelectionThen(function()
+      local job = guessJob(bundleID, role, hs.pasteboard.getContents())
+      run({ "--" .. job, "--clipboard" }, MODES[job], ready)
+   end, ready)
 end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
