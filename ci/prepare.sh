@@ -1,8 +1,7 @@
 #!/bin/bash
 # CI "cache phase" in one place: make the dotfiles world ready for the e2e tests.
-# The only thing the workflow still owns around this is the actions/cache
-# restore/save pair; *what* gets installed lives here in bin/ (single source of
-# truth, runnable locally), instead of being scattered across workflow steps.
+# The workflow owns only the actions/cache restore/save pair around this; *what*
+# gets installed lives here, in one script that also runs locally.
 #
 # A cache-hit signal comes from the workflow as an env var so the expensive,
 # cache-populating Homebrew work runs only on a miss:

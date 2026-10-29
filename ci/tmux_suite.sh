@@ -1,7 +1,7 @@
 #!/bin/bash
-# The tmux e2e checks, run against whichever tmux is on PATH. Both the cached
-# old tmux job and the latest-release job in ci.yml call this, so a new check
-# added here runs on both.
+# The tmux e2e checks, run against whichever tmux is on PATH. ci.yml's
+# tmux_latest_test calls this on the cached old tmux and again on the latest
+# release, so a new check added here runs on both.
 #
 # Every check runs even after one fails, so a single CI run reports them all.
 
