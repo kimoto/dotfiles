@@ -138,6 +138,7 @@ fi
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" || echo "Claude idle hooks failed" >&2
 "$BASE_DIR/bin/install_claude_context_hooks.sh" || echo "Claude context hook failed" >&2
 "$BASE_DIR/bin/install_claude_secret_scan_hook.sh" || echo "Claude secret scan hook failed" >&2
+"$BASE_DIR/bin/install_claude_review_gate.sh" || echo "Claude review gate hook failed" >&2
 "$BASE_DIR/bin/install_claude_pr_hooks.sh" || echo "Claude PR hook failed" >&2
 
 # The check toolchain pinned in mise.toml, before the hooks below that run it.

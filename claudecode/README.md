@@ -59,6 +59,9 @@ ignore rule would apply in every repo on the machine.
   hook is the after-push PR description reminder, which after `gh pr create`
   also has the agent start `bin/watch_pr.sh`
   (`bin/claude_pr_description_reminder.sh`), which `install_claude_pr_hooks.sh`
-  registers on a workstation the same way.
+  registers on a workstation the same way. The review gate
+  (`bin/claude_review_gate.sh`, registered by `install_claude_review_gate.sh`)
+  holds back the first PR create on a branch until its review is marked done,
+  and on `Stop` sends the session back to re-check commits made since.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.

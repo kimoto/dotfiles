@@ -30,17 +30,6 @@ context=""
 # already loads; the reminder only points there, so the two never drift.
 if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
-  # A second reader on every push, wherever the Codex plugin is enabled: that
-  # switch already says this machine's code may go to OpenAI. Advisory, so a
-  # review that never runs costs nothing.
-  if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
-    && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
-    companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
-      | sort -V | tail -1)
-    if [ -f "$companion" ]; then
-      context="$context Also start \`node \"$companion\" review --base <the branch the PR targets>\` with run_in_background from the pushed repo; when it finishes, fix the findings that hold up and say which ones you dismissed."
-    fi
-  fi
 fi
 
 # The URL gh prints is the proof a PR exists; without one the create failed.

@@ -49,6 +49,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Bash|mcp__.*__create_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_review_gate.sh\" ] || \"$d/bin/claude_review_gate.sh\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -59,6 +69,17 @@
             "type": "command",
             "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_pr_description_reminder.sh\" ] || \"$d/bin/claude_pr_description_reminder.sh\"; exit 0",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/claude_review_gate.sh\" ] || \"$d/bin/claude_review_gate.sh\"",
+            "timeout": 10
           }
         ]
       }
