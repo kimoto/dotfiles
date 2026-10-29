@@ -81,6 +81,8 @@ with_remote() {
   # Codex is added beside correctness, never instead of it.
   grep -q '^1\. \*\*正しさ\*\*: `review-correctness` agent。$' <<<"$full"
   grep -q '^2\. \*\*Codex\*\*: .*codex-companion.mjs review --base' <<<"$full"
+  # Without Codex, a second correctness reviewer that reads differently takes its place.
+  grep -q '^2\. \*\*Codex\*\*: .*無い環境では、代わりに `review-correctness-checklist` agent。' <<<"$full"
   grep -q '`review-rules` agent' <<<"$full"
   grep -q 'codex-companion.mjs review --base' <<<"$full"
   grep -q 'run_in_background' <<<"$full"
@@ -97,18 +99,20 @@ with_remote() {
   done
   grep -q '`review-portability` agent' <<<"$full"
   # A reviewer with no sweep still has a fallback where its agent is unlinked.
-  grep -q 'sweep の無い correctness・rules・portability は.*dotfiles の `claudecode/agents/<名前>.md`' <<<"$full"
-  for agent in review-correctness review-rules review-portability review-refactor review-tests review-security \
-    review-speed; do
+  grep -q 'sweep の無い correctness・correctness-checklist・rules・portability は.*dotfiles の `claudecode/agents/<名前>.md`' \
+    <<<"$full"
+  for agent in review-correctness review-correctness-checklist review-rules review-portability review-refactor \
+    review-tests review-security review-speed; do
     want=sonnet
-    case $agent in review-security | review-correctness) want=opus ;; esac
+    case $agent in review-security | review-correctness*) want=opus ;; esac
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
     tools='Read, Grep, Glob, Bash'
     # The correctness reviewer runs the bundled /code-review, so it needs Skill.
     [ "$agent" != review-correctness ] || tools="$tools, Skill"
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "tools: $tools"
   done
-  for agent in review-correctness review-portability review-refactor review-tests review-security review-speed; do
+  for agent in review-correctness review-correctness-checklist review-portability review-refactor review-tests \
+    review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
 }

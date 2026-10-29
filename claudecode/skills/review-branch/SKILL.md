@@ -18,12 +18,12 @@ description: いま居る repo の commit（か、これから開く PR の題�
 ## 全体のレビュー: 全員を `run_in_background` で並べて回す
 
 1. **正しさ**: `review-correctness` agent。
-2. **Codex**: `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。
+2. **Codex**: `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
 3. `review-rules` agent — commit メッセージと差分のコメント、差分のせいで古くなった差分の外の文章。
 4. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 5. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
    ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
-   sweep の無い correctness・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から2つ上）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
+   sweep の無い correctness・correctness-checklist・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から2つ上）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
 
 ## 再確認
 
