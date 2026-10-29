@@ -1,6 +1,6 @@
 ---
 name: review-tests
-description: これから push する差分を、test-sweep の見方で見て、壊しても赤にならない所だけを返す。★push 前のレビュー（review-branch skill）から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
+description: 渡された範囲（差分 `<base>..HEAD` か、repo の一部）を、test-sweep の見方で見て、壊しても赤にならない所だけを返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
 omitClaudeMd: true

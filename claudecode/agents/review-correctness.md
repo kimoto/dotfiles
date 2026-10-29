@@ -1,6 +1,6 @@
 ---
 name: review-correctness
-description: 渡された範囲（差分 `<base>..HEAD` か、repo の一部）を、書いた本人の考えを知らないまま読み、バグだけを具体的な壊れ方つきで返す。★push 前のレビュー（review-branch skill）から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
+description: 渡された範囲（差分 `<base>..HEAD` か、repo の一部）を、書いた本人の考えを知らないまま読み、バグだけを具体的な壊れ方つきで返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
 omitClaudeMd: true
