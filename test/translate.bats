@@ -7,6 +7,8 @@
 # a base64 block, and the key comes from the Keychain only — never from the
 # environment, where every child process would see it.
 
+bats_require_minimum_version 1.5.0
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/hammerspoon/translate.py"
@@ -433,7 +435,7 @@ request_field() {
 }
 
 @test "--wait makes the client before the job arrives, then runs the job it finds" {
-  python3 "$SCRIPT" --wait "$TMP/job.json" >"$TMP/out" 2>&1 &
+  python3 "$SCRIPT" --wait "$TMP/job.json" >"$TMP/out" 2>"$TMP/err" &
   for _ in $(seq 50); do [ -e "$REQUEST.key" ] && break; sleep 0.1; done
   # Read before the job goes in, but checked after: a failed check here
   # would leave the waiting script holding the test for JOB_WAIT.
@@ -451,7 +453,8 @@ request_field() {
 
 @test "--wait sends nothing when no job comes in time" {
   cp "$SCRIPT" "$TMP/translate.py"
-  sed -i 's/^JOB_WAIT = .*/JOB_WAIT = 0.2/' "$TMP/translate.py"
+  # perl, not sed -i: BSD sed on a Mac takes the script for a backup suffix.
+  perl -pi -e 's/^JOB_WAIT = .*/JOB_WAIT = 0.2/' "$TMP/translate.py"
   run python3 "$TMP/translate.py" --wait "$TMP/never.json"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
@@ -484,6 +487,30 @@ request_field() {
   printf 'model = "claude-opus-5-5"\n' >"$CONFIG"
   run python3 "$SCRIPT" --quiet --summarize "hello"
   [ "$(request_field model)" = "claude-opus-5-5" ]
+}
+
+@test "an answer from a job's faster model says so on stderr, and --best asks the default model" {
+  run --separate-stderr python3 "$SCRIPT" --quiet --summarize "hello"
+  [ "$status" -eq 0 ]
+  [ "$output" = "TRANSLATED" ]
+  [ "$stderr" = "@fast-model claude-haiku-5-5" ]
+  run --separate-stderr python3 "$SCRIPT" --quiet --summarize --best "hello"
+  [ "$status" -eq 0 ]
+  [ "$(request_field model)" = "claude-opus-5-5" ]
+  [ "$stderr" = "" ]
+}
+
+@test "the config's [models] counts as a faster model too" {
+  printf '[models]\nproofread = "claude-haiku-5-5"\n' >"$CONFIG"
+  run --separate-stderr python3 "$SCRIPT" --quiet --proofread "hello"
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "@fast-model claude-haiku-5-5" ]
+}
+
+@test "the default model's answer says nothing about a faster one" {
+  run --separate-stderr python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "" ]
 }
 
 # Edits to a rewrite: what the user changed in the popup before copying it is

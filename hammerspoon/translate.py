@@ -107,6 +107,9 @@ JOB_POLL = 0.01
 JOB_WAIT = 300
 # Haiku answers fastest with no thinking at all; Opus cannot turn it off.
 NO_THINKING_PREFIX = "claude-haiku-"
+# The line on stderr that says a job's faster model answered; translate.lua
+# matches it to offer --best.
+FAST_MODEL_MARK = "@fast-model"
 LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
 REWRITE_EDITS = Path.home() / ".local/share/desktop-translate/rewrite-edits.jsonl"
 # Enough to show the user's habits; every one goes out with each rewrite.
@@ -310,9 +313,19 @@ def system_prompt() -> str:
     return SYSTEM
 
 
-def model_for(config: dict, job: str) -> str:
-    return (os.environ.get("DESKTOP_TRANSLATE_MODEL") or config.get("models", {}).get(job)
-            or config.get("model") or JOB_MODELS.get(job) or ANTHROPIC_MODEL)
+def model_for(config: dict, job: str, best: bool = False) -> str:
+    """best: skip the job's own faster model ([models], then JOB_MODELS), for a
+    second try at the answer."""
+    if os.environ.get("DESKTOP_TRANSLATE_MODEL"):
+        return os.environ["DESKTOP_TRANSLATE_MODEL"]
+    if best:
+        return config.get("model") or ANTHROPIC_MODEL
+    return (config.get("models", {}).get(job) or config.get("model") or JOB_MODELS.get(job)
+            or ANTHROPIC_MODEL)
+
+
+def is_fast_model(config: dict, job: str, model: str) -> bool:
+    return model != model_for(config, job, best=True)
 
 
 def connect(config: dict):
@@ -440,14 +453,16 @@ def translate_openai(client, model: str, content: list, system: str, config: dic
     return "".join(pieces), truncated
 
 
-def translate(content: list, system: str, ready: Prepared, job: str) -> str:
+def translate(content: list, system: str, ready: Prepared, job: str, best: bool = False) -> str:
     """Translate, writing the text to stdout as it arrives; return all of it.
 
     Streamed so the popup can show the first words while the rest is still
     being written: a long passage otherwise waits for its last token.
     """
     config, client = ready.get()
-    model = timing["model"] = model_for(config, job)
+    model = timing["model"] = model_for(config, job, best)
+    if is_fast_model(config, job, model):
+        timing["fast"] = model
     if config["provider"] == "openai":
         text, truncated = translate_openai(client, model, content, system, config)
     else:
@@ -578,6 +593,7 @@ def main() -> None:
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     p.add_argument("--timing", action="store_true", help="say on stderr how long each stage took")
+    p.add_argument("--best", action="store_true", help="use the default model, not the job's faster one")
     p.add_argument("--record-edit", action="store_true",
                    help="log the last rewrite as the user edited it (the edited text on stdin)")
     args = p.parse_args(argv)
@@ -589,6 +605,9 @@ def main() -> None:
     ready = ready or Prepared()
     try:
         run(args, ready)
+        # For the popup, which offers the default model for another try.
+        if "fast" in timing:
+            print(f"{FAST_MODEL_MARK} {timing['fast']}", file=sys.stderr)
     except Failed as e:
         report(str(e))
     finally:
@@ -604,7 +623,7 @@ def run(args, ready: Prepared) -> None:
         if not text.strip():
             fail(task.empty)
         content = [{"type": "text", "text": f"{task.instruction}\n\n{text}"}]
-        result = translate(content, system, ready, args.task)
+        result = translate(content, system, ready, args.task, args.best)
         if task.learns_edits:
             write_private(LAST_REWRITE, json.dumps({"notes": text.strip(), "draft": result}, ensure_ascii=False))
         if task.svg:
@@ -633,7 +652,7 @@ def run(args, ready: Prepared) -> None:
             fail("訳す文がありません。")
         content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
 
-    show(translate(content, system_prompt(), ready, "translate"), args.quiet, "翻訳")
+    show(translate(content, system_prompt(), ready, "translate", args.best), args.quiet, "翻訳")
 
 
 if __name__ == "__main__":

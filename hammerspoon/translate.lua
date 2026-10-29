@@ -56,6 +56,7 @@ header { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 16px
 button { all: unset; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
   color: var(--muted); cursor: pointer; }
 button:hover { background: var(--hover); color: var(--fg); }
+button[hidden] { display: none; }  /* display: grid above would otherwise win */
 button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none;
   stroke-linecap: round; stroke-linejoin: round; }
 main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto;
@@ -67,6 +68,8 @@ main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
+  <button id="best" title="標準のモデルでやり直す" hidden><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/>
+    <path d="M20 4v5h-5"/></svg></button>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -104,8 +107,9 @@ function showSvg(t, svg) {
   img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   t.replaceChildren(img);
 }
-function update(text, status, kind, svg) {
+function update(text, status, kind, svg, retry) {
   if (svg && text) showSvg(t, text); else { shownSvg = null; t.textContent = text; }
+  document.getElementById('best').hidden = !retry;
   t.className = kind === 'error' ? 'error' : '';
   // Only a finished answer: an edit mid-stream would be overwritten by the next words.
   t.contentEditable = editable && kind === 'done' ? 'plaintext-only' : 'false';
@@ -120,6 +124,7 @@ function append(text) {
   fit();
 }
 document.getElementById('close').onclick = () => post({ close: true });
+document.getElementById('best').onclick = () => post({ best: true });
 document.getElementById('copy').onclick = () => post({ copy: true, text: t.innerText });
 post({ ready: true });
 </script></body></html>
@@ -140,7 +145,7 @@ end
 local function renderPopup()
    if not (translatePopup and popup.ready) then return end
    translatePopup:evaluateJavaScript("update(..."
-      .. hs.json.encode({ popup.text, popup.status, popup.kind, popup.svg }) .. ")")
+      .. hs.json.encode({ popup.text, popup.status, popup.kind, popup.svg, popup.retry ~= nil }) .. ")")
 end
 
 local function setPopup(text, status, kind, svg)
@@ -213,6 +218,8 @@ local function recordEdit(text)
    if translateEditTask:start() then translateEditTask:closeInput() end
 end
 
+local run  -- below; the popup's retry button starts it again
+
 local function openPopup(mode)
    closePopup()
    popup = { text = "", status = "", kind = "busy", svg = false, ready = false }
@@ -251,6 +258,8 @@ local function openPopup(mode)
          local edited = mode.editable and popup.kind == "done" and text ~= popup.text
          if edited then recordEdit(text) end
          setPopup(text, edited and "直しを記録してコピーしました" or "コピーしました", "done")
+      elseif body.best then
+         if popup.retry then run(popup.retry, mode) end
       elseif body.close then
          closePopup()
       end
@@ -318,9 +327,26 @@ local function prepare()
    }
 end
 
-local function run(args, mode, ready)
+-- The same job on the default model, given the text itself: by then the
+-- clipboard holds the first answer, not what was asked about.
+local function bestRetry(args, source)
+   local retry = {}
+   for _, a in ipairs(args) do
+      if a ~= "--clipboard" then table.insert(retry, a) end
+   end
+   table.insert(retry, "--best")
+   table.insert(retry, "--")  -- text that starts with "-" is still text
+   table.insert(retry, source)
+   return retry
+end
+
+function run(args, mode, ready)
    mode = mode or MODES.translate
    ready = ready or prepare()
+   local source
+   for _, a in ipairs(args) do
+      if a == "--clipboard" then source = hs.pasteboard.getContents() end
+   end
    local argv = { "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
    if translateTask and translateTask ~= ready.task and translateTask:isRunning() then
@@ -359,7 +385,10 @@ local function run(args, mode, ready)
       if code == 0 and mode.svg then
          setPopup(text, "", "busy", true)  -- done once the PNG is copied
       elseif code == 0 then
-         setPopup(text, "コピー済み", "done")
+         -- Matches FAST_MODEL_MARK in translate.py.
+         local fast = err:match("@fast%-model (%S+)")
+         if fast and source then popup.retry = bestRetry(args, source) end
+         setPopup(text, fast and "コピー済み（" .. fast:gsub("^claude%-", "") .. "）" or "コピー済み", "done")
       else
          local reason = err:gsub("%s+$", "")
          if reason == "" then reason = "translate.py が出力なしで終了しました。" end
