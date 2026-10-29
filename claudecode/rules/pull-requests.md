@@ -8,6 +8,12 @@ because reviewers read the body first. A human stops reading early, so add a
 sub-bullet only when the reader needs it, and hide nothing behind `<details>`.
 All of this holds for a commit body too.
 
+★**As short as the reader needs, and no shorter.** Open with what changes
+for the user in one sentence. Cut what the reader does not need: acceptance
+criteria, red-first steps, what was tried, which the commits hold. Keep the
+explanation a change needs to be understood, however long it is. When a push
+changes the PR, update the body without letting it grow.
+
 **A title carries the purpose and nothing else** — `type(scope): purpose`, about
 50 characters, no script names, no jargon, no counts: a number means nothing
 until the body says what it is scale of.
