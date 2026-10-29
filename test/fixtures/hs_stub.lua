@@ -74,8 +74,12 @@ hs = setmetatable({
             return { setCallback = function(self, fn) pendingHandler = fn; return self end }
          end,
       },
-      new = function()
-         local view = chain({ updates = {}, handler = pendingHandler })
+      new = function(rect)
+         local view = chain({ updates = {}, handler = pendingHandler, rect = rect })
+         function view:frame(f)
+            if f then self.rect = f; return self end
+            return self.rect
+         end
          function view:html(page) self.page = page; return self end
          function view:evaluateJavaScript(js) table.insert(self.updates, js); return self end
          function view:delete() self.deleted = true end

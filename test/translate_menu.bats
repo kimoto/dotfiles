@@ -290,6 +290,58 @@ diagram() {
   [ "$output" = $'・A\t0' ]
 }
 
+# By the time a tab is clicked the clipboard holds the first answer, so the
+# rerun carries the text that was copied.
+@test "a tab reruns the copied text as another job, where the popup already is" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    view:post({ ready = true })
+    stub.clipboard = 'the translation'
+    task.done(0, 'the translation', '')
+    view.rect = { x = 300, y = 400, w = 520, h = 200 }
+    view:post({ job = 'summarize' })
+    local now = stub.popups[#stub.popups]
+    print(stub.sent(stub.tasks[#stub.tasks]))
+    print(now.page:match('class=\"title\">([^<]*)<'), now.rect.x, now.rect.y, view.deleted)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "--quiet --summarize -- the copied text" ]
+  [ "${lines[1]}" = $'要約\t300\t400\ttrue' ]
+}
+
+@test "a retry after a tab names the text once" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    view:post({ job = 'summarize' })
+    view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    stub.tasks[#stub.tasks].done(0, 'the summary', '@fast-model claude-haiku-5-5\\n')
+    view:post({ best = true })
+    print(stub.sent(stub.tasks[#stub.tasks]))"
+  [ "$status" -eq 0 ]
+  [ "$output" = "--quiet --summarize --best -- the copied text" ]
+}
+
+@test "a popup with text to rerun has the tabs, a screen region's has none" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    print(stub.popups[#stub.popups].page:match('const tabs = (%S+);'))"
+  [ "$status" -eq 0 ]
+  [[ "$output" == '[["rewrite","清書"],'*'["translate","翻訳"]]' ]]
+  run drive "
+    hs.screenRecordingState = function() return true end
+    stub.hotkeys['ctrl+cmd+shift+l']()
+    stub.tasks[#stub.tasks].done(0, 'the translation', '')
+    print(stub.popups[#stub.popups].page:match('const tabs = (%S+);'))"
+  [ "$status" -eq 0 ]
+  [ "$output" = null ]
+}
+
 @test "a translation is not rendered, so its own marks stay as they are" {
   run drive "
     stub.hotkeys['ctrl+cmd+shift+d']()

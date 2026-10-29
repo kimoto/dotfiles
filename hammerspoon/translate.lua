@@ -31,6 +31,10 @@ local MODES = {
    -- The answer is an SVG: shown as an image and copied as a PNG, never as text.
    diagram = { title = "図解", editable = false, svg = true },
 }
+for job, mode in pairs(MODES) do mode.job = job end
+-- The popup's tabs, in the menu's order: a wrong job is one click from the
+-- right one, on the same text.
+local TABS = { "rewrite", "reply", "summarize", "proofread", "diagram", "translate" }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
 -- The page draws the whole window (no title bar), takes the text through
@@ -78,6 +82,10 @@ main.markdown pre { padding: 8px 10px; white-space: pre-wrap; }
 main.markdown pre code { padding: 0; background: none; }
 main[contenteditable="plaintext-only"] { outline: none; }
 main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
+nav { display: flex; gap: 2px; padding: 4px 10px; border-bottom: 1px solid var(--line); -webkit-user-select: none; }
+nav[hidden] { display: none; }
+nav button { width: auto; height: 24px; padding: 0 8px; font-size: 12px; }
+nav button.current { background: var(--hover); color: var(--fg); font-weight: 600; cursor: default; }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
@@ -87,10 +95,24 @@ main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
+<nav id="tabs" hidden></nav>
 <main id="text"></main>
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
+// [[job, title], ...], or null when there is no text to run another job on.
+const tabs = {{TABS}};
+if (tabs) {
+  const nav = document.getElementById('tabs');
+  for (const [job, title] of tabs) {
+    const b = document.createElement('button');
+    b.textContent = title;
+    if (title === '{{TITLE}}') b.className = 'current';
+    else b.onclick = () => post({ job });
+    nav.append(b);
+  }
+  nav.hidden = false;
+}
 const editable = {{EDITABLE}};
 const markdown = {{MARKDOWN}};
 {{MARKDOWN_JS}}
@@ -264,9 +286,22 @@ local function recordEdit(text)
    if translateEditTask:start() then translateEditTask:closeInput() end
 end
 
-local run  -- below; the popup's retry button starts it again
+local run  -- below; the popup's retry button and tabs start it again
 
-local function openPopup(mode)
+-- The arguments that run `job` on `source` itself, not on the clipboard: by
+-- the time a tab is clicked, the clipboard holds the first answer.
+local function jobArgs(job, source)
+   local args = {}
+   if job ~= "translate" then table.insert(args, "--" .. job) end
+   table.insert(args, "--")  -- text that starts with "-" is still text
+   table.insert(args, source)
+   return args
+end
+
+-- `source` is the text the job ran on, for the tabs; nil (a screen region)
+-- shows none. `at` is the popup being replaced, so a tab or the retry does not
+-- move it to wherever the mouse has gone since.
+local function openPopup(mode, source, at)
    closePopup()
    popup = { text = "", status = "", kind = "busy", svg = false, ready = false }
    -- Set once this popup's window exists: a message still in flight from the
@@ -321,16 +356,31 @@ local function openPopup(mode)
          setPopup(mode.markdown and popup.text or text,
             edited and "直しを記録してコピーしました" or "コピーしました", "done")
       elseif body.best then
-         if popup.retry then run(popup.retry, mode) end
+         if popup.retry then run(popup.retry, mode, nil, translatePopup:frame()) end
+      elseif body.job then
+         if source and MODES[body.job] then
+            run(jobArgs(body.job, source), MODES[body.job], nil, translatePopup:frame())
+         end
       elseif body.close then
          closePopup()
       end
    end)
-   local mouse = hs.mouse.absolutePosition()
-   -- No screen under the mouse right after a display is unplugged.
-   local frame = (hs.mouse.getCurrentScreen() or hs.screen.mainScreen()):frame()
-   local x = math.max(frame.x, math.min(mouse.x, frame.x + frame.w - POPUP_WIDTH))
-   local y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
+   local x, y
+   if at then
+      x, y = at.x, at.y
+   else
+      local mouse = hs.mouse.absolutePosition()
+      -- No screen under the mouse right after a display is unplugged.
+      local frame = (hs.mouse.getCurrentScreen() or hs.screen.mainScreen()):frame()
+      x = math.max(frame.x, math.min(mouse.x, frame.x + frame.w - POPUP_WIDTH))
+      y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
+   end
+   local tabs = "null"
+   if source then
+      local list = {}
+      for i, job in ipairs(TABS) do list[i] = { job, MODES[job].title } end
+      tabs = hs.json.encode(list)
+   end
    translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = POPUP_START_HEIGHT }, {}, content)
       :windowStyle({ "borderless", "nonactivating" })
       -- Lets a click give the popup the keyboard, so a rewrite can be edited.
@@ -340,6 +390,7 @@ local function openPopup(mode)
       :level(hs.drawing.windowLevels.floating)
       :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{EDITABLE}}", tostring(mode.editable))
          :gsub("{{MARKDOWN}}", tostring(mode.markdown == true))
+         :gsub("{{TABS}}", function() return tabs end)
          :gsub("{{MARKDOWN_JS}}", function() return MARKDOWN_JS end)))
       :show()
    view = translatePopup
@@ -396,6 +447,7 @@ end
 local function bestRetry(args, source)
    local retry = {}
    for _, a in ipairs(args) do
+      if a == "--" then break end  -- the text itself, from a tab: added back below
       if a ~= "--clipboard" then table.insert(retry, a) end
    end
    table.insert(retry, "--best")
@@ -404,12 +456,13 @@ local function bestRetry(args, source)
    return retry
 end
 
-function run(args, mode, ready)
+function run(args, mode, ready, at)
    mode = mode or MODES.translate
    ready = ready or prepare()
    local source
-   for _, a in ipairs(args) do
+   for i, a in ipairs(args) do
       if a == "--clipboard" then source = hs.pasteboard.getContents() end
+      if a == "--" then source = args[i + 1] end
    end
    local argv = { "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
@@ -423,7 +476,7 @@ function run(args, mode, ready)
       -- A non-number duration keeps the alert up until closeSpecific.
       busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
    else
-      openPopup(mode)
+      openPopup(mode, source, at)
    end
    local out, err = "", ""
    local streaming = false  -- the popup shows out so far, and takes the rest by appendPopup
@@ -431,7 +484,7 @@ function run(args, mode, ready)
       if busy then
          hs.alert.closeSpecific(busy)
          busy = nil
-         openPopup(mode)
+         openPopup(mode, source, at)
       end
    end
    ready.handlers.done = function(code, stdout, stderr)
