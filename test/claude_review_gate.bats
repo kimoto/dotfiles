@@ -95,6 +95,8 @@ with_remote() {
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
   grep -q '`review-portability` agent' <<<"$full"
+  # A reviewer with no sweep still has a fallback where its agent is unlinked.
+  grep -q 'sweep の無い correctness・rules・portability は.*claudecode/agents/<名前>.md' <<<"$full"
   for agent in review-correctness review-rules review-portability review-refactor review-tests review-security \
     review-speed; do
     want=sonnet

@@ -22,6 +22,7 @@ description: いま居る repo の commit（か、これから開く PR の題�
 3. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 4. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
    ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
+   sweep の無い correctness・rules・portability は、subagent にこの repo の `claudecode/agents/<名前>.md` を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。
 
 ## 再確認
 

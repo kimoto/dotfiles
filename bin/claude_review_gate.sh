@@ -12,7 +12,7 @@
 #     push carries, are checked against the rules.
 #   mark <repo-dir> <session-id>: record that the branch's HEAD is reviewed.
 #
-# Each stop happens once per HEAD (or once per branch for a PR): pushing or
+# Each stop happens once per HEAD (for a PR, once per repo and branch tip): pushing or
 # creating again goes through, so a change that needs no review costs one
 # retry. The agent can still mark without reviewing; what the gate rules out is
 # skipping review by not remembering it.
