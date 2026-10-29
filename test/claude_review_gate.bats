@@ -234,7 +234,7 @@ with_remote() {
 
 @test "the same branch name in two repos keeps two marks" {
   git init -q -b main "$TMP/other"
-  git -C "$TMP/other" commit -q --allow-empty -m init
+  git -C "$TMP/other" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
   git -C "$REPO" switch -q main
   "$GATE" mark "$REPO" s1
   "$GATE" mark "$TMP/other" s1
@@ -246,7 +246,7 @@ with_remote() {
   pre_bash "gh pr create --fill"
   [ "$(decision)" = deny ]
   git init -q -b feat/x "$TMP/other"
-  git -C "$TMP/other" commit -q --allow-empty -m init
+  git -C "$TMP/other" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
   pre_bash "gh pr create --fill" "$TMP/other"
   [ "$(decision)" = deny ]
 }
