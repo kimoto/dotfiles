@@ -115,6 +115,8 @@ EOF
   mkdir -p "$TMP/home/.local/share/desktop-translate"
   CONFIG="$TMP/home/.local/share/desktop-translate/config.toml"
   STYLE="$TMP/home/.local/share/desktop-translate/style.md"
+  LAST_REWRITE="$TMP/home/.local/share/desktop-translate/last-rewrite.json"
+  EDITS="$TMP/home/.local/share/desktop-translate/rewrite-edits.jsonl"
   export CLIPBOARD="$TMP/clipboard"
   export PATH="$TMP/bin:$PATH" PYTHONPATH="$TMP/py" STUB_KEYCHAIN=sk-from-keychain HOME="$TMP/home"
 }
@@ -379,4 +381,67 @@ request_system() {
   [[ "$(request_text)" == "Proofread this."*"明日わ休みです" ]]
   [[ "$(request_system)" == *"Change nothing else"* ]]
   [[ "$(request_system)" != *"Style guide"* ]]
+}
+
+# Edits to a rewrite: what the user changed in the popup before copying it is
+# kept on the machine, and the latest few go back in as examples.
+
+mode_of() {
+  python3 -c 'import os, sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$1"
+}
+
+# record_edit NOTES DRAFT FINAL: one logged edit, as the popup would leave it.
+record_edit() {
+  printf '{"notes": "%s", "draft": "%s"}' "$1" "$2" >"$LAST_REWRITE"
+  printf '%s' "$3" | python3 "$SCRIPT" --record-edit
+}
+
+@test "--rewrite leaves its notes and draft for --record-edit, readable only by the user" {
+  run python3 "$SCRIPT" --quiet --rewrite "明日 MTG 16時"
+  [ "$status" -eq 0 ]
+  python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+assert d == {"notes": "明日 MTG 16時", "draft": "TRANSLATED"}, d
+' "$LAST_REWRITE"
+  [ "$(mode_of "$LAST_REWRITE")" = 0o600 ]
+}
+
+@test "--record-edit logs notes, draft and the edited text, readable only by the user" {
+  python3 "$SCRIPT" --quiet --rewrite "明日 MTG 16時"
+  run bash -c 'printf "・明日の定例は16時からです" | python3 "$0" --record-edit' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  python3 -c '
+import json, sys
+lines = open(sys.argv[1]).read().splitlines()
+want = [{"notes": "明日 MTG 16時", "draft": "TRANSLATED", "final": "・明日の定例は16時からです"}]
+assert [json.loads(l) for l in lines] == want, lines
+' "$EDITS"
+  [ "$(mode_of "$EDITS")" = 0o600 ]
+}
+
+@test "--record-edit logs nothing when the draft went out unchanged" {
+  python3 "$SCRIPT" --quiet --rewrite "hello"
+  run bash -c 'printf "TRANSLATED\n" | python3 "$0" --record-edit' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ ! -e "$EDITS" ]
+}
+
+@test "--record-edit with no rewrite before it logs nothing" {
+  run bash -c 'printf "edited" | python3 "$0" --record-edit' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ ! -e "$EDITS" ]
+}
+
+@test "--rewrite shows the latest five edits as examples, and none for a translation or a reply" {
+  for i in 1 2 3 4 5 6 7; do record_edit "notes$i" "draft$i" "final$i"; done
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [ "$status" -eq 0 ]
+  [[ "$(request_system)" == *"final3"*"final7"* ]]
+  [[ "$(request_system)" != *"final2"* ]]
+  run python3 "$SCRIPT" --quiet "hello"
+  [[ "$(request_system)" != *"final7"* ]]
+  echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --reply "hello"
+  [[ "$(request_system)" != *"final7"* ]]
 }

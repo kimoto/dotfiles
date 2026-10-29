@@ -54,11 +54,18 @@ greetings, emoji, line breaks) and a few real messages of theirs. It stays on
 the machine because it is the user's own writing, and this repo is public.
 Without it, --rewrite tidies the notes into polite bullet points that a reader
 who did not write them can follow, and --reply fails rather than guess a voice.
+
+A rewrite edited in the popup before copying is logged, with its notes and
+draft, in ~/.local/share/desktop-translate/rewrite-edits.jsonl (--record-edit;
+last-rewrite.json holds the one being edited). Both are readable only by the
+user and outside any repository: they hold real messages. The latest few
+edits go to the API with each rewrite, as examples of what the user changes.
 """
 
 import argparse
 import base64
 import contextlib
+import json
 import os
 import subprocess
 import sys
@@ -75,6 +82,10 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
 STYLE = Path.home() / ".local/share/desktop-translate/style.md"
+LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
+REWRITE_EDITS = Path.home() / ".local/share/desktop-translate/rewrite-edits.jsonl"
+# Enough to show the user's habits; every one goes out with each rewrite.
+EXAMPLE_EDITS = 5
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -124,16 +135,20 @@ class Task:
     title: str  # the dialog's title
     empty: str  # what fail() says when there is no text
     plain_voice: str | None = None  # the voice without a style file; None fails instead
+    learns_edits: bool = False  # the popup's edits to it come back as examples
 
 
 TASKS = {
     "rewrite": Task(REWRITE_SYSTEM, "Rewrite these notes as one message.", True, "清書",
-                    "書き換える文がありません。", plain_voice=REWRITE_PLAIN_VOICE),
+                    "書き換える文がありません。", plain_voice=REWRITE_PLAIN_VOICE, learns_edits=True),
     "reply": Task(REPLY_SYSTEM, "Draft my reply to this message.", True, "返信案",
                   "返信する相手のメッセージがありません。"),
     "summarize": Task(SUMMARY_SYSTEM, "Summarize this.", False, "要約", "要約する文がありません。"),
     "proofread": Task(PROOFREAD_SYSTEM, "Proofread this.", False, "誤字チェック", "見直す文がありません。"),
 }
+
+EDITS_INTRO = ("Earlier drafts and what the user sent instead. Follow the preferences these edits "
+               "show; never reuse their content:\n\n")
 
 
 def load_config() -> dict:
@@ -192,10 +207,56 @@ def task_system_prompt(task: Task) -> str:
     if not task.needs_style:
         return task.system
     if STYLE.exists():
-        return task.system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
-    if task.plain_voice:
-        return task.system + "\n" + task.plain_voice
-    fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
+        prompt = task.system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
+    elif task.plain_voice:
+        prompt = task.system + "\n" + task.plain_voice
+    else:
+        fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
+    edits = recent_edits() if task.learns_edits else []
+    if edits:
+        prompt += "\n\n" + EDITS_INTRO + "\n\n".join(
+            f"Notes:\n{e['notes']}\nDraft:\n{e['draft']}\nWhat the user sent instead:\n{e['final']}"
+            for e in edits)
+    return prompt
+
+
+def write_private(path: Path, text: str, append: bool = False) -> None:
+    """Write a file only the user can read: it holds their own messages."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if append else os.O_TRUNC), 0o600)
+    os.fchmod(fd, 0o600)  # a file that already existed keeps its old mode otherwise
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def recent_edits() -> list[dict]:
+    if not REWRITE_EDITS.exists():
+        return []
+    edits = []
+    for line in REWRITE_EDITS.read_text(encoding="utf-8").splitlines()[-EXAMPLE_EDITS:]:
+        with contextlib.suppress(json.JSONDecodeError):
+            edit = json.loads(line)
+            if {"notes", "draft", "final"} <= edit.keys():
+                edits.append(edit)
+    return edits
+
+
+def record_edit(final: str) -> None:
+    """Pair the text the user copied from the popup with the rewrite it came from.
+
+    Quiet when there is nothing to learn: no rewrite before it, or the draft
+    went out as it was.
+    """
+    final = final.strip()
+    try:
+        last = json.loads(LAST_REWRITE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+    draft = str(last.get("draft", "")).strip()
+    if not final or final == draft:
+        return
+    entry = {"notes": last.get("notes", ""), "draft": draft, "final": final}
+    write_private(REWRITE_EDITS, json.dumps(entry, ensure_ascii=False) + "\n", append=True)
+
 
 
 def system_prompt() -> str:
@@ -383,9 +444,15 @@ def main() -> None:
                         help="fix typos and wrong words, nothing else")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
+    p.add_argument("--record-edit", action="store_true",
+                   help="log the last rewrite as the user edited it (the edited text on stdin)")
     args = p.parse_args()
     if args.task and args.to:
         p.error(f"--{args.task} keeps the language; it does not take --to")
+
+    if args.record_edit:
+        record_edit(sys.stdin.read())
+        return
 
     if args.task:
         task = TASKS[args.task]
@@ -394,7 +461,10 @@ def main() -> None:
         if not text.strip():
             fail(task.empty)
         content = [{"type": "text", "text": f"{task.instruction}\n\n{text}"}]
-        show(translate(content, system), args.quiet, task.title)
+        result = translate(content, system)
+        if task.learns_edits:
+            write_private(LAST_REWRITE, json.dumps({"notes": text.strip(), "draft": result}, ensure_ascii=False))
+        show(result, args.quiet, task.title)
         return
 
     if args.screen or args.image:
