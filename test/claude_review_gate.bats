@@ -5,7 +5,7 @@
 # commits after the last mark is sent back to re-check them.
 
 setup() {
-  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd -P)"
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
@@ -66,15 +66,38 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   r="$(reason)"
   [[ "$r" == *"review-correctness"* ]]
   [[ "$r" == *"review-rules"* ]]
-  for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-    [[ "$r" == *"skills/$sweep/SKILL.md"* ]]
+  for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
+    review-speed:bottleneck-sweep; do
+    agent=${pair%%:*} sweep=${pair#*:}
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want;"* || \
+      "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want."* ]]
+    grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  [ -f "$REPO_ROOT/claudecode/agents/review-correctness.md" ]
-  [ -f "$REPO_ROOT/claudecode/agents/review-rules.md" ]
   [[ "$r" == *"run_in_background"* ]]
+  for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
+    want=sonnet
+    [ "$agent" != review-security ] || want=opus
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
+  done
+  for agent in review-correctness review-refactor review-tests review-security review-speed; do
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
+  done
   [[ "$r" == *"not your reasoning"* ]]
-  [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
+  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+}
+
+@test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
+  mkdir -p "$HOME/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
+  pre_bash "gh pr create --fill"
+  r="$(reason)"
+  [[ "$r" == *"the review-security subagent"* ]]
+  [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
+  [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
 }
 
 @test "once marked, the create goes through" {
@@ -124,7 +147,7 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [[ "$r" == *"$marked..feat/x"* ]]
   [[ "$r" == *"earlier findings"* ]]
   [[ "$r" == *"not why you dismissed"* ]]
-  [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
+  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
 @test "the re-check stops after two rounds, and never blocks twice in a row" {
@@ -144,6 +167,50 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ -z "$output" ]
 }
 
+@test "a re-check is asked once per new commit, not at every stop while it runs" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  stop
+  [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m again
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+}
+
+@test "an ask left unanswered is repeated once the reviewer would have finished" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  f="$XDG_STATE_HOME/claude-review-asked/feat%x"
+  read -r sha _ <"$f"
+  printf '%s %s 1\n' "$sha" "$(($(date +%s) - 601))" >"$f"
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  read -r sha _ n <"$f"
+  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
+  stop
+  [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m again
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  read -r sha _ n <"$f"
+  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+}
+
+@test "a branch named like the ask store still gets its re-check" {
+  git -C "$REPO" switch -q -c asked
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+}
+
 @test "a deleted branch drops its mark" {
   "$GATE" mark "$REPO" s1
   git -C "$REPO" switch -q main
@@ -151,6 +218,17 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   stop
   [ -z "$output" ]
   [ -z "$(ls "$XDG_STATE_HOME/claude-review")" ]
+}
+
+@test "a deleted branch drops its ask too" {
+  "$GATE" mark "$REPO" s1
+  git -C "$REPO" commit -q --allow-empty -m more
+  stop
+  [ -n "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
+  git -C "$REPO" switch -q main
+  git -C "$REPO" branch -q -D feat/x
+  stop
+  [ -z "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
 }
 
 @test "install registers the gate before PR creation and on Stop, and uninstall removes it" {
