@@ -17,10 +17,11 @@ local POPUP_WIDTH = 520
 local POPUP_START_HEIGHT = 120
 local POPUP_MAX_HEIGHT = 640
 -- The popup's title for each job; translate.py --rewrite is the one that
--- keeps the language and changes the voice.
+-- keeps the language and changes the voice. A rewrite can be edited in the
+-- popup, and the edit is what translate.py learns the user's preferences from.
 local MODES = {
-   translate = { title = "翻訳" },
-   rewrite = { title = "清書" },
+   translate = { title = "翻訳", editable = false },
+   rewrite = { title = "清書", editable = true },
 }
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
@@ -54,6 +55,8 @@ button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; f
 main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto;
   max-height: 560px; -webkit-user-select: text; cursor: text; }
 main.error { color: var(--err); font-size: 13px; }
+main[contenteditable="plaintext-only"] { outline: none; }
+main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
@@ -65,17 +68,21 @@ main.error { color: var(--err); font-size: 13px; }
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
+const editable = {{EDITABLE}};
+const t = document.getElementById('text');
+t.oninput = fit;
 function update(text, status, kind) {
-  const t = document.getElementById('text');
   t.textContent = text;
   t.className = kind === 'error' ? 'error' : '';
+  // Only a finished answer: an edit mid-stream would be overwritten by the next words.
+  t.contentEditable = editable && kind === 'done' ? 'plaintext-only' : 'false';
   const s = document.getElementById('status');
   s.textContent = status;
   s.className = 'status ' + kind;
   fit();
 }
 document.getElementById('close').onclick = () => post({ close: true });
-document.getElementById('copy').onclick = () => post({ copy: true });
+document.getElementById('copy').onclick = () => post({ copy: true, text: t.innerText });
 post({ ready: true });
 </script></body></html>
 ]]
@@ -111,6 +118,17 @@ local function fitPopup(height)
    translatePopup:frame(f)
 end
 
+-- Global, like translateTask below: a task nothing else refers to can be
+-- collected before it has read its input.
+translateEditTask = nil
+local function recordEdit(text)
+   translateEditTask = hs.task.new(PYTHON, nil, { SCRIPT, "--record-edit" })
+   if not translateEditTask then return end
+   -- Input first: given after start(), it never reaches the child's stdin.
+   translateEditTask:setInput(text)
+   if translateEditTask:start() then translateEditTask:closeInput() end
+end
+
 local function openPopup(mode)
    closePopup()
    popup = { text = "", status = "", kind = "busy", ready = false }
@@ -123,8 +141,12 @@ local function openPopup(mode)
       elseif body.height then
          fitPopup(body.height)
       elseif body.copy then
-         hs.pasteboard.setContents(popup.text)
-         setPopup(popup.text, "コピーしました", "done")
+         -- An editable page hands back a trailing newline the draft never had.
+         local text = (body.text or popup.text):gsub("%s+$", "")
+         hs.pasteboard.setContents(text)
+         local edited = mode.editable and popup.kind == "done" and text ~= popup.text
+         if edited then recordEdit(text) end
+         setPopup(text, edited and "直しを記録してコピーしました" or "コピーしました", "done")
       elseif body.close then
          closePopup()
       end
@@ -136,10 +158,12 @@ local function openPopup(mode)
    local y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
    translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = POPUP_START_HEIGHT }, {}, content)
       :windowStyle({ "borderless", "nonactivating" })
+      -- Lets a click give the popup the keyboard, so a rewrite can be edited.
+      :allowTextEntry(mode.editable)
       :transparent(true)
       :shadow(true)
       :level(hs.drawing.windowLevels.floating)
-      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title)))
+      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{EDITABLE}}", tostring(mode.editable))))
       :show()
    -- Borderless windows never get key focus, so Esc is watched globally while
    -- the popup is up, and still let through: the app in front (nvim, a

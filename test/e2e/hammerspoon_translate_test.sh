@@ -22,7 +22,8 @@
 # program running there — an Esc interrupts a Claude Code session mid-turn.
 #
 # The rewrite uses the user's style file if there is one, and is never handed
-# one by the test. The clipboard is put back on exit; the document is closed
+# one by the test. The edit log keeps only the user's own lines, and the
+# clipboard and the last rewrite are put back on exit; the document is closed
 # unsaved.
 #
 # shellcheck disable=SC2329  # the predicates run through expect, by name.
@@ -48,6 +49,10 @@ NOTES="・明日の定例 15時→16時に変更
 ・資料は今日中に共有する
 ・欠席なら連絡ほしい"
 SENTINEL="hammerspoon-e2e-sentinel"
+EDIT_SUFFIX="（e2e の追記）"
+DATA="$HOME/.local/share/desktop-translate"
+EDITS="$DATA/rewrite-edits.jsonl"
+LAST_REWRITE="$DATA/last-rewrite.json"
 # screencapture writes a movie only when its time limit runs out — a signal
 # loses it — so each case is recorded for a fixed length and waited out.
 CASE_SECONDS=15
@@ -58,6 +63,19 @@ printf '%s\n' "$SOURCE" >"$TMP/$DOC"
 pbpaste >"$TMP/clipboard"
 textedit_was_running=""
 pgrep -x TextEdit >/dev/null && textedit_was_running=1
+# The edit log and the last rewrite hold the user's real messages; the test's
+# own lines come out again, and the last rewrite is put back as it was.
+edits_before=0
+[ -f "$EDITS" ] && edits_before=$(wc -l <"$EDITS" | tr -d ' ')
+[ -f "$LAST_REWRITE" ] && cp -p "$LAST_REWRITE" "$TMP/last-rewrite.json"
+restore_user_data() {
+  if [ -f "$EDITS" ]; then
+    if [ "$edits_before" -eq 0 ]; then rm -f "$EDITS"
+    else head -n "$edits_before" "$EDITS" >|"$TMP/edits" && cat "$TMP/edits" >|"$EDITS"; fi
+  fi
+  if [ -f "$TMP/last-rewrite.json" ]; then cp -p "$TMP/last-rewrite.json" "$LAST_REWRITE"
+  else rm -f "$LAST_REWRITE"; fi
+}
 recorder=""
 end_case() {
   [ -n "$recorder" ] || return 0
@@ -70,6 +88,7 @@ cleanup() {
     >/dev/null 2>&1 || true
   # ⇧⌘C opens TextEdit's Colors panel; quitting takes it along.
   [ -n "$textedit_was_running" ] || osascript -e 'tell application "TextEdit" to quit' >/dev/null 2>&1 || true
+  restore_user_data
   pbcopy <"$TMP/clipboard"
   rm -rf "$TMP"
 }
@@ -107,6 +126,18 @@ keys() {
     -e 'if f is not "TextEdit" then error "refusing to send keys: " & f & " is in front"' \
     "${lines[@]}" >/dev/null
 }
+# keys_in_place LINES...: the same check without bringing TextEdit forward,
+# for keys meant for the popup: activating TextEdit would take the keyboard
+# back from it. The popup never makes Hammerspoon frontmost, so TextEdit in
+# front still means the terminal is not.
+keys_in_place() {
+  local lines=() line
+  for line in "$@"; do lines+=(-e "$line"); done
+  osascript \
+    -e 'tell application "System Events" to set f to name of first process whose frontmost is true' \
+    -e 'if f is not "TextEdit" then error "refusing to send keys: " & f & " is in front"' \
+    "${lines[@]}" >/dev/null
+}
 se() { printf 'tell application "System Events" to %s' "$1"; }
 SELECT_ALL="$(se 'keystroke "a" using command down')"
 COPY="$(se 'keystroke "c" using command down')"
@@ -130,6 +161,21 @@ has_japanese() {
   perl -CS -Mutf8 -ne 'BEGIN { $f = 1 } $f = 0 if /[\p{Hiragana}\p{Katakana}\p{Han}]/; END { exit $f }'
 }
 running() { pgrep -f 'screencapture -i|translate.py' >/dev/null; }
+# popup_frame: "x y w h" of the popup window, in global points.
+popup_frame() {
+  osascript -e 'tell application "System Events" to tell process "Hammerspoon" to get {position, size} of windows' |
+    tr -d ' ' | tr ',' '\n' | paste - - - - |
+    awk -v w="$POPUP_WIDTH" '$3 >= w - 1 && $3 <= w + 1 { print $1, $2, $3, $4; exit }'
+}
+# click X Y: a drag that goes nowhere.
+click() { swift "$DIR/mouse_drag.swift" "$1" "$2" "$1" "$2"; }
+edits_logged() { [ -f "$EDITS" ] && wc -l <"$EDITS" | tr -d ' ' || echo 0; }
+edit_was_logged() {
+  [ "$(edits_logged)" -eq $((edits_before + 1)) ] &&
+    tail -n 1 "$EDITS" |
+    python3 -c 'import json, sys; sys.exit(not json.load(sys.stdin)["final"].endswith(sys.argv[1]))' "$EDIT_SUFFIX"
+}
+clipboard_ends_with_edit() { [[ "$(pbpaste)" == *"$EDIT_SUFFIX" ]]; }
 
 clipboard_is() { [ "$(pbpaste)" = "$1" ]; }
 clipboard_is_sentinel() { clipboard_is "$SENTINEL"; }
@@ -260,6 +306,20 @@ printf '%s' "$SENTINEL" | pbcopy
 keys "$SELECT_ALL" "$REWRITE_SELECTION"
 expect "clipboard holds a Japanese message, not the notes" rewritten_in_japanese
 expect "popup is open" popups_are 1
+snapshot
+
+begin_case rewrite-edited "an edited rewrite is copied as edited, and logged"
+read -r PX PY PW PH < <(popup_frame)
+click $((PX + PW / 2)) $((PY + PH - 24))   # into the text, at its end
+# Pasted, not typed: typing into the popup goes through the input method,
+# which leaves the words unconfirmed.
+printf '%s' "$EDIT_SUFFIX" | pbcopy
+keys_in_place "$(se 'key code 125 using command down')" "$(se 'keystroke "v" using command down')"   # ⌘↓, ⌘V
+sleep 0.5
+click $((PX + PW - 57)) $((PY + 21))   # the copy button
+sleep 2
+expect "clipboard holds the edited message" clipboard_ends_with_edit
+expect "the edit is logged" edit_was_logged
 snapshot
 close_popup
 end_case

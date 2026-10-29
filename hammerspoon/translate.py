@@ -48,11 +48,18 @@ user writes (endings, greetings, emoji, line breaks) and a few real messages
 of theirs. It stays on the machine because it is the user's own writing, and
 this repo is public. Without it, --rewrite tidies the notes into polite
 bullet points that a reader who did not write them can follow.
+
+A rewrite edited in the popup before copying is logged, with its notes and
+draft, in ~/.local/share/desktop-translate/rewrite-edits.jsonl (--record-edit;
+last-rewrite.json holds the one being edited). Both are readable only by the
+user and outside any repository: they hold real messages. The latest few
+edits go to the API with each rewrite, as examples of what the user changes.
 """
 
 import argparse
 import base64
 import contextlib
+import json
 import os
 import subprocess
 import sys
@@ -68,6 +75,10 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
 STYLE = Path.home() / ".local/share/desktop-translate/style.md"
+LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
+REWRITE_EDITS = Path.home() / ".local/share/desktop-translate/rewrite-edits.jsonl"
+# Enough to show the user's habits; every one goes out with each rewrite.
+EXAMPLE_EDITS = 5
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -91,6 +102,9 @@ REWRITE_PLAIN_VOICE = ("Keep it as bullet points, one point each, in short polit
                        "the notes do not ask for.")
 
 REWRITE_INSTRUCTION = "Rewrite these notes as one message."
+
+EDITS_INTRO = ("Earlier drafts and what the user sent instead. Follow the preferences these edits "
+               "show; never reuse their content:\n\n")
 
 
 def load_config() -> dict:
@@ -146,9 +160,54 @@ def instruction(target: str) -> str:
 
 
 def rewrite_system_prompt() -> str:
-    if not STYLE.exists():
-        return REWRITE_SYSTEM + "\n" + REWRITE_PLAIN_VOICE
-    return REWRITE_SYSTEM + "\n" + REWRITE_VOICE + STYLE.read_text(encoding="utf-8").strip()
+    if STYLE.exists():
+        prompt = REWRITE_SYSTEM + "\n" + REWRITE_VOICE + STYLE.read_text(encoding="utf-8").strip()
+    else:
+        prompt = REWRITE_SYSTEM + "\n" + REWRITE_PLAIN_VOICE
+    edits = recent_edits()
+    if edits:
+        prompt += "\n\n" + EDITS_INTRO + "\n\n".join(
+            f"Notes:\n{e['notes']}\nDraft:\n{e['draft']}\nWhat the user sent instead:\n{e['final']}"
+            for e in edits)
+    return prompt
+
+
+def write_private(path: Path, text: str, append: bool = False) -> None:
+    """Write a file only the user can read: it holds their own messages."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if append else os.O_TRUNC), 0o600)
+    os.fchmod(fd, 0o600)  # a file that already existed keeps its old mode otherwise
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def recent_edits() -> list[dict]:
+    if not REWRITE_EDITS.exists():
+        return []
+    edits = []
+    for line in REWRITE_EDITS.read_text(encoding="utf-8").splitlines()[-EXAMPLE_EDITS:]:
+        with contextlib.suppress(json.JSONDecodeError):
+            edit = json.loads(line)
+            if {"notes", "draft", "final"} <= edit.keys():
+                edits.append(edit)
+    return edits
+
+
+def record_edit(final: str) -> None:
+    """Pair the text the user copied from the popup with the rewrite it came from.
+
+    Quiet when there is nothing to learn: no rewrite before it, or the draft
+    went out as it was.
+    """
+    final = final.strip()
+    try:
+        last = json.loads(LAST_REWRITE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+    draft = str(last.get("draft", "")).strip()
+    if not final or final == draft:
+        return
+    entry = {"notes": last.get("notes", ""), "draft": draft, "final": final}
+    write_private(REWRITE_EDITS, json.dumps(entry, ensure_ascii=False) + "\n", append=True)
 
 
 def system_prompt() -> str:
@@ -329,9 +388,15 @@ def main() -> None:
     source.add_argument("--rewrite", action="store_true", help="rewrite notes as a message in the user's style")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
+    p.add_argument("--record-edit", action="store_true",
+                   help="log the last rewrite as the user edited it (the edited text on stdin)")
     args = p.parse_args()
     if args.rewrite and args.to:
         p.error("--rewrite keeps the language; it does not take --to")
+
+    if args.record_edit:
+        record_edit(sys.stdin.read())
+        return
 
     if args.rewrite:
         system = rewrite_system_prompt()
@@ -339,7 +404,9 @@ def main() -> None:
         if not text.strip():
             fail("書き換える文がありません。")
         content = [{"type": "text", "text": f"{REWRITE_INSTRUCTION}\n\n{text}"}]
-        show(translate(content, system), args.quiet, "清書")
+        draft = translate(content, system)
+        write_private(LAST_REWRITE, json.dumps({"notes": text.strip(), "draft": draft}, ensure_ascii=False))
+        show(draft, args.quiet, "清書")
         return
 
     if args.screen or args.image:
