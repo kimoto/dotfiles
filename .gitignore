@@ -92,6 +92,7 @@ claudecode/skills/*
 !claudecode/skills/project-goal/
 !claudecode/skills/prune-sweep/
 !claudecode/skills/refactor-sweep/
+!claudecode/skills/review-branch/
 !claudecode/skills/security-audit/
 !claudecode/skills/session-resume/
 !claudecode/skills/test-sweep/

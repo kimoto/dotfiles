@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for bin/claude_review_gate.sh: a push carrying unreviewed commits is
-# stopped once for a code review, commits after a mark are re-checked at the
+# stopped once for a code review, commits after a mark are stopped again at the
 # next push, and the first PR create on a branch is stopped once for its text.
 
 setup() {
@@ -12,6 +12,7 @@ setup() {
   unset CLAUDE_CODE_REMOTE
   GATE="$REPO_ROOT/bin/claude_review_gate.sh"
   INSTALLER="$REPO_ROOT/bin/install_claude_review_gate.sh"
+  SKILL="$REPO_ROOT/claudecode/skills/review-branch/SKILL.md"
   # Resolved, so paths match what git prints (macOS mktemp gives /var, git /private/var).
   TMP="$(cd "$(mktemp -d)" && pwd -P)"
   export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
@@ -70,31 +71,55 @@ with_remote() {
   [ "$(decision)" = deny ]
   r="$(reason)"
   [[ "$r" == *"publishes 2 commit(s) on feat/x"* ]]
-  [[ "$r" == *"review-correctness"* ]]
-  [[ "$r" == *"review-rules subagent, for the commit messages"* ]]
+  [[ "$r" == *"the review-branch skill ($SKILL)"* ]]
+  [[ "$r" == *"\`$GATE mark $REPO s1\`"* ]]
+  [[ "$r" == *"push again"* ]]
+}
+
+@test "the review-branch skill names every reviewer, and each exists as pinned" {
+  full=$(sed -n '/^## 全体のレビュー/,/^## 終わったら/p' "$SKILL")
+  # Codex is added beside correctness, never instead of it.
+  grep -q '^1\. \*\*正しさ\*\*: `review-correctness` agent。$' <<<"$full"
+  grep -q '^2\. \*\*Codex\*\*: .*codex-companion.mjs review --base' <<<"$full"
+  # Without Codex, a second correctness reviewer that reads differently takes its place.
+  grep -q '^2\. \*\*Codex\*\*: .*無い環境では、代わりに `review-correctness-checklist` agent。' <<<"$full"
+  grep -q '`review-rules` agent' <<<"$full"
+  grep -q 'codex-companion.mjs review --base' <<<"$full"
+  grep -q 'run_in_background' <<<"$full"
+  # One subagent runs them all and returns one report, so the main session reads one result.
+  grep -q 'まとめ役' <<<"$full"
+  grep -q 'どの係が出したか' <<<"$full"
+  grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
+  grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
-    want=sonnet
-    [ "$agent" != review-security ] || want=opus
-    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want;"* || \
-      "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want."* ]]
+    grep -q "\`$agent\`" <<<"$full"
+    want=$(sed -n '2,/^---$/s/^model: //p' "$REPO_ROOT/claudecode/agents/$agent.md")
+    grep -q "${agent#review-} → $sweep（$want）" <<<"$full"
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  [[ "$r" == *"run_in_background"* ]]
-  for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
+  grep -q '`review-portability` agent' <<<"$full"
+  # A reviewer with no sweep still has a fallback where its agent is unlinked.
+  grep -q 'sweep の無い correctness・correctness-checklist・rules・portability は.*dotfiles の `claudecode/agents/<名前>.md`' \
+    <<<"$full"
+  for agent in review-correctness review-correctness-checklist review-rules review-portability review-refactor \
+    review-tests review-security review-speed; do
     want=sonnet
-    [ "$agent" != review-security ] || want=opus
+    case $agent in review-security | review-correctness) want=opus ;; esac
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
-    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
+    tools='Read, Grep, Glob, Bash'
+    # The correctness reviewer runs the bundled /code-review, so it needs Skill.
+    [ "$agent" != review-correctness ] || tools="$tools, Skill"
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "tools: $tools"
+    # Pinned, not inherited from whatever the calling session runs at.
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'effort: medium'
   done
-  for agent in review-correctness review-refactor review-tests review-security review-speed; do
+  for agent in review-correctness review-correctness-checklist review-portability review-refactor review-tests \
+    review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
-  [[ "$r" == *"not your reasoning"* ]]
-  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
-  [[ "$r" == *"push again"* ]]
 }
 
 @test "the same HEAD is stopped once; a new commit is stopped again" {
@@ -128,55 +153,62 @@ with_remote() {
 @test "git -C names the repo, wherever the session stands" {
   pre_bash "git -C '$REPO' push" "$TMP"
   [ "$(decision)" = deny ]
-  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$(reason)" == *"\`$GATE mark $REPO s1\`"* ]]
 }
 
-@test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
-  mkdir -p "$HOME/.claude/agents"
-  ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
+@test "a machine that has linked the skill is pointed at its linked copy" {
+  mkdir -p "$HOME/.claude/skills"
+  ln -s "$REPO_ROOT/claudecode/skills/review-branch" "$HOME/.claude/skills/review-branch"
   pre_bash "git push"
-  r="$(reason)"
-  [[ "$r" == *"the review-security subagent"* ]]
-  [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
-  [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
+  [[ "$(reason)" == *"the review-branch skill ($HOME/.claude/skills/review-branch/SKILL.md)"* ]]
 }
 
-@test "with Codex enabled, Codex takes correctness" {
-  mkdir -p "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts"
-  touch "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts/codex-companion.mjs"
-  jq -n '{enabledPlugins: {"codex@openai-codex": true}}' >"$SETTINGS"
-  pre_bash "git push"
-  [[ "$(reason)" == *"codex-companion.mjs\" review --base"* ]]
-  [[ "$(reason)" != *"review-correctness"* ]]
-  git -C "$REPO" commit -q --allow-empty -m more
-  CLAUDE_CODE_REMOTE=true pre_bash "git push"
-  [[ "$(reason)" == *"review-correctness"* ]]
-}
-
-@test "commits after the mark are re-checked at the next push, with the earlier findings" {
+@test "commits after the mark are stopped at the next push, named from the mark" {
   "$GATE" mark "$REPO" s1
   marked="$(git -C "$REPO" rev-parse HEAD)"
   git -C "$REPO" commit -q --allow-empty -m fix
   pre_bash "git push"
   [ "$(decision)" = deny ]
   r="$(reason)"
-  [[ "$r" == *"$marked..feat/x"* ]]
-  [[ "$r" == *"earlier findings"* ]]
-  [[ "$r" == *"not why you dismissed"* ]]
-  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"1 commit(s) on feat/x that no review has seen"* ]]
+  [[ "$r" == *"log $marked..feat/x --not --remotes"* ]]
+  [[ "$r" == *"\`$GATE mark $REPO s1\`"* ]]
+  # How widely to look is the agent's call, and the skill says so.
+  grep -q '最終的な差分を通しで' "$SKILL"
 }
 
-@test "the re-check stops after two rounds" {
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m one
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m two
+@test "new commits are stopped however many marks came before" {
+  for n in 1 2 3; do
+    "$GATE" mark "$REPO" s1
+    git -C "$REPO" commit -q --allow-empty -m "c$n"
+    pre_bash "git push"
+    [ "$(decision)" = deny ]
+  done
+}
+
+@test "a branch name with shell syntax is quoted in the command to paste" {
+  git -C "$REPO" switch -q -c 'x$(id)'
   pre_bash "git push"
-  [ "$(decision)" = deny ]
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m three
+  [[ "$(reason)" == *'log x\$\(id\) --not --remotes'* ]]
+}
+
+@test "a mark without a session survives a mark made in another repo" {
+  "$GATE" mark "$REPO"
+  git init -q -b main "$TMP/third"
+  git -C "$TMP/third" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+  (cd "$TMP/third" && "$GATE" mark "$TMP/third" s1)
   pre_bash "git push"
   [ -z "$output" ]
+}
+
+@test "a repo path with a quote is quoted in the commands to paste" {
+  q="$TMP/it's"
+  git init -q -b main "$q"
+  git -C "$q" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+  pre_bash "git push" "$q"
+  r="$(reason)"
+  [[ "$r" == *"git -C $(printf '%q' "$q") log main"* ]]
+  [[ "$r" == *"mark $(printf '%q' "$q") s1"* ]]
 }
 
 @test "a mark left behind by a rebase gives a full review again" {
@@ -190,9 +222,10 @@ with_remote() {
   pre_bash "gh pr create --fill"
   [ "$(decision)" = deny ]
   r="$(reason)"
-  [[ "$r" == *"review-rules"* ]]
   [[ "$r" == *"title and body"* ]]
-  [[ "$r" != *"review-correctness"* ]]
+  [[ "$r" == *"under PR の題と本文"* ]]
+  grep -q '^## PR の題と本文' "$SKILL"
+  sed -n '/^## PR の題と本文/,$p' "$SKILL" | grep -q '`review-rules` agent'
   pre_bash "gh pr create --fill"
   [ -z "$output" ]
 }
@@ -251,7 +284,7 @@ with_remote() {
   [ "$(decision)" = deny ]
 }
 
-@test "commits pulled in after the mark are not re-checked" {
+@test "commits pulled in after the mark are not counted" {
   with_remote feat/x
   "$GATE" mark "$REPO" s1
   git clone -q -b feat/x "$TMP/remote.git" "$TMP/peer"
@@ -334,7 +367,8 @@ with_remote() {
   [ "$status" -eq 0 ]
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
-  ! jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
+  run jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS"
+  [ "$status" -ne 0 ]
   first="$(cat "$SETTINGS")"
   "$INSTALLER"
   [ "$(cat "$SETTINGS")" = "$first" ]
