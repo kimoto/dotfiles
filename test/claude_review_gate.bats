@@ -69,7 +69,7 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
-    [[ "$r" == *"$agent"* ]]
+    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode"* ]]
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
@@ -82,6 +82,16 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
+}
+
+@test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
+  mkdir -p "$HOME/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
+  pre_bash "gh pr create --fill"
+  r="$(reason)"
+  [[ "$r" == *"the review-security subagent"* ]]
+  [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
+  [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
 }
 
 @test "once marked, the create goes through" {
