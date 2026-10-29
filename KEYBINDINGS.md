@@ -79,6 +79,7 @@ DeepL's keys, so the DeepL app's own shortcuts are turned off.
 | ⌘+C+C | Same (hold ⌘, press C twice) |
 | ⌘+⇧+C+C | Same, choosing the target language first |
 | ⌃+⌘+⇧+L | Region → translate the text in it |
+| ⌃+⌘+⇧+W | Rewrite the selected rough notes as a message in your own voice, into the same popup (your voice comes from `~/.local/share/desktop-translate/style.md`; plain and polite without it) |
 
 ---
 

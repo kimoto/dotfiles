@@ -11,6 +11,9 @@ Usage:
   translate.py --image foo.png      translate the text in an image file
   translate.py --to en "..."        fix the target language; by default
                                     Japanese becomes English, anything else Japanese
+  translate.py --rewrite --clipboard
+                                    rewrite rough notes as a message in the
+                                    user's own style (style file below)
   echo "..." | translate.py         stdin, when not --clipboard
 
 The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
@@ -39,11 +42,24 @@ exported ANTHROPIC_API_KEY also switches Claude Code to API billing.
 Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
 prompt. Not under ~/.config, which is this repo's config/.
+
+Optional: ~/.local/share/desktop-translate/style.md for --rewrite: how the
+user writes (endings, greetings, emoji, line breaks) and a few real messages
+of theirs. It stays on the machine because it is the user's own writing, and
+this repo is public. Without it, --rewrite tidies the notes into polite
+bullet points that a reader who did not write them can follow.
+
+A rewrite edited in the popup before copying is logged, with its notes and
+draft, in ~/.local/share/desktop-translate/rewrite-edits.jsonl (--record-edit;
+last-rewrite.json holds the one being edited). Both are readable only by the
+user and outside any repository: they hold real messages. The latest few
+edits go to the API with each rewrite, as examples of what the user changes.
 """
 
 import argparse
 import base64
 import contextlib
+import json
 import os
 import subprocess
 import sys
@@ -58,6 +74,11 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 # Thinking cannot be turned off on this model; low effort keeps the wait short.
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
+STYLE = Path.home() / ".local/share/desktop-translate/style.md"
+LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
+REWRITE_EDITS = Path.home() / ".local/share/desktop-translate/rewrite-edits.jsonl"
+# Enough to show the user's habits; every one goes out with each rewrite.
+EXAMPLE_EDITS = 5
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
@@ -65,6 +86,25 @@ SYSTEM = """You are a translation tool on the user's desktop. Output only the tr
 no preamble, no notes, no quotation marks around it. Keep the original line breaks,
 lists, code, URLs, file paths and product names as they are. Translate naturally
 rather than word for word."""
+
+REWRITE_SYSTEM = """You turn the user's rough notes into a chat message they will send as their own.
+Output only the message: no preamble, no notes, no quotation marks around it.
+Write in the language of the notes.
+Keep every point in the notes and add no facts that are not there: no dates, numbers,
+names, promises or apologies the notes do not give. Keep URLs, code and names as they are.
+"""
+
+REWRITE_VOICE = "Write in the user's voice as this style guide describes it:\n"
+# Without a style file: the user's own preference, bullets, made readable for
+# someone who did not write the notes, with no persona invented.
+REWRITE_PLAIN_VOICE = ("Keep it as bullet points, one point each, in short polite sentences that someone "
+                       "who did not write the notes can follow. No greeting, sign-off or request "
+                       "the notes do not ask for.")
+
+REWRITE_INSTRUCTION = "Rewrite these notes as one message."
+
+EDITS_INTRO = ("Earlier drafts and what the user sent instead. Follow the preferences these edits "
+               "show; never reuse their content:\n\n")
 
 
 def load_config() -> dict:
@@ -119,6 +159,57 @@ def instruction(target: str) -> str:
     return f"Translate the following into {LANG_NAMES[target]}."
 
 
+def rewrite_system_prompt() -> str:
+    if STYLE.exists():
+        prompt = REWRITE_SYSTEM + "\n" + REWRITE_VOICE + STYLE.read_text(encoding="utf-8").strip()
+    else:
+        prompt = REWRITE_SYSTEM + "\n" + REWRITE_PLAIN_VOICE
+    edits = recent_edits()
+    if edits:
+        prompt += "\n\n" + EDITS_INTRO + "\n\n".join(
+            f"Notes:\n{e['notes']}\nDraft:\n{e['draft']}\nWhat the user sent instead:\n{e['final']}"
+            for e in edits)
+    return prompt
+
+
+def write_private(path: Path, text: str, append: bool = False) -> None:
+    """Write a file only the user can read: it holds their own messages."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if append else os.O_TRUNC), 0o600)
+    os.fchmod(fd, 0o600)  # a file that already existed keeps its old mode otherwise
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def recent_edits() -> list[dict]:
+    if not REWRITE_EDITS.exists():
+        return []
+    edits = []
+    for line in REWRITE_EDITS.read_text(encoding="utf-8").splitlines()[-EXAMPLE_EDITS:]:
+        with contextlib.suppress(json.JSONDecodeError):
+            edit = json.loads(line)
+            if {"notes", "draft", "final"} <= edit.keys():
+                edits.append(edit)
+    return edits
+
+
+def record_edit(final: str) -> None:
+    """Pair the text the user copied from the popup with the rewrite it came from.
+
+    Quiet when there is nothing to learn: no rewrite before it, or the draft
+    went out as it was.
+    """
+    final = final.strip()
+    try:
+        last = json.loads(LAST_REWRITE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+    draft = str(last.get("draft", "")).strip()
+    if not final or final == draft:
+        return
+    entry = {"notes": last.get("notes", ""), "draft": draft, "final": final}
+    write_private(REWRITE_EDITS, json.dumps(entry, ensure_ascii=False) + "\n", append=True)
+
+
 def system_prompt() -> str:
     if EXTRA_INSTRUCTIONS.exists():
         return SYSTEM + "\n\n" + EXTRA_INSTRUCTIONS.read_text(encoding="utf-8").strip()
@@ -145,7 +236,7 @@ def api_errors(sdk):
         fail("API に接続できません。")
 
 
-def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
+def translate_anthropic(content: list, system: str, config: dict) -> tuple[str, bool]:
     import anthropic
 
     client = anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
@@ -158,7 +249,7 @@ def translate_anthropic(content: list, config: dict) -> tuple[str, bool]:
         output_config={"effort": EFFORT},
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
-        system=system_prompt(),
+        system=system,
         messages=[{"role": "user", "content": content}],
     ) as stream:
         for chunk in stream.text_stream:
@@ -184,11 +275,11 @@ def openai_input(content: list) -> list:
     return [{"role": "user", "content": parts}]
 
 
-def translate_openai(content: list, config: dict) -> tuple[str, bool]:
+def translate_openai(content: list, system: str, config: dict) -> tuple[str, bool]:
     import openai
 
     client = openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
-    params = {"model": config["model"], "instructions": system_prompt(),
+    params = {"model": config["model"], "instructions": system,
               "input": openai_input(content), "max_output_tokens": 16000, "stream": True}
     if config.get("reasoning_effort"):
         params["reasoning"] = {"effort": config["reasoning_effort"]}
@@ -213,7 +304,7 @@ def translate_openai(content: list, config: dict) -> tuple[str, bool]:
     return "".join(pieces), truncated
 
 
-def translate(content: list) -> str:
+def translate(content: list, system: str) -> str:
     """Translate, writing the text to stdout as it arrives; return all of it.
 
     Streamed so the popup can show the first words while the rest is still
@@ -221,7 +312,7 @@ def translate(content: list) -> str:
     """
     config = load_config()
     run = translate_openai if config["provider"] == "openai" else translate_anthropic
-    text, truncated = run(content, config)
+    text, truncated = run(content, system, config)
     text = text.strip()
     if truncated:
         cut = "\n\n（長すぎて途中で切れました）"
@@ -262,17 +353,17 @@ def read_text(args) -> str:
     return subprocess.run(["pbpaste"], capture_output=True, text=True, check=False).stdout
 
 
-def show(text: str, quiet: bool) -> None:
-    """Copy the translation, which translate() already wrote to stdout."""
+def show(text: str, quiet: bool, title: str) -> None:
+    """Copy the result, which translate() already wrote to stdout."""
     subprocess.run(["pbcopy"], input=text, text=True, check=False)
     if not quiet:
         # The text goes in as argv, so AppleScript string escaping never applies.
         subprocess.run([
             "osascript",
             "-e", "on run argv",
-            "-e", 'display dialog (item 1 of argv) with title "翻訳（コピー済み）" buttons {"OK"} default button 1',
+            "-e", 'display dialog (item 1 of argv) with title (item 2 of argv) buttons {"OK"} default button 1',
             "-e", "end run",
-            text,
+            text, f"{title}（コピー済み）",
         ], capture_output=True, check=False)
 
 
@@ -293,9 +384,30 @@ def main() -> None:
     source = p.add_mutually_exclusive_group()
     source.add_argument("--screen", action="store_true", help="select a screen region and translate its text")
     source.add_argument("--image", type=Path, help="translate the text in an image file")
+    # Rewriting keeps the language, so it never goes with a target or an image.
+    source.add_argument("--rewrite", action="store_true", help="rewrite notes as a message in the user's style")
     p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
+    p.add_argument("--record-edit", action="store_true",
+                   help="log the last rewrite as the user edited it (the edited text on stdin)")
     args = p.parse_args()
+    if args.rewrite and args.to:
+        p.error("--rewrite keeps the language; it does not take --to")
+
+    if args.record_edit:
+        record_edit(sys.stdin.read())
+        return
+
+    if args.rewrite:
+        system = rewrite_system_prompt()
+        text = read_text(args)
+        if not text.strip():
+            fail("書き換える文がありません。")
+        content = [{"type": "text", "text": f"{REWRITE_INSTRUCTION}\n\n{text}"}]
+        draft = translate(content, system)
+        write_private(LAST_REWRITE, json.dumps({"notes": text.strip(), "draft": draft}, ensure_ascii=False))
+        show(draft, args.quiet, "清書")
+        return
 
     if args.screen or args.image:
         path = args.image or screenshot()
@@ -312,7 +424,7 @@ def main() -> None:
             fail("訳す文がありません。")
         content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
 
-    show(translate(content), args.quiet)
+    show(translate(content, system_prompt()), args.quiet, "翻訳")
 
 
 if __name__ == "__main__":

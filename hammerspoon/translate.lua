@@ -16,6 +16,13 @@ local POPUP_WIDTH = 520
 -- Before the page reports its real height; it grows or shrinks at once.
 local POPUP_START_HEIGHT = 120
 local POPUP_MAX_HEIGHT = 640
+-- The popup's title for each job; translate.py --rewrite is the one that
+-- keeps the language and changes the voice. A rewrite can be edited in the
+-- popup, and the edit is what translate.py learns the user's preferences from.
+local MODES = {
+   translate = { title = "翻訳", editable = false },
+   rewrite = { title = "清書", editable = true },
+}
 
 -- DeepL's popup: the translation in a card by the mouse, gone on Esc or ✕.
 -- The page draws the whole window (no title bar), takes the text through
@@ -48,9 +55,11 @@ button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; f
 main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto;
   max-height: 560px; -webkit-user-select: text; cursor: text; }
 main.error { color: var(--err); font-size: 13px; }
+main[contenteditable="plaintext-only"] { outline: none; }
+main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
 </style></head><body><div class="card">
 <header>
-  <span class="title">翻訳</span><span class="status busy" id="status">翻訳中…</span>
+  <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -59,17 +68,21 @@ main.error { color: var(--err); font-size: 13px; }
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
+const editable = {{EDITABLE}};
+const t = document.getElementById('text');
+t.oninput = fit;
 function update(text, status, kind) {
-  const t = document.getElementById('text');
   t.textContent = text;
   t.className = kind === 'error' ? 'error' : '';
+  // Only a finished answer: an edit mid-stream would be overwritten by the next words.
+  t.contentEditable = editable && kind === 'done' ? 'plaintext-only' : 'false';
   const s = document.getElementById('status');
   s.textContent = status;
   s.className = 'status ' + kind;
   fit();
 }
 document.getElementById('close').onclick = () => post({ close: true });
-document.getElementById('copy').onclick = () => post({ copy: true });
+document.getElementById('copy').onclick = () => post({ copy: true, text: t.innerText });
 post({ ready: true });
 </script></body></html>
 ]]
@@ -105,9 +118,20 @@ local function fitPopup(height)
    translatePopup:frame(f)
 end
 
-local function openPopup()
+-- Global, like translateTask below: a task nothing else refers to can be
+-- collected before it has read its input.
+translateEditTask = nil
+local function recordEdit(text)
+   translateEditTask = hs.task.new(PYTHON, nil, { SCRIPT, "--record-edit" })
+   if not translateEditTask then return end
+   -- Input first: given after start(), it never reaches the child's stdin.
+   translateEditTask:setInput(text)
+   if translateEditTask:start() then translateEditTask:closeInput() end
+end
+
+local function openPopup(mode)
    closePopup()
-   popup = { text = "", status = "翻訳中…", kind = "busy", ready = false }
+   popup = { text = "", status = "", kind = "busy", ready = false }
    local content = hs.webview.usercontent.new("translate"):setCallback(function(msg)
       local body = msg.body
       if not translatePopup then return end
@@ -117,8 +141,12 @@ local function openPopup()
       elseif body.height then
          fitPopup(body.height)
       elseif body.copy then
-         hs.pasteboard.setContents(popup.text)
-         setPopup(popup.text, "コピーしました", "done")
+         -- An editable page hands back a trailing newline the draft never had.
+         local text = (body.text or popup.text):gsub("%s+$", "")
+         hs.pasteboard.setContents(text)
+         local edited = mode.editable and popup.kind == "done" and text ~= popup.text
+         if edited then recordEdit(text) end
+         setPopup(text, edited and "直しを記録してコピーしました" or "コピーしました", "done")
       elseif body.close then
          closePopup()
       end
@@ -130,10 +158,12 @@ local function openPopup()
    local y = math.min(mouse.y + 16, frame.y + frame.h - POPUP_START_HEIGHT)
    translatePopup = hs.webview.new({ x = x, y = y, w = POPUP_WIDTH, h = POPUP_START_HEIGHT }, {}, content)
       :windowStyle({ "borderless", "nonactivating" })
+      -- Lets a click give the popup the keyboard, so a rewrite can be edited.
+      :allowTextEntry(mode.editable)
       :transparent(true)
       :shadow(true)
       :level(hs.drawing.windowLevels.floating)
-      :html(POPUP_HTML)
+      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{EDITABLE}}", tostring(mode.editable))))
       :show()
    -- Borderless windows never get key focus, so Esc is watched globally while
    -- the popup is up, and still let through: the app in front (nvim, a
@@ -147,25 +177,33 @@ local function openPopup()
 end
 
 -- The API round trip takes a second or two, past the 1s a key press should
--- answer in: say at once that it was heard, then open the popup on the first
--- words and keep adding to it. A failure always lands in the popup, so
--- "nothing happened" cannot be mistaken for "still working".
+-- answer in: the popup opens at once with only a spinner, and the words are
+-- added as they arrive. A screen selection is the exception: a popup opened
+-- first would land in the region being captured, so an alert says the key was
+-- heard and the popup waits for the first words. A failure always lands in
+-- the popup, so "nothing happened" cannot be mistaken for "still working".
 translateTask = nil
 local runs = 0
-local function run(args)
+local function run(args, mode)
+   mode = mode or MODES.translate
    local argv = { SCRIPT, "--quiet" }
    for _, a in ipairs(args) do table.insert(argv, a) end
    if translateTask and translateTask:isRunning() then translateTask:terminate() end
    runs = runs + 1
    local id = runs
-   -- A non-number duration keeps the alert up until closeSpecific.
-   local busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
+   local busy
+   if args[1] == "--screen" then
+      -- A non-number duration keeps the alert up until closeSpecific.
+      busy = hs.alert.show("翻訳中…", {}, hs.screen.mainScreen(), true)
+   else
+      openPopup(mode)
+   end
    local out, err = "", ""
    local function popupOpened()
       if busy then
          hs.alert.closeSpecific(busy)
          busy = nil
-         openPopup()
+         openPopup(mode)
       end
    end
    translateTask = hs.task.new(PYTHON, function(code, stdout, stderr)
@@ -192,11 +230,16 @@ local function run(args)
       out, err = out .. (stdout or ""), err .. (stderr or "")
       if out:find("%S") then
          popupOpened()
-         setPopup(out, "翻訳中…", "busy")
+         setPopup(out, "", "busy")
       end
       return true
    end, argv)
-   translateTask:start()
+   -- A missing venv never calls back, so the spinner would turn for good.
+   if not (translateTask and translateTask:start()) then
+      popupOpened()
+      setPopup(PYTHON .. " を起動できません。\n準備の手順は translate.py の先頭にあります。",
+         "起動できません", "error")
+   end
 end
 
 local function chooseLanguageThen(args)
@@ -218,7 +261,7 @@ end
 -- translating whatever was copied before would answer the wrong question.
 -- A global: a timer only its own callback refers to can be collected.
 translateCopyPoll = nil
-local function translateSelection()
+local function translateSelection(args, mode)
    local before = hs.pasteboard.changeCount()
    local deadline = hs.timer.secondsSinceEpoch() + COPY_TIMEOUT
    hs.eventtap.keyStroke({ "cmd" }, "c")
@@ -226,7 +269,7 @@ local function translateSelection()
    translateCopyPoll = hs.timer.doEvery(0.05, function()
       if hs.pasteboard.changeCount() ~= before then
          translateCopyPoll:stop()
-         run({ "--clipboard" })
+         run(args or { "--clipboard" }, mode)
       elseif hs.timer.secondsSinceEpoch() > deadline then
          translateCopyPoll:stop()
          hs.alert.show("選択された文がありません")
@@ -261,12 +304,17 @@ end)
 translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
-hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, function() translateSelection() end)
+-- Rough notes selected in a message box → the same notes as a message in the
+-- user's own voice, or a plain one without the style file (translate.py's header).
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
+   translateSelection({ "--rewrite", "--clipboard" }, MODES.rewrite)
+end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
    if not hs.screenRecordingState() then
-      openPopup()
+      openPopup(MODES.translate)
       setPopup("Hammerspoon に「画面収録」の許可がありません。\n"
          .. "システム設定 → プライバシーとセキュリティ → 画面収録 で許可し、Hammerspoon を再起動してください。",
          "画面を撮れません", "error")

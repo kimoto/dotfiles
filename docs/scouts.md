@@ -48,6 +48,8 @@ An e2e check is a script in `test/e2e/` that drives a real zsh, tmux or vim;
 the tmux ones share `test/e2e/tmux_e2e_helpers.sh`. CI runs each one by name:
 a tmux check from the list in `ci/tmux_suite.sh`, the others from a step in
 `.github/workflows/ci.yml`. A new file left off both never runs.
+`hammerspoon_translate_test.sh` is left off on purpose: it drives the Mac's
+own GUI and pays for real translations, so it runs by hand on a Mac.
 
 ## Speed
 
@@ -139,3 +141,5 @@ a commit already on `main`, so it must stay an ancestor of `origin/main`.
   prose or shell config.
 - A prompt guard that blocks the `curl … | sh` spelling (#294): the risk is
   any fetched content reaching any interpreter, and one pattern only hides it.
+- A Raycast Script Command for the note rewrite (#580): registering its folder is a
+  manual step in Raycast's settings, and ⌃⌘⇧W already reaches the same script.
