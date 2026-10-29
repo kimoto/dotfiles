@@ -340,7 +340,8 @@ with_remote() {
   [ "$status" -eq 0 ]
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
-  ! jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
+  run jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS"
+  [ "$status" -ne 0 ]
   first="$(cat "$SETTINGS")"
   "$INSTALLER"
   [ "$(cat "$SETTINGS")" = "$first" ]
