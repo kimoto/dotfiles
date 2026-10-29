@@ -380,18 +380,21 @@ request_field() {
 }
 
 # The popup shows text as it is: on the Mac both models bolded labels with **.
-@test "the written jobs ask for plain text; translation and proofreading keep the text's own marks" {
+@test "a rewrite asks for plain text, a reply or summary for light Markdown, the rest for neither" {
   echo "Plain." >"$STYLE"
+  run python3 "$SCRIPT" --quiet --rewrite "hello"
+  [[ "$(request_system)" == *"no Markdown"* ]]
   local job
-  for job in --rewrite --reply --summarize; do
+  for job in --reply --summarize; do
     run python3 "$SCRIPT" --quiet "$job" "hello"
     [ "$status" -eq 0 ] || { echo "$job: $output"; return 1; }
-    [[ "$(request_system)" == *"no Markdown"* ]] || { echo "$job asks for none"; return 1; }
+    [[ "$(request_system)" == *"light Markdown"* ]] || { echo "$job asks for none"; return 1; }
+    [[ "$(request_system)" != *"no Markdown"* ]]
   done
-  run python3 "$SCRIPT" --quiet --proofread "hello"
-  [[ "$(request_system)" != *"no Markdown"* ]]
-  run python3 "$SCRIPT" --quiet "hello"
-  [[ "$(request_system)" != *"no Markdown"* ]]
+  for job in --proofread --to=ja; do
+    run python3 "$SCRIPT" --quiet "$job" "hello"
+    [[ "$(request_system)" != *"Markdown"* ]] || { echo "$job asks for marks"; return 1; }
+  done
 }
 
 @test "two jobs at once are refused" {

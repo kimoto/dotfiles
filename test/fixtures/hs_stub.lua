@@ -89,6 +89,7 @@ hs = setmetatable({
       changeCount = function() return stub.changeCount end,
       getContents = function() return stub.clipboard end,
       setContents = function(text) table.insert(stub.pasted, text) end,
+      writeAllData = function(data) table.insert(stub.pasted, data); return true end,
       writeObjects = function(image) table.insert(stub.pasted, image.data); return true end,
    },
    timer = {

@@ -18,6 +18,7 @@ setup() {
 drive() {
   luajit -e "
     dofile('$REPO_ROOT/test/fixtures/hs_stub.lua')
+    hs.configdir = '$REPO_ROOT/hammerspoon'  -- translate.lua reads markdown.js from it
     dofile('$REPO_ROOT/hammerspoon/translate.lua')
     $1"
 }
@@ -254,6 +255,33 @@ diagram() {
     print(stub.written[1])"
   [ "$status" -eq 0 ]
   [[ "$output" == "$BATS_TEST_TMPDIR/"* ]]
+}
+
+@test "a summary is copied as rich and plain text, or with ⌥ as the Markdown it came as" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choose('要約')
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    view:post({ ready = true })
+    task.done(0, '- **A**', '')
+    view:post({ copy = true, text = '・A', html = '<ul><li><strong>A</strong></li></ul>' })
+    local rich = stub.pasted[#stub.pasted]
+    print(rich['public.utf8-plain-text'], rich['public.html'])
+    view:post({ copy = true, markdown = true })
+    print(stub.pasted[#stub.pasted], view.page:match('const markdown = (%a+)'))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = $'・A\t<meta charset="utf-8"><ul><li><strong>A</strong></li></ul>' ]
+  [ "${lines[1]}" = $'- **A**\ttrue' ]
+}
+
+@test "a translation is not rendered, so its own marks stay as they are" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    print(stub.popups[#stub.popups].page:match('const markdown = (%a+)'))"
+  [ "$status" -eq 0 ]
+  [ "$output" = false ]
 }
 
 @test "a message from a popup that was replaced is ignored" {

@@ -19,12 +19,14 @@ local POPUP_MAX_HEIGHT = 640
 -- The popup's title for each job. Every job but translate keeps the text's
 -- language; translate.py's TASKS says what each one asks for. A rewrite can be
 -- edited in the popup, and the edit is what translate.py learns the user's
--- preferences from.
+-- preferences from. A reply or a summary is asked for in light Markdown,
+-- shown rendered and copied as rich text; a translation or a proofread keeps
+-- the text's own marks, which must not turn bold.
 local MODES = {
    translate = { title = "翻訳", editable = false },
    rewrite = { title = "清書", editable = true },
-   reply = { title = "返信案", editable = false },
-   summarize = { title = "要約", editable = false },
+   reply = { title = "返信案", editable = false, markdown = true },
+   summarize = { title = "要約", editable = false, markdown = true },
    proofread = { title = "誤字チェック", editable = false },
    -- The answer is an SVG: shown as an image and copied as a PNG, never as text.
    diagram = { title = "図解", editable = false, svg = true },
@@ -63,6 +65,17 @@ main { padding: 12px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; 
   max-height: 560px; -webkit-user-select: text; cursor: text; }
 main.error { color: var(--err); font-size: 13px; }
 main img { display: block; max-width: 100%; height: auto; border-radius: 6px; }
+main.markdown { white-space: normal; }
+main.markdown p, main.markdown ul, main.markdown ol, main.markdown pre { margin: 0 0 8px; }
+main.markdown > :last-child { margin-bottom: 0; }
+main.markdown ul, main.markdown ol { list-style: none; padding: 0; }
+main.markdown li { padding-left: 1em; text-indent: -1em; }  /* a wrapped line starts under the text */
+main.markdown .mark { color: var(--muted); }
+main.markdown code, main.markdown pre { font: 13px ui-monospace, Menlo, monospace; background: var(--hover);
+  border-radius: 4px; }
+main.markdown code { padding: 1px 4px; }
+main.markdown pre { padding: 8px 10px; white-space: pre-wrap; }
+main.markdown pre code { padding: 0; background: none; }
 main[contenteditable="plaintext-only"] { outline: none; }
 main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
 </style></head><body><div class="card">
@@ -79,8 +92,16 @@ main[contenteditable="plaintext-only"]:focus { background: var(--hover); }
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
 const editable = {{EDITABLE}};
+const markdown = {{MARKDOWN}};
+{{MARKDOWN_JS}}
 const t = document.getElementById('text');
 t.oninput = fit;
+// The answer as it came, rendered again whole as each piece arrives.
+let raw = '';
+function show(kind) {
+  if (markdown && kind !== 'error') { t.classList.add('markdown'); t.innerHTML = renderMarkdown(raw); }
+  else t.textContent = raw;
+}
 // An SVG goes in as an <img>, where its own scripts cannot run, and comes back
 // as a PNG: Slack pastes an image, not SVG markup. Drawn once per SVG, so
 // the status update that follows the PNG does not draw it again.
@@ -108,9 +129,9 @@ function showSvg(t, svg) {
   t.replaceChildren(img);
 }
 function update(text, status, kind, svg, retry) {
-  if (svg && text) showSvg(t, text); else { shownSvg = null; t.textContent = text; }
-  document.getElementById('best').hidden = !retry;
   t.className = kind === 'error' ? 'error' : '';
+  if (svg && text) showSvg(t, text); else { shownSvg = null; raw = text; show(kind); }
+  document.getElementById('best').hidden = !retry;
   // Only a finished answer: an edit mid-stream would be overwritten by the next words.
   t.contentEditable = editable && kind === 'done' ? 'plaintext-only' : 'false';
   const s = document.getElementById('status');
@@ -120,15 +141,33 @@ function update(text, status, kind, svg, retry) {
 }
 // A streamed piece is added to what is shown, not sent again with all before it.
 function append(text) {
-  document.getElementById('text').insertAdjacentText('beforeend', text);
+  raw += text;
+  if (markdown) show('busy'); else t.insertAdjacentText('beforeend', text);
   fit();
 }
+// Rendered: the plain text (・ bullets) and the rich text (real bullets, the
+// ・ dropped), or with ⌥ the Markdown as it came.
+const copy = document.getElementById('copy');
+if (markdown) copy.title = 'コピー（⌥ クリックで Markdown のまま）';
+copy.onclick = (e) => {
+  if (!markdown || t.className === 'error') return post({ copy: true, text: t.innerText });
+  if (e.altKey) return post({ copy: true, markdown: true });
+  const rich = t.cloneNode(true);
+  rich.querySelectorAll('.mark').forEach((m) => m.remove());
+  post({ copy: true, text: t.innerText, html: rich.innerHTML });
+};
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('best').onclick = () => post({ best: true });
-document.getElementById('copy').onclick = () => post({ copy: true, text: t.innerText });
 post({ ready: true });
 </script></body></html>
 ]]
+
+local MARKDOWN_JS = (function()
+   local f = assert(io.open(hs.configdir .. "/markdown.js"))
+   local js = f:read("a")
+   f:close()
+   return js
+end)()
 
 -- The one popup on screen; a second translation replaces the first.
 -- Globals, like the watchers in init.lua: a local would be collected.
@@ -252,12 +291,27 @@ local function openPopup(mode)
             end
             return
          end
+         if body.markdown then
+            hs.pasteboard.setContents(popup.text)
+            setPopup(popup.text, "Markdown でコピーしました", "done")
+            return
+         end
          -- An editable page hands back a trailing newline the draft never had.
          local text = (body.text or popup.text):gsub("%s+$", "")
-         hs.pasteboard.setContents(text)
+         if body.html then
+            -- The charset is what keeps Japanese from pasting as mojibake.
+            hs.pasteboard.writeAllData({
+               ["public.html"] = '<meta charset="utf-8">' .. body.html,
+               ["public.utf8-plain-text"] = text,
+            })
+         else
+            hs.pasteboard.setContents(text)
+         end
          local edited = mode.editable and popup.kind == "done" and text ~= popup.text
          if edited then recordEdit(text) end
-         setPopup(text, edited and "直しを記録してコピーしました" or "コピーしました", "done")
+         -- A rendered answer keeps its Markdown, which the plain text lost.
+         setPopup(mode.markdown and popup.text or text,
+            edited and "直しを記録してコピーしました" or "コピーしました", "done")
       elseif body.best then
          if popup.retry then run(popup.retry, mode) end
       elseif body.close then
@@ -276,7 +330,9 @@ local function openPopup(mode)
       :transparent(true)
       :shadow(true)
       :level(hs.drawing.windowLevels.floating)
-      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{EDITABLE}}", tostring(mode.editable))))
+      :html((POPUP_HTML:gsub("{{TITLE}}", mode.title):gsub("{{EDITABLE}}", tostring(mode.editable))
+         :gsub("{{MARKDOWN}}", tostring(mode.markdown == true))
+         :gsub("{{MARKDOWN_JS}}", function() return MARKDOWN_JS end)))
       :show()
    view = translatePopup
    -- Borderless windows never get key focus, so Esc is watched globally while

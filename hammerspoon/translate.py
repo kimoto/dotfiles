@@ -117,8 +117,12 @@ EXAMPLE_EDITS = 5
 
 LANG_NAMES = {"ja": "Japanese", "en": "English"}
 
-# The popup and the clipboard take text as it is, so Markdown marks would show.
+# A rewrite is edited in the popup as text, so Markdown marks would show.
 PLAIN_TEXT = "Write plain text with no Markdown: no ** or # marks. Start each list item with ・ ."
+# The popup renders a reply or a summary (translate.lua's MODES), and copies
+# it as rich text: only the marks it renders.
+LIGHT_MARKDOWN = ("Format with light Markdown only: start each list item with - , and wrap in ** the one "
+                  "or two phrases the reader must not miss. No headings, tables or links.")
 
 SYSTEM = """You are a translation tool on the user's desktop. Output only the translation:
 no preamble, no notes, no quotation marks around it. Keep the original line breaks,
@@ -144,7 +148,7 @@ Output only the reply: no preamble, no notes, no quotation marks around it.
 Write in the language of the message.
 Answer what the message asks, and decide nothing on the user's behalf: where the reply needs
 a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
-""" + PLAIN_TEXT + "\n"
+""" + LIGHT_MARKDOWN + "\n"
 
 SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
 whatever the language of the text: a one-line gist, then at most five short bullets, the
@@ -152,7 +156,7 @@ whole well under half the length of the text. Merge related points instead of fo
 text sentence by sentence; where everything looks important, keep what the reader must act on
 or decide first, then dates and numbers. Drop greetings and repetition. Add nothing that is
 not in the text, and name people and roles as the text does.
-""" + PLAIN_TEXT
+""" + LIGHT_MARKDOWN
 
 PROOFREAD_SYSTEM = """You proofread the user's text before they send it. Output only the corrected text:
 no preamble, no list of changes, no quotation marks around it. Fix typos, wrong kanji
