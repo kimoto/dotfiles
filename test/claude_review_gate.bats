@@ -72,7 +72,7 @@ with_remote() {
   r="$(reason)"
   [[ "$r" == *"publishes 2 commit(s) on feat/x"* ]]
   [[ "$r" == *"the review-branch skill ($SKILL)"* ]]
-  [[ "$r" == *"\`'$GATE' mark $REPO s1\`"* ]]
+  [[ "$r" == *"\`$GATE mark $REPO s1\`"* ]]
   [[ "$r" == *"push again"* ]]
 }
 
@@ -153,7 +153,7 @@ with_remote() {
 @test "git -C names the repo, wherever the session stands" {
   pre_bash "git -C '$REPO' push" "$TMP"
   [ "$(decision)" = deny ]
-  [[ "$(reason)" == *"\`'$GATE' mark $REPO s1\`"* ]]
+  [[ "$(reason)" == *"\`$GATE mark $REPO s1\`"* ]]
 }
 
 @test "a machine that has linked the skill is pointed at its linked copy" {
@@ -172,7 +172,7 @@ with_remote() {
   r="$(reason)"
   [[ "$r" == *"1 commit(s) on feat/x that no review has seen"* ]]
   [[ "$r" == *"log $marked..feat/x --not --remotes"* ]]
-  [[ "$r" == *"\`'$GATE' mark $REPO s1\`"* ]]
+  [[ "$r" == *"\`$GATE mark $REPO s1\`"* ]]
   # How widely to look is the agent's call, and the skill says so.
   grep -q '最終的な差分を通しで' "$SKILL"
 }
@@ -190,6 +190,15 @@ with_remote() {
   git -C "$REPO" switch -q -c 'x$(id)'
   pre_bash "git push"
   [[ "$(reason)" == *'log x\$\(id\) --not --remotes'* ]]
+}
+
+@test "a mark without a session survives a mark made in another repo" {
+  "$GATE" mark "$REPO"
+  git init -q -b main "$TMP/third"
+  git -C "$TMP/third" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+  (cd "$TMP/third" && "$GATE" mark "$TMP/third" s1)
+  pre_bash "git push"
+  [ -z "$output" ]
 }
 
 @test "a repo path with a quote is quoted in the commands to paste" {

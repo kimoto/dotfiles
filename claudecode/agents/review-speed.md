@@ -1,6 +1,6 @@
 ---
 name: review-speed
-description: 渡された範囲（差分 `<base>..HEAD` か、ファイル・ディレクトリ）を、bottleneck-sweep の見方で見て、人や処理を待たせる所だけを返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
+description: 渡された範囲（差分 `<base>...HEAD` か、ファイル・ディレクトリ）を、bottleneck-sweep の見方で見て、人や処理を待たせる所だけを返す。★review-branch skill から呼ぶほか、範囲を渡して単体でも呼べる。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
 # medium: the level every reviewer was measured at; lower it only after measuring again.

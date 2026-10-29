@@ -35,7 +35,7 @@ mark_file() { printf '%s/%s' "$state_dir" "$(repo_key "$1" "$2")"; }
 # The path this hook ran from, quoted for the agent to paste: a container has
 # the repo's bin/, not ~/bin. Only built where an instruction needs it, since
 # every Bash call runs this script.
-gate_cmd() { printf "'%s/%s'" "$(cd "$(dirname "$0")" && pwd -P)" "$(basename "$0")"; }
+gate_cmd() { printf '%q' "$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"; }
 
 if [ "${1:-}" = mark ]; then
   dir=${2:?usage: claude_review_gate.sh mark <repo-dir> <session-id>}
@@ -54,7 +54,9 @@ if [ "${1:-}" = mark ]; then
       || rm -f "$f"
   done
   find "$pushed_dir" "$pr_dir" -type f -mtime +30 -delete 2>/dev/null
-  printf '%s %s %s\n' "$sha" "$session" "$dir" >"$(mark_file "$dir" "$branch")"
+  # "-" holds the field when there is no session: read collapses an empty one,
+  # and the dir would land in the wrong field.
+  printf '%s %s %s\n' "$sha" "${session:--}" "$dir" >"$(mark_file "$dir" "$branch")"
   exit 0
 fi
 
