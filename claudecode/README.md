@@ -61,7 +61,8 @@ ignore rule would apply in every repo on the machine.
   (`bin/claude_pr_description_reminder.sh`), which `install_claude_pr_hooks.sh`
   registers on a workstation the same way. The review gate
   (`bin/claude_review_gate.sh`, registered by `install_claude_review_gate.sh`)
-  holds back the first PR create on a branch until its review is marked done,
-  and on `Stop` sends the session back to re-check commits made since.
+  holds back a push carrying commits no review has seen — on a feature branch
+  or straight to main — and the first PR create on a branch, whose text no
+  push carries.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.

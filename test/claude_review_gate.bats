@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-# Tests for bin/claude_review_gate.sh: the first PR create on a branch is
-# stopped until its review is marked done, and a session that stops with
-# commits after the last mark is sent back to re-check them.
+# Tests for bin/claude_review_gate.sh: a push carrying unreviewed commits is
+# stopped once for a code review, commits after a mark are re-checked at the
+# next push, and the first PR create on a branch is stopped once for its text.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd -P)"
@@ -12,7 +12,8 @@ setup() {
   unset CLAUDE_CODE_REMOTE
   GATE="$REPO_ROOT/bin/claude_review_gate.sh"
   INSTALLER="$REPO_ROOT/bin/install_claude_review_gate.sh"
-  TMP="$(mktemp -d)"
+  # Resolved, so paths match what git prints (macOS mktemp gives /var, git /private/var).
+  TMP="$(cd "$(mktemp -d)" && pwd -P)"
   export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
   mkdir -p "$HOME"
   SETTINGS="$HOME/.claude/settings.json"
@@ -44,12 +45,14 @@ pre_mcp() {
       tool_input: {owner: "o", repo: "r", head: $h, base: "main", title: "t"}}')"
 }
 
-stop() {
-  run_payload "$(jq -cn --arg s "${1:-s1}" --argjson a "${2:-false}" \
-    '{hook_event_name: "Stop", session_id: $s, cwd: "/", stop_hook_active: $a}')"
-}
+decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output"; }
+reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output"; }
 
-reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$output"; }
+with_remote() {
+  git init -q --bare "$TMP/remote.git"
+  git -C "$REPO" remote add origin "$TMP/remote.git"
+  git -C "$REPO" push -q origin "$@"
+}
 
 @test "other Bash commands pass silently" {
   pre_bash "git status"
@@ -57,15 +60,18 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [ -z "$output" ]
   pre_bash "grep -n 'gh pr create' notes.md"
   [ -z "$output" ]
+  pre_bash "echo 'git push'"
+  [ -z "$output" ]
 }
 
-@test "the first gh pr create on a branch is denied with the review to run" {
-  pre_bash "gh pr create --fill"
+@test "a first push of unreviewed commits is denied with the review to run" {
+  pre_bash "git push -u origin feat/x"
   [ "$status" -eq 0 ]
-  [ "$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$output")" = deny ]
+  [ "$(decision)" = deny ]
   r="$(reason)"
+  [[ "$r" == *"publishes 2 commit(s) on feat/x"* ]]
   [[ "$r" == *"review-correctness"* ]]
-  [[ "$r" == *"review-rules"* ]]
+  [[ "$r" == *"review-rules subagent, for the commit messages"* ]]
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
@@ -88,61 +94,71 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"push again"* ]]
+}
+
+@test "the same HEAD is stopped once; a new commit is stopped again" {
+  pre_bash "git push"
+  [ "$(decision)" = deny ]
+  pre_bash "git push"
+  [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m more
+  pre_bash "git push"
+  [ "$(decision)" = deny ]
+}
+
+@test "a direct push to main is stopped the same way" {
+  git -C "$REPO" switch -q main
+  git -C "$REPO" commit -q --allow-empty -m direct
+  pre_bash "git push origin main"
+  [ "$(decision)" = deny ]
+  [[ "$(reason)" == *"on main"* ]]
+}
+
+@test "a reviewed HEAD, or nothing unpublished, pushes silently" {
+  "$GATE" mark "$REPO" s1
+  pre_bash "git push"
+  [ -z "$output" ]
+  git -C "$REPO" switch -q main
+  with_remote main
+  pre_bash "git push"
+  [ -z "$output" ]
+}
+
+@test "git -C names the repo, wherever the session stands" {
+  pre_bash "git -C '$REPO' push" "$TMP"
+  [ "$(decision)" = deny ]
+  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
 @test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
   mkdir -p "$HOME/.claude/agents"
   ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
-  pre_bash "gh pr create --fill"
+  pre_bash "git push"
   r="$(reason)"
   [[ "$r" == *"the review-security subagent"* ]]
   [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
   [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
 }
 
-@test "once marked, the create goes through" {
-  "$GATE" mark "$REPO" s1
-  pre_bash "gh pr create --fill"
-  [ -z "$output" ]
-}
-
-@test "a create through the MCP tool is gated on its head branch" {
-  pre_mcp feat/x
-  [ "$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$output")" = deny ]
-  "$GATE" mark "$REPO" s1
-  pre_mcp feat/x
-  [ -z "$output" ]
-  pre_mcp feat/other
-  [ "$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$output")" = deny ]
-}
-
-@test "gh pr create --head names the branch, wherever the session stands" {
-  "$GATE" mark "$REPO" s1
-  pre_bash "gh pr create --head feat/x --fill" "$TMP"
-  [ -z "$output" ]
-  pre_bash "gh pr create -H feat/other --fill" "$TMP"
-  [ "$(jq -r '.hookSpecificOutput.permissionDecision' <<<"$output")" = deny ]
-}
-
 @test "with Codex enabled, Codex takes correctness" {
   mkdir -p "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts"
   touch "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts/codex-companion.mjs"
   jq -n '{enabledPlugins: {"codex@openai-codex": true}}' >"$SETTINGS"
-  pre_bash "gh pr create --fill"
+  pre_bash "git push"
   [[ "$(reason)" == *"codex-companion.mjs\" review --base"* ]]
   [[ "$(reason)" != *"review-correctness"* ]]
-  CLAUDE_CODE_REMOTE=true pre_bash "gh pr create --fill"
+  git -C "$REPO" commit -q --allow-empty -m more
+  CLAUDE_CODE_REMOTE=true pre_bash "git push"
   [[ "$(reason)" == *"review-correctness"* ]]
 }
 
-@test "stopping with commits after the mark sends the session back to re-check them" {
+@test "commits after the mark are re-checked at the next push, with the earlier findings" {
   "$GATE" mark "$REPO" s1
   marked="$(git -C "$REPO" rev-parse HEAD)"
-  stop
-  [ -z "$output" ]
-  git -C "$REPO" commit -q --allow-empty -m more
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  git -C "$REPO" commit -q --allow-empty -m fix
+  pre_bash "git push"
+  [ "$(decision)" = deny ]
   r="$(reason)"
   [[ "$r" == *"$marked..feat/x"* ]]
   [[ "$r" == *"earlier findings"* ]]
@@ -150,93 +166,89 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
-@test "the re-check stops after two rounds, and never blocks twice in a row" {
+@test "the re-check stops after two rounds" {
   "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m more
-  stop s1 true
-  [ -z "$output" ]
-  stop s2
-  [ -z "$output" ]
+  git -C "$REPO" commit -q --allow-empty -m one
   "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m again
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  git -C "$REPO" commit -q --allow-empty -m two
+  pre_bash "git push"
+  [ "$(decision)" = deny ]
   "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m last
-  stop
+  git -C "$REPO" commit -q --allow-empty -m three
+  pre_bash "git push"
   [ -z "$output" ]
 }
 
-@test "a re-check is asked once per new commit, not at every stop while it runs" {
+@test "a mark left behind by a rebase gives a full review again" {
   "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m more
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
-  [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
-  stop
+  git -C "$REPO" commit -q --amend --allow-empty -m reworded
+  pre_bash "git push"
+  [[ "$(reason)" == *"no review has seen"* ]]
+}
+
+@test "the first gh pr create on a branch is denied once, for its text" {
+  pre_bash "gh pr create --fill"
+  [ "$(decision)" = deny ]
+  r="$(reason)"
+  [[ "$r" == *"review-rules"* ]]
+  [[ "$r" == *"title and body"* ]]
+  [[ "$r" != *"review-correctness"* ]]
+  pre_bash "gh pr create --fill"
   [ -z "$output" ]
-  git -C "$REPO" commit -q --allow-empty -m again
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
 }
 
-@test "an ask left unanswered is repeated once the reviewer would have finished" {
-  "$GATE" mark "$REPO" s1
-  git -C "$REPO" commit -q --allow-empty -m more
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
-  f="$XDG_STATE_HOME/claude-review-asked/feat%x"
-  read -r sha _ <"$f"
-  printf '%s %s 1\n' "$sha" "$(($(date +%s) - 601))" >"$f"
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
-  read -r sha _ n <"$f"
-  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
-  stop
+@test "a create through the MCP tool is asked on its head branch" {
+  pre_mcp feat/x
+  [ "$(decision)" = deny ]
+  pre_mcp feat/x
   [ -z "$output" ]
-  git -C "$REPO" commit -q --allow-empty -m again
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
-  read -r sha _ n <"$f"
-  printf '%s %s %s\n' "$sha" "$(($(date +%s) - 601))" "$n" >"$f"
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  pre_mcp feat/other
+  [ "$(decision)" = deny ]
 }
 
-@test "a branch named like the ask store still gets its re-check" {
-  git -C "$REPO" switch -q -c asked
+@test "gh pr create --head names the branch, wherever the session stands" {
+  pre_bash "gh pr create --head feat/x --fill" "$TMP"
+  [ "$(decision)" = deny ]
+  pre_bash "gh pr create --head feat/x --fill" "$TMP"
+  [ -z "$output" ]
+  pre_bash "gh pr create -H feat/other --fill" "$TMP"
+  [ "$(decision)" = deny ]
+}
+
+@test "a branch named like a sibling store keeps its own mark" {
+  git -C "$REPO" switch -q -c pushed
   "$GATE" mark "$REPO" s1
   git -C "$REPO" commit -q --allow-empty -m more
-  stop
-  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  pre_bash "git push"
+  [ "$(decision)" = deny ]
 }
 
-@test "a deleted branch drops its mark" {
+@test "a mark of a deleted branch is dropped at the next mark" {
   "$GATE" mark "$REPO" s1
   git -C "$REPO" switch -q main
   git -C "$REPO" branch -q -D feat/x
-  stop
-  [ -z "$output" ]
-  [ -z "$(ls "$XDG_STATE_HOME/claude-review")" ]
+  "$GATE" mark "$REPO" s1
+  [ "$(ls "$XDG_STATE_HOME/claude-review")" = main ]
 }
 
-@test "a deleted branch drops its ask too" {
+@test "a Stop no longer does anything" {
   "$GATE" mark "$REPO" s1
   git -C "$REPO" commit -q --allow-empty -m more
-  stop
-  [ -n "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
-  git -C "$REPO" switch -q main
-  git -C "$REPO" branch -q -D feat/x
-  stop
-  [ -z "$(ls "$XDG_STATE_HOME/claude-review-asked")" ]
+  run_payload '{"hook_event_name": "Stop", "session_id": "s1", "cwd": "/", "stop_hook_active": false}'
+  [ -z "$output" ]
 }
 
-@test "install registers the gate before PR creation and on Stop, and uninstall removes it" {
+@test "install registers the gate before push and PR creation only, and uninstall removes it" {
+  jq -n '{hooks: {Stop: [{matcher: "", hooks: [{type: "command",
+    command: "[ ! -x \"$HOME/bin/claude_review_gate.sh\" ] || \"$HOME/bin/claude_review_gate.sh\""}]}]}}' \
+    >"$TMP/old.json"
+  mkdir -p "$HOME/.claude"
+  cp "$TMP/old.json" "$SETTINGS"
   run "$INSTALLER"
   [ "$status" -eq 0 ]
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
-  jq -e '.hooks.Stop[].hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
+  ! jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
   first="$(cat "$SETTINGS")"
   "$INSTALLER"
   [ "$(cat "$SETTINGS")" = "$first" ]
@@ -248,6 +260,6 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' \
     "$REPO_ROOT/claudecode/settings-cloud.json" >/dev/null
-  jq -e '.hooks.Stop[].hooks[].command | select(contains("claude_review_gate.sh"))' \
+  ! jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' \
     "$REPO_ROOT/claudecode/settings-cloud.json" >/dev/null
 }

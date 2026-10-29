@@ -1,7 +1,7 @@
 #!/bin/sh
 # Register (default) or remove (--uninstall) the review gate
-# (claude_review_gate.sh) in ~/.claude/settings.json: before a PR is created,
-# and when a session stops. How the merge stays safe: bin/claude_settings_lib.sh.
+# (claude_review_gate.sh) in ~/.claude/settings.json: before a push and before
+# a PR is created. How the merge stays safe: bin/claude_settings_lib.sh.
 # rmworld.sh runs --uninstall.
 set -eu
 
@@ -26,7 +26,6 @@ else
         + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: 10}]}]);
     strip_gate
     | ensure("PreToolUse"; "Bash|mcp__.*__create_pull_request"; $gate)
-    | ensure("Stop"; ""; $gate)
   ' "$SETTINGS" >"$tmp"
 fi
 
