@@ -77,17 +77,19 @@ with_remote() {
 }
 
 @test "the review-branch skill names every reviewer, and each exists as pinned" {
-  grep -q '`review-correctness` agent' "$SKILL"
-  grep -q '`review-rules` agent' "$SKILL"
-  grep -q 'codex-companion.mjs review --base' "$SKILL"
-  grep -q 'run_in_background' "$SKILL"
+  full=$(sed -n '/^## 全体のレビュー/,/^## 再確認/p' "$SKILL")
+  grep -q '`review-correctness` agent' <<<"$full"
+  grep -q '`review-rules` agent' <<<"$full"
+  grep -q 'codex-companion.mjs review --base' <<<"$full"
+  grep -q 'run_in_background' <<<"$full"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
-    grep -q "\`$agent\`" "$SKILL"
-    grep -q "${agent#review-} → $sweep" "$SKILL"
+    grep -q "\`$agent\`" <<<"$full"
+    want=$(sed -n '2,/^---$/s/^model: //p' "$REPO_ROOT/claudecode/agents/$agent.md")
+    grep -q "${agent#review-} → $sweep（$want）" <<<"$full"
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done

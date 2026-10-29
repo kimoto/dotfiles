@@ -20,7 +20,7 @@ description: いま居る repo の commit（か、これから開く PR の題�
 1. **正しさ**: Codex が有効（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）なら `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。違うモデルは違うものを見落とす。無ければ `review-correctness` agent。
 2. `review-rules` agent — commit メッセージと差分のコメント。
 3. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
-   ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、model は `claudecode/agents/<名前>.md` の frontmatter に合わせる。対応: refactor → refactor-sweep、tests → test-sweep、security → security-audit、speed → bottleneck-sweep。
+   ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
 
 ## 再確認
 
