@@ -309,8 +309,8 @@ translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)
--- The jobs that write in the user's voice need the style file (translate.py's
--- header).
+-- 清書 and 返信案 write in the user's voice from the style file; 清書 falls back
+-- to a plain one without it (translate.py's header).
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function() copySelectionThen(chooseJob) end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
