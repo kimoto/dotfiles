@@ -129,12 +129,14 @@ function stub.tick()
    end
 end
 
--- The job run() sent to a task started with --wait, its arguments joined by
--- spaces; nil while none was sent.
+-- The job run() left for a task started with --wait JOB, its arguments
+-- joined by spaces; nil while none was left.
 function stub.sent(t)
-   if not t.input then return nil end
+   local f = t.argv[3] and io.open(t.argv[3])
+   if not f then return nil end
    local args = {}
-   for a in t.input:gmatch('"(.-)"') do table.insert(args, a) end
+   for a in f:read("*a"):gmatch('"(.-)"') do table.insert(args, a) end
+   f:close()
    return table.concat(args, " ")
 end
 

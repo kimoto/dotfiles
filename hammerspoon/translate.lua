@@ -294,18 +294,24 @@ local runs = 0
 -- the key take a few tenths of a second, spent while the copy lands and the
 -- menu is open instead of after. It sends nothing until run() gives it a job;
 -- cancel() ends it when no job comes. An exit before the job (Python itself
--- broken) is kept for run() to show, or the popup would spin forever.
+-- broken) is kept for run() to show, or the popup would spin forever. The job
+-- goes through a file in the user's own temp dir: input given to a task
+-- already started never reaches it.
+local prepared = 0
 local function prepare()
+   prepared = prepared + 1
+   local job = string.format("%sdesktop-translate-job-%d-%d.json", hs.fs.temporaryDirectory(), os.time(), prepared)
    local handlers = {}
    local task = hs.task.new(PYTHON, function(...)
       if handlers.done then handlers.done(...) else handlers.exited = { ... } end
    end, function(...)
       if handlers.stream then return handlers.stream(...) end
       return true
-   end, { SCRIPT, "--wait" })
+   end, { SCRIPT, "--wait", job })
    local started = task and task:start()
    return {
       task = task,
+      job = job,
       handlers = handlers,
       started = started,
       cancel = function() if started then task:terminate() end end,
@@ -385,8 +391,12 @@ local function run(args, mode, ready)
    end
    local exited = ready.handlers.exited
    if exited then return ready.handlers.done(exited[1], exited[2], exited[3]) end
-   translateTask:setInput(hs.json.encode(argv) .. "\n")
-   translateTask:closeInput()
+   -- Renamed into place, so the waiting translate.py never reads half of it.
+   local f = io.open(ready.job .. ".part", "w")
+   if not (f and f:write(hs.json.encode(argv)) and f:close() and os.rename(ready.job .. ".part", ready.job)) then
+      ready.cancel()
+      setPopup("translate.py に仕事を渡せませんでした（" .. ready.job .. "）。", "失敗", "error")
+   end
 end
 
 local function chooseLanguageThen(args, ready)

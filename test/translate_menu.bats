@@ -44,17 +44,23 @@ pick() {
   [ "${lines[1]}" = "1" ]
 }
 
-@test "translate.py starts getting ready at the key press, and gets its job from the menu" {
+@test "translate.py starts getting ready at the key press, and gets its job from the menu in a file of the user's" {
   run drive "
+    -- The script polls for the job's name, so the job must never be written
+    -- under it: a read between two writes would take half a job.
+    local open, written = io.open, {}
+    io.open = function(path, how) if how == 'w' then written[path] = true end return open(path, how) end
     stub.hotkeys['ctrl+cmd+shift+w']()
     local task = stub.tasks[1]
     print(#stub.tasks, task.argv[2], tostring(stub.sent(task)))
     stub.tick()
     stub.choose('要約')
-    print(#stub.tasks, stub.sent(task), tostring(task.closed))"
+    local own = task.argv[3]:find(os.getenv('BATS_TEST_TMPDIR'), 1, true) == 1
+    print(#stub.tasks, stub.sent(task), tostring(own), tostring(io.open(task.argv[3] .. '.part')))
+    assert(not written[task.argv[3]], 'job written in place')"
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "$(printf '1\t--wait\tnil')" ]
-  [ "${lines[1]}" = "$(printf '1\t--quiet --summarize --clipboard\ttrue')" ]
+  [ "${lines[1]}" = "$(printf '1\t--quiet --summarize --clipboard\ttrue\tnil')" ]
 }
 
 @test "translate.py dying before its job still ends in its reason, not a spinner" {

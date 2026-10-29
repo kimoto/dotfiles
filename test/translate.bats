@@ -416,22 +416,27 @@ request_field() {
   [[ "$output" == *"図が長すぎて"* ]]
 }
 
-@test "--wait makes the client before the job arrives, then runs the job it is sent" {
-  mkfifo "$TMP/job"
-  python3 "$SCRIPT" --wait <"$TMP/job" >"$TMP/out" 2>&1 &
-  exec 7>"$TMP/job"
+@test "--wait makes the client before the job arrives, then runs the job it finds" {
+  python3 "$SCRIPT" --wait "$TMP/job.json" >"$TMP/out" 2>&1 &
   for _ in $(seq 50); do [ -e "$REQUEST.key" ] && break; sleep 0.1; done
-  [ -e "$REQUEST.key" ]
-  [ ! -e "$REQUEST" ]
-  echo '["--quiet", "--summarize", "--clipboard"]' >&7
-  exec 7>&-
+  # Read before the job goes in, but checked after: a failed check here
+  # would leave the waiting script holding the test for JOB_WAIT.
+  local made=no sent=no
+  [ -e "$REQUEST.key" ] && made=yes
+  [ -e "$REQUEST" ] && sent=yes
+  echo '["--quiet", "--summarize", "--clipboard"]' >"$TMP/job.json"
   wait $!
+  [ "$made" = yes ]
+  [ "$sent" = no ]
   [ "$(cat "$TMP/out")" = "TRANSLATED" ]
   [[ "$(request_text)" == "Summarize this."*"clipboard text" ]]
+  [ ! -e "$TMP/job.json" ]
 }
 
-@test "--wait sends nothing when it is closed without a job" {
-  run python3 "$SCRIPT" --wait </dev/null
+@test "--wait sends nothing when no job comes in time" {
+  cp "$SCRIPT" "$TMP/translate.py"
+  sed -i 's/^JOB_WAIT = .*/JOB_WAIT = 0.2/' "$TMP/translate.py"
+  run python3 "$TMP/translate.py" --wait "$TMP/never.json"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
   [ ! -e "$REQUEST" ]

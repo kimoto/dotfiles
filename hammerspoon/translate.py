@@ -23,8 +23,9 @@ Usage:
                                     draw the text as one SVG diagram (not
                                     copied: translate.lua copies it as an image)
   echo "..." | translate.py         stdin, when not --clipboard
-  translate.py --wait               load the SDK and the key, then take the
-                                    arguments above as one JSON array on stdin
+  translate.py --wait JOB           load the SDK and the key, then take the
+                                    arguments above as one JSON array from the
+                                    file JOB, once it appears
                                     (translate.lua starts it at the key press,
                                     so the wait is spent while the menu is open)
   translate.py ... --timing         say on stderr how long the first words took
@@ -96,6 +97,10 @@ EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
 EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
 STYLE = Path.home() / ".local/share/desktop-translate/style.md"
 TRUNCATED = "（長すぎて途中で切れました）"
+# How often --wait looks for its job, and how long before it gives up: well
+# under what a person notices, and longer than a menu is left open.
+JOB_POLL = 0.01
+JOB_WAIT = 300
 # Haiku answers fastest with no thinking at all; Opus cannot turn it off.
 NO_THINKING_PREFIX = "claude-haiku-"
 LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
@@ -516,18 +521,29 @@ def report_timing():
           f"全体 {since('end')}（{timing.get('model', 'モデル未使用')}）", file=sys.stderr)
 
 
-def wait_for_job() -> tuple[list | None, Prepared]:
-    """--wait: get ready first, then read the job. EOF means it was cancelled."""
+def wait_for_job(path: Path) -> tuple[list | None, Prepared]:
+    """--wait: get ready first, then take the job from the file at path.
+
+    A file, not stdin: Hammerspoon's input to a task already started never
+    reaches it. Polled, since the menu leaves nothing to wake on; a job that
+    has not come within JOB_WAIT means the key was given up on.
+    """
     ready = Prepared()
-    line = sys.stdin.readline()
+    deadline = time.monotonic() + JOB_WAIT
+    while not path.exists():
+        if time.monotonic() > deadline:
+            return None, ready
+        time.sleep(JOB_POLL)
     timing["start"] = time.perf_counter()
-    return (json.loads(line) if line.strip() else None), ready
+    job = json.loads(path.read_text(encoding="utf-8"))
+    path.unlink()
+    return job, ready
 
 
 def main() -> None:
     argv, ready = sys.argv[1:], None
-    if argv == ["--wait"]:
-        argv, ready = wait_for_job()
+    if len(argv) == 2 and argv[0] == "--wait":
+        argv, ready = wait_for_job(Path(argv[1]))
         if argv is None:
             return
     p = argparse.ArgumentParser(description="Desktop translation with Claude")
