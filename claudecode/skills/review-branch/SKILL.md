@@ -18,12 +18,12 @@ description: いま居る repo の commit（か、これから開く PR の題�
 - revert だけなら回さない。docs だけなら `review-rules` だけ回す（差分の外で古くなった文章を見るため）。
 - 全員より狭くしたときは、そう判断した理由を一言返す。
 
-## 全体のレビュー: まとめ役が全員を `run_in_background` で並べて回す
+## 全体のレビュー: 全員を呼んだ側が1つのメッセージで起動する
 
-まとめ役の subagent を1つだけ起動し、下の全員を回させる。まとめ役は全員が終わるのを待ち、重複を除いた1つの報告で返す。指摘ごとに、どの係が出したかを付ける。呼んだ側に届くのは、その報告1つだけになる。
+下の全員を、呼んだ側が自分で、1つのメッセージの中で起動する。subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。agent は `run_in_background` を付けずに起動すれば並列に走り、報告がまとめて届く。環境が background に回したときは報告が1通ずつ届くが、全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。
 
 1. **正しさ**: `review-correctness` agent。
-2. **Codex**: `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
+2. **Codex**: `run_in_background` で `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
 3. `review-rules` agent — commit メッセージと差分のコメント、差分のせいで古くなった差分の外の文章。
 4. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 5. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
@@ -38,4 +38,4 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 ## PR の題と本文
 
-PR を開く前は `review-rules` agent に、repo のパス・branch・使う予定の題と本文だけを渡す。短いので foreground でよい。直してから PR を作る。
+PR を開く前は `review-rules` agent に、repo のパス・branch・使う予定の題と本文だけを渡す。1人だけなので、そのまま返事を待つ。直してから PR を作る。
