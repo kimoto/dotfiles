@@ -1,6 +1,6 @@
 ---
 name: review-tests
-description: これから開く PR の差分を、test-sweep の見方で見て、壊しても赤にならない所だけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
+description: これから push する差分を、test-sweep の見方で見て、壊しても赤にならない所だけを返す。★push 前のレビュー（review-branch skill）から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
 omitClaudeMd: true

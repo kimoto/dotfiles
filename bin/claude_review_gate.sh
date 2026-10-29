@@ -90,41 +90,13 @@ deny() {
   exit 0
 }
 
-# Codex takes correctness where enabled: a different model misses different
-# things. Its switch already says this machine's code may go to OpenAI.
-correctness_reviewer() {
-  local companion=""
-  if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
-    && jq -e '.enabledPlugins["codex@openai-codex"] == true' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
-    companion=$(printf '%s\n' "$HOME"/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs \
-      | sort -V | tail -1)
-  fi
-  if [ -f "$companion" ]; then
-    # shellcheck disable=SC2016 # backticks are Markdown for the agent
-    printf '`node "%s" review --base <the base branch>`' "$companion"
-  else
-    printf 'the review-correctness subagent'
-  fi
-}
-
-# Each reviewer is its own agent so its frontmatter pins the model and a short
-# tool list: a general-purpose subagent carries every tool's description, about
-# twice the tokens of the review itself. A machine that pulled but has not
-# re-linked lacks the agent files, so it gets the skill and that pinned model.
-other_reviewers() {
-  local agents_src reviewer agent sweep model out=""
-  agents_src="$(cd -P "$(dirname "$0")" && cd .. && pwd)/claudecode/agents"
-  for reviewer in review-refactor:refactor-sweep review-tests:test-sweep \
-    review-security:security-audit review-speed:bottleneck-sweep; do
-    agent=${reviewer%%:*} sweep=${reviewer#*:}
-    if [ -f "$HOME/.claude/agents/$agent.md" ]; then
-      out="$out the $agent subagent;"
-    else
-      model=$(sed -n '2,/^---$/s/^model: //p' "$agents_src/$agent.md" 2>/dev/null)
-      out="$out a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード)${model:+, with model: $model};"
-    fi
-  done
-  printf '%s' "${out%;}"
+# Who reviews and what they are handed live in the review-branch skill, which a
+# person can also call by hand; the hook only names the range. A machine that
+# pulled but has not re-linked reads the repo's copy.
+skill_ref() {
+  local f="$HOME/.claude/skills/review-branch/SKILL.md"
+  [ -f "$f" ] || f="$(cd -P "$(dirname "$0")" && cd .. && pwd)/claudecode/skills/review-branch/SKILL.md"
+  printf 'the review-branch skill (%s)' "$f"
 }
 
 bare=$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
@@ -161,13 +133,13 @@ judge_branch() {
     count=$(git -C "$dir" rev-list --count "$sha..$now" --not --remotes 2>/dev/null) || return 0
     [ "$count" -gt 0 ] && [ "$rounds" -lt "$max_rounds" ] || return 0
     mkdir -p "$pushed_dir" && printf '%s\n' "$now" >"$pushed"
-    deny "Before this push, re-check the commits made since the last review (\`git -C '$dir' log $sha..$branch --not --remotes\`) with $(correctness_reviewer), run_in_background; hand it the earlier findings and which commit addressed each, but not why you dismissed any, so it checks each fix holds and the new commits add no bug. Reviewers only report; you fix and commit. Then run \`$(gate_cmd) mark '$dir' $session\` and push again."
+    deny "Before this push, re-check the commits made since the last review (\`git -C '$dir' log $sha..$branch --not --remotes\`) as $(skill_ref) says under 再確認. Then run \`$(gate_cmd) mark '$dir' $session\` and push again."
   fi
 
   count=$(git -C "$dir" rev-list --count "$now" --not --remotes 2>/dev/null) || return 0
   [ "$count" -gt 0 ] || return 0
   mkdir -p "$pushed_dir" && printf '%s\n' "$now" >"$pushed"
-  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C '$dir' log $branch --not --remotes\`). Review them before they leave this machine, after fetching the base. Reviewers only report; you fix and commit. Give each only the repo path, those commits, and their purpose, not your reasoning. Start, all with run_in_background: $(correctness_reviewer); the review-rules subagent, for the commit messages and comments;$(other_reviewers). Keep security findings out of commits and PR text on a public repo. When done, run \`$(gate_cmd) mark '$dir' $session\` and push again. If these commits need no review (docs only, a revert), say why and push again."
+  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C '$dir' log $branch --not --remotes\`). Review them before they leave this machine, as $(skill_ref) says. Then run \`$(gate_cmd) mark '$dir' $session\` and push again. If these commits need no review (docs only, a revert), say why and push again."
 }
 
 # git with any options (e.g. -C <dir>), then the push subcommand. A wrapper
@@ -248,4 +220,4 @@ fi
 asked="$pr_dir/$(repo_key "$where$tip" "$head")"
 [ -f "$asked" ] && exit 0
 mkdir -p "$pr_dir" && : >"$asked"
-deny "Before opening the PR for $head, have the review-rules subagent check the title and body you are about to use, given only the repo path ($dir), the branch and that text, run in the foreground since it is short. It only reports; you fix the text, then create the PR again. Keep security findings out of the PR text on a public repo."
+deny "Before opening the PR for $head in $dir, check the title and body you are about to use as $(skill_ref) says under PR の題と本文, then create the PR again."

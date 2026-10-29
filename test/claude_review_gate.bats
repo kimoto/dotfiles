@@ -12,6 +12,7 @@ setup() {
   unset CLAUDE_CODE_REMOTE
   GATE="$REPO_ROOT/bin/claude_review_gate.sh"
   INSTALLER="$REPO_ROOT/bin/install_claude_review_gate.sh"
+  SKILL="$REPO_ROOT/claudecode/skills/review-branch/SKILL.md"
   # Resolved, so paths match what git prints (macOS mktemp gives /var, git /private/var).
   TMP="$(cd "$(mktemp -d)" && pwd -P)"
   export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
@@ -70,19 +71,26 @@ with_remote() {
   [ "$(decision)" = deny ]
   r="$(reason)"
   [[ "$r" == *"publishes 2 commit(s) on feat/x"* ]]
-  [[ "$r" == *"review-correctness"* ]]
-  [[ "$r" == *"review-rules subagent, for the commit messages"* ]]
+  [[ "$r" == *"the review-branch skill ($SKILL)"* ]]
+  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
+  [[ "$r" == *"push again"* ]]
+}
+
+@test "the review-branch skill names every reviewer, and each exists as pinned" {
+  grep -q '`review-correctness` agent' "$SKILL"
+  grep -q '`review-rules` agent' "$SKILL"
+  grep -q 'codex-companion.mjs review --base' "$SKILL"
+  grep -q 'run_in_background' "$SKILL"
+  grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
+  grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
     review-speed:bottleneck-sweep; do
     agent=${pair%%:*} sweep=${pair#*:}
-    want=sonnet
-    [ "$agent" != review-security ] || want=opus
-    [[ "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want;"* || \
-      "$r" == *"skills/$sweep/SKILL.md and follows its diff mode (差分モード), with model: $want."* ]]
+    grep -q "\`$agent\`" "$SKILL"
+    grep -q "${agent#review-} → $sweep" "$SKILL"
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  [[ "$r" == *"run_in_background"* ]]
   for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
     want=sonnet
     [ "$agent" != review-security ] || want=opus
@@ -92,9 +100,6 @@ with_remote() {
   for agent in review-correctness review-refactor review-tests review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
-  [[ "$r" == *"not your reasoning"* ]]
-  [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
-  [[ "$r" == *"push again"* ]]
 }
 
 @test "the same HEAD is stopped once; a new commit is stopped again" {
@@ -131,26 +136,11 @@ with_remote() {
   [[ "$(reason)" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
-@test "a reviewer agent this machine has linked is named; one it lacks falls back to its skill" {
-  mkdir -p "$HOME/.claude/agents"
-  ln -s "$REPO_ROOT/claudecode/agents/review-security.md" "$HOME/.claude/agents/review-security.md"
+@test "a machine that has linked the skill is pointed at its linked copy" {
+  mkdir -p "$HOME/.claude/skills"
+  ln -s "$REPO_ROOT/claudecode/skills/review-branch" "$HOME/.claude/skills/review-branch"
   pre_bash "git push"
-  r="$(reason)"
-  [[ "$r" == *"the review-security subagent"* ]]
-  [[ "$r" != *"skills/security-audit/SKILL.md"* ]]
-  [[ "$r" == *"skills/test-sweep/SKILL.md and follows its diff mode (差分モード), with model: sonnet"* ]]
-}
-
-@test "with Codex enabled, Codex takes correctness" {
-  mkdir -p "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts"
-  touch "$HOME/.claude/plugins/cache/openai-codex/codex/1.0.10/scripts/codex-companion.mjs"
-  jq -n '{enabledPlugins: {"codex@openai-codex": true}}' >"$SETTINGS"
-  pre_bash "git push"
-  [[ "$(reason)" == *"codex-companion.mjs\" review --base"* ]]
-  [[ "$(reason)" != *"review-correctness"* ]]
-  git -C "$REPO" commit -q --allow-empty -m more
-  CLAUDE_CODE_REMOTE=true pre_bash "git push"
-  [[ "$(reason)" == *"review-correctness"* ]]
+  [[ "$(reason)" == *"the review-branch skill ($HOME/.claude/skills/review-branch/SKILL.md)"* ]]
 }
 
 @test "commits after the mark are re-checked at the next push, with the earlier findings" {
@@ -161,8 +151,8 @@ with_remote() {
   [ "$(decision)" = deny ]
   r="$(reason)"
   [[ "$r" == *"$marked..feat/x"* ]]
-  [[ "$r" == *"earlier findings"* ]]
-  [[ "$r" == *"not why you dismissed"* ]]
+  [[ "$r" == *"under 再確認"* ]]
+  grep -q '^## 再確認' "$SKILL"
   [[ "$r" == *"\`'$GATE' mark '$REPO' s1\`"* ]]
 }
 
@@ -190,9 +180,10 @@ with_remote() {
   pre_bash "gh pr create --fill"
   [ "$(decision)" = deny ]
   r="$(reason)"
-  [[ "$r" == *"review-rules"* ]]
   [[ "$r" == *"title and body"* ]]
-  [[ "$r" != *"review-correctness"* ]]
+  [[ "$r" == *"under PR の題と本文"* ]]
+  grep -q '^## PR の題と本文' "$SKILL"
+  sed -n '/^## PR の題と本文/,$p' "$SKILL" | grep -q '`review-rules` agent'
   pre_bash "gh pr create --fill"
   [ -z "$output" ]
 }

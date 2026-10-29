@@ -1,6 +1,6 @@
 ---
 name: review-security
-description: これから開く PR の差分を、security-audit の見方で見て、攻め口・秘密・権限の広がりだけを返す。★PR を開く前の hook から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
+description: これから push する差分を、security-audit の見方で見て、攻め口・秘密・権限の広がりだけを返す。★push 前のレビュー（review-branch skill）から呼ぶ。渡すのは「repo のパス」「見る範囲」「変更の目的」だけで、書き手の推論は渡さない。⚠️ 直さない。
 tools: Read, Grep, Glob, Bash
 model: opus
 omitClaudeMd: true
