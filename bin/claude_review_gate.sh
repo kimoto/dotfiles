@@ -106,9 +106,21 @@ fi
 [ -f "$(mark_file "$head")" ] && exit 0
 
 dir=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || printf '<the repo dir>')
+# Each reviewer is its own agent so its frontmatter pins the model and a short
+# tool list: a general-purpose subagent carries every tool's description, about
+# twice the tokens of the review itself. A machine that pulled but has not
+# re-linked lacks the agent files, so it gets the skill and that pinned model.
 reason="Review this branch ($head) before opening its PR, after fetching the base. Reviewers only report; you fix, commit and push. Give each only the repo path, the branch's commits not on the base, and the PR's purpose, not your reasoning. Start, all with run_in_background: $(correctness_reviewer); the review-rules subagent, also given the PR title and body you are about to use;"
-for sweep in refactor-sweep test-sweep security-audit bottleneck-sweep; do
-  reason="$reason a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード);"
+agents_src="$(cd -P "$(dirname "$0")" && cd .. && pwd)/claudecode/agents"
+for reviewer in review-refactor:refactor-sweep review-tests:test-sweep \
+  review-security:security-audit review-speed:bottleneck-sweep; do
+  agent=${reviewer%%:*} sweep=${reviewer#*:}
+  if [ -f "$HOME/.claude/agents/$agent.md" ]; then
+    reason="$reason the $agent subagent;"
+  else
+    model=$(sed -n '2,/^---$/s/^model: //p' "$agents_src/$agent.md" 2>/dev/null)
+    reason="$reason a subagent that reads ~/.claude/skills/$sweep/SKILL.md and follows its diff mode (差分モード)${model:+, with model: $model};"
+  fi
 done
 reason="${reason%;}. Keep security findings out of the PR text on a public repo. When done, run \`$gate mark '$dir' $session\` and create the PR again."
 jq -cn --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse",
