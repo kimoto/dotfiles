@@ -570,11 +570,35 @@ def wait_for_job(path: Path) -> tuple[list | None, Prepared]:
 
 
 def main() -> None:
+    # Before Prepared starts: argparse imports modules of its own while it
+    # builds a parser, and imported on two threads at once, a module can be
+    # seen half made (a job given right after --wait started died this way).
+    p = parser()
     argv, ready = sys.argv[1:], None
     if len(argv) == 2 and argv[0] == "--wait":
         argv, ready = wait_for_job(Path(argv[1]))
         if argv is None:
             return
+    args = p.parse_args(argv)
+    if args.task and args.to:
+        p.error(f"--{args.task} keeps the language; it does not take --to")
+    if args.record_edit:
+        record_edit(sys.stdin.read())
+        return
+    ready = ready or Prepared()
+    try:
+        run(args, ready)
+        # For the popup, which offers the default model for another try.
+        if "fast" in timing:
+            print(f"{FAST_MODEL_MARK} {timing['fast']}", file=sys.stderr)
+    except Failed as e:
+        report(str(e))
+    finally:
+        if args.timing:
+            report_timing()
+
+
+def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Desktop translation with Claude")
     p.add_argument("text", nargs="*", help="text to translate (default: stdin, then the clipboard)")
     p.add_argument("--clipboard", action="store_true", help="translate the clipboard, ignoring stdin")
@@ -600,23 +624,7 @@ def main() -> None:
     p.add_argument("--best", action="store_true", help="use the default model, not the job's faster one")
     p.add_argument("--record-edit", action="store_true",
                    help="log the last rewrite as the user edited it (the edited text on stdin)")
-    args = p.parse_args(argv)
-    if args.task and args.to:
-        p.error(f"--{args.task} keeps the language; it does not take --to")
-    if args.record_edit:
-        record_edit(sys.stdin.read())
-        return
-    ready = ready or Prepared()
-    try:
-        run(args, ready)
-        # For the popup, which offers the default model for another try.
-        if "fast" in timing:
-            print(f"{FAST_MODEL_MARK} {timing['fast']}", file=sys.stderr)
-    except Failed as e:
-        report(str(e))
-    finally:
-        if args.timing:
-            report_timing()
+    return p
 
 
 def run(args, ready: Prepared) -> None:
