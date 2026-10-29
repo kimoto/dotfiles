@@ -18,7 +18,9 @@ description: いま居る repo の commit（か、これから開く PR の題�
 - revert だけなら回さない。docs だけなら `review-rules` だけ回す（差分の外で古くなった文章を見るため）。
 - 全員より狭くしたときは、そう判断した理由を一言返す。
 
-## 全体のレビュー: 全員を `run_in_background` で並べて回す
+## 全体のレビュー: まとめ役が全員を `run_in_background` で並べて回す
+
+まとめ役の subagent を1つだけ起動し、下の全員を回させる。まとめ役は全員が終わるのを待ち、重複を除いた1つの報告で返す。指摘ごとに、どの係が出したかを付ける。呼んだ側に届くのは、その報告1つだけになる。
 
 1. **正しさ**: `review-correctness` agent。
 2. **Codex**: `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。

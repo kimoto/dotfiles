@@ -86,6 +86,9 @@ with_remote() {
   grep -q '`review-rules` agent' <<<"$full"
   grep -q 'codex-companion.mjs review --base' <<<"$full"
   grep -q 'run_in_background' <<<"$full"
+  # One subagent runs them all and returns one report, so the main session reads one result.
+  grep -q 'まとめ役' <<<"$full"
+  grep -q 'どの係が出したか' <<<"$full"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
