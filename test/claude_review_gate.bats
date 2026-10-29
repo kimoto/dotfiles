@@ -83,6 +83,9 @@ reason() { jq -r '.hookSpecificOutput.permissionDecisionReason // .reason' <<<"$
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
   done
+  for agent in review-refactor review-tests review-security review-speed; do
+    sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
+  done
   [[ "$r" == *"not your reasoning"* ]]
   [[ "$r" == *"claude_review_gate.sh mark '$REPO' s1"* ]]
 }
