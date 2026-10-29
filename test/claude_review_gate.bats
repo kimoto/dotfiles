@@ -85,9 +85,15 @@ with_remote() {
   grep -q '^2\. \*\*Codex\*\*: .*無い環境では、代わりに `review-correctness-checklist` agent。' <<<"$full"
   grep -q '`review-rules` agent' <<<"$full"
   grep -q 'codex-companion.mjs review --base' <<<"$full"
-  grep -q 'run_in_background' <<<"$full"
-  # One subagent runs them all and returns one report, so the main session reads one result.
-  grep -q 'まとめ役' <<<"$full"
+  # A subagent has no Agent tool, so the caller starts every reviewer itself, in one
+  # message, and reads the findings only once every report is in.
+  body=$(sed 1d <<<"$full")
+  grep -q '1つのメッセージ' <<<"$body"
+  grep -q 'Agent tool が無い' <<<"$body"
+  grep -q 'そろうまで' <<<"$body"
+  # Codex runs in Bash, whose foreground timeout a whole-branch review can outlast.
+  grep -q '^2\. \*\*Codex\*\*: `run_in_background` で' <<<"$body"
+  [ -z "$(grep 'まとめ役' "$SKILL")" ]
   grep -q 'どの係が出したか' <<<"$full"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
