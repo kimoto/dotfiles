@@ -144,6 +144,18 @@ fi
 # The check toolchain pinned in mise.toml, before the hooks below that run it.
 # Each bin/lint_*.sh names the tool that is missing.
 if command -v mise >/dev/null 2>&1; then
+    # node's Linux build links libatomic, which a minimal Ubuntu leaves out and
+    # CI's runner image ships, so only mise's "exit code 127" would say so.
+    # Captured, not piped into `grep -q`: under pipefail its early exit makes
+    # ldconfig's SIGPIPE the pipeline's status, which reads as "not found".
+    # An empty list means no ldconfig to ask, not a missing library.
+    if [ "$(uname)" = "Linux" ]; then
+        ld_libs="$(ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null || true)"
+        if [ -n "$ld_libs" ] && [[ "$ld_libs" != *libatomic.so.1* ]]; then
+            echo "mkworld: node (config/mise/config.toml) needs libatomic.so.1;" \
+                "install it first (Debian/Ubuntu: sudo apt-get install libatomic1)" >&2
+        fi
+    fi
     (cd "$BASE_DIR" && mise trust --quiet mise.toml && mise install) \
         || echo "mise install failed; the git hooks will refuse commits until it succeeds" >&2
 fi

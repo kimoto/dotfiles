@@ -81,3 +81,16 @@ bundles() { tr '\n' ' ' <"$BUNDLE_LOG"; }
   [ "$status" -eq 0 ]
   [[ "$(bundles)" == *"Brewfile.extra"* ]]
 }
+
+# A fresh Ubuntu ships wget, which README's install line uses, but not curl, so
+# the first failure a new machine meets has to name curl.
+@test "no curl and no brew: the error names curl" {
+  unset BREW_BIN
+  BIN="$TMP/nocurl"
+  mkdir -p "$BIN"
+  for c in bash uname dirname readlink; do ln -s "$(command -v "$c")" "$BIN/$c"; done
+  PATH="$BIN" run "$REPO/bin/setup_homebrew.sh"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"setup_homebrew: curl"* ]]
+  [[ "$output" != *"brew not found"* ]]
+}

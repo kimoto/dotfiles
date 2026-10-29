@@ -22,6 +22,12 @@ if [ -z "${BREW_BIN:-}" ]; then
     if ! command -v brew >/dev/null 2>&1; then
         os="$(uname)"
         if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
+            # A fresh Ubuntu has wget, which README uses, but not curl.
+            if ! command -v curl >/dev/null 2>&1; then
+                echo "setup_homebrew: curl is needed to fetch the Homebrew installer;" \
+                    "install it first (Debian/Ubuntu: sudo apt-get install curl)" >&2
+                exit 1
+            fi
             installer="https://raw.githubusercontent.com/Homebrew/install/$HOMEBREW_INSTALL_REF/install.sh"
             /bin/bash -c "$(curl -fsSL "$installer")"
         fi
