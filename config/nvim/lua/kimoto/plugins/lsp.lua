@@ -12,6 +12,7 @@
 -- Enabling a server that is not installed is harmless — nvim warns once when
 -- a matching filetype is opened.
 local servers = {
+  'bashls',        -- sh / bash; diagnostics come from shellcheck
   'ts_ls',         -- typescript / javascript
   'eslint',
   'pyright',       -- python
