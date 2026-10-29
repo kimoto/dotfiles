@@ -5,7 +5,7 @@
 -- test says. Everything else answers with an object that accepts any call.
 
 stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, changeCount = 0,
-         popups = {}, pasted = {}, written = {} }
+         popups = {}, pasted = {}, written = {}, clipboard = "the copied text" }
 
 local any
 any = setmetatable({}, {
@@ -87,6 +87,7 @@ hs = setmetatable({
    },
    pasteboard = {
       changeCount = function() return stub.changeCount end,
+      getContents = function() return stub.clipboard end,
       setContents = function(text) table.insert(stub.pasted, text) end,
       writeObjects = function(image) table.insert(stub.pasted, image.data); return true end,
    },

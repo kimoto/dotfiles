@@ -144,6 +144,39 @@ ROWS
   [ "$output" = "$(printf '0\t--quiet --clipboard')" ]
 }
 
+# A faster model's answer can be redone on the default one; by then the
+# clipboard holds that answer, so the retry carries the text that was copied.
+@test "an answer from a faster model offers a retry on the default model, with the original text" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choose('要約')
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    view:post({ ready = true })
+    stub.clipboard = 'the summary'
+    task.done(0, 'the summary', '@fast-model claude-haiku-5-5\\n')
+    print(stub.lastUpdate())
+    view:post({ best = true })
+    print(#stub.tasks, stub.sent(stub.tasks[#stub.tasks]))"
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == *"haiku-5-5"*'"done",false,true])' ]]
+  [ "${lines[1]}" = "$(printf '2\t--quiet --summarize --best -- the copied text')" ]
+}
+
+@test "an answer from the default model offers no retry" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+w']()
+    stub.tick()
+    stub.choose('清書')
+    local view, task = stub.popups[#stub.popups], stub.tasks[#stub.tasks]
+    view:post({ ready = true })
+    task.done(0, 'the message', '')
+    view:post({ best = true })
+    print(stub.lastUpdate(), #stub.tasks)"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"done",false,false])'*"$(printf '\t1')" ]]
+}
+
 # Runs the 図解 row with its popup's page loaded, then the Lua in $1.
 diagram() {
   drive "
@@ -181,7 +214,7 @@ diagram() {
     task.done(0, '<svg width=\"480\"></svg>', '')
     print(stub.lastUpdate())"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'<svg'*'"busy",true])' ]]
+  [[ "$output" == *'<svg'*'"busy",true,false])' ]]
 }
 
 @test "a failed diagram shows only the reason, not half an SVG" {
