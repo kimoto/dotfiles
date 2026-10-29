@@ -94,13 +94,15 @@ with_remote() {
     grep -q "skills/$sweep/SKILL.md" "$REPO_ROOT/claudecode/agents/$agent.md"
     grep -q '^## 差分モード' "$REPO_ROOT/claudecode/skills/$sweep/SKILL.md"
   done
-  for agent in review-correctness review-rules review-refactor review-tests review-security review-speed; do
+  grep -q '`review-portability` agent' <<<"$full"
+  for agent in review-correctness review-rules review-portability review-refactor review-tests review-security \
+    review-speed; do
     want=sonnet
     [ "$agent" != review-security ] || want=opus
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'tools: Read, Grep, Glob, Bash'
   done
-  for agent in review-correctness review-refactor review-tests review-security review-speed; do
+  for agent in review-correctness review-portability review-refactor review-tests review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
 }
