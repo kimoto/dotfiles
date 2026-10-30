@@ -37,6 +37,11 @@ fi
 
 # 3. Symlinks, lefthook, and tpm plugins (mkworld installs the plugins, which
 #    populates the ~/.tmux/plugins cache on a miss). brew is handled above.
-SKIP_BREW=1 MKWORLD_EXPECT=standard ./bin/mkworld.sh
+#    MISE_GLOBAL_CONFIG_FILE points away from config/mise/config.toml, which
+#    mklink just linked in: its language toolchains (rust, go, node, bun) are
+#    for typing at a workstation, nothing in these jobs runs them, and rust
+#    alone held mkworld's `mise install` for ~10s. The daily bootstrap-linux
+#    run, which calls mkworld itself, still installs them.
+MISE_GLOBAL_CONFIG_FILE=/nonexistent SKIP_BREW=1 MKWORLD_EXPECT=standard ./bin/mkworld.sh
 
 echo "== cache phase complete =="
