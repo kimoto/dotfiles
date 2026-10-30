@@ -86,6 +86,21 @@ teardown() {
   [[ "$output" == *"not a git repository"* ]]
 }
 
+@test "refuses when origin names no default branch, and prints no path" {
+  # Exit 0 with an empty stdout would send `cd "$(worktree_new.sh ...)"` to
+  # the wrong place instead of stopping, so both the status and stdout count.
+  local lone="$TMP/lone"
+  git init -q -b main "$lone"
+  git -C "$lone" -c user.email=t@t.test -c user.name=test commit -q --allow-empty -m "feat: init"
+
+  cd "$lone"
+  run --separate-stderr "$SCRIPT" feat/thing
+  [ "$status" -ne 0 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"cannot tell which branch origin defaults to"* ]]
+  [ ! -e "$DOTFILES_WORKTREE_ROOT/lone/feat-thing" ]
+}
+
 # --- what it creates -------------------------------------------------------
 
 @test "creates the worktree under the root, one directory per repo" {
