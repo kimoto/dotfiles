@@ -273,6 +273,14 @@ with_remote() {
   [ "$(ls "$XDG_STATE_HOME/claude-review" | wc -l | tr -d ' ')" = 1 ]
 }
 
+@test "a mark on a detached HEAD fails and records nothing" {
+  git -C "$REPO" switch -q --detach
+  run "$GATE" mark "$REPO" s1
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"not on a branch: $REPO"* ]]
+  [ -z "$(ls -A "$XDG_STATE_HOME/claude-review" 2>/dev/null)" ]
+}
+
 @test "the same branch name in two repos keeps two marks" {
   git init -q -b main "$TMP/other"
   git -C "$TMP/other" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
