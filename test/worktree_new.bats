@@ -87,18 +87,24 @@ teardown() {
 }
 
 @test "refuses when origin names no default branch, and prints no path" {
-  # Exit 0 with an empty stdout would send `cd "$(worktree_new.sh ...)"` to
-  # the wrong place instead of stopping, so both the status and stdout count.
+  # Stopping here, before any directory is made, is what is guarded: exit 0
+  # with an empty stdout would send `cd "$(worktree_new.sh ...)"` somewhere
+  # unintended, and carrying on would leave half-made directories behind.
+  # The origin has only `trunk`: no origin/HEAD, no main, no master.
   local lone="$TMP/lone"
-  git init -q -b main "$lone"
+  git init -q -b trunk "$lone"
   git -C "$lone" -c user.email=t@t.test -c user.name=test commit -q --allow-empty -m "feat: init"
+  git init -q --bare -b trunk "$TMP/trunk.git"
+  git -C "$lone" remote add origin "$TMP/trunk.git"
+  git -C "$lone" -c push.negotiate=false push -q origin trunk
+  git -C "$lone" fetch -q origin
 
   cd "$lone"
   run --separate-stderr "$SCRIPT" feat/thing
   [ "$status" -ne 0 ]
   [ -z "$output" ]
   [[ "$stderr" == *"cannot tell which branch origin defaults to"* ]]
-  [ ! -e "$DOTFILES_WORKTREE_ROOT/lone/feat-thing" ]
+  [ ! -e "$DOTFILES_WORKTREE_ROOT/lone" ]
 }
 
 # --- what it creates -------------------------------------------------------
