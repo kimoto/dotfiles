@@ -21,8 +21,7 @@ if [ "$MODE" = "--uninstall" ]; then
 else
   jq --arg cmd "$GUARDED" "$STRIP"'
     def ensure($event; $arg):
-      .hooks[$event] = ((.hooks[$event] // [])
-        + [{hooks: [{type: "command", command: ($cmd + " " + $arg)}]}]);
+      .hooks[$event] += [{hooks: [{type: "command", command: ($cmd + " " + $arg)}]}];
     strip_idle
     # ★The stamp is the END of an assistant turn, so a long tool run does not
     #   read as an absence.

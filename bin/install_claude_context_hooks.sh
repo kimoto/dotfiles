@@ -40,8 +40,7 @@ if [ "$MODE" = "--uninstall" ]; then
 else
   jq --arg cmd "$GUARDED" --arg handoff "$HANDOFF" --arg idle_min "$IDLE_MIN" "$STRIP"'
     def ensure($event; $c):
-      .hooks[$event] = ((.hooks[$event] // [])
-        + [{hooks: [{type: "command", command: $c}]}]);
+      .hooks[$event] += [{hooks: [{type: "command", command: $c}]}];
     strip_context
     # An earlier install wrote false; idle compaction stays on now.
     | if .idleCompaction == false then del(.idleCompaction) else . end

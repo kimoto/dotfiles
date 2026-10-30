@@ -28,8 +28,7 @@ else
   jq --arg cmd "$GUARDED" --arg hunk "$GUARDED_HUNK" "$STRIP"'
     # hook.sh maps each event to a state; this list only says which events.
     def ensure($event):
-      .hooks[$event] = ((.hooks[$event] // [])
-        + [{hooks: [{type: "command", command: ($cmd + " " + $event)}]}]);
+      .hooks[$event] += [{hooks: [{type: "command", command: ($cmd + " " + $event)}]}];
     strip_indicator
     | ensure("Notification")      # permission prompt / idle -> waiting
     | ensure("Stop")              # finished responding -> done
@@ -42,8 +41,7 @@ else
     # in Bash fires only CwdChanged. Both are needed to follow every move.
     | .hooks.PostToolUse += [{matcher: "EnterWorktree|ExitWorktree",
                               hooks: [{type: "command", command: $hunk}]}]
-    | .hooks.CwdChanged = ((.hooks.CwdChanged // [])
-                           + [{hooks: [{type: "command", command: $hunk}]}])
+    | .hooks.CwdChanged += [{hooks: [{type: "command", command: $hunk}]}]
   ' "$SETTINGS" >"$tmp"
 fi
 
