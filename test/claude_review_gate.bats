@@ -345,6 +345,14 @@ with_remote() {
   [ "$(decision)" = deny ]
 }
 
+@test "a relative cd or git -C is taken from where the session stands" {
+  pre_bash "cd repo && git push" "$TMP"
+  [ "$(decision)" = deny ]
+  git -C "$REPO" commit -q --allow-empty -m more
+  pre_bash "git -C repo push" "$TMP"
+  [ "$(decision)" = deny ]
+}
+
 @test "option values and full ref names do not hide the pushed branch" {
   git -C "$REPO" switch -q main
   "$GATE" mark "$REPO" s1
