@@ -13,8 +13,6 @@ brew "bats-core"
 brew "binwalk"
 # Versatile and fast Unicode/ASCII/ANSI graphics renderer
 brew "chafa"
-# Apjanke's fork of the classic cowsay project
-brew "cowsay"
 # Structural diff that understands syntax (on-demand via `git dft`)
 brew "difftastic"
 # More intuitive version of du in rust
@@ -25,10 +23,6 @@ brew "entr"
 brew "exiftool"
 # Like neofetch, but much faster because written mostly in C
 brew "fastfetch"
-# Banner-like program prints strings as ASCII art
-brew "figlet"
-# Infamous electronic fortune-cookie generator
-brew "fortune"
 # GNU internationalization (i18n) and localization (l10n) library
 brew "gettext"
 # GitHub command-line tool
@@ -61,8 +55,6 @@ brew "lefthook"
 brew "less"
 # Linux virtual machines
 brew "lima"
-# Rainbows and unicorns in your console!
-brew "lolcat"
 # Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
 brew "luajit"
 # Open source relational database management system

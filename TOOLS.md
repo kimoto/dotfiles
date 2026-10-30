@@ -54,14 +54,11 @@ _Source: `Brewfile.extra`._
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
 | [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
-| [cowsay](https://formulae.brew.sh/formula/cowsay) | Apjanke's fork of the classic cowsay project |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
 | [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
 | [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
 | [fastfetch](https://formulae.brew.sh/formula/fastfetch) | Like neofetch, but much faster because written mostly in C |
-| [figlet](https://formulae.brew.sh/formula/figlet) | Banner-like program prints strings as ASCII art |
-| [fortune](https://formulae.brew.sh/formula/fortune) | Infamous electronic fortune-cookie generator |
 | [gettext](https://formulae.brew.sh/formula/gettext) | GNU internationalization (i18n) and localization (l10n) library |
 | [gh](https://formulae.brew.sh/formula/gh) | GitHub command-line tool |
 | [ghq](https://formulae.brew.sh/formula/ghq) | Remote repository management made easy |
@@ -78,7 +75,6 @@ _Source: `Brewfile.extra`._
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
 | [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
-| [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
