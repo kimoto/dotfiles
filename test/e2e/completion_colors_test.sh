@@ -8,8 +8,8 @@
 # with `-e` — evaluated at every lookup — because LS_COLORS does not exist yet
 # when that line runs: it is exported by the vivid-ls-colors plugin, which
 # config/sheldon/plugins.toml loads through zsh-defer, i.e. after the first
-# prompt. The plain form (`list-colors ${(s.:.)LS_COLORS}`) captured an empty
-# value at load time and every completion candidate was listed uncoloured.
+# prompt. The plain form (`list-colors ${(s.:.)LS_COLORS}`) would capture an
+# empty value at load time and list every completion candidate uncoloured.
 #
 # Only a real terminal can prove the candidates come out coloured: the style
 # value alone is checked by test/completion_list_colors.bats, but the drawing

@@ -4,7 +4,7 @@
 #
 #   ci/aged_pass.sh <workflow-file> <days> <event>...
 #
-# `stable` moves only to such a commit. The bootstrap now runs daily so a
+# `stable` moves only to such a commit. The bootstrap runs daily so a
 # breakage shows up within a day, but a commit that has sat on main for a week
 # without anyone hitting a problem is worth more than one that passed an hour
 # ago: the age is the soak time, the pass is the proof. <event> limits which
