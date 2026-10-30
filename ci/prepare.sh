@@ -37,9 +37,12 @@ fi
 
 # 3. Symlinks, lefthook, and tpm plugins (mkworld installs the plugins, which
 #    populates the ~/.tmux/plugins cache on a miss). brew is handled above.
-#    MISE_GLOBAL_CONFIG_FILE hides the global mise config mklink links in, so
-#    `mise install` skips its language toolchains (rust, go, node, bun): they
-#    are for a workstation, and nothing in these jobs runs them.
-MISE_GLOBAL_CONFIG_FILE=/nonexistent SKIP_BREW=1 MKWORLD_EXPECT=standard ./bin/mkworld.sh
+#    The global mise config mklink links in is ignored, so `mise install`
+#    skips its language toolchains (rust, go, node, bun): they are for a
+#    workstation, and nothing in these jobs runs them. Ignored by path rather
+#    than MISE_GLOBAL_CONFIG_FILE: the checkout sits under $HOME, so mise also
+#    finds the file as a parent directory's .config/mise/config.toml.
+MISE_IGNORED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
+    SKIP_BREW=1 MKWORLD_EXPECT=standard ./bin/mkworld.sh
 
 echo "== cache phase complete =="
