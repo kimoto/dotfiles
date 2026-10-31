@@ -46,14 +46,14 @@ run_script() {
 }
 
 @test "nothing missing: apt is not called" {
-  INSTALLED="git zsh curl libatomic1"
+  INSTALLED="zsh curl libatomic1 git"
   run_script
   [ "$status" -eq 0 ]
   [ ! -s "$LOG" ]
 }
 
 @test "installs only what dpkg reports missing, through sudo" {
-  INSTALLED="git curl"
+  INSTALLED="curl git"
   run_script
   [ "$status" -eq 0 ]
   grep -qx "sudo DEBIAN_FRONTEND=noninteractive" "$LOG"
@@ -61,7 +61,7 @@ run_script() {
 }
 
 @test "as root, apt is called without sudo" {
-  INSTALLED="git zsh curl"
+  INSTALLED="zsh curl git"
   FAKE_UID=0
   run_script
   [ "$status" -eq 0 ]
