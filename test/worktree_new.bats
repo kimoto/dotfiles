@@ -98,6 +98,8 @@ teardown() {
   git -C "$lone" remote add origin "$TMP/trunk.git"
   git -C "$lone" -c push.negotiate=false push -q origin trunk
   git -C "$lone" fetch -q origin
+  # git 2.48+ fetch records origin/HEAD by itself; drop it so none is named.
+  git -C "$lone" remote set-head origin --delete
 
   cd "$lone"
   run --separate-stderr "$SCRIPT" feat/thing
