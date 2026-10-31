@@ -12,13 +12,20 @@ looks the same wherever it is opened.
 
 ## Status
 
-Trial week (one week from the day the routine prompts start pointing here): routines add the `automerge:candidate` label to
-class A PRs but do not merge anything. After the week, if the label matched the
-owner's own calls, GitHub auto-merge is turned on for class A only.
+Comment-only class A merges itself: the routine adds `automerge:candidate`
+and turns on squash auto-merge, so the PR lands once the required checks
+pass. Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails
+there; use the GitHub MCP `enable_pr_auto_merge` or the REST route
+`PUT repos/<owner>/<repo>/pulls/<n>/ccr/auto_merge` instead. The owner chose this on 2026-10-31, after a trial
+week in which every comment-only A PR was merged untouched.
+
+Version bumps and refactors in class A still get the label only, until the
+review on 2026-11-07: in the trial week, refactor A PRs were labelled without
+the evidence the class asks for.
 
 ## Classes
 
-**A — may merge itself once checks pass** (during the trial: label only)
+**A — may merge itself once checks pass** (for now, comment-only only; see Status)
 
 - Comment- and blank-line-only changes: the diff with comments and blank lines
   stripped is empty.
