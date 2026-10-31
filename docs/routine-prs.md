@@ -13,8 +13,10 @@ looks the same wherever it is opened.
 ## Status
 
 Comment-only class A merges itself: the routine adds `automerge:candidate`
-and turns on auto-merge (`gh pr merge --auto --squash`), so the PR lands once
-the required checks pass. The owner chose this on 2026-10-31, after a trial
+and turns on squash auto-merge, so the PR lands once the required checks
+pass. Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails
+there; use the GitHub MCP `enable_pr_auto_merge` or the REST route
+`PUT repos/<owner>/<repo>/pulls/<n>/ccr/auto_merge` instead. The owner chose this on 2026-10-31, after a trial
 week in which every comment-only A PR was merged untouched.
 
 Version bumps and refactors in class A still get the label only, until the
