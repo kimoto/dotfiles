@@ -478,6 +478,50 @@ jobs:
       - name: bash and zsh start clean without the rich tools
         run: runuser -u tester -- ./test/e2e/plain_shell_test.sh
 
+  # README's install steps on a fresh Ubuntu, all the way to platform. The
+  # runner image and bootstrap-linux.yml already hold curl, git, zsh and
+  # libatomic1, so a package a fresh machine lacks never shows up there.
+  bare_ubuntu_bootstrap:
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    # As long as a full bootstrap-linux.yml run, since the target is the same.
+    timeout-minutes: 120
+    # By digest, like plain_shell_test's image.
+    container: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+    steps:
+      - name: Install git only long enough to check out
+        # Without git, actions/checkout downloads a tarball with no .git, and
+        # README's clone has nothing to clone from.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Bring the image down to a fresh Ubuntu account
+        # The image is barer than any installed Ubuntu. Put back only what a
+        # person's own fresh install has: sudo for a non-root account, since
+        # Homebrew refuses root. Everything else README needs has to come from
+        # README.
+        run: |
+          apt-get purge -y --autoremove git
+          apt-get install -y --no-install-recommends sudo
+          useradd --create-home tester
+          echo 'tester ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/tester
+          chown -R tester "$GITHUB_WORKSPACE"
+
+      - name: Run README as that account, and expect platform
+        # Clones this checkout instead of GitHub, and keeps it at this commit
+        # instead of resetting to stable: what is under test is this branch.
+        # NONINTERACTIVE: no terminal here to answer the Homebrew installer.
+        run: |
+          sed -e "s#https://github.com/kimoto/dotfiles.git#$GITHUB_WORKSPACE dotfiles#" \
+              -e '/origin\/stable/d' README >/tmp/install.sh
+          sudo -u tester -H env NONINTERACTIVE=1 MKWORLD_EXPECT=platform sh /tmp/install.sh
+
   vim_guard_test:
     needs: scope
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
