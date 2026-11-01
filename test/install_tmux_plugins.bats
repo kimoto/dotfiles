@@ -64,3 +64,21 @@ setup() {
   [[ "$output" != *"Tmux Plugin Manager not configured"* ]]
   [[ "$output" != *"server version is too old"* ]]
 }
+
+@test "reads the config once, and still installs from it" {
+  command -v tmux >/dev/null 2>&1 || skip "tmux not installed"
+  command -v git >/dev/null 2>&1 || skip "git not installed"
+
+  export HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME"
+  cat >"$HOME/.tmux.conf" <<'CONF'
+set -g @tpm_plugins 'tmux-plugins/tpm'
+run-shell 'echo read >> "$HOME/reads"'
+CONF
+  unset TMUX TMUX_CONF
+
+  run ./bin/install_tmux_plugins.sh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'Already installed "tpm"'* ]]
+  [ "$(wc -l <"$HOME/reads")" -eq 1 ]
+}

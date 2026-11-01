@@ -48,13 +48,15 @@ pin tmux-plugins/tpm "$TPM"
 
 # tpm's installer reads @tpm_plugins from a running server and clones into
 # $TMUX_PLUGIN_MANAGER_PATH. Spin up a throwaway server, source the real config
-# so the option is set, then let tpm do the clones.
+# so the option is set, then let tpm do the clones. The server starts with
+# -f /dev/null so the config is read once, by source-file: each read runs every
+# plugin, and on a CI runner that is seconds.
 export TMUX_PLUGIN_MANAGER_PATH="$PLUGIN_DIR/"
 SOCK="tpm_install_$$"
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
 trap cleanup EXIT
 
-tmux -L "$SOCK" new-session -d -x 200 -y 50 || die "failed to start tmux server"
+tmux -L "$SOCK" -f /dev/null new-session -d -x 200 -y 50 || die "failed to start tmux server"
 # Non-fatal: a missing-plugin `run` in the config can exit non-zero on first run.
 tmux -L "$SOCK" source-file "$CONF" 2>/dev/null || true
 
