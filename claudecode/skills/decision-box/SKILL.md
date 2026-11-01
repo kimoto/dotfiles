@@ -42,11 +42,13 @@ repo の一覧は呼び出し側（routine の prompt）が渡す。読めない
 
 **PR**（行き先 `merge`・`close`・`keep`）:
 
-- `merge`: 次を全部満たすときだけマージする。満たさなければマージせず、報告に理由を書く
-  - まだ open、必須チェックが全部緑、`mergeable_state` が clean
+- `merge`: 次を全部満たすときだけ、GitHub の auto-merge を付ける（`PUT .../pulls/<n>/ccr/auto_merge`、
+  squash があれば squash）。マージそのものは必須チェックが緑になった時に GitHub がする。満たさなければ付けず、報告に理由を書く
+  - まだ open、`mergeable_state` が dirty（衝突）でない
   - ★**item を作った後に付いたコメント・レビューが無い**（話が動いていたら本人に聞き直す）
   - 下書きなら、選択肢が「下書きを外して」と言っているときだけ `POST .../pulls/<n>/ccr/ready_for_review` してから
-  - repo が許す方法で。squash があれば squash
+  - ⚠️ 無人の実行では、直接のマージは環境の安全装置に止められた（「レビューなしのマージ」）。auto-merge も止められたら、
+    item は開いたまま `flag: "スレッドで一言"` にして、報告に「マージして と一言ください」と PR を並べる。対話の Claude がまとめてマージする
 - `close`: 「本人が判断箱で閉じると選んだ」とコメントして閉じる。ブランチは消さない
 - `keep`: 何もしない。item は開いたまま残し、`applied_at` だけ進める
 
