@@ -119,6 +119,7 @@ EOF
   mkdir -p "$TMP/home/.local/share/desktop-translate"
   CONFIG="$TMP/home/.local/share/desktop-translate/config.toml"
   STYLE="$TMP/home/.local/share/desktop-translate/style.md"
+  INSTRUCTIONS="$TMP/home/.local/share/desktop-translate/instructions.txt"
   LAST_REWRITE="$TMP/home/.local/share/desktop-translate/last-rewrite.json"
   EDITS="$TMP/home/.local/share/desktop-translate/rewrite-edits.jsonl"
   export CLIPBOARD="$TMP/clipboard"
@@ -183,6 +184,13 @@ request_text() {
   [ "$status" -eq 0 ]
   [ "$(cat "$REQUEST.key")" = "sk-from-keychain:anthropic" ]
   [ "$(cat "$REQUEST.base")" = "None" ]
+}
+
+@test "the instructions file is appended to the system prompt" {
+  echo "Use the glossary." >"$INSTRUCTIONS"
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 0 ]
+  [[ "$(request_system)" == *$'\n\nUse the glossary.' ]]
 }
 
 @test "no key in the Keychain fails, even with keys in the environment" {

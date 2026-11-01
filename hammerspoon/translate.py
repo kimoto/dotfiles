@@ -89,7 +89,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 KEYCHAIN_SERVICE = "desktop-translate"
-CONFIG = Path.home() / ".local/share/desktop-translate/config.toml"
+# What stays on the machine; not ~/.config, which is this repo's config/.
+DATA_DIR = Path.home() / ".local/share/desktop-translate"
+CONFIG = DATA_DIR / "config.toml"
 PROVIDERS = ("anthropic", "openai")
 ANTHROPIC_MODEL = "claude-opus-5-5"
 # Measured on the Mac on a 469-character text: Haiku's summary started in 1.5 s
@@ -98,8 +100,8 @@ ANTHROPIC_MODEL = "claude-opus-5-5"
 JOB_MODELS = {"summarize": "claude-haiku-5-5"}
 # Thinking cannot be turned off on this model; low effort keeps the wait short.
 EFFORT = os.environ.get("DESKTOP_TRANSLATE_EFFORT", "low")
-EXTRA_INSTRUCTIONS = Path.home() / ".local/share/desktop-translate/instructions.txt"
-STYLE = Path.home() / ".local/share/desktop-translate/style.md"
+EXTRA_INSTRUCTIONS = DATA_DIR / "instructions.txt"
+STYLE = DATA_DIR / "style.md"
 TRUNCATED = "（長すぎて途中で切れました）"
 # How often --wait looks for its job, and how long before it gives up: well
 # under what a person notices, and longer than a menu is left open.
@@ -110,8 +112,8 @@ NO_THINKING_PREFIX = "claude-haiku-"
 # The line on stderr that says a job's faster model answered; translate.lua
 # matches it to offer --best.
 FAST_MODEL_MARK = "@fast-model"
-LAST_REWRITE = Path.home() / ".local/share/desktop-translate/last-rewrite.json"
-REWRITE_EDITS = Path.home() / ".local/share/desktop-translate/rewrite-edits.jsonl"
+LAST_REWRITE = DATA_DIR / "last-rewrite.json"
+REWRITE_EDITS = DATA_DIR / "rewrite-edits.jsonl"
 # Enough to show the user's habits; every one goes out with each rewrite.
 EXAMPLE_EDITS = 5
 
@@ -308,7 +310,6 @@ def record_edit(final: str) -> None:
         return
     entry = {"notes": last.get("notes", ""), "draft": draft, "final": final}
     write_private(REWRITE_EDITS, json.dumps(entry, ensure_ascii=False) + "\n", append=True)
-
 
 
 def system_prompt() -> str:
