@@ -44,6 +44,10 @@ load_brew() {
 
 cd "$HOME"
 
+# Before the climb, so a fresh Ubuntu gets zsh, curl and libatomic1 from apt.
+# A failure only warns: each step that needs a package names it.
+"$BASE_DIR/bin/install_os_packages.sh" || echo "mkworld: OS packages failed to install" >&2
+
 # Helpers are executed directly, never as `sh <script>`: each one's shebang
 # picks its interpreter. `sh` would be bash-in-POSIX-mode on macOS but dash on
 # Linux, and setup_homebrew.sh (and friends) open with `set -euo pipefail`,

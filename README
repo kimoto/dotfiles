@@ -14,6 +14,10 @@
 # -------------------------------------------------------------------------
 #
 cd $HOME
+# A fresh Ubuntu has no git; mkworld installs the rest it lacks.
+if ! command -v git >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update && sudo apt-get install -y git
+fi
 git clone --recursive https://github.com/kimoto/dotfiles.git
 # Start from the last commit a full bootstrap passed on, not whatever main
 # holds right now. main stays checked out, so later syncs move it forward.
