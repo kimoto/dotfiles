@@ -83,6 +83,7 @@ claudecode/rules-cloud/*
 claudecode/skills/*
 !claudecode/skills/bottleneck-sweep/
 !claudecode/skills/cloud-refresh/
+!claudecode/skills/decision-box/
 !claudecode/skills/handoff/
 !claudecode/skills/issue-sweep/
 !claudecode/skills/load-test-sweep/
