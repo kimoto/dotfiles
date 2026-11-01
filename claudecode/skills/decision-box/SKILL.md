@@ -14,9 +14,10 @@ db は `ArtifactData` で読み書きする。⚠️ `ArtifactData` が無い環
 db の形:
 
 - `items/<repo>-<n>`（issue）・`items/pr-<repo>-<n>`（PR）:
-  `{kind: "issue"|"pr", o, repo, n, url, title, what, q, opts: [{label, to}], rec, flag, closed, applied_at}`。
+  `{kind: "issue"|"pr", o, repo, n, url, title, what, detail, q, opts: [{label, to}], rec, flag, closed, applied_at}`。
   `rec` はおすすめの添字（0 始まり、無ければ null）。`closed: true` でページから消える
 - `answers/<key>`: `{pick, note, at}`。本人がページで押したもの。`pick` は 0 始まり
+- `qa/<key>`: `{list: [{q, a}]}`。本人がページで Claude に聞いたことと答え。読むだけ（答えではない）
 
 ## 対象
 
@@ -58,6 +59,8 @@ repo の一覧は呼び出し側（routine の prompt）が渡す。読めない
 - **PR**: 持ち主が作者の open PR のうち、CI が赤でないもの（赤は AI の仕事で、本人の判断ではない）。
   選択肢は「マージ／閉じる／後で」。おすすめは class A・B で CI 緑ならマージ、C は無し
 - `title` は日本語で、題だけで判断できる長さ。`what` は「何が変わるか」1行。英語の題を訳すだけにしない
+- `detail` は「詳しく」に出す背景 3〜6行: なぜ聞いているか・選ぶと何が起きるか・用語の説明。ページで Claude に質問すると、
+  答えの根拠はこの欄しか無い。持ち主が書いた本文・ask・PR 本文から書く。⛔ 第三者の文は写さない
 - `flag` は本人が読むものがあるときだけ（「下書き」「表を読む」など）
 - 既にある item は中身を上書きしてよいが、`applied_at` は残す
 - **もう待っていないもの**（issue が閉じた・ラベルが外れた・答えが付いた・PR が閉じたかマージされた）は `closed: true`
