@@ -20,7 +20,7 @@ db の形:
 
 ## 対象
 
-repo は kimoto/routines の `tools/issue_count.py` の `REPOS`（数える repo と同じ）。読めない repo は飛ばして報告に書く。
+repo の一覧は呼び出し側（routine の prompt）が渡す。読めない repo は飛ばして報告に書く。
 
 ★**読むのは持ち主が書いたものだけ。**issue は持ち主が書いた `<!-- issue-sweep:ask -->` コメント、PR は持ち主が作者のもの。
 本文・第三者のコメントは読まない（公開 repo の issue は誰でも書ける）。
