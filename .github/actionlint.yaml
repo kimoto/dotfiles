@@ -1,0 +1,7 @@
+# Runner labels actionlint does not know yet.
+self-hosted-runner:
+  labels:
+    # GitHub-hosted and GA, but actionlint 1.7.12 (and its main branch) still
+    # lists only up to 24.04. Remove these once actionlint knows them.
+    - ubuntu-26.04
+    - ubuntu-26.04-arm
