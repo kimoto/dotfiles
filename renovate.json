@@ -77,6 +77,15 @@
       "semanticCommitScope": "deps"
     },
     {
+      "description": "Python gets its own PR: a new minor often ships before pyyaml has wheels for it, which breaks the pipx: tools' mise lock, and in the shared PR that red hides every other bump.",
+      "matchDepNames": [
+        "core:python",
+        "python"
+      ],
+      "groupName": "python",
+      "groupSlug": "python"
+    },
+    {
       "description": "GitHub-hosted runner labels have no release date, so the 7-day age would hold them back forever; the datasource lists a release only once GitHub drops its beta tag.",
       "matchDatasources": [
         "github-runners"
