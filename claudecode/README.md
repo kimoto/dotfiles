@@ -62,7 +62,7 @@ ignore rule would apply in every repo on the machine.
   registers on a workstation the same way. The review gate
   (`bin/claude_review_gate.sh`, registered by `install_claude_review_gate.sh`)
   holds back a push carrying commits no review has seen — on a feature branch
-  or straight to main, naming a small change so fewer reviewers start — and the
-  first PR create on a branch, whose text no push carries.
+  or straight to main — and the first PR create on a branch, whose text no
+  push carries.
 - `claude-hud/config.json` — claude-hud's look. `/claude-hud:configure` edits
   this file, not a copy.

@@ -14,9 +14,8 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 - 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。base は先に fetch しておく。
 - ★**既定は、最終的な差分を通しで（`<base>...HEAD`）見る。**重複や security の穴は、足した分だけを見ても分からない。誰が見るかは下の節で決める。
-- push を止めた hook が「a small change」と言ったら、下の起動の1で正しさに「小さな変更」と添える。範囲はほかと同じ。hook が測るのは大きさだけで、どのパスや中身にどの係が要るかは正しさが決める。
 - 前回の指摘を直しただけの小さな commit なら、その分を下の 1 だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
-- revert だけなら回さない。
+- revert だけなら回さない。docs だけでも 1 は回す。
 - 表より狭くしたときは、そう判断した理由を一言返す。
 
 ## 全体のレビュー: 正しさが選んだ係を、呼んだ側が起動する
@@ -26,9 +25,9 @@ description: いま居る repo の commit（か、これから開く PR の題�
 | 係 | 回すとき |
 |---|---|
 | 1 正しさ | いつも |
-| 2 Codex か checklist | 正しさが、別のモデルにも見せたいと判断したとき（込み入ったロジック・並行処理・境界値） |
+| 2 Codex か checklist | 込み入ったロジック・並行処理・境界値を触ったとき。正しさは `review-correctness-checklist` と書き、Codex が有効な機械では呼んだ側が下の 2 の Codex に置き換える |
 | 3 rules | commit メッセージ・コメント・文章を触り、差分の外の文章が古くなりうるとき |
-| 4 portability | shell（`.sh`・`.bash`・`.zsh`・`bin/` の拡張子なし・shebang のあるファイル）、Makefile、`.github/workflows/` で、環境によって動きが変わりうる書き方を足したとき |
+| 4 portability | shell（`.sh`・`.bash`・`.zsh`・`bin/` の拡張子なし・shebang のあるファイル）、Makefile、`.github/workflows/` のコードの行を変えたとき（コメントだけは除く） |
 | `review-security` | 走るもの・許すもの・見張るものを触ったとき: hook と hook を登録・設置するスクリプト、`settings*.json`・`.claude/`・`.mcp.json`・Codex の設定、`.github/`、agent の定義と指示（rules・skills・`CLAUDE.md`・`AGENTS.md`）、git の設定と hook、秘密の検査の設定、shell の rc、依存の固定（renovate・mise・lock）。中身に権限・認証・秘密・外への通信が出てくるときも。迷ったら回す |
 | `review-tests` | 挙動を変え、それを確かめるテストが要るとき |
 | `review-speed` | 人や処理が待つ所（hook・ループ・起動時の処理）を触ったとき |
@@ -36,8 +35,8 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 起動は2回に分ける。
 
-1. `review-correctness` を `run_in_background: false` で起動する。渡すのは repo のパス・範囲・目的と、hook が言っていれば「小さな変更」。
-2. 正しさの `回す係:` に並んだ係を、1つのメッセージで `run_in_background: false` で起動する。呼んだ側が足すのはよいが減らさない。⚠️ 正しさが `回す係:` の行を返さない・表の係名で答えないときは、表の全員を回す。
+1. `review-correctness` を `run_in_background: false` で起動する。渡すのは repo のパス・範囲・目的。
+2. 正しさの `回す係:` に並んだ係を、1つのメッセージで `run_in_background: false` で起動する（Codex だけは Bash のバックグラウンド）。⚠️ 正しさが返るまで待つので、ほかの係の待ちはそのあとに足される。正しさを待たずに起動すると、選ぶ人がいなくなる。呼んだ側が足すのはよいが減らさない。⚠️ 正しさが `回す係:` の行を返さない・表の係名で答えないときは、表の全員を回す。
 
 subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。選ばれた係と外れた係を、正しさの理由つきで返す。
 

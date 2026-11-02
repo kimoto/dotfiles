@@ -49,25 +49,6 @@ pre_mcp() {
 decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output"; }
 reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output"; }
 
-# A commit too big for a lighter review: 20 new lines of code.
-commit_code() {
-  seq 20 | sed "s/^/echo $1 /" >>"$REPO/run.sh"
-  git -C "$REPO" add run.sh
-  git -C "$REPO" commit -q -m "$1"
-}
-
-# Pushed, so the next commit has a parent to be compared with.
-with_file() {
-  printf '%s\n' "$2" >"$REPO/$1"
-  git -C "$REPO" add "$1"
-  git -C "$REPO" commit -q -m "add $1"
-  if git -C "$REPO" remote get-url origin >/dev/null 2>&1; then
-    git -C "$REPO" push -q origin feat/x
-  else
-    with_remote feat/x
-  fi
-}
-
 with_remote() {
   git init -q --bare "$TMP/remote.git"
   git -C "$REPO" remote add origin "$TMP/remote.git"
@@ -116,16 +97,15 @@ with_remote() {
   grep -q '^2\. \*\*Codex\*\*: `run_in_background` で' <<<"$body"
   [ -z "$(grep 'まとめ役' "$SKILL")" ]
   grep -q 'どの係が出したか' <<<"$full"
-  # The picked reviewers start in the foreground, so the caller waits once
-  # instead of waking for every report.
-  grep -q '並んだ係を、1つのメッセージで `run_in_background: false` で' <<<"$full"
-  grep -q '^| `review-security` | ' <<<"$full"
-  # Only correctness always runs; it picks the rest from the diff, never the
-  # writer's context, and says so on a line the caller can act on.
+  # Only correctness always runs; it picks the rest from the diff's content,
+  # not the writer's stated purpose, and says so on lines the caller acts on.
   grep -q '^| 1 正しさ | いつも |$' <<<"$full"
   [ "$(grep -c '| いつも |' <<<"$full")" -eq 1 ]
-  grep -q '正しさの `回す係:` に並んだ係を' <<<"$full"
-  grep -q '^最後に `回す係:` の行を置き' "$REPO_ROOT/claudecode/agents/review-correctness.md"
+  grep -q '正しさの `回す係:` に並んだ係を、1つのメッセージで `run_in_background: false` で' <<<"$full"
+  agent_md="$REPO_ROOT/claudecode/agents/review-correctness.md"
+  grep -q '^最後に `回す係:` の行を置き' "$agent_md"
+  grep -q '`回さない係:` の行' "$agent_md"
+  grep -q '渡された目的ではなく差分の中身で決める' "$agent_md"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
@@ -139,8 +119,8 @@ with_remote() {
   done
   grep -q '`review-portability` agent' <<<"$full"
   # A reviewer with no sweep still has a fallback where its agent is unlinked.
-  fallback='sweep の無い correctness・correctness-checklist・rules・portability は'
-  grep -q "$fallback"'.*dotfiles の `claudecode/agents/<名前>.md`' <<<"$full"
+  grep -q 'sweep の無い correctness・correctness-checklist・rules・portability は.*dotfiles の `claudecode/agents/<名前>.md`' \
+    <<<"$full"
   for agent in review-correctness review-correctness-checklist review-rules review-portability review-refactor \
     review-tests review-security review-speed; do
     want=sonnet
@@ -203,7 +183,7 @@ with_remote() {
 @test "commits after the mark are stopped at the next push, named from the mark" {
   "$GATE" mark "$REPO" s1
   marked="$(git -C "$REPO" rev-parse HEAD)"
-  commit_code fix
+  git -C "$REPO" commit -q --allow-empty -m fix
   pre_bash "git push"
   [ "$(decision)" = deny ]
   r="$(reason)"
@@ -217,106 +197,10 @@ with_remote() {
 @test "new commits are stopped however many marks came before" {
   for n in 1 2 3; do
     "$GATE" mark "$REPO" s1
-    commit_code "c$n"
+    git -C "$REPO" commit -q --allow-empty -m "c$n"
     pre_bash "git push"
     [ "$(decision)" = deny ]
   done
-}
-
-# The push was stopped as a full change, or as a small one.
-stopped_for_all() { [ "$(decision)" = deny ] && [[ "$(reason)" != *"a small change"* ]]; }
-stopped_for_one() {
-  [ "$(decision)" = deny ] && [[ "$(reason)" == *"says for a small change (at most 10 lines in at most 2 files)"* ]]
-}
-
-judge_then_publish() {
-  pre_bash "git push"
-  git -C "$REPO" push -q origin feat/x
-}
-
-@test "whitespace or letter case alone still gets a reviewer" {
-  with_file notes.md 'Use the Gate'
-  printf 'use the gate  \n\n' >"$REPO/notes.md"
-  git -C "$REPO" commit -q -am lower
-  pre_bash "git push"
-  stopped_for_one
-}
-
-@test "10 lines in 2 files are a small change; an 11th line or a 3rd file does not" {
-  with_file run.sh 'echo a'
-  seq 6 >>"$REPO/run.sh" && seq 4 >"$REPO/b.txt"
-  git -C "$REPO" add b.txt && git -C "$REPO" commit -q -am ten
-  judge_then_publish
-  stopped_for_one
-  grep -q '「a small change」と言ったら、下の起動の1で正しさに「小さな変更」と添える' "$SKILL"
-  seq 11 >"$REPO/c.txt"
-  git -C "$REPO" add c.txt && git -C "$REPO" commit -q -m eleven
-  judge_then_publish
-  stopped_for_all
-  for f in d e f; do echo "$f" >"$REPO/$f.txt"; done
-  git -C "$REPO" add d.txt e.txt f.txt && git -C "$REPO" commit -q -m three
-  judge_then_publish
-  stopped_for_all
-}
-
-@test "lines are summed over every unpushed commit, so adding and removing still counts" {
-  with_file run.sh 'echo a'
-  seq 6 >"$REPO/x.txt" && git -C "$REPO" add x.txt && git -C "$REPO" commit -q -m add
-  git -C "$REPO" rm -q x.txt && git -C "$REPO" commit -q -m remove
-  pre_bash "git push"
-  stopped_for_all
-}
-
-@test "a mode change, a symlink, a binary file or a merge gets the full review" {
-  with_file run.sh 'echo a'
-  chmod +x "$REPO/run.sh" && git -C "$REPO" commit -q -am mode
-  judge_then_publish
-  stopped_for_all
-  ln -s run.sh "$REPO/link" && git -C "$REPO" add link && git -C "$REPO" commit -q -m link
-  judge_then_publish
-  stopped_for_all
-  printf 'a\0b' >"$REPO/bin.dat" && git -C "$REPO" add bin.dat && git -C "$REPO" commit -q -m bin
-  judge_then_publish
-  stopped_for_all
-  git -C "$REPO" switch -q -c side && echo s >"$REPO/s.txt" && git -C "$REPO" add s.txt && git -C "$REPO" commit -q -m s
-  git -C "$REPO" switch -q feat/x && git -C "$REPO" merge -q --no-ff -m merge side
-  pre_bash "git push origin feat/x"
-  stopped_for_all
-}
-
-@test "a small deletion, or a small edit to an executable, is still small" {
-  with_file run.sh $'echo a\necho b'
-  chmod +x "$REPO/run.sh" && git -C "$REPO" commit -q -am exec && git -C "$REPO" push -q origin feat/x
-  echo 'echo c' >>"$REPO/run.sh" && git -C "$REPO" commit -q -am edit
-  judge_then_publish
-  stopped_for_one
-  git -C "$REPO" rm -q run.sh && git -C "$REPO" commit -q -m gone
-  pre_bash "git push"
-  stopped_for_one
-}
-
-@test "more than 20 unpushed commits are never small" {
-  with_file run.sh 'echo a'
-  for n in $(seq 21); do git -C "$REPO" commit -q --allow-empty -m "e$n"; done
-  pre_bash "git push"
-  stopped_for_all
-}
-
-@test "one line too long to be small, such as minified code, gets the full review" {
-  with_file run.sh 'echo a'
-  head -c 3000 /dev/zero | tr '\0' a >"$REPO/min.js" && echo >>"$REPO/min.js"
-  git -C "$REPO" add min.js && git -C "$REPO" commit -q -m min
-  pre_bash "git push"
-  stopped_for_all
-}
-
-@test "the gate measures size only: which paths need more reviewers is the correctness reviewer's call" {
-  with_file run.sh 'echo a'
-  mkdir -p "$REPO/.github/workflows" && echo x >"$REPO/.github/workflows/ci.yml"
-  git -C "$REPO" add .github && git -C "$REPO" commit -q -m wf
-  pre_bash "git push"
-  stopped_for_one
-  grep -q '^| `review-security` | 走るもの・許すもの・見張るもの' "$SKILL"
 }
 
 @test "a branch name with shell syntax is quoted in the command to paste" {
@@ -384,7 +268,7 @@ judge_then_publish() {
 @test "a branch named like a sibling store keeps its own mark" {
   git -C "$REPO" switch -q -c pushed
   "$GATE" mark "$REPO" s1
-  commit_code more
+  git -C "$REPO" commit -q --allow-empty -m more
   pre_bash "git push"
   [ "$(decision)" = deny ]
 }
