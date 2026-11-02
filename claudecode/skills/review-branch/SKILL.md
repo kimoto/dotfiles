@@ -14,28 +14,32 @@ description: いま居る repo の commit（か、これから開く PR の題�
 
 - 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。base は先に fetch しておく。
 - ★**既定は、最終的な差分を通しで（`<base>...HEAD`）見る。**重複や security の穴は、足した分だけを見ても分からない。誰が見るかは下の節で決める。
-- push を止めた hook が「a small change」と言ったら、下の起動の1で振り分けに「小さな変更」と添える。振り分けはファイルの種類では足さず、中身が表の条件に当たる係だけを返す。範囲はほかと同じ。hook が測るのは大きさだけで、どのパスや中身にどの係が要るかは振り分けが決める。
-- 前回の指摘を直しただけの小さな commit なら、その分を下の 1 と 2 だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
-- revert だけなら回さない。docs だけなら `review-rules` だけ回し、振り分けも回さない（差分の外で古くなった文章を見るため）。
+- push を止めた hook が「a small change」と言ったら、下の起動の1で正しさに「小さな変更」と添える。範囲はほかと同じ。hook が測るのは大きさだけで、どのパスや中身にどの係が要るかは正しさが決める。
+- 前回の指摘を直しただけの小さな commit なら、その分を下の 1 だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
+- revert だけなら回さない。
 - 表より狭くしたときは、そう判断した理由を一言返す。
 
-## 全体のレビュー: 振り分けた係を、呼んだ側が起動する
+## 全体のレビュー: 正しさが選んだ係を、呼んだ側が起動する
 
-★**回す係は、上の節で狭めない限り、`review-triage` agent が範囲の差分を見て下の表から選ぶ。**書き手の context で選ぶと、書き手が関係ないと思った所が見られずに残る。関係ない係は見るものが無いのに1人3〜4万トークンかかる。
+★**いつも回すのは 1 の正しさ（Opus）だけ。ほかの係は、正しさが範囲の差分を見て下の表から選ぶ。**書き手の context で選ぶと、書き手が関係ないと思った所が見られずに残る。ほかの係が要る差分は限られ、関係ない係も見るものが無いのに1人3〜4万トークンかかる。
 
 | 係 | 回すとき |
 |---|---|
-| 1 正しさ・2 Codex か checklist・3 rules | いつも |
-| 4 portability | shell（`.sh`・`.bash`・`.zsh`・`bin/` の拡張子なし・shebang のあるファイル）、Makefile、`.github/workflows/` |
+| 1 正しさ | いつも |
+| 2 Codex か checklist | 正しさが、別のモデルにも見せたいと判断したとき（込み入ったロジック・並行処理・境界値） |
+| 3 rules | commit メッセージ・コメント・文章を触り、差分の外の文章が古くなりうるとき |
+| 4 portability | shell（`.sh`・`.bash`・`.zsh`・`bin/` の拡張子なし・shebang のあるファイル）、Makefile、`.github/workflows/` で、環境によって動きが変わりうる書き方を足したとき |
 | `review-security` | 走るもの・許すもの・見張るものを触ったとき: hook と hook を登録・設置するスクリプト、`settings*.json`・`.claude/`・`.mcp.json`・Codex の設定、`.github/`、agent の定義と指示（rules・skills・`CLAUDE.md`・`AGENTS.md`）、git の設定と hook、秘密の検査の設定、shell の rc、依存の固定（renovate・mise・lock）。中身に権限・認証・秘密・外への通信が出てくるときも。迷ったら回す |
-| `review-tests`・`review-speed`・`review-refactor` | 文章（`.md`・`.txt`）と画像以外を触ったとき |
+| `review-tests` | 挙動を変え、それを確かめるテストが要るとき |
+| `review-speed` | 人や処理が待つ所（hook・ループ・起動時の処理）を触ったとき |
+| `review-refactor` | 新しい関数や繰り返しを足したとき |
 
-起動は2回に分ける。⚠️ 前面の Agent は同じメッセージの全員がそろうまで返らないので、遅い正しさ（Opus で数分）と振り分けを一緒に前面で待つと直列になる。
+起動は2回に分ける。
 
-1. 1つのメッセージで、1〜3（いつもの係）を `run_in_background: true`、`review-triage` を `run_in_background: false` で起動する。振り分けには repo のパスと範囲だけを渡し、目的も渡さない。
-2. 振り分けが返ったら、選ばれた係を1つのメッセージで `run_in_background: false` で起動する。外すのは振り分けが外した係だけで、呼んだ側が足すのはよいが減らさない。⚠️ 振り分けが返らない・表の係名で答えない・起動できないときは、表の全員を回す。
+1. `review-correctness` を `run_in_background: false` で起動する。渡すのは repo のパス・範囲・目的と、hook が言っていれば「小さな変更」。
+2. 正しさの `回す係:` に並んだ係を、1つのメッセージで `run_in_background: false` で起動する。呼んだ側が足すのはよいが減らさない。⚠️ 正しさが `回す係:` の行を返さない・表の係名で答えないときは、表の全員を回す。
 
-subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。選んだ係と外した係を、振り分けの理由つきで返す。
+subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。選ばれた係と外れた係を、正しさの理由つきで返す。
 
 1. **正しさ**: `review-correctness` agent。
 2. **Codex**: `run_in_background` で `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
@@ -43,7 +47,7 @@ subagent には Agent tool が無いので、全員を回す subagent を1つ挟
 4. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 5. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
    ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
-   sweep の無い correctness・correctness-checklist・rules・portability・triage は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から3つ上が dotfiles）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
+   sweep の無い correctness・correctness-checklist・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から3つ上が dotfiles）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
 
 ## 終わったら
 

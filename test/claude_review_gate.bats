@@ -118,12 +118,14 @@ with_remote() {
   grep -q 'どの係が出したか' <<<"$full"
   # The picked reviewers start in the foreground, so the caller waits once
   # instead of waking for every report.
-  grep -q '選ばれた係を1つのメッセージで `run_in_background: false` で' <<<"$full"
+  grep -q '並んだ係を、1つのメッセージで `run_in_background: false` で' <<<"$full"
   grep -q '^| `review-security` | ' <<<"$full"
-  # Who runs is picked by a reviewer that never saw the writer's reasoning,
-  # started beside the slow ones so its answer does not wait for theirs.
-  grep -q '`review-triage` を `run_in_background: false`' <<<"$full"
-  grep -q '書き手の推論も変更の目的も渡さない' "$REPO_ROOT/claudecode/agents/review-triage.md"
+  # Only correctness always runs; it picks the rest from the diff, never the
+  # writer's context, and says so on a line the caller can act on.
+  grep -q '^| 1 正しさ | いつも |$' <<<"$full"
+  [ "$(grep -c '| いつも |' <<<"$full")" -eq 1 ]
+  grep -q '正しさの `回す係:` に並んだ係を' <<<"$full"
+  grep -q '^最後に `回す係:` の行を置き' "$REPO_ROOT/claudecode/agents/review-correctness.md"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \
@@ -137,10 +139,10 @@ with_remote() {
   done
   grep -q '`review-portability` agent' <<<"$full"
   # A reviewer with no sweep still has a fallback where its agent is unlinked.
-  fallback='sweep の無い correctness・correctness-checklist・rules・portability・triage は'
+  fallback='sweep の無い correctness・correctness-checklist・rules・portability は'
   grep -q "$fallback"'.*dotfiles の `claudecode/agents/<名前>.md`' <<<"$full"
   for agent in review-correctness review-correctness-checklist review-rules review-portability review-refactor \
-    review-tests review-security review-speed review-triage; do
+    review-tests review-security review-speed; do
     want=sonnet
     case $agent in review-security | review-correctness) want=opus ;; esac
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx "model: $want"
@@ -152,7 +154,7 @@ with_remote() {
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'effort: medium'
   done
   for agent in review-correctness review-correctness-checklist review-portability review-refactor review-tests \
-    review-security review-speed review-triage; do
+    review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
 }
@@ -221,7 +223,7 @@ with_remote() {
   done
 }
 
-# The push was stopped for every reviewer, or for correctness and triage first.
+# The push was stopped as a full change, or as a small one.
 stopped_for_all() { [ "$(decision)" = deny ] && [[ "$(reason)" != *"a small change"* ]]; }
 stopped_for_one() {
   [ "$(decision)" = deny ] && [[ "$(reason)" == *"says for a small change (at most 10 lines in at most 2 files)"* ]]
@@ -240,13 +242,13 @@ judge_then_publish() {
   stopped_for_one
 }
 
-@test "10 lines in 2 files start with correctness and triage; an 11th line or a 3rd file does not" {
+@test "10 lines in 2 files are a small change; an 11th line or a 3rd file does not" {
   with_file run.sh 'echo a'
   seq 6 >>"$REPO/run.sh" && seq 4 >"$REPO/b.txt"
   git -C "$REPO" add b.txt && git -C "$REPO" commit -q -am ten
   judge_then_publish
   stopped_for_one
-  grep -q '「a small change」と言ったら、下の起動の1で振り分けに「小さな変更」と添える' "$SKILL"
+  grep -q '「a small change」と言ったら、下の起動の1で正しさに「小さな変更」と添える' "$SKILL"
   seq 11 >"$REPO/c.txt"
   git -C "$REPO" add c.txt && git -C "$REPO" commit -q -m eleven
   judge_then_publish
@@ -308,7 +310,7 @@ judge_then_publish() {
   stopped_for_all
 }
 
-@test "the gate measures size only: which paths need more reviewers is the triage agent's call" {
+@test "the gate measures size only: which paths need more reviewers is the correctness reviewer's call" {
   with_file run.sh 'echo a'
   mkdir -p "$REPO/.github/workflows" && echo x >"$REPO/.github/workflows/ci.yml"
   git -C "$REPO" add .github && git -C "$REPO" commit -q -m wf

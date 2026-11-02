@@ -129,10 +129,11 @@ walk() {
 
 # "small" when the unseen commits (the range, minus what is on a remote) are
 # at most 20 and add up to at most 10 changed lines in at most 2 files and
-# 2048 characters of patch; else "full". The skill starts fewer reviewers
-# for a small change. This only measures size: which paths and contents need which
-# reviewers is the triage agent's call, made from the diff and not from the
-# writer's context, so no path list here goes stale. Lines are summed over
+# 2048 characters of patch; else "full". The skill tells the correctness
+# reviewer when a change is small. This only measures size: which paths and
+# contents need which other reviewers is the correctness reviewer's call,
+# made from the diff and not from the writer's context, so no path list here
+# goes stale. Lines are summed over
 # every commit, so adding something and removing it again still counts. Any
 # git failure reads as "full".
 change_size() {
