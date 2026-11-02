@@ -37,8 +37,8 @@ One-time setup on a Mac (nothing in bin/mklink.sh does this):
   ~/.local/share/desktop-translate/bin/pip install -U anthropic
   security add-generic-password -s desktop-translate -a anthropic -w
     (prompts for the key, so it never lands in shell history)
-  then grant Hammerspoon Accessibility and Screen Recording, and turn off
-  the DeepL app's own shortcuts, or both apps answer ⌘C+C.
+  then grant Hammerspoon Accessibility and Screen Recording. If the DeepL
+  app is installed, turn off its own shortcuts, or both apps answer ⌘C+C.
 
 Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
 (it stays on the machine, so the endpoint's address never reaches this repo):

@@ -71,7 +71,7 @@ Same keys on both.
 Source:
 - `hammerspoon/translate.lua`, which runs `hammerspoon/translate.py` (Claude API)
 
-DeepL's keys, so the DeepL app's own shortcuts are turned off.
+DeepL's keys, so the DeepL app's own shortcuts are turned off where it is installed.
 
 | Key | Action |
 |-----|--------|
