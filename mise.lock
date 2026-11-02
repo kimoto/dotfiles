@@ -273,6 +273,7 @@ provenance = "github-attestations"
 version = "0.38.2"
 backend = "pipx:check-jsonschema"
 specifiers = ["0.38.2"]
+uv = { path = ".mise/locks/pipx-check-jsonschema/0.38.2~968c247e", digest = "sha256:fac1f0e01b63314402f4578b8e226ee1842dca1c1d0119edd8db26bdafd49d47" }
 
 [tools."pipx:check-jsonschema".options]
 python = "3.14"
