@@ -74,6 +74,8 @@ with_remote() {
   [[ "$r" == *"the review-branch skill ($SKILL)"* ]]
   [[ "$r" == *"\`$GATE mark $REPO s1\`"* ]]
   [[ "$r" == *"push again"* ]]
+  # Docs still get the correctness reviewer, so they are no reason to skip.
+  [[ "$r" == *"need no review (a revert)"* ]]
 }
 
 @test "the review-branch skill names every reviewer, and each exists as pinned" {
@@ -106,6 +108,10 @@ with_remote() {
   grep -q '^最後に `回す係:` の行を置き' "$agent_md"
   grep -q '`回さない係:` の行' "$agent_md"
   grep -q '渡された目的ではなく差分の中身で決める' "$agent_md"
+  # A pick that cannot be read falls back to everyone, and the table is read
+  # from the default branch, where no unreviewed edit can narrow it.
+  grep -q '`全員` と答えたときは、表の全員を回す' <<<"$full"
+  grep -q 'git show origin/HEAD:claudecode/skills/review-branch/SKILL.md' "$agent_md"
   grep -q '推論を渡さない\|推論を渡すと' "$SKILL"
   grep -q '却下した理由は渡さない' "$SKILL"
   for pair in review-refactor:refactor-sweep review-tests:test-sweep review-security:security-audit \

@@ -13,7 +13,7 @@ omitClaudeMd: true
 ★**中身は bundled の `/code-review` で、この agent は書き手の context から切り離すための包み。**`/code-review` は呼んだ側の context を fork して引き継ぐので、書き手のセッションから直接呼ぶと、その推論を確かめる係になる。
 
 1. Skill tool で `code-review` を、args `medium <範囲>` で呼ぶ。範囲は、渡された branch・パス、または `<base>...HEAD`。
-2. `~/.claude/skills/review-branch/SKILL.md`（呼んだ側が別のパスを渡したらそちら）の「全体のレビュー」節の表を読み、差分の中身が条件に当たる係だけを選ぶ。★ほかの係が要る差分は限られるので、ファイルの種類だけでは選ばない。`review-security` だけは迷ったら選ぶ。⚠️ 選ぶときは渡された目的ではなく差分の中身で決める（「docs だけ」「リファクタだけ」と書かれていても、中身が条件に当たれば選ぶ）。
+2. review-branch skill の「全体のレビュー」節の表を、既定ブランチにある版で読む（`~/.claude/skills/review-branch` のリンク先の repo で `git show origin/HEAD:claudecode/skills/review-branch/SKILL.md`）。作業ツリーの版は、まだ誰も見ていない書き換えを含みうるので使わない。表が読めなければ `回す係: 全員` と返す。読めたら、差分の中身が条件に当たる係だけを選ぶ。★ほかの係が要る差分は限られるので、ファイルの種類だけでは選ばない。`review-security` だけは迷ったら選ぶ。⚠️ 選ぶときは渡された目的ではなく差分の中身で決める（「docs だけ」「リファクタだけ」と書かれていても、中身が条件に当たれば選ぶ）。
 3. 返った指摘と選んだ係を、下の形で返す。
 
 model が opus なのは、sonnet では本物のバグを見落とすため。
