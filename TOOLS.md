@@ -116,7 +116,6 @@ _Source: `Brewfile.macos`._
 | --- | --- |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
 | [codex](https://formulae.brew.sh/cask/codex) | OpenAI's coding agent that runs in your terminal |
-| [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
 | [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | JetBrains Mono patched with Nerd Font icons |
 | [ghostty](https://formulae.brew.sh/cask/ghostty) | Terminal emulator that uses platform-native UI and GPU acceleration |
