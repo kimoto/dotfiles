@@ -7,6 +7,7 @@
 #
 #   PreToolUse (git push): a push carrying commits no review has seen is
 #     denied once — on a feature branch and on a direct push to main alike.
+#     A small change is named as such, and the skill starts fewer reviewers.
 #     After a mark, the commits since it are the ones not yet seen; what to
 #     review and how widely is the agent's call, guided by the skill.
 #   PreToolUse (gh pr create, or a GitHub MCP create_pull_request): the first
@@ -126,10 +127,48 @@ walk() {
   case $p in '') printf '%s' "$1" ;; /*) printf '%s' "$p" ;; *) printf '%s/%s' "$1" "$p" ;; esac
 }
 
+# "small" when the unseen commits (the range, minus what is on a remote) are
+# at most 20 and add up to at most 10 changed lines in at most 2 files and
+# 2048 characters of patch; else "full". The skill starts fewer reviewers
+# for a small change. This only measures size: which paths and contents need which
+# reviewers is the triage agent's call, made from the diff and not from the
+# writer's context, so no path list here goes stale. Lines are summed over
+# every commit, so adding something and removing it again still counts. Any
+# git failure reads as "full".
+change_size() {
+  local dir=$1 range=$2 count=$3 out add del f lines=0
+  local -a log=(git -C "$dir" -c core.quotePath=false log --format= --no-renames "$range" --not --remotes)
+  # 20 commits bounds every read below, so a first push of a long history
+  # stays within the hook's few seconds.
+  [ "$count" -le 20 ] || { echo full; return; }
+  # A merge hides its resolution from --numstat; a submodule, symlink or mode
+  # change has no line count that says what it does. Read whole before grep,
+  # so an early grep exit cannot fail the pipeline.
+  out=$(git -C "$dir" rev-list --merges "$range" --not --remotes) && [ -z "$out" ] || { echo full; return; }
+  out=$("${log[@]}" --raw) || { echo full; return; }
+  ! grep -qvE '^$|^:(000000|100644) 100644 |^:(000000|100755) 100755 |^:100(644|755) 000000 ' <<<"$out" \
+    || { echo full; return; }
+  out=$("${log[@]}" --numstat) || { echo full; return; }
+  # A binary file counts "-" lines: no size to judge it by.
+  while read -r add del f; do
+    [ -n "$add" ] || continue
+    case $add$del in *[!0-9]*) echo full; return ;; esac
+    lines=$((lines + add + del))
+  done <<<"$out"
+  [ "$lines" -le 10 ] || { echo full; return; }
+  out=$("${log[@]}" --name-only -z | tr '\0' '\n' | sort -u) || { echo full; return; }
+  [ "$(grep -c . <<<"$out")" -le 2 ] || { echo full; return; }
+  # 2048: ten ordinary lines with their context fit; one minified or base64
+  # line that numstat counts as 1 does not.
+  out=$("${log[@]}" -p) || { echo full; return; }
+  [ "${#out}" -le 2048 ] || { echo full; return; }
+  echo small
+}
+
 # Deny the push when this branch carries commits no review has seen. Returns
 # when it may go.
 judge_branch() {
-  local dir=$1 branch=$2 now pushed sha="" range shown count
+  local dir=$1 branch=$2 now pushed sha="" range shown count who
   now=$(git -C "$dir" rev-parse -q --verify "refs/heads/$branch") || return 0
   pushed="$pushed_dir/$(repo_key "$dir" "$branch")"
   [ "$(cat "$pushed" 2>/dev/null)" = "$now" ] && return 0
@@ -143,10 +182,13 @@ judge_branch() {
   fi
   count=$(git -C "$dir" rev-list --count "$range" --not --remotes 2>/dev/null) || return 0
   [ "$count" -gt 0 ] || return 0
+  who="as $(skill_ref) says"
+  [ "$(change_size "$dir" "$range" "$count")" != small ] \
+    || who="as $(skill_ref) says for a small change (at most 10 lines in at most 2 files)"
   mkdir -p "$pushed_dir" && printf '%s\n' "$now" >"$pushed"
   # %q: the agent pastes these commands; a fork can name a branch with shell
   # syntax, and a checkout path can hold a quote.
-  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C $(printf '%q' "$dir") log $(printf '%q' "$shown") --not --remotes\`). Review them before they leave this machine, as $(skill_ref) says. Then run \`$(gate_cmd) mark $(printf '%q' "$dir") $session\` and push again. If these commits need no review (docs only, a revert), say why and push again."
+  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C $(printf '%q' "$dir") log $(printf '%q' "$shown") --not --remotes\`). Review them before they leave this machine, $who. Then run \`$(gate_cmd) mark $(printf '%q' "$dir") $session\` and push again. If these commits need no review (docs only, a revert), say why and push again."
 }
 
 # git with any options (e.g. -C <dir>), then the push subcommand. A wrapper
