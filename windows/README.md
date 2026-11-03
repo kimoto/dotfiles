@@ -73,8 +73,8 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
 into `$HOME`, and a symlink created from WSL under `/mnt/c` is not one Windows
 can follow — verified here: `LinkType` comes back empty and `Get-Content` fails
 with an IOException. Anything under `%APPDATA%` (Windows Terminal's
-`settings.json`, an AutoHotkey script, FancyZones layouts) has to be *copied*
-into place, not linked.
+`settings.json`, FancyZones layouts) has to be *copied* into place, not linked.
+The AutoHotkey script avoids being a copy by being read in place (step 3 below).
 
 **`winget export` is not a source of truth.** Exporting this machine produced 66
 entries, of which nearly half were redistributables pulled in as dependencies
@@ -128,7 +128,6 @@ area, centered and bounded by the screen; this is an explicit Windows default,
 not a value recovered from the Mac. Next display preserves relative geometry
 and keeps a maximized window maximized. Todo mode is not used or mapped.
 
-Copy the updated `mac-keys.ahk` to the live script location and reload it.
 Do not assign the same shortcuts in Raycast or another window manager.
 Elevated apps may require running AutoHotkey at matching privileges. Mixed-DPI
 monitor transitions and punctuation keys should also be checked on the actual
@@ -164,7 +163,7 @@ Ctrl+W (delete previous word), and Alt+D (delete next word). Ctrl+K does not kee
 an Emacs kill ring. These apply outside Windows Terminal even when focus is not
 in a text field, replacing the apps' native Ctrl shortcuts. Use Command/Win+A/F/N/P/W
 for select-all, find, new, print, and close-tab instead. Terminal retains native
-shell/editor bindings. Reload the copied AHK script after changing it.
+shell/editor bindings.
 
 ## Restoring this machine's arrangement
 
@@ -221,10 +220,21 @@ contains `Win`:
 
 ### 3. Start the AutoHotkey script at login
 
-The script cannot be linked (see "Two things this list cannot do"), so:
+Run the installer from the main checkout's `\\wsl.localhost\...` path; it
+refuses a worktree. `Bypass` is needed because a script on a network path is
+remote to the default `RemoteSigned` policy.
 
-1. Copy `autohotkey/mac-keys.ahk` to `%USERPROFILE%\bin\`.
-2. In the Startup folder (`shell:startup`), create a shortcut whose target is
-   `AutoHotkey64.exe` with the copied script as its argument.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\install_mac_keys.ps1"
+```
 
-After changing the script in this repo, copy it again and reload it.
+It copies only the launcher, `autohotkey/launch-mac-keys.ahk`, to
+`%USERPROFILE%\bin\` and saves the Startup shortcut as `mac-keys.lnk`. It warns
+about any other Startup shortcut that still starts a `mac-keys.ahk`; delete
+that one, or both run and the copy never updates.
+
+At login the launcher starts WSL, runs `mac-keys.ahk` from the checkout over
+`\\wsl.localhost`, and restarts it whenever the file changes, so a `git pull`
+is the whole deploy. AutoHotkey refuses a broken version with a dialog and
+keeps the running one. If the launcher's own copy differs from the repo's, it
+says so at login; run the installer again.

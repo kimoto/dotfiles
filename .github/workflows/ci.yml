@@ -136,6 +136,9 @@ jobs:
       - name: Test Codex config merge
         shell: pwsh
         run: ./test/link_codex.ps1
+      - name: Test AutoHotkey installer
+        shell: pwsh
+        run: ./test/install_mac_keys.ps1
 
   # mise picks each tool's release asset for the host arch, and the Claude Code
   # web sandbox that runs bin/install_check_tools.sh via the SessionStart hook
