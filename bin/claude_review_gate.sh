@@ -146,7 +146,7 @@ judge_branch() {
   mkdir -p "$pushed_dir" && printf '%s\n' "$now" >"$pushed"
   # %q: the agent pastes these commands; a fork can name a branch with shell
   # syntax, and a checkout path can hold a quote.
-  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C $(printf '%q' "$dir") log $(printf '%q' "$shown") --not --remotes\`). Review them before they leave this machine, as $(skill_ref) says. Then run \`$(gate_cmd) mark $(printf '%q' "$dir") $session\` and push again. If these commits need no review (docs only, a revert), say why and push again."
+  deny "This push publishes $count commit(s) on $branch that no review has seen (\`git -C $(printf '%q' "$dir") log $(printf '%q' "$shown") --not --remotes\`). Review them before they leave this machine, as $(skill_ref) says. Then run \`$(gate_cmd) mark $(printf '%q' "$dir") $session\` and push again. If these commits need no review (a revert), say why and push again."
 }
 
 # git with any options (e.g. -C <dir>), then the push subcommand. A wrapper

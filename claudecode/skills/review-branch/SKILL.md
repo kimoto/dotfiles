@@ -13,14 +13,32 @@ description: いま居る repo の commit（か、これから開く PR の題�
 どこまで・誰に見せるかは呼んだ側が決める。迷ったら広く見る。
 
 - 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。base は先に fetch しておく。
-- ★**既定は、最終的な差分を通しで（`<base>...HEAD`）全員で見る。**重複や security の穴は、足した分だけを見ても分からない。
-- 前回の指摘を直しただけの小さな commit なら、その分を下の 1 と 2 だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
-- revert だけなら回さない。docs だけなら `review-rules` だけ回す（差分の外で古くなった文章を見るため）。
-- 全員より狭くしたときは、そう判断した理由を一言返す。
+- ★**既定は、最終的な差分を通しで（`<base>...HEAD`）見る。**重複や security の穴は、足した分だけを見ても分からない。誰が見るかは下の節で決める。
+- 前回の指摘を直しただけの小さな commit なら、その分を下の 1 と、その指摘を出した係だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
+- revert だけなら回さない。docs だけでも 1 は回す。
+- 表より狭くしたときは、そう判断した理由を一言返す。
 
-## 全体のレビュー: 全員を呼んだ側が1つのメッセージで起動する
+## 全体のレビュー: 正しさが選んだ係を、呼んだ側が起動する
 
-下の全員を、呼んだ側が自分で、1つのメッセージの中で起動する。subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。報告は1通ずつ届くことがあるが、全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。
+★**いつも回すのは 1 の正しさ（Opus）だけ。ほかの係は、正しさが範囲の差分を見て下の表から選ぶ。**書き手の context で選ぶと、書き手が関係ないと思った所が見られずに残る。ほかの係が要る差分は限られ、関係ない係も見るものが無いのに1人3〜4万トークンかかる。
+
+| 係 | 回すとき |
+|---|---|
+| 1 正しさ | いつも |
+| 2 Codex か checklist | 込み入ったロジック・並行処理・境界値を触ったとき。正しさは `review-correctness-checklist` と書き、Codex が有効な機械では呼んだ側が下の 2 の Codex に置き換える |
+| 3 rules | commit メッセージ・コメント・文章を触り、差分の外の文章が古くなりうるとき |
+| 4 portability | shell（`.sh`・`.bash`・`.zsh`・`bin/` の拡張子なし・shebang のあるファイル）、Makefile、`.github/workflows/` のコードの行を変えたとき（コメントだけは除く） |
+| `review-security` | 走るもの・許すもの・見張るものを触ったとき: hook と hook を登録・設置するスクリプト、`settings*.json`・`.claude/`・`.mcp.json`・Codex の設定、`.github/`、agent の定義と指示（rules・skills・`CLAUDE.md`・`AGENTS.md`）、git の設定と hook、秘密の検査の設定、shell の rc、依存の固定（renovate・mise・lock）。中身に権限・認証・秘密・外への通信が出てくるときも。迷ったら回す |
+| `review-tests` | 挙動を変え、それを確かめるテストが要るとき |
+| `review-speed` | 人や処理が待つ所（hook・ループ・起動時の処理）を触ったとき |
+| `review-refactor` | 新しい関数や繰り返しを足したとき |
+
+起動は2回に分ける。
+
+1. `review-correctness` を `run_in_background: false` で起動する。渡すのは repo のパス・範囲・目的。
+2. 正しさの `回す係:` に並んだ係を、1つのメッセージで `run_in_background: false` で起動する（Codex だけは Bash のバックグラウンド）。⚠️ 正しさが返るまで待つので、ほかの係の待ちはそのあとに足される。正しさを待たずに起動すると、選ぶ人がいなくなる。呼んだ側が足すのはよいが減らさない。⚠️ 正しさが `回す係:` の行を返さない・表の係名で答えない・`全員` と答えたときは、表の全員を回す。
+
+subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。選ばれた係と外れた係を、正しさの理由つきで返す。
 
 1. **正しさ**: `review-correctness` agent。
 2. **Codex**: `run_in_background` で `node <~/.claude/plugins/cache/openai-codex/codex/ の最新版>/scripts/codex-companion.mjs review --base <base>`。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
