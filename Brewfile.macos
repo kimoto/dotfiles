@@ -13,8 +13,6 @@ brew "telnet"
 # vanishes when mise moves on.
 # OpenAI's coding agent that runs in your terminal
 cask "codex"
-# AI-powered translator
-cask "deepl"
 # Bitstream Vera Sans Mono patched with Nerd Font icons
 cask "font-bitstream-vera-sans-mono-nerd-font"
 # JetBrains Mono patched with Nerd Font icons
