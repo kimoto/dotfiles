@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   full-bootstrap:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 120
     env:
       # The real machine is Japanese, and that is not cosmetic: Vim translates
@@ -35,7 +35,7 @@ jobs:
       # under the C locale CI defaults to and fail on the actual workstation.
       LANG: ja_JP.UTF-8
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -139,12 +139,12 @@ jobs:
   advance-stable:
     needs: full-bootstrap
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: write # moves the stable branch; nothing else in this job writes
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 

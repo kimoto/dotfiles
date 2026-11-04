@@ -11,7 +11,7 @@ apply = ['source']
 
 [plugins.fzf]
 github = 'junegunn/fzf'
-rev = 'c8c2d0828a94a00879ceb6f95112a42e3ea322cf' # master
+rev = '26ff936df038b6a62ec42cf18db27b2ea2bb8ec3' # master
 apply = ['fzf-source']
 
 [plugins.evalcache]
