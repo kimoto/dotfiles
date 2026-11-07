@@ -41,7 +41,7 @@ description: いま居る repo の commit（か、これから開く PR の題�
 subagent には Agent tool が無いので、全員を回す subagent を1つ挟むことはできない。全員の報告がそろうまで指摘に手を付けない。そろったら重複を除き、どの係が出したかを付けて読む。選ばれた係と外れた係を、正しさの理由つきで返す。
 
 1. **正しさ**: `review-correctness` agent。
-2. **Codex**: `run_in_background` で `node "$(find ~/.claude/plugins/cache/openai-codex/codex -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)/scripts/codex-companion.mjs" review --base <base>`（⚠️ 版は `sort -V` で選ぶ。名前の順だと 1.0.10 より 1.0.9 が新しく見える）。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
+2. **Codex**: `run_in_background` で `node "$(find ~/.claude/plugins/cache/openai-codex/codex -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"/scripts/codex-companion.mjs review --base <base>`（⚠️ 版は `sort -V` で選ぶ。名前の順だと 1.0.10 より 1.0.9 が新しく見える）。Bash の前面の上限（既定2分）を超えうるため。有効な環境（`~/.claude/settings.json` の `enabledPlugins["codex@openai-codex"]` が true、cloud 以外）だけ。違うモデルは違うものを見落とす。無い環境では、代わりに `review-correctness-checklist` agent。
 3. `review-rules` agent — commit メッセージと差分のコメント、差分のせいで古くなった差分の外の文章。
 4. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 5. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
