@@ -296,6 +296,13 @@ with_remote() {
   [ -z "$(ls -A "$XDG_STATE_HOME/claude-review" 2>/dev/null)" ]
 }
 
+@test "a mark on a branch with no commit yet fails and records nothing" {
+  git init -q -b main "$TMP/empty"
+  run "$GATE" mark "$TMP/empty" s1
+  [ "$status" -ne 0 ]
+  [ -z "$(ls -A "$XDG_STATE_HOME/claude-review" 2>/dev/null)" ]
+}
+
 @test "the same branch name in two repos keeps two marks" {
   git init -q -b main "$TMP/other"
   git -C "$TMP/other" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
