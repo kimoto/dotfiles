@@ -20,13 +20,10 @@ description: いま居る repo で、使われていないもの・重複して�
 - GitHub 操作は GitHub MCP（`gh` は無いことがある）。search_* は使わず、list_pull_requests / list_issues をラベルで絞る
 - repo の visibility を確かめる。公開 repo なら、PR・issue・コミットに private repo の名前・中身、ホスト名、どのマシンで使っているかを書かない
 
-## 1. 無人で呼ばれたときの間隔（backoff）
+## 1. 無人で呼ばれたとき
 
-呼ぶ側（routine）が間隔を決めているときは、最初の3項目を飛ばし、open PR の確認からにする。
+いつ走るかは呼ぶ側（routine）が決める。この skill は休みの日を数えない。
 
-- ラベル `routine:prune-sweep` の PR と issue（open/closed とも）の一番新しい created_at から今日（JST）までの日数 d。一件も無ければ routine を作った日を起点にする
-- d が 0 か 2 の累乗（1・2・4・8・16…）のときだけ走る。出力が出れば翌日から間隔が戻り、出ない間は倍々に空く。それ以外は「休み（d 日出力なし）」の1行で終わる
-- 照会に失敗したら休まずに走り、その旨を報告に書く
 - open な `routine:prune-sweep` PR があれば新しい PR は作らない（issue は可）
 - `## Scouts` 節（とそこが指す文書）に open PR の上限があれば、そこに書かれた数え方で従う
 
