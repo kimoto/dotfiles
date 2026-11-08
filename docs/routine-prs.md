@@ -17,7 +17,8 @@ and turns on squash auto-merge, so the PR lands once the required checks
 pass. Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails
 there; use the GitHub MCP `enable_pr_auto_merge` or the REST route
 `PUT repos/<owner>/<repo>/pulls/<n>/ccr/auto_merge` instead. The owner chose this on 2026-10-31, after a trial
-week in which every comment-only A PR was merged untouched.
+week (2026-10-24, when this note landed, to 2026-10-31) in which every
+comment-only A PR was merged untouched.
 
 Version bumps and refactors in class A still get the label only, until the
 review on 2026-11-07: in the trial week, refactor A PRs were labelled without

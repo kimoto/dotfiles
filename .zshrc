@@ -694,7 +694,8 @@ fi
 # mise missing-tool reminder
 #=====================
 # A tool in mise's config that is not installed is re-resolved on every precmd,
-# so it taxes each prompt and says nothing. Notify-only: prints the cached
+# so it taxes each prompt and says nothing; a mise other than the release CI
+# pins writes mise.lock entries CI rejects. Notify-only: prints the cached
 # result and refreshes it in a background job, so startup never waits on mise.
 # Skipped in CI via DOTFILES_NO_MISE_CHECK.
 if [[ -z "${DOTFILES_NO_MISE_CHECK:-}" ]]; then
