@@ -123,19 +123,19 @@ jobs:
       # After the restore, so a restored openssl@4 is linked rather than a second
       # version installed beside it.
       - name: Let openssl@4 take over the image's openssl@3 links
-        env:
-          # Installing openssl@4 must not upgrade the image's own formulae: the
-          # cache key hashes their versions as the image shipped them.
-          HOMEBREW_NO_INSTALL_UPGRADE: "1"
         run: |
           target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
           echo "bin/openssl -> ${target:-not a link}"
           case "$target" in
             */openssl@3/*)
               if [ ! -d "$(brew --prefix)/Cellar/openssl@4" ]; then
-                # Fails at its link step on these runners; the overwrite
-                # below is what has to succeed.
+                # Exits non-zero at its link step on these runners, which the
+                # overwrite below fixes; any other failure leaves no keg.
                 brew install openssl@4 || true
+                if [ ! -d "$(brew --prefix)/Cellar/openssl@4" ]; then
+                  echo "brew install openssl@4 failed before linking" >&2
+                  exit 1
+                fi
               fi
               brew link --overwrite openssl@4
               ;;
