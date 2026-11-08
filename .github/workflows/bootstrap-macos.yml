@@ -95,25 +95,6 @@ jobs:
           # formula breaks on a runner that ships another.
           echo "hash=$(brew list --formula --versions | sort | shasum -a 256 | cut -c1-16)" >>"$GITHUB_OUTPUT"
 
-      # Some runners of the same image still link openssl@3, which Homebrew
-      # marks keg-only, and its links stop openssl@4 (a dependency of bat) from
-      # linking. Those links can point into a keg version brew no longer
-      # tracks, so `brew unlink openssl@3` may leave them; letting openssl@4
-      # overwrite them is the fix brew itself names. Only on those runners, and
-      # opt/openssl@3 stays, so formulae built against openssl@3 still load it.
-      - name: Let openssl@4 take over the image's openssl@3 links
-        run: |
-          target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
-          echo "bin/openssl -> ${target:-not a link}"
-          case "$target" in
-            */openssl@3/*)
-              # Fails at its link step on these runners; the overwrite below
-              # is what has to succeed.
-              brew install openssl@4 || true
-              brew link --overwrite openssl@4
-              ;;
-          esac
-
       - name: Restore installed formulae
         id: cache-cellar
         if: github.event_name != 'schedule'
@@ -132,6 +113,33 @@ jobs:
       - name: Unpack the restored formulae
         if: steps.cache-cellar.outputs.cache-matched-key != ''
         run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
+
+      # Some runners of the same image still link openssl@3, which Homebrew
+      # marks keg-only, and its links stop openssl@4 (a dependency of bat) from
+      # linking. Those links can point into a keg version brew no longer
+      # tracks, so `brew unlink openssl@3` may leave them; letting openssl@4
+      # overwrite them is the fix brew itself names. Only on those runners, and
+      # opt/openssl@3 stays, so formulae built against openssl@3 still load it.
+      # After the restore, so a restored openssl@4 is linked rather than a second
+      # version installed beside it.
+      - name: Let openssl@4 take over the image's openssl@3 links
+        env:
+          # Installing openssl@4 must not upgrade the image's own formulae: the
+          # cache key hashes their versions as the image shipped them.
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+        run: |
+          target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
+          echo "bin/openssl -> ${target:-not a link}"
+          case "$target" in
+            */openssl@3/*)
+              if [ ! -d "$(brew --prefix)/Cellar/openssl@4" ]; then
+                # Fails at its link step on these runners; the overwrite
+                # below is what has to succeed.
+                brew install openssl@4 || true
+              fi
+              brew link --overwrite openssl@4
+              ;;
+          esac
 
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
