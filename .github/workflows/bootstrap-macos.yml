@@ -109,10 +109,8 @@ jobs:
       # names, so nothing else drops that link. Only openssl@3: the image links
       # other keg-only formulae (node@24, ruby@3.4) on purpose.
       - name: Unlink the image's openssl@3
-        shell: bash
         run: |
-          info="$(brew info --json=v2 openssl@3)"
-          if jq -e '.formulae[0].linked_keg != null' <<<"$info" >/dev/null; then
+          if [ -e "$(brew --prefix)/var/homebrew/linked/openssl@3" ]; then
             brew unlink openssl@3
           fi
 
