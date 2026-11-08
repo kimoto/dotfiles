@@ -81,24 +81,9 @@ save() {
     rm -f "$list"
 }
 
-# Runners of one image do not all ship the same formulae. When this one
-# already has a formula the archive holds, restoring around it would leave the
-# others linked against a version they were not built with, so the archive is
-# dropped whole and the run installs from scratch. Dropping the file also keeps
-# the pack step from merging the runner's own copies into the next archive.
 restore() {
     local archive="$1"
     [ -s "$archive" ] || { echo "x $archive missing or empty" >&2; return 1; }
-    local present
-    present=$(tar -tf "$archive" | sed -n 's|^Cellar/\([^/]*\)/.*|\1|p' | sort -u |
-        while IFS= read -r name; do
-            if [ -d "$prefix/Cellar/$name" ]; then echo "$name"; fi
-        done)
-    if [ -n "$present" ]; then
-        echo "not restoring, already installed here: $(echo "$present" | tr '\n' ' ')"
-        rm -f "$archive"
-        return 0
-    fi
     tar -C "$prefix" -xf "$archive"
     echo "restored $archive into $prefix"
 }

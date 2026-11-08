@@ -82,26 +82,15 @@ jobs:
         id: week
         run: echo "week=$(date -u +%G-%V)" >>"$GITHUB_OUTPUT"
 
-      - name: Restore installed formulae
-        id: cache-cellar
-        if: github.event_name != 'schedule'
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: ${{ runner.temp }}/cellar.tar
-          # The archive format version sits before the week: restore-keys
-          # match by prefix, so a version at the end would never invalidate.
-          key: >-
-            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-${{
-            hashFiles('Brewfile.standard', 'Brewfile.extra') }}
-          restore-keys: |
-            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-
-
-      - name: Unpack the restored formulae
-        if: steps.cache-cellar.outputs.cache-matched-key != ''
-        run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
-
+      # Runners of one image version do not all ship the same formulae, and an
+      # archive restored onto a runner that already has some of its formulae
+      # mixes versions or stops tar. The hash keeps each archive to runners
+      # that shipped exactly what its saver did.
       - name: List the formulae the image ships
-        run: brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
+        id: image-formulae
+        run: |
+          brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
+          echo "hash=$(shasum -a 256 "$RUNNER_TEMP/formulae-before.txt" | cut -c1-16)" >>"$GITHUB_OUTPUT"
 
       # Some runners of the same image link openssl@3 although Homebrew marks it
       # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
@@ -113,6 +102,25 @@ jobs:
           if [ -e "$(brew --prefix)/var/homebrew/linked/openssl@3" ]; then
             brew unlink openssl@3
           fi
+
+      - name: Restore installed formulae
+        id: cache-cellar
+        if: github.event_name != 'schedule'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ runner.temp }}/cellar.tar
+          # The archive format version sits before the week: restore-keys
+          # match by prefix, so a version at the end would never invalidate.
+          key: >-
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.image-formulae.outputs.hash }}-${{
+            steps.week.outputs.week }}-${{ hashFiles('Brewfile.standard', 'Brewfile.extra') }}
+          restore-keys: >-
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.image-formulae.outputs.hash }}-${{
+            steps.week.outputs.week }}-
+
+      - name: Unpack the restored formulae
+        if: steps.cache-cellar.outputs.cache-matched-key != ''
+        run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
 
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
