@@ -103,9 +103,9 @@ jobs:
       - name: List the formulae the image ships
         run: brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
 
-      # Some runners of the same image still link openssl@3, which Homebrew has
-      # since made keg-only; its bin/openssl then stops openssl@4 (a dependency
-      # of bat) from linking. `brew bundle` never touches a formula no Brewfile
+      # Some runners of the same image link openssl@3 although Homebrew marks it
+      # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
+      # from linking. `brew bundle` never touches a formula no Brewfile
       # names, so nothing else drops that link. Only openssl@3: the image links
       # other keg-only formulae (node@24, ruby@3.4) on purpose.
       - name: Unlink the image's openssl@3
