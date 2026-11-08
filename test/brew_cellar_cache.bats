@@ -49,7 +49,7 @@ teardown() {
   [ -L "$BREW_PREFIX/var/homebrew/linked/eza" ]
 }
 
-@test "restore leaves a formula the runner already has alone, and restores the rest" {
+@test "restore drops the whole archive when the runner already has one of its formulae" {
   mkdir -p "$BREW_PREFIX/Cellar/eza/0.20.0/share/doc/eza" "$BREW_PREFIX/Cellar/bat/0.25.0/bin"
   echo doc >"$BREW_PREFIX/Cellar/eza/0.20.0/share/doc/eza/README"
   mkdir -p "$BREW_PREFIX/share/doc/eza"
@@ -71,11 +71,13 @@ teardown() {
 
   run "$SCRIPT" restore "$TMP/cellar.tar"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"eza"* ]]
+  [[ "$output" == *"not restoring, already installed here: eza "* ]]
   [ "$(readlink "$BREW_PREFIX/bin/eza")" = ../Cellar/eza/0.19.0/bin/eza ]
   [ ! -e "$BREW_PREFIX/Cellar/eza/0.20.0" ]
   [ -L "$BREW_PREFIX/share/doc/eza" ]
-  [ "$(cat "$BREW_PREFIX/bin/bat")" = bat ]
+  [ ! -e "$BREW_PREFIX/Cellar/bat" ]
+  [ ! -e "$BREW_PREFIX/bin/bat" ]
+  [ ! -e "$TMP/cellar.tar" ]
 }
 
 @test "save fails when an added formula has no Cellar directory" {

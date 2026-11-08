@@ -91,10 +91,10 @@ jobs:
           # The archive format version sits before the week: restore-keys
           # match by prefix, so a version at the end would never invalidate.
           key: >-
-            ${{ steps.image.outputs.os }}-cellar-v3-${{ steps.week.outputs.week }}-${{
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-${{
             hashFiles('Brewfile.standard', 'Brewfile.extra') }}
           restore-keys: |
-            ${{ steps.image.outputs.os }}-cellar-v3-${{ steps.week.outputs.week }}-
+            ${{ steps.image.outputs.os }}-cellar-v2-${{ steps.week.outputs.week }}-
 
       - name: Unpack the restored formulae
         if: steps.cache-cellar.outputs.cache-matched-key != ''
