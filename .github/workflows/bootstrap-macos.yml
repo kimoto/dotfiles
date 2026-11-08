@@ -99,12 +99,16 @@ jobs:
       # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
       # from linking. `brew bundle` never touches a formula no Brewfile
       # names, so nothing else drops that link. Only openssl@3: the image links
-      # other keg-only formulae (node@24, ruby@3.4) on purpose.
+      # other keg-only formulae (node@24, ruby@3.4) on purpose. The check reads
+      # bin/openssl itself: on those runners brew's own link record
+      # (var/homebrew/linked) can be missing while the links remain.
       - name: Unlink the image's openssl@3
         run: |
-          if [ -e "$(brew --prefix)/var/homebrew/linked/openssl@3" ]; then
-            brew unlink openssl@3
-          fi
+          target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
+          echo "bin/openssl -> ${target:-none}"
+          case "$target" in
+            */openssl@3/*) brew unlink openssl@3 ;;
+          esac
 
       - name: Restore installed formulae
         id: cache-cellar
