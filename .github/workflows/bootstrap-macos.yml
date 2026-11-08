@@ -91,7 +91,9 @@ jobs:
         id: image-formulae
         run: |
           brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
-          echo "hash=$(shasum -a 256 "$RUNNER_TEMP/formulae-before.txt" | cut -c1-16)" >>"$GITHUB_OUTPUT"
+          # Versions too: an archive linked against one version of an image
+          # formula breaks on a runner that ships another.
+          echo "hash=$(brew list --formula --versions | sort | shasum -a 256 | cut -c1-16)" >>"$GITHUB_OUTPUT"
 
       # Some runners of the same image link openssl@3 although Homebrew marks it
       # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
