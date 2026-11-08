@@ -95,6 +95,17 @@ jobs:
           # formula breaks on a runner that ships another.
           echo "hash=$(brew list --formula --versions | sort | shasum -a 256 | cut -c1-16)" >>"$GITHUB_OUTPUT"
 
+      # Some runners of the same image link openssl@3 although Homebrew marks it
+      # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
+      # from linking. `brew bundle` never touches a formula no Brewfile
+      # names, so nothing else drops that link. Only openssl@3: the image links
+      # other keg-only formulae (node@24, ruby@3.4) on purpose.
+      - name: Unlink the image's openssl@3
+        run: |
+          if [ -e "$(brew --prefix)/var/homebrew/linked/openssl@3" ]; then
+            brew unlink openssl@3
+          fi
+
       - name: Restore installed formulae
         id: cache-cellar
         if: github.event_name != 'schedule'
@@ -114,13 +125,12 @@ jobs:
         if: steps.cache-cellar.outputs.cache-matched-key != ''
         run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
 
-      # Some runners of the same image carry a bin/openssl symlink of their own
-      # (absolute, into opt/openssl@3) that is not a brew link, so neither
-      # `brew unlink openssl@3` nor `brew link --overwrite openssl@4` touches
-      # it, and it stops openssl@4 (a dependency of bat) from linking. Remove
-      # just that file; opt/openssl@3 stays, so formulae built against
-      # openssl@3 still load it. After the restore, so a restored openssl@4
-      # gets relinked too.
+      # Other runners carry a bin/openssl symlink of the image's own (absolute,
+      # into opt/openssl@3) while brew records openssl@4 as linked. brew owns
+      # neither that file nor a link record for openssl@3, so the step above
+      # and `brew link --overwrite` both leave it, and it stops openssl@4 from
+      # linking. Remove just that file. After the restore, so a restored
+      # openssl@4 gets relinked too.
       - name: Drop the image's own bin/openssl
         run: |
           prefix="$(brew --prefix)"
