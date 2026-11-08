@@ -15,6 +15,7 @@ on:
       - "Brewfile.*"
       - "bin/mkworld.sh"
       - "bin/mklink.sh"
+      - "bin/prune_claude_links.sh"
       - "bin/setup_homebrew.sh"
       - "bin/setup_macosx.sh"
       - "bin/setup_brew_auto_upgrade.sh"

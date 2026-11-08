@@ -74,10 +74,13 @@ for agent in "$BASE_DIR"/claudecode/agents/*.md; do
   ln -nsf "$agent" "$dest"
 done
 
-"$BASE_DIR/bin/prune_claude_links.sh" "$CLAUDE_DIR"
-
 # A failed link looks like one that worked; silence is the failure mode.
 missing=0
+
+if ! "$BASE_DIR/bin/prune_claude_links.sh" "$CLAUDE_DIR" >/dev/null; then
+  echo "  MISS broken links left in $CLAUDE_DIR" >&2
+  missing=1
+fi
 
 # Any .md: retiring a rule must not read as a broken link.
 report_rules() {

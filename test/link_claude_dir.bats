@@ -88,7 +88,7 @@ teardown() {
   # Retiring a rule must not read as a broken link.
   fake_repo="$HOME_SANDBOX/repo"
   mkdir -p "$fake_repo/bin" "$fake_repo/claudecode/rules" "$fake_repo/claudecode/skills"
-  cp "$LINK" "$fake_repo/bin/"
+  cp "$LINK" "$REPO_ROOT/bin/prune_claude_links.sh" "$fake_repo/bin/"
   : >"$fake_repo/claudecode/rules/something-else.md"
 
   HOME="$HOME_SANDBOX" run "$fake_repo/bin/link_claude_dir.sh"
@@ -213,4 +213,14 @@ teardown() {
   HOME="$HOME_SANDBOX" run "$LINK"
   [ "$status" -eq 0 ]
   [ -L "$HOME_SANDBOX/.claude/skills/their-skill" ]
+}
+
+@test "a broken link from another checkout of this repo is taken down too" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills"
+  ln -s "$HOME_SANDBOX/other-clone/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
 }
