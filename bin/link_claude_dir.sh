@@ -74,6 +74,8 @@ for agent in "$BASE_DIR"/claudecode/agents/*.md; do
   ln -nsf "$agent" "$dest"
 done
 
+"$BASE_DIR/bin/prune_claude_links.sh" "$CLAUDE_DIR"
+
 # A failed link looks like one that worked; silence is the failure mode.
 missing=0
 

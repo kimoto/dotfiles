@@ -29,7 +29,7 @@ setup() {
   make_agent_repo
   # The real scripts, not stubs: a stub tests the call, not the result.
   cp "$REPO_ROOT/bin/setup_cloud_session.sh" "$REPO_ROOT/bin/setup_agent.sh" "$REPO_ROOT/bin/link_claude_dir.sh" \
-    "$REPO_ROOT/bin/link_git_identity.sh" "$TMP/repo/bin/"
+    "$REPO_ROOT/bin/link_git_identity.sh" "$REPO_ROOT/bin/prune_claude_links.sh" "$TMP/repo/bin/"
   call_stubs lefthook sudo apt-get
   toolchain_stub 0
   # Everything else the hook runs is a shell builtin or stubbed above.
