@@ -99,15 +99,27 @@ jobs:
       # keg-only; its bin/openssl then stops openssl@4 (a dependency of bat)
       # from linking. `brew bundle` never touches a formula no Brewfile
       # names, so nothing else drops that link. Only openssl@3: the image links
-      # other keg-only formulae (node@24, ruby@3.4) on purpose. The check reads
-      # bin/openssl itself: on those runners brew's own link record
-      # (var/homebrew/linked) can be missing while the links remain.
+      # other keg-only formulae (node@24, ruby@3.4) on purpose.
+      # Not `brew unlink`: on the runners that fail, brew's link record for
+      # openssl@3 is missing and the links point into a keg version brew no
+      # longer tracks, which `brew unlink` leaves in place. So every link into
+      # any openssl@3 keg is removed directly, then bin/openssl is checked.
+      # opt/ stays: formulae built against openssl@3 load it through opt/.
       - name: Unlink the image's openssl@3
         run: |
-          target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
-          echo "bin/openssl -> ${target:-none}"
-          case "$target" in
-            */openssl@3/*) brew unlink openssl@3 ;;
+          prefix="$(brew --prefix)"
+          echo "bin/openssl -> $(readlink "$prefix/bin/openssl" || echo none)"
+          for d in bin sbin lib include share etc; do
+            if [ -d "$prefix/$d" ]; then
+              find "$prefix/$d" -type l -lname '*Cellar/openssl@3/*' -print -delete
+            fi
+          done
+          rm -fv "$prefix/var/homebrew/linked/openssl@3"
+          case "$(readlink "$prefix/bin/openssl" || true)" in
+            */openssl@3/*)
+              echo "bin/openssl still points into openssl@3" >&2
+              exit 1
+              ;;
           esac
 
       - name: Restore installed formulae
