@@ -49,6 +49,35 @@ teardown() {
   [ -L "$BREW_PREFIX/var/homebrew/linked/eza" ]
 }
 
+@test "restore leaves a formula the runner already has alone, and restores the rest" {
+  mkdir -p "$BREW_PREFIX/Cellar/eza/0.20.0/share/doc/eza" "$BREW_PREFIX/Cellar/bat/0.25.0/bin"
+  echo doc >"$BREW_PREFIX/Cellar/eza/0.20.0/share/doc/eza/README"
+  mkdir -p "$BREW_PREFIX/share/doc/eza"
+  ln -s ../../../Cellar/eza/0.20.0/share/doc/eza/README "$BREW_PREFIX/share/doc/eza/README"
+  echo bat >"$BREW_PREFIX/Cellar/bat/0.25.0/bin/bat"
+  ln -s ../Cellar/bat/0.25.0/bin/bat "$BREW_PREFIX/bin/bat"
+  echo bat >>"$TMP/added.txt"
+  "$SCRIPT" save "$TMP/cellar.tar" "$TMP/added.txt"
+
+  # Another runner of the same image: it ships eza 0.19.0, linked with a
+  # whole-directory symlink, and lacks bat.
+  rm -rf "$BREW_PREFIX/Cellar/eza" "$BREW_PREFIX/share/doc/eza" "$BREW_PREFIX/bin/eza" \
+    "$BREW_PREFIX/opt/eza" "$BREW_PREFIX/var/homebrew/linked/eza" "$BREW_PREFIX/share/man/man1/eza.1" \
+    "$BREW_PREFIX/Cellar/bat" "$BREW_PREFIX/bin/bat"
+  mkdir -p "$BREW_PREFIX/Cellar/eza/0.19.0/bin" "$BREW_PREFIX/Cellar/eza/0.19.0/share/doc/eza"
+  echo old >"$BREW_PREFIX/Cellar/eza/0.19.0/bin/eza"
+  ln -s ../Cellar/eza/0.19.0/bin/eza "$BREW_PREFIX/bin/eza"
+  ln -s ../../Cellar/eza/0.19.0/share/doc/eza "$BREW_PREFIX/share/doc/eza"
+
+  run "$SCRIPT" restore "$TMP/cellar.tar"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"eza"* ]]
+  [ "$(readlink "$BREW_PREFIX/bin/eza")" = ../Cellar/eza/0.19.0/bin/eza ]
+  [ ! -e "$BREW_PREFIX/Cellar/eza/0.20.0" ]
+  [ -L "$BREW_PREFIX/share/doc/eza" ]
+  [ "$(cat "$BREW_PREFIX/bin/bat")" = bat ]
+}
+
 @test "save fails when an added formula has no Cellar directory" {
   echo ghost >>"$TMP/added.txt"
   run "$SCRIPT" save "$TMP/cellar.tar" "$TMP/added.txt"

@@ -10,6 +10,7 @@
 # takes its Cellar directory (the install receipt lives there, which is what
 # makes brew count it as installed) and every symlink in the prefix's link
 # directories that points into it, so a restore needs no `brew link`.
+# Restore skips every formula this runner already has installed.
 #
 # Only the added formulae, never the whole Cellar: the macOS runner image
 # ships ~5 GB of formulae of its own, and an archive that size takes longer
@@ -23,6 +24,8 @@ prefix="${BREW_PREFIX:-/opt/homebrew}"
 # Where `brew link` puts symlinks. var/homebrew/linked is brew's own record of
 # what is linked; without it brew reports a restored formula as unlinked.
 link_dirs=(bin sbin lib include share etc opt var/homebrew/linked)
+# One "path<TAB>formula" line per archived path.
+manifest=.cellar-manifest
 
 usage() {
     echo "usage: $0 save <archive> <added-list> | restore <archive>" >&2
@@ -48,7 +51,7 @@ save() {
             echo "x $name: no Cellar directory, not installed?" >&2
             return 1
         fi
-        echo "Cellar/$name" >>"$list"
+        printf 'Cellar/%s\t%s\n' "$name" "$name" >>"$list"
     done
     # Links of the added formulae only: a link target carries Cellar/<name>/,
     # relative (../Cellar/eza/0.20.0/bin/eza) or absolute. One perl process
@@ -62,30 +65,54 @@ save() {
         find "${dirs[@]}" -type l -print0 \
             | perl -0 -ne 'BEGIN { %n = map { $_ => 1 } @ARGV; @ARGV = () }
                            chomp; my $t = readlink($_) // next;
-                           print "$_\n" if $t =~ m{Cellar/([^/]+)/} && $n{$1}' "${names[@]}" \
+                           print "$_\t$1\n" if $t =~ m{Cellar/([^/]+)/} && $n{$1}' "${names[@]}" \
             | sed "s|^$prefix/||" >>"$list"
     fi
     # Only what still exists: a link that vanished since the listing would
     # stop tar, and losing one link is cheaper than losing the whole archive.
-    local kept
+    local kept p name
     kept=$(mktemp)
-    while IFS= read -r p; do
+    while IFS=$'\t' read -r p name; do
         [ -e "$prefix/$p" ] || [ -L "$prefix/$p" ] || { echo "skipping vanished $p" >&2; continue; }
-        printf '%s\n' "$p"
+        printf '%s\t%s\n' "$p" "$name"
     done <"$list" >"$kept"
-    mv -f "$kept" "$list"
+    # The manifest travels inside the archive, so restore knows which formula
+    # each path belongs to without a second cache entry.
+    mv -f "$kept" "$prefix/$manifest"
+    cut -f1 "$prefix/$manifest" >"$list"
+    echo "$manifest" >>"$list"
     # Plain tar: actions/cache compresses the file it saves, so compressing
     # here would only cost a second pass over the same bytes.
     tar -C "$prefix" -cf "$archive" -T "$list"
-    echo "saved ${#names[@]} formulae and $(( $(wc -l <"$list") - ${#names[@]} )) links to $archive"
-    rm -f "$list"
+    echo "saved ${#names[@]} formulae and $(( $(wc -l <"$list") - 1 - ${#names[@]} )) links to $archive"
+    rm -f "$list" "$prefix/$manifest"
 }
 
+# Runners of one image do not all ship the same formulae. A formula the
+# archive holds may already be installed here, sometimes linked through a
+# whole-directory symlink that tar refuses to extract through, so restore
+# skips every path of such a formula and leaves the runner's own copy.
 restore() {
     local archive="$1"
     [ -s "$archive" ] || { echo "x $archive missing or empty" >&2; return 1; }
-    tar -C "$prefix" -xf "$archive"
-    echo "restored $archive into $prefix"
+    local list skipped
+    list=$(mktemp)
+    skipped=$(mktemp)
+    tar -xOf "$archive" "$manifest" | while IFS=$'\t' read -r p name; do
+        if [ -d "$prefix/Cellar/$name" ]; then
+            echo "$name" >>"$skipped"
+        else
+            printf '%s\n' "$p"
+        fi
+    done >"$list"
+    if [ -s "$skipped" ]; then
+        echo "already installed here, not restored: $(sort -u "$skipped" | tr '\n' ' ')"
+    fi
+    if [ -s "$list" ]; then
+        tar -C "$prefix" -xf "$archive" -T "$list"
+    fi
+    echo "restored $(wc -l <"$list" | tr -d ' ') paths from $archive into $prefix"
+    rm -f "$list" "$skipped"
 }
 
 case "${1:-}" in
