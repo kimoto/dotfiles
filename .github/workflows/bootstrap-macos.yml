@@ -114,30 +114,25 @@ jobs:
         if: steps.cache-cellar.outputs.cache-matched-key != ''
         run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
 
-      # Some runners of the same image still link openssl@3, which Homebrew
-      # marks keg-only, and its links stop openssl@4 (a dependency of bat) from
-      # linking. Those links can point into a keg version brew no longer
-      # tracks, so `brew unlink openssl@3` may leave them; letting openssl@4
-      # overwrite them is the fix brew itself names. Only on those runners, and
-      # opt/openssl@3 stays, so formulae built against openssl@3 still load it.
-      # After the restore, so a restored openssl@4 is linked rather than a second
-      # version installed beside it.
-      - name: Let openssl@4 take over the image's openssl@3 links
+      # Some runners of the same image carry a bin/openssl symlink of their own
+      # (absolute, into opt/openssl@3) that is not a brew link, so neither
+      # `brew unlink openssl@3` nor `brew link --overwrite openssl@4` touches
+      # it, and it stops openssl@4 (a dependency of bat) from linking. Remove
+      # just that file; opt/openssl@3 stays, so formulae built against
+      # openssl@3 still load it. After the restore, so a restored openssl@4
+      # gets relinked too.
+      - name: Drop the image's own bin/openssl
         run: |
-          target="$(readlink "$(brew --prefix)/bin/openssl" || true)"
+          prefix="$(brew --prefix)"
+          target="$(readlink "$prefix/bin/openssl" || true)"
           echo "bin/openssl -> ${target:-not a link}"
           case "$target" in
             */openssl@3/*)
-              if [ ! -d "$(brew --prefix)/Cellar/openssl@4" ]; then
-                # Exits non-zero at its link step on these runners, which the
-                # overwrite below fixes; any other failure leaves no keg.
-                brew install openssl@4 || true
-                if [ ! -d "$(brew --prefix)/Cellar/openssl@4" ]; then
-                  echo "brew install openssl@4 failed before linking" >&2
-                  exit 1
-                fi
+              rm "$prefix/bin/openssl"
+              if [ -d "$prefix/Cellar/openssl@4" ]; then
+                brew unlink openssl@4
+                brew link openssl@4
               fi
-              brew link --overwrite openssl@4
               ;;
           esac
 
