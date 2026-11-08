@@ -103,22 +103,18 @@ jobs:
       - name: List the formulae the image ships
         run: brew list --formula | sort >"$RUNNER_TEMP/formulae-before.txt"
 
-      # The image links some formulae that Homebrew has since made keg-only.
-      # `brew bundle` never touches a formula no Brewfile names, so that link
-      # stays and stops the formula that replaced it from linking the same
-      # files. Updating first makes keg_only reflect today's formulae, not the
-      # image's.
-      - name: Unlink keg-only formulae the image still links
+      # Some runners of the same image still link openssl@3, which Homebrew has
+      # since made keg-only; its bin/openssl then stops openssl@4 (a dependency
+      # of bat) from linking. `brew bundle` never touches a formula no Brewfile
+      # names, so nothing else drops that link. Only openssl@3: the image links
+      # other keg-only formulae (node@24, ruby@3.4) on purpose.
+      - name: Unlink the image's openssl@3
         shell: bash
         run: |
-          show() {
-            brew info --json=v2 --installed |
-              jq -r '.formulae[] | select(.name | startswith("openssl"))
-                | "\(.name) keg_only=\(.keg_only) linked=\(.linked_keg)"'
-          }
-          show
-          brew update --quiet
-          show
+          info="$(brew info --json=v2 openssl@3)"
+          if jq -e '.formulae[0].linked_keg != null' <<<"$info" >/dev/null; then
+            brew unlink openssl@3
+          fi
 
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
