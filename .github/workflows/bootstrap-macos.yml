@@ -111,13 +111,9 @@ jobs:
       - name: Unlink keg-only formulae the image still links
         shell: bash
         run: |
-          brew update --quiet
-          brew info --json=v2 --installed |
-            jq -r '.formulae[] | select(.keg_only and .linked_keg != null) | .name' |
-            while read -r formula; do
-              echo "unlinking $formula"
-              brew unlink "$formula" </dev/null
-            done
+          readlink /opt/homebrew/bin/openssl || echo "no openssl link"
+          brew update
+          readlink /opt/homebrew/bin/openssl || echo "no openssl link"
 
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
