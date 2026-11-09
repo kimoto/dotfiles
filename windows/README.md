@@ -32,10 +32,8 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
 
 ## Deliberately not here
 
-- **`stats` → TrafficMonitor** and **`mysql-shell` → MySQL Shell** — fine
-  packages, just not wanted on this machine yet. Add
-  `zhongyang219.TrafficMonitor.Full` / `Oracle.MySQLShell` to the manifest if
-  that changes.
+- **`mysql-shell` → MySQL Shell** — a fine package, just not wanted on this
+  machine yet. Add `Oracle.MySQLShell` to the manifest if that changes.
 - **`font-jetbrains-mono-nerd-font`** — winget's only offer is
   `DEVCOM.JetBrainsMonoNerdFont`, and its installer is an MSI built by
   `github.com/DevelopersCommunity/wix-JetBrainsMonoNF`: a 34-star, 0-fork,
@@ -60,8 +58,6 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
   `.aerospace.toml`'s bindings without editing anything. komorebi is the more
   popular choice but needs a separate hotkey daemon (`LGUG2Z.whkd`) and does
   not follow i3's directional model.
-- **`gitify`** — no equivalent worth installing; GitHub notifications are read
-  in the browser or through `gh`.
 - **`font-bitstream-vera-sans-mono-nerd-font`** — not in the winget catalog.
   Scoop's `nerd-fonts` bucket carries it if it is ever needed.
 - **`telnet`** — a Windows *optional feature*

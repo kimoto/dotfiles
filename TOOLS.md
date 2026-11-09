@@ -119,7 +119,6 @@ _Source: `Brewfile.macos`._
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
 | [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | JetBrains Mono patched with Nerd Font icons |
 | [ghostty](https://formulae.brew.sh/cask/ghostty) | Terminal emulator that uses platform-native UI and GPU acceleration |
-| [gitify](https://formulae.brew.sh/cask/gitify) | GitHub notifications on your menu bar |
 | [google-japanese-ime](https://formulae.brew.sh/cask/google-japanese-ime) | Japanese input software |
 | [hammerspoon](https://formulae.brew.sh/cask/hammerspoon) | Desktop automation application |
 | `kimoto/dotfiles/cleanshot@4` | Screen capturing tool |
@@ -128,7 +127,6 @@ _Source: `Brewfile.macos`._
 | `nikitabobko/tap/aerospace` | AeroSpace is an i3-like tiling window manager for macOS |
 | [raycast](https://formulae.brew.sh/cask/raycast) | Control your tools with a few keystrokes |
 | [rectangle](https://formulae.brew.sh/cask/rectangle) | Move and resize windows using keyboard shortcuts or snap areas |
-| [stats](https://formulae.brew.sh/cask/stats) | System monitor for the menu bar |
 
 ## Linux
 
