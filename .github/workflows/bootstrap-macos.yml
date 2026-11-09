@@ -126,6 +126,27 @@ jobs:
         if: steps.cache-cellar.outputs.cache-matched-key != ''
         run: ./ci/brew_cellar_cache.sh restore "$RUNNER_TEMP/cellar.tar"
 
+      # Other runners carry a bin/openssl symlink of the image's own (absolute,
+      # into opt/openssl@3) while brew records openssl@4 as linked. brew owns
+      # neither that file nor a link record for openssl@3, so the step above
+      # and `brew link --overwrite` both leave it, and it stops openssl@4 from
+      # linking. Remove just that file. After the restore, so a restored
+      # openssl@4 gets relinked too.
+      - name: Drop the image's own bin/openssl
+        run: |
+          prefix="$(brew --prefix)"
+          target="$(readlink "$prefix/bin/openssl" || true)"
+          echo "bin/openssl -> ${target:-not a link}"
+          case "$target" in
+            */openssl@3/*)
+              rm "$prefix/bin/openssl"
+              if [ -d "$prefix/Cellar/openssl@4" ]; then
+                brew unlink openssl@4
+                brew link openssl@4
+              fi
+              ;;
+          esac
+
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
 
