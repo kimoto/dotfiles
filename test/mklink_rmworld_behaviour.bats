@@ -199,6 +199,22 @@ teardown() {
   [ "$(cat "$HOME_SANDBOX/.claude/skills/wrapup/SKILL.md")" = theirs ]
 }
 
+@test "mklink.sh takes down links to skills and agents since removed from the repo" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills" "$HOME_SANDBOX/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+  ln -s "$REPO_ROOT/claudecode/agents/retired-agent.md" \
+    "$HOME_SANDBOX/.claude/agents/retired-agent.md"
+  ln -s "$HOME_SANDBOX/elsewhere/their-skill" \
+    "$HOME_SANDBOX/.claude/skills/their-skill"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
+  [ ! -L "$HOME_SANDBOX/.claude/agents/retired-agent.md" ]
+  [ -L "$HOME_SANDBOX/.claude/skills/their-skill" ]
+}
+
 @test "rmworld.sh unlinks a skill link left behind after the skill was removed" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
   ln -s "$REPO_ROOT/claudecode/skills/retired-skill" \

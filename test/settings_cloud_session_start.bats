@@ -18,7 +18,7 @@ setup() {
   mkdir -p "$UPSTREAM/bin" "$UPSTREAM/claudecode/rules" "$UPSTREAM/claudecode/rules-cloud" \
     "$TMP/home/.claude"
   cp "$REPO_ROOT/bin/link_claude_dir.sh" "$REPO_ROOT/bin/refresh_cloud_session.sh" \
-    "$REPO_ROOT/bin/link_git_identity.sh" "$UPSTREAM/bin/"
+    "$REPO_ROOT/bin/link_git_identity.sh" "$REPO_ROOT/bin/prune_claude_links.sh" "$UPSTREAM/bin/"
   cp "$REPO_ROOT/.gitconfig.agent" "$UPSTREAM/"
   cp "$REPO_ROOT/claudecode/settings-cloud.json" "$UPSTREAM/claudecode/"
   : >"$UPSTREAM/claudecode/rules/a.md"
