@@ -5,8 +5,6 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Static checker for GitHub Actions workflow files
 brew "actionlint"
-# Code searching, linting, rewriting tool that understands syntax (AST-based grep)
-brew "ast-grep"
 # Bash Automated Testing System (bin/run_tests.sh)
 brew "bats-core"
 # Searches a binary image for embedded files and executable code
@@ -15,10 +13,6 @@ brew "binwalk"
 brew "chafa"
 # Structural diff that understands syntax (on-demand via `git dft`)
 brew "difftastic"
-# More intuitive version of du in rust
-brew "dust"
-# Run arbitrary commands when files change
-brew "entr"
 # Perl lib for reading and writing EXIF metadata
 brew "exiftool"
 # Like neofetch, but much faster because written mostly in C
@@ -39,8 +33,6 @@ brew "gnu-sed"
 brew "gnupg"
 # Review-first terminal diff viewer for agent-authored changesets
 brew "hunk"
-# Enhanced version of john, a UNIX password cracker
-brew "john-jumbo"
 # Lightweight and flexible command-line JSON processor
 brew "jq"
 # Kubernetes CLI To Manage Your Clusters In Style!
@@ -53,8 +45,6 @@ brew "kubectx"
 brew "lefthook"
 # Pager program similar to more
 brew "less"
-# Linux virtual machines
-brew "lima"
 # Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
 brew "luajit"
 # Open source relational database management system
@@ -65,36 +55,22 @@ brew "ncurses"
 brew "netcat"
 # Port scanning utility for large networks
 brew "nmap"
-# SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension
-brew "openvpn"
 # Perl language server (nvim LSP: perlnavigator)
 brew "perlnavigator"
 # Static type checker and language server for Python (nvim LSP: pyright)
 brew "pyright"
 # Generic machine emulator and virtualizer
 brew "qemu"
-# Persistent key-value database, with built-in net interface
-brew "redis"
-# Wrapper around ripgrep that adds multiple rich file types
-brew "ripgrep-all"
 # Extremely fast Python linter, written in Rust (bin/lint_python.sh)
 brew "ruff"
-# Experimental Rust compiler front-end for IDEs
-brew "rust-analyzer"
-# 7-Zip is a file archiver with a high compression ratio
-brew "sevenzip"
 # Static analysis and lint tool, for (ba)sh scripts
 brew "shellcheck"
-# Create beautiful image of your source code
-brew "silicon"
 # Ruby language server (nvim LSP: solargraph)
 brew "solargraph"
 # TOML toolkit and language server (nvim LSP: taplo)
 brew "taplo"
 # Terminal multiplexer
 brew "tmux"
-# Manage complex tmux sessions easily
-brew "tmuxinator"
 # Parser generator tool (nvim-treesitter CLI)
 brew "tree-sitter-cli"
 # Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls)
