@@ -21,6 +21,7 @@ STUB
   chmod +x "$TMP/bin/gh"
   export PATH="$TMP/bin:$PATH"
   export GITHUB_REPOSITORY=owner/repo
+  export GH_TOKEN=stub-token
 }
 
 teardown() {
@@ -60,4 +61,11 @@ teardown() {
 @test "fails without a commit to advance to" {
   run "$SCRIPT"
   [ "$status" -ne 0 ]
+}
+
+@test "refuses to call the API without a token" {
+  GH_TOKEN= run "$SCRIPT" abc123
+  [ "$status" -ne 0 ]
+  [[ "$output" == *STABLE_TOKEN* ]]
+  [ ! -e "$GH_LOG" ]
 }

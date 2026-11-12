@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      contents: write # moves the stable branch; nothing else in this job writes
+      contents: read # the move itself uses STABLE_TOKEN, see below
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -221,6 +221,10 @@ jobs:
       - name: Fast-forward stable to the newest pass at least a week old
         env:
           GH_TOKEN: ${{ github.token }}
+          # GITHUB_TOKEN can never hold the workflows permission, and GitHub refuses
+          # to move a branch onto commits that change .github/workflows without it.
+          # A fine-grained PAT for this repo only: Contents and Workflows, read-write.
+          STABLE_TOKEN: ${{ secrets.STABLE_TOKEN }}
         run: |
           set -e
           sha="$(./ci/aged_pass.sh bootstrap-macos.yml 7 schedule)"
@@ -228,4 +232,4 @@ jobs:
             echo "no passing run a week old yet; stable stays where it is"
             exit 0
           fi
-          ./ci/advance_stable.sh "$sha"
+          GH_TOKEN="$STABLE_TOKEN" ./ci/advance_stable.sh "$sha"

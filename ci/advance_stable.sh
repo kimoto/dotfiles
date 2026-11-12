@@ -5,13 +5,16 @@
 #
 #   ci/advance_stable.sh <sha>
 #
-# Needs GH_TOKEN with contents:write and GITHUB_REPOSITORY. Only ever moves
+# Needs GITHUB_REPOSITORY and a GH_TOKEN that can write both contents and
+# workflows: GitHub refuses a ref update onto commits that change workflow files
+# otherwise, so GITHUB_TOKEN alone is not enough. Only ever moves
 # stable forward: a run that finishes after a newer one already advanced it
 # (the macOS and Linux bootstraps race) leaves it where it is.
 set -euo pipefail
 
 sha="${1:?usage: advance_stable.sh <sha>}"
 repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
+[ -n "${GH_TOKEN:-}" ] || { echo "GH_TOKEN is empty (is the STABLE_TOKEN secret set?)" >&2; exit 1; }
 
 if ! gh api "repos/$repo/git/ref/heads/stable" >/dev/null 2>&1; then
     gh api -X POST "repos/$repo/git/refs" -f ref=refs/heads/stable -f sha="$sha" >/dev/null
