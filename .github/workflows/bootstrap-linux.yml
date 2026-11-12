@@ -142,13 +142,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      contents: write # moves the stable branch; nothing else in this job writes
+      contents: read # stable moves with STABLE_TOKEN, not this job's token
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
 
-      - name: Fast-forward stable to the newest pass at least a week old
+      - name: Find the newest pass at least a week old
+        id: aged
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -156,6 +157,18 @@ jobs:
           sha="$(./ci/aged_pass.sh bootstrap-linux.yml 7 schedule workflow_dispatch)"
           if [ -z "$sha" ]; then
             echo "no passing run a week old yet; stable stays where it is"
-            exit 0
           fi
-          ./ci/advance_stable.sh "$sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN cannot be granted workflows:write, so it gets a 403 moving
+      # stable onto any commit that changes .github/workflows. STABLE_TOKEN is a
+      # fine-grained PAT for this repo only, with contents and workflows write,
+      # and only this step sees it.
+      - name: Fast-forward stable to it
+        if: steps.aged.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.STABLE_TOKEN }}
+          SHA: ${{ steps.aged.outputs.sha }}
+        run: |
+          : "${GH_TOKEN:?the STABLE_TOKEN secret is not set}"
+          ./ci/advance_stable.sh "$SHA"

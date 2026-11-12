@@ -13,7 +13,12 @@ setup() {
 #!/bin/bash
 printf '%s\n' "$*" >>"$GH_LOG"
 case "$*" in
-  *"git/ref/heads/stable"*) [ "${STUB_STABLE_EXISTS:-1}" = 1 ] ;;
+  *"git/ref/heads/stable"*)
+    case "${STUB_STABLE_REF:-exists}" in
+      exists) : ;;
+      missing) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;
+      *) echo "gh: Bad credentials (HTTP 401)" >&2; exit 1 ;;
+    esac ;;
   *"/compare/"*) echo "$STUB_COMPARE" ;;
   *) : ;;
 esac
@@ -28,9 +33,16 @@ teardown() {
 }
 
 @test "creates stable at the commit when it does not exist yet" {
-  STUB_STABLE_EXISTS=0 run "$SCRIPT" abc123
+  STUB_STABLE_REF=missing run "$SCRIPT" abc123
   [ "$status" -eq 0 ]
   grep -q -- "-X POST repos/owner/repo/git/refs -f ref=refs/heads/stable -f sha=abc123" "$GH_LOG"
+}
+
+@test "fails without creating stable when the ref cannot be read" {
+  STUB_STABLE_REF=unauthorized run "$SCRIPT" abc123
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"HTTP 401"* ]]
+  ! grep -q -- "-X POST" "$GH_LOG"
 }
 
 @test "fast-forwards stable when the commit descends from it" {
