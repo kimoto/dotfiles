@@ -322,7 +322,7 @@ click $((PX + PW / 2)) $((PY + PH - 24))   # into the text, at its end
 printf '%s' "$EDIT_SUFFIX" | pbcopy
 keys_in_place "$(se 'key code 125 using command down')" "$(se 'keystroke "v" using command down')"   # ⌘↓, ⌘V
 sleep 0.5
-click $((PX + PW - 57)) $((PY + 21))   # the copy button
+click $((PX + PW - 93)) $((PY + 21))   # the copy button, left of ⚙ and ✕
 sleep 2
 expect "clipboard holds the edited message" clipboard_ends_with_edit
 expect "the edit is logged" edit_was_logged
