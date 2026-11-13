@@ -241,7 +241,16 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + m | Mark pane |
 | prefix + M | Move marked pane here (join-pane) |
 | prefix + Space | Cycle layout |
+| prefix + h, prefix + j, prefix + k, prefix + l (or prefix + C-h, prefix + C-j, prefix + C-k, prefix + C-l) | Select the pane left / below / above / right |
+| prefix + H, prefix + J, prefix + K, prefix + L | Resize the pane by 5 left / down / up / right (repeatable) |
+| prefix + \|, prefix + % | Split right, same cwd |
+| prefix + -, prefix + " | Split below, same cwd |
+| prefix + _ | Split below across the whole window, same cwd |
+| prefix + c | New window, same cwd |
+| prefix + C-n, prefix + C-p | Next / previous window |
+| prefix + <, prefix + > | Swap the window with the previous / next one (repeatable) |
 | prefix + r | Reload ~/.tmux.conf |
+| prefix + R | Reload ~/.tmux.conf, with a message |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
@@ -252,7 +261,7 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + V | The same, for the whole branch since it left main (commits too) |
 | prefix + f | fzf switcher across all panes of all sessions: Claude Code waiting on you (⏳) first, then finished (✳), then most recent |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
-| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
+| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions); split right across the whole window until the plugin is installed |
 | prefix + ? | tmux-which-key: menu of tmux commands |
 | prefix + Ctrl-s | Save session state, incl. Claude Code (auto every 15 min) |
 | prefix + Ctrl-r | Restore the last saved session state |
@@ -285,6 +294,8 @@ Rectangle's keys with ⌃⌥ in place of ⌃⌘, for the active floating pane. O
 | y | Copy to clipboard and exit |
 | [ | Jump to previous prompt |
 | ] | Jump to next prompt |
+| WheelUpPane | Scroll up 3 lines |
+| WheelDownPane | Scroll down 3 lines |
 
 ---
 

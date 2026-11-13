@@ -38,7 +38,6 @@ TMUX_PREFIX_BOUND_ELSEWHERE=(
   "*"     # tmux 3.7's own default: new floating pane
   "f"     # config/tmux-agent-status/agent-status.tmux, its own default key
   "F"     # tmux-fzf's default key
-  "\\"    # tmux-menus' default trigger
   "Enter" # tmux-menus' second default trigger
   "C-s"   # tmux-resurrect's default save key
   "C-r"   # tmux-resurrect's default restore key
@@ -219,8 +218,11 @@ hammerspoon_configured_keys() {
 # Case is kept: tmux binds m and M separately.
 tmux_canon() {
   local k="$1"
-  k="${k#[\"\']}"
-  k="${k%[\"\']}"
+  # A lone quote is the key itself (the doc's `prefix + "`), not quoting.
+  if [ "${#k}" -gt 1 ]; then
+    k="${k#[\"\']}"
+    k="${k%[\"\']}"
+  fi
   k="${k/#Ctrl-/C-}"
   printf '%s\n' "$k"
 }
@@ -263,7 +265,8 @@ table_cells() {
   if [ -n "$exclude_re" ]; then
     rows="$(grep -v -E "$exclude_re" <<<"$rows")"
   fi
-  sed -E 's/^\| *([^|]+) *\|.*/\1/' <<<"$rows" | sed -E 's/ *$//'
+  # A key cell can hold the | key only escaped, as \|, which must not end it.
+  sed -E 's/\\\|/@PIPE@/g; s/^\| *([^|]+) *\|.*/\1/' <<<"$rows" | sed -E 's/ *$//; s/@PIPE@/|/g'
 }
 
 # The Terminal table's documented keys, one canonical key per line. Rows
