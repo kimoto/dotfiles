@@ -50,7 +50,7 @@ html, body { margin: 0; background: transparent; }
 .card { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
   overflow: hidden; font: 15px/1.65 -apple-system, "Hiragino Sans", sans-serif; }
 header { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 16px;
-  border-bottom: 1px solid var(--line); -webkit-user-select: none; cursor: default; }
+  border-bottom: 1px solid var(--line); -webkit-user-select: none; cursor: grab; }
 .title { font-weight: 600; font-size: 13px; }
 .status { flex: 1; font-size: 12px; color: var(--muted); }
 .status.busy::after { content: ""; display: inline-block; width: 9px; height: 9px; margin-left: 6px;
@@ -219,6 +219,11 @@ copy.onclick = (e) => {
 };
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('best').onclick = () => post({ best: true });
+// The window has no title bar, so the header is what moves it; Lua follows the
+// mouse from here until the button is let go.
+document.querySelector('header').onmousedown = (e) => {
+  if (e.button === 0 && !e.target.closest('button')) post({ drag: { x: e.clientX, y: e.clientY } });
+};
 // The form replaces the answer until saved or left; the answer is kept in Lua.
 const form = document.getElementById('settings');
 const field = (id) => document.getElementById('s-' + id);
@@ -315,7 +320,47 @@ translatePopup = nil
 translatePopupEsc = nil
 local popup = { text = "", status = "", kind = "", svg = false, ready = false }
 
+-- Follows the mouse with the popup while the button that grabbed its header
+-- is down. A global, like translatePopupEsc: a local would be collected.
+translatePopupDrag = nil
+local function stopDrag()
+   if translatePopupDrag then translatePopupDrag:stop() end
+   translatePopupDrag = nil
+end
+
+-- How much of the header stays on screen, so the popup can always be grabbed again.
+local DRAG_MARGIN = 60
+
+local function clamp(v, lo, hi)
+   return math.max(lo, math.min(v, hi))
+end
+
+-- `grip` is where in the popup the header was pressed, as the page saw it:
+-- the popup keeps that point under the mouse however late this runs.
+local function startDrag(view, grip)
+   stopDrag()
+   -- Let go before this ran: a watcher started now would wait for a release
+   -- that already happened, and move the popup on the next drag anywhere.
+   if not hs.eventtap.checkMouseButtons().left then return end
+   local types = hs.eventtap.event.types
+   translatePopupDrag = hs.eventtap.new({ types.leftMouseDragged, types.leftMouseUp }, function(e)
+      if e:getType() == types.leftMouseUp then
+         stopDrag()
+         return false
+      end
+      local mouse = hs.mouse.absolutePosition()
+      local screen = (hs.mouse.getCurrentScreen() or hs.screen.mainScreen()):frame()
+      local w = view:frame().w
+      view:topLeft({
+         x = clamp(mouse.x - grip.x, screen.x + DRAG_MARGIN - w, screen.x + screen.w - DRAG_MARGIN),
+         y = clamp(mouse.y - grip.y, screen.y, screen.y + screen.h - DRAG_MARGIN),
+      })
+      return false
+   end):start()
+end
+
 local function closePopup()
+   stopDrag()
    if translatePopupEsc then translatePopupEsc:stop() end
    if translatePopup then translatePopup:delete() end
    translatePopupEsc, translatePopup = nil, nil
@@ -544,6 +589,9 @@ local function openPopup(mode, source, at)
          view:allowTextEntry(mode.editable)
       elseif body.saveSettings then
          saveSettings(view, mode, body.saveSettings)
+      elseif body.drag then
+         local grip = type(body.drag) == "table" and body.drag
+         if grip and type(grip.x) == "number" and type(grip.y) == "number" then startDrag(view, grip) end
       elseif body.close then
          closePopup()
       end

@@ -81,6 +81,7 @@ DeepL's keys, so the DeepL app's own shortcuts are turned off where it is instal
 | ⌃+⌘+⇧+L | Region → translate the text in it |
 | ⌃+⌘+⇧+W | The written job the selection needs, into the same popup, guessed with no menu: in a text field 清書 (rough notes → a message in your own voice), a message in a chat app or Mail 返信案 (a reply in your voice), anything else 要約 (summary in Japanese). The popup's tabs rerun the same text as any other job: 誤字チェック (typos only), 図解 (a diagram, copied as an image), 翻訳 too, and ⌃⌘⇧D's popup has them as well. Your voice comes from `~/.local/share/desktop-translate/style.md`; without it 清書 is plain and polite, and 返信案 asks for the file |
 | ⌥+click ⧉ | In a 返信案 or 要約 popup: copy the Markdown as it came, instead of rich text (pastes as bold and bullets) with plain text (・ bullets) |
+| Drag the header | Move the popup |
 
 ---
 
