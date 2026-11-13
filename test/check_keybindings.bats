@@ -2,7 +2,7 @@
 
 # Tests for bin/check_keybindings.sh.
 #
-# Four layers of #249: pins KEYBINDINGS.md's "Terminal" table against
+# Pins KEYBINDINGS.md's "Terminal" table against
 # config/ghostty/config's `keybind = ` lines, its "AeroSpace" /
 # "Service mode" tables against .aerospace.toml's `key = command` bindings,
 # its tmux "With prefix" / "Copy mode" tables against .tmux.conf, and
