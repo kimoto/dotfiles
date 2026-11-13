@@ -88,6 +88,17 @@ STUB
   ! grep -q "Dir::Cache::Archives" "$TMP/apt.log"
 }
 
+@test "an unsupported architecture stops before anything is installed" {
+  mise_stub 0
+  rm "$TMP/sysbin/uname"
+  printf '#!/bin/sh\necho riscv64\n' >"$TMP/sysbin/uname"
+  chmod +x "$TMP/sysbin/uname"
+  run_install
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"unsupported architecture: riscv64"* ]]
+  [ ! -e "$TMP/out/good-tool" ]
+}
+
 # A release signed by a throwaway key, served by a stub curl from $TMP/release.
 # Asserts on the download path the stub-mise tests above skip: mise is absent,
 # so the script fetches it, checks the signature and the sha256, and installs.
