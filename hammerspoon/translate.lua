@@ -114,6 +114,8 @@ form .actions button[type=submit] { background: var(--fg); color: var(--bg); }
 <nav id="tabs" hidden></nav>
 <main id="text"></main>
 <form id="settings" hidden autocomplete="off">
+  <label for="s-language">表示言語</label><select id="s-language"></select>
+  <p class="hint" id="s-language-hint"></p>
   <label for="s-provider">API</label>
   <select id="s-provider"><option value="anthropic">Anthropic</option>
     <option value="openai">OpenAI 互換（Responses API）</option></select>
@@ -253,6 +255,11 @@ function showSettings(settings) {
   current = settings;
   current.env = current.env || {};
   const envModel = current.env[MODEL_VAR];
+  // The menu comes from translate.py, the one list of languages it knows.
+  field('language').replaceChildren(...settings.languages.map(([code, label]) => new Option(label, code)));
+  field('language').value = settings.language;
+  if (field('language').selectedIndex < 0) field('language').selectedIndex = 0;
+  languageHint();
   field('provider').value = settings.provider || 'anthropic';
   field('base').value = settings.base_url;
   field('model').value = settings.model;
@@ -287,6 +294,12 @@ function showStatus(text, kind) {
   s.textContent = text;
   s.className = 'status ' + kind;
 }
+function languageHint() {
+  const [, own, other] = current.languages[field('language').selectedIndex];
+  hint('language-hint', '翻訳と要約は' + own + 'で出ます。' + own + 'の文は' + other + 'に訳します。');
+  fit();
+}
+field('language').onchange = languageHint;
 field('provider').onchange = placeholders;
 field('base').oninput = placeholders;
 document.getElementById('gear').onclick = () => { settingsWanted = true; post({ settings: true }); };
@@ -296,8 +309,8 @@ form.onsubmit = (e) => {
   if (save.disabled) return;
   settingsNote('保存しています…', false);
   save.disabled = true;
-  post({ saveSettings: { provider: field('provider').value, base_url: field('base').value,
-    model: field('model').value, key: field('key').value } });
+  post({ saveSettings: { language: field('language').value, provider: field('provider').value,
+    base_url: field('base').value, model: field('model').value, key: field('key').value } });
 };
 post({ ready: true });
 </script></body></html>

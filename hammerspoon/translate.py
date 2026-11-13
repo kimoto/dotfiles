@@ -10,13 +10,16 @@ Usage:
   translate.py --screen             select a region, translate the text in it
   translate.py --image foo.png      translate the text in an image file
   translate.py --to en "..."        fix the target language; by default
-                                    Japanese becomes English, anything else Japanese
+                                    text in your own language (config.toml's
+                                    language, Japanese by default) becomes English
+                                    (Japanese, if English is your own), anything
+                                    else your own language
   translate.py --rewrite --clipboard
                                     rewrite rough notes as a message in the
                                     user's own style (style file below)
   translate.py --reply --clipboard  draft a reply to a message, in that style
   translate.py --summarize --clipboard
-                                    summarize the text in Japanese
+                                    summarize the text in your own language
   translate.py --proofread --clipboard
                                     fix typos and wrong words, nothing else
   translate.py --diagram --clipboard
@@ -120,7 +123,26 @@ REWRITE_EDITS = DATA_DIR / "rewrite-edits.jsonl"
 # Enough to show the user's habits; every one goes out with each rewrite.
 EXAMPLE_EDITS = 5
 
-LANG_NAMES = {"ja": "Japanese", "en": "English"}
+# What the settings form offers as the user's own language: the one a
+# translation and a summary are written in, and whose text goes to English.
+# Each is named for the model, then as its own readers write it, for the menu.
+LANGUAGES = {
+    "ja": ("Japanese", "日本語"),
+    "en": ("English", "English"),
+    "zh": ("Simplified Chinese", "简体中文"),
+    "zh-TW": ("Traditional Chinese", "繁體中文"),
+    "ko": ("Korean", "한국어"),
+    "fr": ("French", "Français"),
+    "de": ("German", "Deutsch"),
+    "es": ("Spanish", "Español"),
+}
+LANG_NAMES = {code: name for code, (name, _) in LANGUAGES.items()}
+DEFAULT_LANGUAGE = "ja"
+
+
+def counterpart(language: str) -> str:
+    """Where text already in the own language goes."""
+    return "ja" if language == "en" else "en"
 
 # A rewrite is edited in the popup as text, so Markdown marks would show.
 PLAIN_TEXT = "Write plain text with no Markdown: no ** or # marks. Start each list item with ・ ."
@@ -155,7 +177,8 @@ Answer what the message asks, and decide nothing on the user's behalf: where the
 a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
 """ + LIGHT_MARKDOWN + "\n"
 
-SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
+# {language} is the own language's name, put in by task_system_prompt.
+SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in {language},
 whatever the language of the text: a one-line gist, then at most five short bullets, the
 whole well under half the length of the text. Merge related points instead of following the
 text sentence by sentence; where everything looks important, keep what the reader must act on
@@ -206,10 +229,8 @@ EDITS_INTRO = ("Earlier drafts and what the user sent instead. Follow the prefer
 
 
 def load_config() -> dict:
-    if not CONFIG.exists():
-        return {"provider": "anthropic"}
     try:
-        config = tomllib.loads(CONFIG.read_text(encoding="utf-8"))
+        config = tomllib.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
     except tomllib.TOMLDecodeError as e:
         fail(f"設定ファイルを読めません（{CONFIG}）: {e}")
     config.setdefault("provider", "anthropic")
@@ -217,6 +238,10 @@ def load_config() -> dict:
         fail(f"provider は {' か '.join(PROVIDERS)} です（{CONFIG}）。")
     if config["provider"] == "openai" and not config.get("model"):
         fail(f'provider = "openai" には model が要ります（{CONFIG}）。')
+    config.setdefault("language", DEFAULT_LANGUAGE)
+    # A TOML list or table cannot be looked up in a dict at all: type first.
+    if not isinstance(config["language"], str) or config["language"] not in LANG_NAMES:
+        fail(f"language は {', '.join(LANG_NAMES)} のどれかです（{CONFIG}）。")
     return config
 
 
@@ -253,7 +278,7 @@ def has_key(provider: str) -> bool:
 
 
 # The popup's settings form: these keys only, each left out to take the default.
-SETTINGS_KEYS = ("provider", "base_url", "model")
+SETTINGS_KEYS = ("provider", "base_url", "model", "language")
 # What else decides those, for the form to show: the model variable wins over
 # the file (model_for), and each SDK reads its base URL variable when the file
 # names none.
@@ -283,6 +308,10 @@ def current_settings() -> dict:
     settings = {k: str(config.get(k, "")) for k in SETTINGS_KEYS}
     settings["keys"] = {p: has_key(p) for p in PROVIDERS}
     settings["default_model"] = ANTHROPIC_MODEL
+    # [code, label, the counterpart's label], so the form's hint says what instruction() does.
+    settings["languages"] = [[code, label, LANGUAGES[counterpart(code)][1]] for code, (_, label) in LANGUAGES.items()]
+    if settings["language"] not in LANGUAGES:
+        settings["language"] = ""  # the menu shows the default; saving replaces what the run refused
     # As this process sees them: Hammerspoon starts it with launchctl's
     # environment, not a shell's, so `echo $X` in a terminal can differ.
     settings["env"] = {name: without_userinfo(os.environ[name]) for name in SETTINGS_ENV if os.environ.get(name)}
@@ -346,6 +375,10 @@ def save_settings(form: dict) -> None:
         values["provider"] = ""  # the default, so the file says only what differs
     if provider == "openai" and not values["model"]:
         fail("OpenAI 互換の endpoint にはモデル名が要ります。")
+    if values["language"] and values["language"] not in LANG_NAMES:
+        fail(f"言語は {', '.join(LANG_NAMES)} のどれかです。")
+    if values["language"] == DEFAULT_LANGUAGE:
+        values["language"] = ""
     if values["base_url"]:
         check_endpoint(values["base_url"])
     if key and not KEY_PATTERN.fullmatch(key):
@@ -387,28 +420,38 @@ def is_mostly_japanese(text: str) -> bool:
     return ja > 0 and ja >= latin * 0.3
 
 
-def target_for(text: str | None, forced: str | None) -> str:
+def target_for(text: str | None, forced: str | None, language: str = DEFAULT_LANGUAGE) -> str:
+    """The language to translate into, or "auto" for the model to choose.
+
+    Japanese is told apart here, by script, so the model is told one target;
+    an image, or any other own language, leaves the choice to the model.
+    """
     if forced:
         return forced
-    if text is None:  # an image: only the model can see which language it is
+    if text is None or language != "ja":
         return "auto"
     return "en" if is_mostly_japanese(text) else "ja"
 
 
-def instruction(target: str) -> str:
-    if target == "auto":
-        return ("Translate the text in this image. If it is mostly Japanese, translate into "
-                "English; otherwise translate into Japanese. If there is no text, say so in Japanese.")
-    return f"Translate the following into {LANG_NAMES[target]}."
+def instruction(target: str, language: str = DEFAULT_LANGUAGE, image: bool = False) -> str:
+    if target != "auto":
+        return f"Translate the following into {LANG_NAMES[target]}."
+    own = LANG_NAMES[language]
+    other = LANG_NAMES[counterpart(language)]
+    rule = f"If it is mostly {own}, translate into {other}; otherwise translate into {own}."
+    if image:
+        return f"Translate the text in this image. {rule} If there is no text, say so in {own}."
+    return f"Translate the following. {rule}"
 
 
-def task_system_prompt(task: Task) -> str:
+def task_system_prompt(task: Task, language: str = DEFAULT_LANGUAGE) -> str:
+    system = task.system.replace("{language}", LANG_NAMES[language])
     if not task.needs_style:
-        return task.system
+        return system
     if STYLE.exists():
-        prompt = task.system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
+        prompt = system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
     elif task.plain_voice:
-        prompt = task.system + "\n" + task.plain_voice
+        prompt = system + "\n" + task.plain_voice
     else:
         fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
     edits = recent_edits() if task.learns_edits else []
@@ -773,12 +816,12 @@ def parser() -> argparse.ArgumentParser:
     source.add_argument("--reply", dest="task", action="store_const", const="reply",
                         help="draft a reply to a message, in the user's style")
     source.add_argument("--summarize", dest="task", action="store_const", const="summarize",
-                        help="summarize the text in Japanese")
+                        help="summarize the text in your own language")
     source.add_argument("--proofread", dest="task", action="store_const", const="proofread",
                         help="fix typos and wrong words, nothing else")
     source.add_argument("--diagram", dest="task", action="store_const", const="diagram",
                         help="draw the text as one SVG diagram")
-    p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
+    p.add_argument("--to", choices=list(LANG_NAMES), help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     p.add_argument("--timing", action="store_true", help="say on stderr how long each stage took")
     p.add_argument("--best", action="store_true", help="use the default model, not the job's faster one")
@@ -792,9 +835,12 @@ def parser() -> argparse.ArgumentParser:
 
 
 def run(args, ready: Prepared) -> None:
+    # Read here as well as in Prepared: the instruction is written before the
+    # client is ready, and a TOML read is far quicker than the SDK import.
+    language = load_config()["language"]
     if args.task:
         task = TASKS[args.task]
-        system = task_system_prompt(task)
+        system = task_system_prompt(task, language)
         text = read_text(args)
         if not text.strip():
             fail(task.empty)
@@ -818,7 +864,8 @@ def run(args, ready: Prepared) -> None:
         if path is None:
             return  # region selection cancelled with Esc
         try:
-            content = [image_block(path), {"type": "text", "text": instruction(target_for(None, args.to))}]
+            ask = instruction(target_for(None, args.to, language), language, image=True)
+            content = [image_block(path), {"type": "text", "text": ask}]
         finally:
             if args.screen:
                 path.unlink()
@@ -826,7 +873,8 @@ def run(args, ready: Prepared) -> None:
         text = read_text(args)
         if not text.strip():
             fail("訳す文がありません。")
-        content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
+        ask = instruction(target_for(text, args.to, language), language)
+        content = [{"type": "text", "text": f"{ask}\n\n{text}"}]
 
     show(translate(content, system_prompt(), ready, "translate", args.best), args.quiet, "翻訳")
 
