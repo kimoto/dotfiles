@@ -18,8 +18,10 @@ setup() {
   [ -z "$output" ] || { echo "unpinned: $output"; false; }
 }
 
-@test "every @tpm_plugins entry has a commit in tmux-plugins.lock, and nothing else does" {
-  declared=$(sed -n "/^set -g @tpm_plugins '/,/^'/p" "$REPO_ROOT/.tmux.conf" \
+@test "every @tpm_plugins and @tpm_deferred_plugins entry has a commit in tmux-plugins.lock, and nothing else does" {
+  declared=$({ sed -n "/^set -g @tpm_plugins '/,/^'/p" "$REPO_ROOT/.tmux.conf"
+               grep "^set -g @tpm_deferred_plugins '" "$REPO_ROOT/.tmux.conf"; } \
+    | sed "s/^set -g @tpm_[a-z_]* //" \
     | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+' | sort)
   locked=$(awk '!/^#/ && NF == 3 && $3 ~ /^[0-9a-f]{40}$/ { print $1 }' \
     "$REPO_ROOT/tmux-plugins.lock" | sort)

@@ -73,8 +73,15 @@ export TMUX
 echo "== installing plugins from @tpm_plugins =="
 "$TPM/bin/install_plugins"
 
+# tpm only clones @tpm_plugins; the deferred ones (see .tmux.conf) are cloned here.
+for repo in $(tmux -L "$SOCK" show-option -gqv @tpm_deferred_plugins); do
+  dir="$PLUGIN_DIR/${repo##*/}"
+  [ -d "$dir" ] || git clone -q --depth 1 "https://github.com/$repo" "$dir"
+done
+
 echo "== pinning to $LOCK =="
-for repo in $(tmux -L "$SOCK" show-option -gqv @tpm_plugins); do
+for repo in $(tmux -L "$SOCK" show-option -gqv @tpm_plugins) \
+            $(tmux -L "$SOCK" show-option -gqv @tpm_deferred_plugins); do
   pin "$repo" "$PLUGIN_DIR/${repo##*/}"
 done
 
