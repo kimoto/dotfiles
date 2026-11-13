@@ -5,7 +5,8 @@
 # tools. What must hold: the target language follows the text (Japanese →
 # English, anything else → Japanese) unless --to fixes it, an image goes as
 # a base64 block, and the key comes from the Keychain only — never from the
-# environment, where every child process would see it.
+# environment, where every child process would see it. The settings form's
+# saves keep the rest of config.toml, and put the key in the Keychain on stdin.
 
 bats_require_minimum_version 1.5.0
 
@@ -585,4 +586,168 @@ assert [json.loads(l) for l in lines] == want, lines
   echo "Plain." >"$STYLE"
   run python3 "$SCRIPT" --quiet --reply "hello"
   [[ "$(request_system)" != *"final7"* ]]
+}
+
+# The popup's settings form. A Keychain that holds what `security -i` was
+# given, per account, and logs every argv, so a test can see the key never
+# went there.
+stateful_keychain() {
+  cat >"$TMP/bin/security" <<'EOF'
+#!/bin/sh
+echo "$*" >>"$TMP/security-argv"
+if [ "$1" = -i ]; then
+  cat >"$TMP/security-stdin"
+  account=$(sed -n 's/.* -a \([a-z]*\) .*/\1/p' "$TMP/security-stdin")
+  sed -n 's/.* -w "\(.*\)"$/\1/p' "$TMP/security-stdin" >"$TMP/stored-$account"
+  exit 0
+fi
+account=none show=
+while [ $# -gt 0 ]; do
+  [ "$1" = "-a" ] && account="$2"
+  [ "$1" = "-w" ] && show=1
+  shift
+done
+[ -e "$TMP/stored-$account" ] || exit 44
+[ -z "$show" ] || cat "$TMP/stored-$account"
+EOF
+  export TMP
+}
+
+save_settings() {
+  printf '%s' "$1" | python3 "$SCRIPT" --save-settings
+}
+
+@test "--settings shows the config and which keys are stored, never a key" {
+  stateful_keychain
+  touch "$TMP/stored-openai"
+  printf 'provider = "openai"\nbase_url = "https://llm.example/v1"\nmodel = "m1"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --settings
+  [ "$status" -eq 0 ]
+  local shown
+  shown=$(printf '%s' "$output" | python3 -c 'import json, sys; d = json.load(sys.stdin)
+print(d["provider"], d["base_url"], d["model"], d["keys"]["openai"], d["keys"]["anthropic"])')
+  [ "$shown" = "openai https://llm.example/v1 m1 True False" ]
+}
+
+@test "--settings names the environment variables that decide the model or the endpoint, and only those set" {
+  run env -u OPENAI_BASE_URL DESKTOP_TRANSLATE_MODEL=m-env ANTHROPIC_BASE_URL=https://env.example \
+    UNRELATED=x python3 "$SCRIPT" --settings
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin)["env"]))')" \
+    = '{"DESKTOP_TRANSLATE_MODEL": "m-env", "ANTHROPIC_BASE_URL": "https://env.example"}' ]
+}
+
+@test "--save-settings with only a key stores it on stdin, not argv, and writes no config" {
+  stateful_keychain
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":"sk-secret_1"}'
+  [ "$status" -eq 0 ]
+  grep -q 'add-generic-password -U -s desktop-translate -a anthropic -w "sk-secret_1"' "$TMP/security-stdin"
+  ! grep -q sk-secret "$TMP/security-argv"
+  [ "$(cat "$CONFIG")" = "" ]
+}
+
+@test "--save-settings sets the top-level keys and keeps [models] and comments" {
+  stateful_keychain
+  printf '# mine\nmodel = "old"\nreasoning_effort = "low"\n\n[models]\nsummarize = "fast"\n' >"$CONFIG"
+  run save_settings '{"provider":"openai","base_url":"https://llm.example/v1","model":"gpt-x","key":"tok"}'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CONFIG")" = "$(printf '%s\n' '# mine' 'model = "gpt-x"' 'reasoning_effort = "low"' \
+    'provider = "openai"' 'base_url = "https://llm.example/v1"' '' '[models]' 'summarize = "fast"')" ]
+  [ "$(python3 -c 'import os,sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$CONFIG")" = 0o600 ]
+  python3 "$SCRIPT" --quiet "hello"
+  [ "$(cat "$REQUEST.base")" = "https://llm.example/v1" ]
+  [ "$(cat "$REQUEST.key")" = tok ]
+}
+
+@test "--save-settings with empty fields goes back to the defaults and keeps the stored key" {
+  stateful_keychain
+  echo old-key >"$TMP/stored-anthropic"
+  printf 'model = "m1"\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CONFIG")" = "" ]
+  [ ! -e "$TMP/security-stdin" ]
+}
+
+@test "--save-settings refuses what would not work, and changes nothing" {
+  stateful_keychain
+  printf 'model = "keep"\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"PAT を入れてください"* ]]
+  run save_settings '{"provider":"openai","base_url":"","model":"","key":"tok"}'
+  [[ "$output" == *"モデル名が要ります"* ]]
+  local url
+  for url in llm.example http://llm.example/v1 https:// ftp://llm.example; do
+    run save_settings '{"provider":"anthropic","base_url":"'"$url"'","model":"","key":"tok"}'
+    [[ "$output" == *"https://"* ]] || { echo "$url: $output"; return 1; }
+  done
+  local key
+  for key in 'to\" k' 'a\\b' 'a;b' "a'b" 'a[b' 'ａ'; do
+    run save_settings '{"provider":"anthropic","base_url":"","model":"","key":"'"$key"'"}'
+    [[ "$output" == *"使えない文字"* ]] || { echo "$key: $output"; return 1; }
+  done
+  run save_settings 'not json'
+  [ "$status" -eq 1 ]
+  [[ "$output" == "設定を読めません"* ]]
+  [ "$(cat "$CONFIG")" = 'model = "keep"' ]
+  [ ! -e "$TMP/security-stdin" ]
+}
+
+@test "--save-settings takes a plain-http endpoint on this machine only, and a key of the usual characters" {
+  stateful_keychain
+  run save_settings '{"provider":"anthropic","base_url":"http://localhost:8080/v1","model":"","key":"sk-ant_A9.~+/=:"}'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$TMP/stored-anthropic")" = "sk-ant_A9.~+/=:" ]
+}
+
+@test "--save-settings moving the API or the endpoint needs the key typed again" {
+  stateful_keychain
+  echo old-key >"$TMP/stored-anthropic"
+  echo old-key >"$TMP/stored-openai"
+  printf 'base_url = "https://llm.example/v1"\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"https://elsewhere.example","model":"","key":""}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"PAT も入れ直して"* ]]
+  run save_settings '{"provider":"openai","base_url":"https://llm.example/v1","model":"m","key":""}'
+  [[ "$output" == *"PAT も入れ直して"* ]]
+  [ "$(cat "$CONFIG")" = 'base_url = "https://llm.example/v1"' ]
+  run save_settings '{"provider":"anthropic","base_url":"https://llm.example/v1","model":"m","key":""}'
+  [ "$status" -eq 0 ]
+}
+
+@test "--save-settings finds a quoted key and keeps the comment after its value" {
+  stateful_keychain
+  echo old-key >"$TMP/stored-anthropic"
+  printf '"model" = "old"  # for work\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"new","key":""}'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CONFIG")" = 'model = "new"  # for work' ]
+}
+
+@test "--settings shows an endpoint variable without its user:password" {
+  printf 'not = [toml\n' >"$CONFIG"
+  run env ANTHROPIC_BASE_URL=https://me:secret@env.example/v1 python3 "$SCRIPT" --settings
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ANTHROPIC_BASE_URL": "https://env.example/v1"'* ]]
+  [[ "$output" != *secret* ]]
+}
+
+@test "--save-settings fails when the Keychain did not take the key" {
+  stateful_keychain
+  printf '#!/bin/sh\necho "$*" >>"$TMP/security-argv"\nexit 1\n' >"$TMP/bin/security"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":"tok"}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Keychain に保存できませんでした"* ]]
+}
+
+@test "--save-settings fails when the Keychain kept the old key instead of the new one" {
+  stateful_keychain
+  echo old-key >"$TMP/stored-anthropic"
+  # security -i that runs nothing, as a line it cannot parse would.
+  sed -i.bak 's/^  sed -n .* -w .*$/  :/' "$TMP/bin/security"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":"new-key"}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Keychain に保存できませんでした"* ]]
+  [ "$(cat "$TMP/stored-anthropic")" = old-key ]
 }

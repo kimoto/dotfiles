@@ -35,13 +35,15 @@ The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
 One-time setup on a Mac (nothing in bin/mklink.sh does this):
   python3 -m venv ~/.local/share/desktop-translate
   ~/.local/share/desktop-translate/bin/pip install -U anthropic
-  security add-generic-password -s desktop-translate -a anthropic -w
+  the key: the popup's gear (any job's popup, even one that failed for want
+    of a key), or security add-generic-password -s desktop-translate -a anthropic -w
     (prompts for the key, so it never lands in shell history)
   then grant Hammerspoon Accessibility and Screen Recording. If the DeepL
   app is installed, turn off its own shortcuts, or both apps answer ⌘C+C.
 
 Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
-(it stays on the machine, so the endpoint's address never reaches this repo):
+(it stays on the machine, so the endpoint's address never reaches this repo).
+The gear sets provider, base_url and model there, and the key in the Keychain:
   provider = "openai"          # OpenAI Responses API; "anthropic" by default
   base_url = "https://llm.example/v1"
   model = "..."                # required for "openai"
@@ -79,12 +81,14 @@ import base64
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 import tomllib
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -218,21 +222,163 @@ def load_config() -> dict:
 
 
 def api_key(provider: str) -> str:
+    key = stored_key(provider)
+    if key:
+        return key
+    # The command, not just the place: -w with no value asks for the key, so
+    # it never lands in argv or the shell history.
+    fail(f"API キーが未設定です。右上の歯車から入れるか、ターミナルで次を実行してキーを貼ってください。\n\n"
+         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
+
+
+def find_key(provider: str, *flags: str) -> subprocess.CompletedProcess | None:
     # The account names the provider: with only -s, the first of several
     # entries under the service would answer, whichever provider it was for.
     try:
-        key = subprocess.run(
-            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", provider, "-w"],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip()
+        return subprocess.run(["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", provider, *flags],
+                              capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return None
+
+
+def stored_key(provider: str) -> str:
+    """The key in the Keychain, or "" when there is none."""
+    found = find_key(provider, "-w")
+    return found.stdout.strip() if found and found.returncode == 0 else ""
+
+
+def has_key(provider: str) -> bool:
+    # Without -w or -g, security prints the item's attributes, never the key.
+    found = find_key(provider)
+    return bool(found and found.returncode == 0)
+
+
+# The popup's settings form: these keys only, each left out to take the default.
+SETTINGS_KEYS = ("provider", "base_url", "model")
+# What else decides those, for the form to show: the model variable wins over
+# the file (model_for), and each SDK reads its base URL variable when the file
+# names none.
+SETTINGS_ENV = ("DESKTOP_TRANSLATE_MODEL", "ANTHROPIC_BASE_URL", "OPENAI_BASE_URL")
+# The characters API keys and PATs are made of. Nothing else: the key goes
+# inside the quotes of a `security -i` command line, whose parser is not
+# documented, so no character that could end the quote or the command may.
+KEY_PATTERN = re.compile(r"[A-Za-z0-9._~+/=:-]+")
+# Plain http only where the key cannot leave the machine.
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def without_userinfo(url: str) -> str:
+    """The URL as it may be shown on screen: no user:password@."""
+    parts = urllib.parse.urlsplit(url)
+    if "@" not in parts.netloc:
+        return url
+    return parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]).geturl()
+
+
+def current_settings() -> dict:
+    """What the form shows. Never the key: only whether one is stored."""
+    try:
+        config = tomllib.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
+    except tomllib.TOMLDecodeError:
+        config = {}  # the form can still write a fresh one; a run says what is wrong
+    settings = {k: str(config.get(k, "")) for k in SETTINGS_KEYS}
+    settings["keys"] = {p: has_key(p) for p in PROVIDERS}
+    settings["default_model"] = ANTHROPIC_MODEL
+    # As this process sees them: Hammerspoon starts it with launchctl's
+    # environment, not a shell's, so `echo $X` in a terminal can differ.
+    settings["env"] = {name: without_userinfo(os.environ[name]) for name in SETTINGS_ENV if os.environ.get(name)}
+    return settings
+
+
+def with_top_level(text: str, values: dict) -> str:
+    """config.toml with the top-level keys in values set, or removed where
+    empty. Everything else ([models], comments) stays as written."""
+    lines = text.splitlines()
+    top = next((i for i, line in enumerate(lines) if line.lstrip().startswith("[")), len(lines))
+    head, rest = lines[:top], lines[top:]
+    for key, value in values.items():
+        name = rf"""\s*(?:{key}|"{key}"|'{key}')\s*="""
+        at = next((i for i, line in enumerate(head) if re.match(name, line)), None)
+        if not value:
+            if at is not None:
+                del head[at]
+            continue
+        # JSON's string syntax is a valid TOML basic string.
+        new_line = f"{key} = {json.dumps(value)}"
+        if at is None:
+            while head and not head[-1].strip():
+                head.pop()
+            head.append(new_line)
+            continue
+        # A comment after a one-line string value stays with it.
+        old = re.match(name + r"""\s*(?:"(?:[^"\\]|\\.)*"|'[^']*')\s*(#.*)$""", head[at])
+        head[at] = new_line + (f"  {old[1]}" if old else "")
+    if head and rest and head[-1].strip():
+        head.append("")
+    return "\n".join(head + rest) + "\n"
+
+
+def store_key(provider: str, key: str) -> None:
+    # On stdin, not in argv, where any process listing could read it.
+    command = f'add-generic-password -U -s {KEYCHAIN_SERVICE} -a {provider} -w "{key}"\n'
+    subprocess.run(["security", "-i"], input=command, capture_output=True, text=True, check=False)
+    # security -i exits 0 whether or not its commands worked, and an entry
+    # that was there before proves nothing: read the key back.
+    if stored_key(provider) != key:
+        fail("PAT を Keychain に保存できませんでした。")
+
+
+def check_endpoint(url: str) -> None:
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme == "https" and parts.hostname:
+        return
+    if parts.scheme == "http" and parts.hostname in LOCAL_HOSTS:
+        return
+    fail("endpoint は https:// で始まる URL です（http:// は localhost だけ）。")
+
+
+def save_settings(form: dict) -> None:
+    values = {k: str(form.get(k) or "").strip() for k in SETTINGS_KEYS}
+    key = str(form.get("key") or "").strip()
+    provider = values["provider"] or "anthropic"
+    if provider not in PROVIDERS:
+        fail(f"provider は {' か '.join(PROVIDERS)} です。")
+    if values["provider"] == "anthropic":
+        values["provider"] = ""  # the default, so the file says only what differs
+    if provider == "openai" and not values["model"]:
+        fail("OpenAI 互換の endpoint にはモデル名が要ります。")
+    if values["base_url"]:
+        check_endpoint(values["base_url"])
+    if key and not KEY_PATTERN.fullmatch(key):
+        fail("PAT に使えない文字が入っています（英数字と . _ ~ + / = : - だけ）。")
+    saved = current_settings()
+    # The stored key goes wherever the endpoint points, so moving the endpoint
+    # takes the key typed again: a form filled in by anything but the user
+    # cannot send the key somewhere new.
+    moved = (provider, values["base_url"]) != (saved["provider"] or "anthropic", saved["base_url"])
+    if not key and moved:
+        fail("API か endpoint を変えるときは、PAT も入れ直してください。")
+    if not key and not has_key(provider):
+        fail("PAT を入れてください。")
+    old = CONFIG.read_text(encoding="utf-8") if CONFIG.exists() else ""
+    new = with_top_level(old, values)
+    try:
+        tomllib.loads(new)
+    except tomllib.TOMLDecodeError as e:
+        fail(f"設定ファイルを書き換えられません（{CONFIG}）: {e}")
+    # The file is written first and swapped in last, so a failure anywhere
+    # leaves the old file and the old key together.
+    part = CONFIG.with_name(CONFIG.name + ".part")
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        write_private(part, new)
         if key:
-            return key
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pass
-    # The command, not just the place: -w with no value asks for the key, so
-    # it never lands in argv or the shell history.
-    fail(f"API キーが未設定です。ターミナルで次を実行し、キーを貼ってください。\n\n"
-         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
+            store_key(provider, key)
+        part.replace(CONFIG)  # whole, so a run reading it meanwhile never sees half
+    except OSError as e:
+        fail(f"設定ファイルを書けません（{CONFIG}）: {e}")
+    finally:
+        part.unlink(missing_ok=True)
 
 
 def is_mostly_japanese(text: str) -> bool:
@@ -586,6 +732,20 @@ def main() -> None:
     if args.record_edit:
         record_edit(sys.stdin.read())
         return
+    if args.settings:
+        print(json.dumps(current_settings()))
+        return
+    if args.save_settings:
+        try:
+            try:
+                form = json.loads(sys.stdin.read())
+            except json.JSONDecodeError as e:
+                fail(f"設定を読めません: {e}")
+            save_settings(form if isinstance(form, dict) else {})
+        except Failed as e:
+            print(e, file=sys.stderr)  # the popup shows it; no notification on top
+            sys.exit(1)
+        return
     ready = ready or Prepared()
     try:
         run(args, ready)
@@ -625,6 +785,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--best", action="store_true", help="use the default model, not the job's faster one")
     p.add_argument("--record-edit", action="store_true",
                    help="log the last rewrite as the user edited it (the edited text on stdin)")
+    p.add_argument("--settings", action="store_true",
+                   help="print provider, base_url and model as JSON, and whether each provider's key is stored")
+    p.add_argument("--save-settings", action="store_true",
+                   help="save the JSON on stdin: provider, base_url, model (empty: the default), key (empty: keep)")
     return p
 
 
