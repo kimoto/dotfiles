@@ -77,3 +77,16 @@ teardown() {
   [ "$status" -ne 0 ]
   [ ! -e "$STAMP" ]
 }
+
+@test "with no brew on PATH it fails loudly and stamps nothing" {
+  # A PATH with only what the script needs before it looks for brew, so a
+  # real brew on the machine running the suite cannot answer instead.
+  mkdir -p "$TMP/nobrew"
+  for tool in dirname readlink; do
+    ln -s "$(command -v "$tool")" "$TMP/nobrew/$tool"
+  done
+  PATH="$TMP/nobrew" run "$SCRIPT"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"brew not found"* ]]
+  [ ! -e "$STAMP" ]
+}
