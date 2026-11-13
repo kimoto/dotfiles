@@ -50,13 +50,10 @@ _Source: `Brewfile.extra`._
 | Tool | Description |
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
-| [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
 | [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
-| [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
-| [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
 | [fastfetch](https://formulae.brew.sh/formula/fastfetch) | Like neofetch, but much faster because written mostly in C |
 | [gettext](https://formulae.brew.sh/formula/gettext) | GNU internationalization (i18n) and localization (l10n) library |
@@ -67,34 +64,25 @@ _Source: `Brewfile.extra`._
 | [gnu-sed](https://formulae.brew.sh/formula/gnu-sed) | GNU implementation of the famous stream editor |
 | [gnupg](https://formulae.brew.sh/formula/gnupg) | GNU Privacy Guard (OpenPGP) |
 | [hunk](https://formulae.brew.sh/formula/hunk) | Review-first terminal diff viewer for agent-authored changesets |
-| [john-jumbo](https://formulae.brew.sh/formula/john-jumbo) | Enhanced version of john, a UNIX password cracker |
 | [jq](https://formulae.brew.sh/formula/jq) | Lightweight and flexible command-line JSON processor |
 | [k9s](https://formulae.brew.sh/formula/k9s) | Kubernetes CLI To Manage Your Clusters In Style! |
 | [kubectl](https://formulae.brew.sh/formula/kubectl) | Kubernetes command-line tool |
 | [kubectx](https://formulae.brew.sh/formula/kubectx) | Tool that can switch between kubectl contexts easily and create aliases |
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
-| [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
-| [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
 | [perlnavigator](https://formulae.brew.sh/formula/perlnavigator) | Perl language server (nvim LSP: perlnavigator) |
 | [pyright](https://formulae.brew.sh/formula/pyright) | Static type checker and language server for Python (nvim LSP: pyright) |
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
-| [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
-| [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
 | [ruff](https://formulae.brew.sh/formula/ruff) | Extremely fast Python linter, written in Rust (bin/lint_python.sh) |
-| [rust-analyzer](https://formulae.brew.sh/formula/rust-analyzer) | Experimental Rust compiler front-end for IDEs |
-| [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
-| [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
 | [solargraph](https://formulae.brew.sh/formula/solargraph) | Ruby language server (nvim LSP: solargraph) |
 | [taplo](https://formulae.brew.sh/formula/taplo) | TOML toolkit and language server (nvim LSP: taplo) |
 | [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
-| [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
 | [tree-sitter-cli](https://formulae.brew.sh/formula/tree-sitter-cli) | Parser generator tool (nvim-treesitter CLI) |
 | [typescript-language-server](https://formulae.brew.sh/formula/typescript-language-server) | Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls) |
 | [typos-cli](https://formulae.brew.sh/formula/typos-cli) | Source code spell checker (bin/lint_typos.sh) |
