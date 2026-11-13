@@ -143,7 +143,7 @@ measure_nvim() {
 }
 
 # A new server reading the config with -f, as a terminal starting tmux does.
-# tpm's `run` blocks until every plugin is loaded, so new-session returns
+# The plugin loader (tmux_load_plugins.sh) blocks until every plugin is loaded, so new-session returns
 # after the plugins too. A socket per run: kill-server returns before the old
 # server is gone, and a new one on the same socket then sometimes dies with
 # "server exited unexpectedly".

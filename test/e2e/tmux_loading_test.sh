@@ -80,6 +80,22 @@ env -i HOME="$HOME" TERM=xterm-256color PATH=/usr/bin:/bin \
   "$TMUX_BIN" -L "$BARE_SOCK" -f "$CONF" new-session -d -x 200 -y 50 2>/dev/null \
   || die "failed to start bare-PATH tmux server"
 disable_continuum_restore "$BARE_SOCK"
+# The plugins load in two chains at once (bin/tmux_load_plugins.sh), and both
+# must be done by the time new-session returns: a plugin still loading after
+# the config races continuum's restore. Checked on this server, the first to
+# load the config, with no wait: one mark from the last plugin of each chain.
+[ -n "$(tmux -L "$BARE_SOCK" show-option -gqv @resurrect-hook-post-save-all)" ] \
+  || die "the config finished loading before tmux-assistant-resurrect did"
+tmux -L "$BARE_SOCK" list-keys -T root WheelUpPane | grep -q 'send-keys -t= up' \
+  || die "the config finished loading before tmux-better-mouse-mode did"
+echo "== both plugin chains loaded before the config returned =="
+# The loader binds tpm's install/update/clean keys itself, since tpm's own
+# `run` no longer does.
+for key in I U M-u; do
+  tmux -L "$BARE_SOCK" list-keys -T prefix "$key" 2>/dev/null | grep -q '/tpm/bindings/' \
+    || die "prefix + $key is not tpm's binding"
+done
+echo "== tpm's prefix + I / U / M-u bound =="
 ver="$(tmux -V | sed -En 's/^tmux (next-)?([0-9]+)\.([0-9]+).*/\2 \3/p')"
 # shellcheck disable=SC2086
 set -- $ver
@@ -98,5 +114,36 @@ if [ "${1:-0}" -gt 3 ] || { [ "${1:-0}" -eq 3 ] && [ "${2:-0}" -ge 7 ]; }; then
   fi
 else
   echo "== tmux $(tmux -V | sed 's/tmux //'): older than 3.7, guard correctly skipped =="
+fi
+
+# continuum arms autosave only when it counts no process named tmux but its own
+# server and that server's first client, so a `tmux` call still running in a
+# plugin chain when it loads turns autosave off without a word. Checked on a
+# server of its own, once this test's are gone, and only where nothing else
+# runs tmux (as on CI): a developer's own sessions rightly make it stand down.
+cleanup
+# shellcheck disable=SC2009 # counted with ps the way continuum counts
+tmux_processes() { ps -u "$(id -u)" -o 'command pid' | grep '^tmux' | grep -cv '^tmux source' || true; }
+i=0
+while [ "$(tmux_processes)" -gt 0 ] && [ "$i" -lt 20 ]; do i=$((i + 1)); sleep 0.1; done
+if [ "$(tmux_processes)" -eq 0 ]; then
+  # A HOME of its own: with nothing else running, continuum would otherwise
+  # restore the developer's saved session into this server and autosave over
+  # it. Its halt file stops the restore and leaves the autosave decision alone.
+  home="$(mktemp -d)"
+  mkdir -p "$home/.tmux"
+  ln -s "${TMUX_PLUGIN_MANAGER_PATH:-$HOME/.tmux/plugins/}" "$home/.tmux/plugins"
+  ln -s "$_TMUX_E2E_REPO/bin" "$home/bin"
+  [ -d "$HOME/.config" ] && ln -s "$HOME/.config" "$home/.config"
+  : >"$home/tmux_no_auto_restore"
+  HOME="$home" tmux -L "$SOCK" -f "$CONF" new-session -d -x 200 -y 50 2>/dev/null \
+    || die "failed to start tmux server"
+  armed="$(tmux -L "$SOCK" show-option -gqv status-right | grep -c continuum_save.sh || true)"
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  rm -rf "$home"
+  [ "$armed" -gt 0 ] || die "tmux-continuum did not arm autosave on a first load"
+  echo "== tmux-continuum armed autosave =="
+else
+  echo "-- note: other tmux processes are running; continuum's autosave not checked --"
 fi
 echo "PASS"
