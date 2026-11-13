@@ -544,3 +544,87 @@ save_after() {
   [ "${lines[0]}" = false ]
   [ "${lines[1]}" = "$(printf '3\t2')" ]
 }
+
+# Opens a popup, presses its header 20 px in and 10 px down, then runs the Lua
+# in $1 with `view`, `tap` (the drag's watcher) and move(x, y) / release().
+drag() {
+  drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ drag = { x = 20, y = 10 } })
+    local tap = stub.taps[#stub.taps]
+    local types = hs.eventtap.event.types
+    local function send(type) tap.fn({ getType = function() return type end }) end
+    local function move(x, y) stub.mouse = { x = x, y = y }; send(types.leftMouseDragged) end
+    local function release() send(types.leftMouseUp) end
+    $1"
+}
+
+@test "dragging the header keeps the pressed point under the mouse until the button is let go" {
+  run drag "
+    move(150, 130)
+    print(view:frame().x, view:frame().y)
+    move(170, 150)
+    print(view:frame().x, view:frame().y, tostring(tap.stopped))
+    release()
+    print(tostring(tap.stopped))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '130\t120')" ]
+  [ "${lines[1]}" = "$(printf '150\t140\tfalse')" ]
+  [ "${lines[2]}" = true ]
+}
+
+@test "a dragged popup keeps its header on the screen" {
+  run drag "
+    move(5000, -300)
+    print(view:frame().x, view:frame().y)
+    move(-5000, 5000)
+    print(view:frame().x, view:frame().y)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '1380\t0')" ]
+  [ "${lines[1]}" = "$(printf -- '-460\t840')" ]
+}
+
+@test "on a display that does not start at 0,0, the header stays on that display" {
+  run drag "
+    stub.screen = { x = 1440, y = -200, w = 1000, h = 800 }
+    move(-5000, -5000)
+    print(view:frame().x, view:frame().y)
+    move(9000, 9000)
+    print(view:frame().x, view:frame().y)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '980\t-200')" ]
+  [ "${lines[1]}" = "$(printf '2380\t540')" ]
+}
+
+@test "a second drag ends the first one's watcher, and a malformed one starts none" {
+  run drag "
+    view:post({ drag = { x = 5, y = 5 } })
+    print(tostring(tap.stopped))
+    local taps = #stub.taps
+    view:post({ drag = true })
+    view:post({ drag = { x = 'a', y = 1 } })
+    print(#stub.taps - taps)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = true ]
+  [ "${lines[1]}" = 0 ]
+}
+
+@test "a click let go before Lua heard of it starts no drag, and closing ends one" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    local taps = #stub.taps
+    stub.leftDown = false
+    view:post({ drag = { x = 20, y = 10 } })
+    print(#stub.taps - taps)
+    stub.leftDown = true
+    view:post({ drag = { x = 20, y = 10 } })
+    view:post({ close = true })
+    print(tostring(stub.taps[#stub.taps].stopped))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 0 ]
+  [ "${lines[1]}" = true ]
+}
