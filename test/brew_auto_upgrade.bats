@@ -4,6 +4,8 @@
 # A stub `brew` records its calls and answers `bundle list --formula` from
 # STUB_FORMULAE; XDG_CACHE_HOME is a temp dir so the success stamp can be read.
 
+load path_helpers
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   TMP="$(mktemp -d)"
@@ -81,10 +83,7 @@ teardown() {
 @test "with no brew on PATH it fails loudly and stamps nothing" {
   # A PATH with only what the script needs before it looks for brew, so a
   # real brew on the machine running the suite cannot answer instead.
-  mkdir -p "$TMP/nobrew"
-  for tool in dirname readlink; do
-    ln -s "$(command -v "$tool")" "$TMP/nobrew/$tool"
-  done
+  only_on_path "$TMP/nobrew" dirname readlink
   PATH="$TMP/nobrew" run "$SCRIPT"
   [ "$status" -ne 0 ]
   [[ "$output" == *"brew not found"* ]]
