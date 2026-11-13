@@ -34,7 +34,7 @@ The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
 
 One-time setup on a Mac (nothing in bin/mklink.sh does this):
   python3 -m venv ~/.local/share/desktop-translate
-  ~/.local/share/desktop-translate/bin/pip install -U anthropic
+  ~/.local/share/desktop-translate/bin/pip install --require-hashes -r ~/.hammerspoon/requirements.txt
   the key: the popup's gear (any job's popup, even one that failed for want
     of a key), or security add-generic-password -s desktop-translate -a anthropic -w
     (prompts for the key, so it never lands in shell history)
@@ -50,7 +50,7 @@ The gear sets provider, base_url and model there, and the key in the Keychain:
 A model per job, where speed matters more than the voice (the job names are the flags without --, and "translate"):
   [models]
   summarize = "claude-haiku-5-5"
-"openai" needs `pip install -U openai` in the same venv, and its key under
+"openai" comes from the same requirements file, and needs its key under
 its own account: security add-generic-password -s desktop-translate -a openai -w
 
 The key is read from the Keychain only, inside this process. Never from the
