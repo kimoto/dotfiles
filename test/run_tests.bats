@@ -94,3 +94,17 @@ path_without_parallel() {
   [ "$(cat "$BIN/args")" = "--print-output-on-failure test/protect_main.bats" ]
   rm -rf "$BIN"
 }
+
+@test "without bats it fails instead of reporting a clean run" {
+  # Only what the script needs before it looks for bats, so the bats running
+  # this suite cannot be found.
+  local bin
+  bin="$(mktemp -d)"
+  for tool in dirname readlink; do
+    ln -s "$(command -v "$tool")" "$bin/$tool"
+  done
+  RUN_TESTS_LIST='' PATH="$bin" run "$SCRIPT"
+  rm -rf "$bin"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"bats not found"* ]]
+}
