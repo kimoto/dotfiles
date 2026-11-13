@@ -126,7 +126,7 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 Source:
 - Mac: Raycast, in-app
-- Windows: PowerToys Command Palette and Advanced Paste, in-app
+- Windows: PowerToys Command Palette and Advanced Paste, AutoHotkey (`windows/autohotkey/mac-keys.ahk`) for Ctrl+1..2, in-app
 
 | Key | Action |
 |-----|--------|
@@ -134,8 +134,8 @@ Source:
 | ⌃⌘+V | Clipboard history (Windows: Advanced Paste) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
-| Ctrl+1 | Open Chrome (Mac only) |
-| Ctrl+2 | Open Ghostty (Mac only) |
+| Ctrl+1 | Bring Chrome to the front, starting it if needed |
+| Ctrl+2 | Bring the terminal to the front, starting it if needed (Mac: Ghostty, Windows: Windows Terminal) |
 | Ctrl+. | Toggle Raycast Notes (Mac only) |
 | ⌃⌘+H | Search Chrome history (Mac only) |
 | Caps Lock | Hyper Key: ⌃⌥⇧⌘ (Mac only) |
