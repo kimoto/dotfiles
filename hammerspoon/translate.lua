@@ -1,14 +1,10 @@
--- DeepL's shortcuts, answered by translate.py (Claude) instead of the DeepL
--- app. Why, and the one-time setup: the header of translate.py.
+-- A translation popup like the DeepL app's, answered by translate.py
+-- (Claude). Why, and the one-time setup: the header of translate.py.
 -- NOTE: keybindings below are documented in KEYBINDINGS.md ("Translation") —
 -- update it when they change.
 
 local PYTHON = os.getenv("HOME") .. "/.local/share/desktop-translate/bin/python"
 local SCRIPT = hs.configdir .. "/translate.py"
--- The second C must come within this many seconds to count as ⌘C+C.
-local DOUBLE_PRESS = 0.5
--- The first ⌘C is a real copy; give the app time to fill the clipboard.
-local CLIPBOARD_WAIT = 0.15
 -- How long a sent ⌘C may take to reach the clipboard before "nothing was
 -- selected" is the better guess than "the app is slow".
 local COPY_TIMEOUT = 0.5
@@ -776,20 +772,6 @@ function run(args, mode, ready, at)
    end
 end
 
-local function chooseLanguageThen(args, ready)
-   local chooser = hs.chooser.new(function(choice)
-      if not choice then return ready.cancel() end
-      local argv = { "--to", choice.lang }
-      for _, a in ipairs(args) do table.insert(argv, a) end
-      run(argv, nil, ready)
-   end)
-   chooser:choices({
-      { text = "日本語へ", lang = "ja" },
-      { text = "英語へ", lang = "en" },
-   })
-   chooser:show()
-end
-
 -- Copy the selection, then hand it on. Waiting on the clipboard's change
 -- count, not a fixed delay: with nothing selected ⌘C changes nothing, and
 -- working on whatever was copied before would answer the wrong question.
@@ -847,33 +829,6 @@ local function whereSelected()
    local focused = hs.axuielement.systemWideElement():attributeValue("AXFocusedUIElement")
    return app and app:bundleID(), focused and focused:attributeValue("AXRole")
 end
-
-local lastCopy = 0
-local C = hs.keycodes.map["c"]
-local AUTOREPEAT = hs.eventtap.event.properties.keyboardEventAutorepeat
-
--- ⌘C+C is two presses of C with ⌘ held, which hs.hotkey cannot express, so
--- watch every keyDown and let it through untouched: the copy still happens.
--- A global, like the watchers in init.lua: a local would be collected.
-translateCopyWatcher = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(e)
-   if e:getKeyCode() ~= C or e:getProperty(AUTOREPEAT) ~= 0 then return false end
-   local flags = e:getFlags()
-   if not flags.cmd or flags.alt or flags.ctrl then return false end
-
-   local now = hs.timer.secondsSinceEpoch()
-   if now - lastCopy < DOUBLE_PRESS then
-      lastCopy = 0
-      local shift = flags.shift
-      local ready = prepare()
-      hs.timer.doAfter(CLIPBOARD_WAIT, function()
-         if shift then chooseLanguageThen({ "--clipboard" }, ready) else run({ "--clipboard" }, nil, ready) end
-      end)
-   else
-      lastCopy = now
-   end
-   return false
-end)
-translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)

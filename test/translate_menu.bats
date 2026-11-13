@@ -561,6 +561,19 @@ drag() {
     $1"
 }
 
+@test "loading it watches no keys, so every ⌘C goes straight to the app" {
+  run drive "
+    local keys = 0
+    for _, tap in ipairs(stub.taps) do
+      for _, type in ipairs(tap.types) do
+        if type == hs.eventtap.event.types.keyDown then keys = keys + 1 end
+      end
+    end
+    print(keys)"
+  [ "$status" -eq 0 ]
+  [ "$output" = 0 ]
+}
+
 @test "dragging the header keeps the pressed point under the mouse until the button is let go" {
   run drag "
     move(150, 130)

@@ -9,7 +9,7 @@
 #
 # Run by hand on a Mac, never in CI: it needs the GUI, Hammerspoon's
 # Accessibility and Screen Recording permissions, the API key in the Keychain,
-# and it pays for five API calls. The terminal running it needs Accessibility
+# and it pays for four API calls. The terminal running it needs Accessibility
 # too (System Events sends the keys).
 #
 #   test/e2e/hammerspoon_translate_test.sh [--record DIR]
@@ -42,7 +42,7 @@ pgrep -x Hammerspoon >/dev/null || { echo "FAIL: Hammerspoon is not running"; ex
 # A translation takes a few seconds; the timeout is for a stuck API call, not
 # a budget for the shortcut (the popup's busy state answers at once).
 TRANSLATE_TIMEOUT=30
-# Matches POPUP_WIDTH in translate.lua; the chooser and the console differ.
+# Matches POPUP_WIDTH in translate.lua; the console's window differs.
 POPUP_WIDTH=520
 SOURCE="The quick brown fox jumps over the lazy dog."
 NOTES="・明日の定例 15時→16時に変更
@@ -140,8 +140,6 @@ keys_in_place() {
 }
 se() { printf 'tell application "System Events" to %s' "$1"; }
 SELECT_ALL="$(se 'keystroke "a" using command down')"
-COPY="$(se 'keystroke "c" using command down')"
-COPY_SHIFT="$(se 'keystroke "c" using {command down, shift down}')"
 TRANSLATE_SELECTION="$(se 'key code 2 using {control down, command down, shift down}')"   # ⌃⌘⇧D
 MENU="$(se 'key code 13 using {control down, command down, shift down}')"    # ⌃⌘⇧W
 TRANSLATE_SCREEN="$(se 'key code 37 using {control down, command down, shift down}')"     # ⌃⌘⇧L
@@ -197,7 +195,6 @@ translated() {
   done
 }
 translated_into_japanese() { translated "$SOURCE" && pbpaste | has_japanese; }
-translated_into_english() { translated && ! pbpaste | has_japanese; }
 rewritten_in_japanese() { translated "$NOTES" && pbpaste | has_japanese; }
 wait_popups() {
   local _
@@ -247,14 +244,6 @@ snapshot
 keys "$ESC"
 expect "popup is gone" wait_popups 0
 
-begin_case copy-copy "⌘C+C translates what it copied"
-printf '%s' "$SENTINEL" | pbcopy
-keys "$SELECT_ALL" "$COPY" 'delay 0.1' "$COPY"
-expect "clipboard holds the Japanese translation" translated_into_japanese
-expect "popup is open" popups_are 1
-snapshot
-close_popup
-
 begin_case nothing-selected "⌃⌘⇧D with nothing selected translates nothing"
 printf '%s' "$SENTINEL" | pbcopy
 keys "$(se 'key code 124')" "$TRANSLATE_SELECTION"   # → collapses the selection
@@ -263,19 +252,6 @@ snapshot
 sleep 1.7
 expect "clipboard is untouched" clipboard_is_sentinel
 expect "no popup" popups_are 0
-
-begin_case chooser "⇧⌘C+C asks for the language, and the answer is used"
-# ⇧⌘C is no copy in TextEdit, so the clipboard is filled first; ⇧⌘C+C
-# translates whatever is on it. The pause outlasts DOUBLE_PRESS, or the ⌘C
-# and the first ⇧⌘C would count as the pair.
-keys "$SELECT_ALL" "$COPY" 'delay 0.8' "$COPY_SHIFT" 'delay 0.1' "$COPY_SHIFT" 'delay 1'
-snapshot
-keys "$(se 'key code 125')" 'delay 0.2' "$(se 'key code 36')"   # ↓ to 英語へ, ⏎
-sleep 1
-# English into English has no Japanese, which the automatic target would give.
-expect "translated into English" translated_into_english
-expect "popup is open" popups_are 1
-close_popup
 
 begin_case screen "⌃⌘⇧L translates a screen region"
 printf '%s' "$SENTINEL" | pbcopy
