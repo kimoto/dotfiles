@@ -5,7 +5,8 @@
 # must hold: ⌃⌘⇧W guesses the job from where the selection is and runs it on
 # the clipboard, each popup tab reruns the copied text as its own job under its
 # own title, and a diagram never shows as SVG markup, ends in a reason when it
-# fails, and is pasted as an image. The popup's look and the real keys are
+# fails, and is pasted as an image; the gear's form hands the PAT over on
+# stdin, never in argv. The popup's look and the real keys are
 # checked by hand on a Mac.
 
 setup() {
@@ -439,4 +440,107 @@ diagram() {
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = 0 ]
   [ "${lines[1]}" = 'append(...["あ"])' ]
+}
+
+@test "the gear reads the settings into the form, and saving sends the PAT on stdin, never argv" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ settings = true })
+    local read = stub.tasks[#stub.tasks]
+    print(table.concat(read.argv, ' '):match('%-%-%S+$'), tostring(view.textEntry))
+    read.done(0, '{\"model\":\"\"}', '')
+    print(view.updates[#view.updates])
+    view:post({ saveSettings = { provider = 'anthropic', base_url = '', model = '', key = 'sk-1' } })
+    local save = stub.tasks[#stub.tasks]
+    print(table.concat(save.argv, ' '):match('%-%-%S+$'), save.input, tostring(save.closed))
+    print(tostring(table.concat(save.argv, ' '):find('sk%-1')))
+    save.done(1, '', 'PAT を入れてください。\n')
+    print(view.updates[#view.updates])
+    save.done(0, '', '')
+    print(view.updates[#view.updates], tostring(view.textEntry))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf -- '--settings\ttrue')" ]
+  [ "${lines[1]}" = 'showSettings({"model":""})' ]
+  local form='{"base_url":"","key":"sk-1","model":"","provider":"anthropic"}'
+  [ "${lines[2]}" = "$(printf -- '--save-settings\t%s\ttrue' "$form")" ]
+  [ "${lines[3]}" = nil ]
+  [ "${lines[4]}" = 'settingsNote(...["PAT を入れてください。",true])' ]
+  [ "${lines[5]}" = "$(printf 'hideSettings()\tfalse')" ]
+}
+
+# A translation in the state `how` leaves it (done, error, busy), on a ready
+# page, then the gear and a save that succeeds; prints the page's last call.
+save_after() {
+  drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    local how = '$1'
+    if how == 'done' then stub.tasks[1].done(0, 'ANSWER', '') end
+    if how == 'error' then stub.tasks[1].done(1, '', 'API キーが未設定です。') end
+    view:post({ settings = true })
+    stub.tasks[#stub.tasks].done(0, '{}', '')
+    local sent = #view.updates
+    view:post({ saveSettings = { key = 'k' } })
+    stub.tasks[#stub.tasks].done(0, '', '')
+    for i = sent + 1, #view.updates do print(view.updates[i]) end"
+}
+
+@test "a save leaves the answer under the form as it is, and says so on the status line only" {
+  run save_after done
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '%s\n' 'hideSettings()' 'showStatus(...["設定を保存しました","done"])')" ]
+}
+
+@test "a save after a failed run replaces the failure, without making it an answer to copy" {
+  run save_after error
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 'hideSettings()' ]
+  [ "${lines[1]}" = 'update(...["設定を保存しました。もう一度キーを押してください。","保存しました","info",false,false])' ]
+}
+
+@test "a save while the answer still streams leaves its spinner" {
+  run save_after busy
+  [ "$status" -eq 0 ]
+  [ "$output" = 'hideSettings()' ]
+}
+
+@test "settings that cannot be read keep the answer, and the popup stops taking typing" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    stub.tasks[1].done(0, 'ANSWER', '')
+    local sent = #view.updates
+    view:post({ settings = true })
+    stub.tasks[#stub.tasks].done(1, '', 'boom\n')
+    print(#view.updates - sent, view.updates[#view.updates], tostring(view.textEntry))"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '1\tshowStatus(...["設定を読めません: boom","error"])\tfalse')" ]
+}
+
+@test "leaving the form gives the keyboard back, and a second save does not drop the first" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ settings = true })
+    view:post({ settingsClosed = true })
+    print(tostring(view.textEntry))
+    view:post({ saveSettings = { key = 'a' } })
+    local first = stub.tasks[#stub.tasks]
+    view:post({ saveSettings = { key = 'b' } })
+    local held = 0
+    for _ in pairs(translateSettingsTasks) do held = held + 1 end
+    first.done(0, '', '')
+    local left = 0
+    for _ in pairs(translateSettingsTasks) do left = left + 1 end
+    print(held, left)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = false ]
+  [ "${lines[1]}" = "$(printf '3\t2')" ]
 }

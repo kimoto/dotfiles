@@ -21,9 +21,16 @@ end
 
 local screen = { frame = function() return { x = 0, y = 0, w = 1440, h = 900 } end }
 
--- Enough JSON for update()'s arguments: strings, booleans and arrays of them.
+-- Enough JSON for update()'s arguments and the settings form: strings,
+-- booleans, arrays of them, and objects of strings (keys sorted).
 local function json(v)
-   if type(v) == "table" then
+   if type(v) == "table" and #v == 0 and next(v) then
+      local keys = {}
+      for k in pairs(v) do table.insert(keys, k) end
+      table.sort(keys)
+      for i, k in ipairs(keys) do keys[i] = json(k) .. ":" .. json(v[k]) end
+      return "{" .. table.concat(keys, ",") .. "}"
+   elseif type(v) == "table" then
       local parts = {}
       for i = 1, #v do parts[i] = json(v[i]) end
       return "[" .. table.concat(parts, ",") .. "]"
@@ -85,6 +92,7 @@ hs = setmetatable({
          function view:html(page) self.page = page; return self end
          function view:evaluateJavaScript(js) table.insert(self.updates, js); return self end
          function view:delete() self.deleted = true end
+         function view:allowTextEntry(on) self.textEntry = on; return self end
          -- Posts a message from this popup's page, as the page's JavaScript would.
          function view:post(body) self.handler({ body = body }) end
          table.insert(stub.popups, view)
@@ -129,6 +137,7 @@ hs = setmetatable({
    },
    task = {
       new = function(path, done, stream, argv)
+         if type(stream) == "table" then stream, argv = nil, stream end  -- the stream callback is optional
          local t = chain({ path = path, argv = argv, done = done, stream = stream, input = false,
                           terminated = false })
          function t:isRunning() return false end

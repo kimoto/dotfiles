@@ -86,6 +86,19 @@ nav { display: flex; gap: 2px; padding: 4px 10px; border-bottom: 1px solid var(-
 nav[hidden] { display: none; }
 nav button { width: auto; height: 24px; padding: 0 8px; font-size: 12px; }
 nav button.current { background: var(--hover); color: var(--fg); font-weight: 600; cursor: default; }
+form { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; padding: 14px 18px 16px;
+  font-size: 13px; }
+form[hidden] { display: none; }
+form label { color: var(--muted); }
+form input, form select { font: 13px -apple-system, sans-serif; padding: 5px 8px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--fg); min-width: 0; }
+form .note { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin: 0; }
+form .note.error { color: var(--err); }
+form .hint { grid-column: 2; margin: -4px 0 0; font-size: 11px; color: var(--muted); }
+form .hint[hidden] { display: none; }
+form .actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+form .actions button { width: auto; height: auto; padding: 5px 14px; border: 1px solid var(--line); color: var(--fg); }
+form .actions button[type=submit] { background: var(--fg); color: var(--bg); }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
@@ -93,10 +106,29 @@ nav button.current { background: var(--hover); color: var(--fg); font-weight: 60
     <path d="M20 4v5h-5"/></svg></button>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
+  <button id="gear" title="設定（endpoint・PAT）"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73
+      l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38
+      a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18
+      a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08
+      a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08
+      a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
 <nav id="tabs" hidden></nav>
 <main id="text"></main>
+<form id="settings" hidden autocomplete="off">
+  <label for="s-provider">API</label>
+  <select id="s-provider"><option value="anthropic">Anthropic</option>
+    <option value="openai">OpenAI 互換（Responses API）</option></select>
+  <label for="s-base">endpoint</label><input id="s-base" placeholder="空欄で標準">
+  <p class="hint" id="s-base-env" hidden></p>
+  <label for="s-model">モデル</label><input id="s-model">
+  <p class="hint" id="s-model-env" hidden></p>
+  <label for="s-key">PAT</label><input id="s-key" type="password">
+  <p class="note" id="s-note">PAT 以外は空欄で標準の値を使います。</p>
+  <div class="actions"><button type="button" id="s-cancel">戻る</button><button type="submit">保存</button></div>
+</form>
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
@@ -187,6 +219,85 @@ copy.onclick = (e) => {
 };
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('best').onclick = () => post({ best: true });
+// The form replaces the answer until saved or left; the answer is kept in Lua.
+const form = document.getElementById('settings');
+const field = (id) => document.getElementById('s-' + id);
+let current = null;
+// Set by the gear, cleared by 戻る: settings read after the form was left
+// must not bring it back.
+let settingsWanted = false;
+// A value an environment variable decides is shown with the variable's name.
+// The fields stay the file's own, which is what saving writes.
+const MODEL_VAR = 'DESKTOP_TRANSLATE_MODEL';
+function hint(id, text) {
+  field(id).textContent = text || '';
+  field(id).hidden = !text;
+}
+function placeholders() {
+  const provider = field('provider').value;
+  const openai = provider === 'openai';
+  const urlVar = openai ? 'OPENAI_BASE_URL' : 'ANTHROPIC_BASE_URL';
+  const envUrl = current.env[urlVar];
+  field('base').placeholder = envUrl || '空欄で標準';
+  hint('base-env', envUrl && '空欄のときは環境変数 ' + urlVar + ' の値を使います');
+  field('model').placeholder = openai ? '必須' : '空欄で標準（' + current.default_model + '）';
+  // translate.py refuses a moved endpoint without the key typed again.
+  const moved = provider !== (current.provider || 'anthropic') || field('base').value.trim() !== current.base_url;
+  field('key').placeholder = moved ? '必須（API か endpoint を変えたため）'
+    : current.keys[provider] ? '保存済み（変えるときだけ入力）' : '必須';
+  fit();
+}
+function showSettings(settings) {
+  if (!settingsWanted) return;
+  current = settings;
+  current.env = current.env || {};
+  const envModel = current.env[MODEL_VAR];
+  field('provider').value = settings.provider || 'anthropic';
+  field('base').value = settings.base_url;
+  field('model').value = settings.model;
+  hint('model-env', envModel && 'いまは環境変数 ' + MODEL_VAR + '（' + envModel + '）が優先されます');
+  field('key').value = '';
+  placeholders();
+  settingsNote('PAT 以外は空欄で標準の値を使います。', false);
+  t.hidden = true;
+  document.getElementById('tabs').hidden = true;
+  form.hidden = false;
+  field('base').focus();
+  fit();
+}
+const save = form.querySelector('button[type=submit]');
+function settingsNote(text, error) {
+  const n = field('note');
+  n.textContent = text;
+  n.className = 'note' + (error ? ' error' : '');
+  save.disabled = false;
+  fit();
+}
+function hideSettings() {
+  settingsWanted = false;
+  save.disabled = false;
+  form.hidden = true;
+  t.hidden = false;
+  document.getElementById('tabs').hidden = !tabs;
+  fit();
+}
+function showStatus(text, kind) {
+  const s = document.getElementById('status');
+  s.textContent = text;
+  s.className = 'status ' + kind;
+}
+field('provider').onchange = placeholders;
+field('base').oninput = placeholders;
+document.getElementById('gear').onclick = () => { settingsWanted = true; post({ settings: true }); };
+field('cancel').onclick = () => { hideSettings(); post({ settingsClosed: true }); };
+form.onsubmit = (e) => {
+  e.preventDefault();
+  if (save.disabled) return;
+  settingsNote('保存しています…', false);
+  save.disabled = true;
+  post({ saveSettings: { provider: field('provider').value, base_url: field('base').value,
+    model: field('model').value, key: field('key').value } });
+};
 post({ ready: true });
 </script></body></html>
 ]]
@@ -286,6 +397,72 @@ local function recordEdit(text)
    if translateEditTask:start() then translateEditTask:closeInput() end
 end
 
+local function trim(s)
+   return (s:gsub("%s+$", ""))
+end
+
+-- The settings form's round trips to translate.py: it owns the config file
+-- and the Keychain entry, so the form never parses or stores either.
+-- Each running task is held here until it answers: a task nothing refers to
+-- can be collected before its callback, and a second click must not drop the
+-- first one's.
+translateSettingsTasks = {}
+local function settingsCall(args, input, done)
+   local cannotStart = PYTHON .. " を起動できません。準備の手順は translate.py の先頭にあります。"
+   local task
+   task = hs.task.new(PYTHON, function(...)
+      translateSettingsTasks[task] = nil
+      done(...)
+   end, args)
+   if not task then return done(-1, "", cannotStart) end
+   -- Input first: given after start(), it never reaches the child's stdin.
+   -- The PAT goes this way, never in argv.
+   if input then task:setInput(input) end
+   if not task:start() then return done(-1, "", cannotStart) end
+   translateSettingsTasks[task] = true
+   if input then task:closeInput() end
+end
+
+-- Only the status line: the answer under the form stays as it is, edits and all.
+local function settingsStatus(view, text, kind)
+   view:evaluateJavaScript("showStatus(..." .. hs.json.encode({ text, kind }) .. ")")
+end
+
+local function openSettings(view, mode)
+   -- The form takes typing even where the answer itself is not editable.
+   view:allowTextEntry(true)
+   settingsCall({ SCRIPT, "--settings" }, nil, function(code, stdout, stderr)
+      if translatePopup ~= view then return end
+      if code ~= 0 then
+         view:allowTextEntry(mode.editable)
+         settingsStatus(view, "設定を読めません: " .. trim(stderr), "error")
+         return
+      end
+      view:evaluateJavaScript("showSettings(" .. stdout .. ")")
+   end)
+end
+
+local function saveSettings(view, mode, form)
+   settingsCall({ SCRIPT, "--save-settings" }, hs.json.encode(form), function(code, _, stderr)
+      if translatePopup ~= view then return end
+      if code ~= 0 then
+         local reason = trim(stderr)
+         if reason == "" then reason = "保存できませんでした（終了コード " .. code .. "）。" end
+         view:evaluateJavaScript("settingsNote(..." .. hs.json.encode({ reason, true }) .. ")")
+         return
+      end
+      view:allowTextEntry(mode.editable)
+      view:evaluateJavaScript("hideSettings()")
+      if popup.kind == "error" then
+         -- The failure was most likely the key just saved; "info", not "done",
+         -- so a summary's popup does not copy this line as its answer.
+         setPopup("設定を保存しました。もう一度キーを押してください。", "保存しました", "info")
+      elseif popup.kind ~= "busy" then  -- a run still streaming keeps its spinner
+         settingsStatus(view, "設定を保存しました", "done")
+      end
+   end)
+end
+
 local run  -- below; the popup's retry button and tabs start it again
 
 -- The arguments that run `job` on `source` itself, not on the clipboard: by
@@ -361,6 +538,12 @@ local function openPopup(mode, source, at)
          if source and MODES[body.job] then
             run(jobArgs(body.job, source), MODES[body.job], nil, translatePopup:frame())
          end
+      elseif body.settings then
+         openSettings(view, mode)
+      elseif body.settingsClosed then
+         view:allowTextEntry(mode.editable)
+      elseif body.saveSettings then
+         saveSettings(view, mode, body.saveSettings)
       elseif body.close then
          closePopup()
       end
