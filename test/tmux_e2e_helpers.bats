@@ -5,8 +5,8 @@
 # tests spawn their pane (CI cleared, sync/brew startup checks silenced, TERM
 # pinned). These tests pin down every flag it must carry, and — like the
 # mklink/rmworld sync test — enforce that no e2e test hand-builds that env
-# string again: a hand-built copy is exactly how DOTFILES_NO_BREW_CHECK got
-# forgotten in three tests at once (PR #83, CI run 1).
+# string again: with hand-built copies, a new flag such as
+# DOTFILES_NO_BREW_CHECK would be added to some tests and forgotten in others.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
