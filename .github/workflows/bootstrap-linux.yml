@@ -139,6 +139,9 @@ jobs:
   advance-stable:
     needs: full-bootstrap
     if: github.ref == 'refs/heads/main'
+    # STABLE_TOKEN lives in this environment, which only main may use, so a
+    # workflow edited on another branch cannot read it.
+    environment: stable
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

@@ -111,9 +111,10 @@ Agent permissions also live in `claudecode/settings-*.json` and `codex/`.
 
 `stable` is the branch machines may follow instead of `main`; it only moves to
 a commit already on `main`, so it must stay an ancestor of `origin/main`.
-The `advance-stable` jobs move it with the `STABLE_TOKEN` secret, a
-fine-grained PAT scoped to this repo with contents and workflows write only;
-it expires 2027-11-12, and stable stops advancing when it does.
+The `advance-stable` jobs move it with the `STABLE_TOKEN` secret of the `stable`
+environment, which only `main` may use: a fine-grained PAT scoped to this repo
+with contents and workflows write only. It expires 2027-10-01, and stable stops
+advancing when it does.
 
 ## Decided against: refactor
 

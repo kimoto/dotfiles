@@ -209,6 +209,7 @@ jobs:
   advance-stable:
     needs: platform
     if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
+    environment: stable # holds STABLE_TOKEN; only main may use it
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
