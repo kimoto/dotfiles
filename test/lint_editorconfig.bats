@@ -60,3 +60,16 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }
+
+@test "fails, not passes, when neither checker binary is installed" {
+  # Only what the script needs before it looks for the checker, so neither
+  # name can be found on the machine running the suite.
+  mkdir -p "$TMP/bin"
+  for tool in dirname readlink; do
+    ln -s "$(command -v "$tool")" "$TMP/bin/$tool"
+  done
+  printf 'clean line\n' >"$TMP/good.txt"
+  PATH="$TMP/bin" run "$SCRIPT" "$TMP/good.txt"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"editorconfig-checker not found"* ]]
+}
