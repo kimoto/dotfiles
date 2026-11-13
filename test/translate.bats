@@ -751,3 +751,78 @@ print(d["provider"], d["base_url"], d["model"], d["keys"]["openai"], d["keys"]["
   [[ "$output" == *"Keychain に保存できませんでした"* ]]
   [ "$(cat "$TMP/stored-anthropic")" = old-key ]
 }
+
+@test "another own language: the model is told which way, and a summary is written in it" {
+  echo 'language = "ko"' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet "The quick brown fox"
+  [ "$status" -eq 0 ]
+  local rule="If it is mostly Korean, translate into English; otherwise translate into Korean."
+  [[ "$(request_text)" == "Translate the following. $rule"* ]]
+  run python3 "$SCRIPT" --quiet --summarize "A long English thread"
+  [[ "$(request_system)" == *"in Korean"* ]]
+  [[ "$(request_system)" != *"in Japanese"* ]]
+}
+
+@test "English as the own language turns it into Japanese, and an image says so in English" {
+  echo 'language = "en"' >"$CONFIG"
+  printf '\x89PNG fake' >"$TMP/shot.png"
+  run python3 "$SCRIPT" --quiet --image "$TMP/shot.png"
+  [ "$status" -eq 0 ]
+  local rule="If it is mostly English, translate into Japanese; otherwise translate into English."
+  [ "$(request_text)" = "Translate the text in this image. $rule If there is no text, say so in English." ]
+}
+
+@test "an image under another own language goes to English when in it, and says no text in it" {
+  echo 'language = "ko"' >"$CONFIG"
+  printf '\x89PNG fake' >"$TMP/shot.png"
+  run python3 "$SCRIPT" --quiet --image "$TMP/shot.png"
+  [ "$status" -eq 0 ]
+  local rule="If it is mostly Korean, translate into English; otherwise translate into Korean."
+  [ "$(request_text)" = "Translate the text in this image. $rule If there is no text, say so in Korean." ]
+}
+
+@test "--settings tells the form where each own language's text goes, as instruction() does" {
+  run python3 "$SCRIPT" --settings
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | python3 -c 'import json, sys
+for code, _, other in json.load(sys.stdin)["languages"]:
+    if code in ("ja", "en", "zh-TW"): print(code, other)')" = "$(printf 'ja English\nen 日本語\nzh-TW English')" ]
+}
+
+@test "--to still fixes the target, whatever the own language" {
+  echo 'language = "ko"' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet --to fr "hello"
+  [ "$status" -eq 0 ]
+  [[ "$(request_text)" == "Translate the following into French."* ]]
+}
+
+@test "a language the config cannot name is refused before anything is sent, and the form still opens" {
+  local value
+  for value in '"xx"' '["ko"]' '{ code = "ko" }' 1; do
+    echo "language = $value" >"$CONFIG"
+    rm -f "$REQUEST"
+    run python3 "$SCRIPT" --quiet "hello"
+    [ "$status" -eq 1 ] || { echo "$value: $output"; return 1; }
+    [[ "$output" == *"language は"* ]] || { echo "$value: $output"; return 1; }
+    [ ! -e "$REQUEST" ]
+    run python3 "$SCRIPT" --settings
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"language": ""'* ]] || { echo "$value: $output"; return 1; }
+  done
+}
+
+@test "--save-settings keeps a chosen language, and Japanese as the default it is" {
+  stateful_keychain
+  echo old-key >"$TMP/stored-anthropic"
+  run save_settings '{"language":"ko","provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CONFIG")" = 'language = "ko"' ]
+  run python3 "$SCRIPT" --settings
+  [ "$(printf '%s' "$output" | python3 -c 'import json, sys; d = json.load(sys.stdin)
+print(d["language"], *d["languages"][0][:2])')" = "ko ja 日本語" ]
+  run save_settings '{"language":"ja","provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$(cat "$CONFIG")" = "" ]
+  run save_settings '{"language":"xx","provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"言語は"* ]]
+}
