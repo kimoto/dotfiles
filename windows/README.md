@@ -28,7 +28,7 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
 | `monitorcontrol` | Twinkle Tray | `xanderfrangos.twinkletray` | DDC/CI brightness for external displays from the tray, same job. |
 | `ghostty` | Windows Terminal | `Microsoft.WindowsTerminal` | Already the WSL host terminal — see the profile note below. |
 | `google-japanese-ime` | same | `Google.JapaneseIME` | Same product. |
-| — | DeepL | `DeepL.DeepL` | Hammerspoon's Claude translator answers DeepL's shortcuts on the mac; nothing does that here, so the app keeps them. |
+| — | DeepL | `DeepL.DeepL` | Hammerspoon's Claude translator does this job on the mac; nothing does it here. |
 
 ## Deliberately not here
 

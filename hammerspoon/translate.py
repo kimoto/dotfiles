@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Desktop translation with Claude, called by hammerspoon/translate.lua.
 
-Mirrors the DeepL app's shortcuts (see KEYBINDINGS.md, "Translation") but
-runs on the Claude API: images work without a separate OCR step, and the
-style of the translation can be steered (instructions file below).
+A popup like the DeepL app's (keys in KEYBINDINGS.md, "Translation"), but
+on the Claude API: images work without a separate OCR step, and the style
+of the translation can be steered (instructions file below).
 
 Usage:
-  translate.py --clipboard          translate the clipboard (⌘C+C)
+  translate.py --clipboard          translate the clipboard
   translate.py --screen             select a region, translate the text in it
   translate.py --image foo.png      translate the text in an image file
   translate.py --to en "..."        fix the target language; by default
@@ -38,8 +38,7 @@ One-time setup on a Mac (nothing in bin/mklink.sh does this):
   the key: the popup's gear (any job's popup, even one that failed for want
     of a key), or security add-generic-password -s desktop-translate -a anthropic -w
     (prompts for the key, so it never lands in shell history)
-  then grant Hammerspoon Accessibility and Screen Recording. If the DeepL
-  app is installed, turn off its own shortcuts, or both apps answer ⌘C+C.
+  then grant Hammerspoon Accessibility and Screen Recording.
 
 Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
 (it stays on the machine, so the endpoint's address never reaches this repo).

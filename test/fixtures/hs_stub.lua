@@ -70,10 +70,9 @@ hs = setmetatable({
          table.insert(stub.taps, tap)
          return tap
       end,
-      event = { types = { keyDown = 10, leftMouseDragged = 6, leftMouseUp = 2 },
-                properties = { keyboardEventAutorepeat = 8 } },
+      event = { types = { keyDown = 10, leftMouseDragged = 6, leftMouseUp = 2 } },
    },
-   keycodes = { map = { c = 8, escape = 53 } },
+   keycodes = { map = { escape = 53 } },
    json = { encode = json },
    -- NSTemporaryDirectory(): the user's own, ending in a slash.
    fs = { temporaryDirectory = function() return (os.getenv("BATS_TEST_TMPDIR") or "/tmp") .. "/" end },
