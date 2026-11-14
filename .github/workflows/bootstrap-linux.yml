@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   full-bootstrap:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       # The real machine is Japanese, and that is not cosmetic: Vim translates
@@ -142,7 +142,7 @@ jobs:
     # STABLE_TOKEN lives in this environment, which only main may use, so a
     # workflow edited on another branch cannot read it.
     environment: stable
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read # stable moves with STABLE_TOKEN, not this job's token

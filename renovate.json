@@ -103,6 +103,13 @@
       "minimumReleaseAge": null
     },
     {
+      "description": "Held on ubuntu-24.04 until actionlint knows the ubuntu-26.04 label: 1.7.12 rejects it, which fails test/lint_actions.bats. Re-enable once a Renovate bump of aqua:rhysd/actionlint passes with 26.04.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
       "matchDepNames": [
         "aqua:biomejs/biome"
