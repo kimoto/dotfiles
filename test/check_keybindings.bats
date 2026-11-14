@@ -62,6 +62,7 @@ bind-key -N "Start a selection" -T copy-mode-vi v send-keys -X begin-selection
 bind-key -N "Jump to the previous shell prompt" -T copy-mode-vi '[' send-keys -X previous-prompt
 bind-key -N "New window" -n M-t new-window
 bind-key -N "Reload" r source-file ~/.tmux.conf \; display-message "config reloaded"
+bind-key -N "Split right across the window" '\' split-window -fh
 if-shell -F '#{>=:#{version},3.7}' \
   'bind-key -N "New Claude Code" a new-pane; bind-key -N "Fork it" A run-shell true'
 EOF
@@ -272,6 +273,24 @@ EOF
   [ "$status" -eq 1 ]
   [[ "$output" == *"binds '['"* ]]
   [[ "$output" == *"names ']'"* ]]
+}
+
+@test "a cell's escaped pipe is the | key, not the end of the cell" {
+  echo "bind-key -N \"Split right\" '|' split-window -h" >>"$CHECK_KEYBINDINGS_TMUX_CONFIG"
+  awk '{ print } /^\| prefix \+ m \|/ { print "| prefix + \\| | Split right |" }' \
+    "$CHECK_KEYBINDINGS_DOC" >"$TMP/doc" && mv "$TMP/doc" "$CHECK_KEYBINDINGS_DOC"
+  grep -qxF '| prefix + \| | Split right |' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "a bare double-quote cell is the \" key the config quotes" {
+  echo "bind-key -N \"Split below\" '\"' split-window -v" >>"$CHECK_KEYBINDINGS_TMUX_CONFIG"
+  awk '{ print } /^\| prefix \+ m \|/ { print "| prefix + \" | Split below |" }' \
+    "$CHECK_KEYBINDINGS_DOC" >"$TMP/doc" && mv "$TMP/doc" "$CHECK_KEYBINDINGS_DOC"
+  grep -qxF '| prefix + " | Split below |' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
 }
 
 @test "an unbind-key is not a binding" {

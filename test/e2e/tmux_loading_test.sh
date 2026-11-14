@@ -80,6 +80,25 @@ env -i HOME="$HOME" TERM=xterm-256color PATH=/usr/bin:/bin \
   "$TMUX_BIN" -L "$BARE_SOCK" -f "$CONF" new-session -d -x 200 -y 50 2>/dev/null \
   || die "failed to start bare-PATH tmux server"
 disable_continuum_restore "$BARE_SOCK"
+# The options, pane keys and wheel handling the config sets itself rather
+# than through a plugin. Checked on this server, which loaded only the config
+# under test (the one above first read whatever ~/.tmux.conf is installed).
+bare_option() { tmux -L "$BARE_SOCK" show-option -gv "$1"; }
+[ "$(bare_option status-keys)" = emacs ] || die "status-keys is not emacs"
+[ "$(bare_option display-time)" = 4000 ] || die "display-time is not 4000"
+[ "$(bare_option status-interval)" = 5 ] || die "status-interval is not 5"
+[ "$(tmux -L "$BARE_SOCK" show-option -gwv aggressive-resize)" = on ] || die "aggressive-resize is off"
+# Only tmux before 3.5 still defaults to 500 ms; 3.5 and later already have 10.
+case "$(tmux -V)" in
+  *" "[12].* | *" 3."[0-4] | *" 3."[0-4][!0-9]*)
+    [ "$(tmux -L "$BARE_SOCK" show-option -sv escape-time)" = 0 ] || die "escape-time is not 0 on tmux < 3.5" ;;
+esac
+tmux -L "$BARE_SOCK" list-keys -T prefix '|' | grep -q 'split-window -h -c "#{pane_current_path}"' \
+  || die "prefix + | does not split right in the pane's cwd"
+tmux -L "$BARE_SOCK" list-keys -T prefix h | grep -q 'select-pane -L' || die "prefix + h does not select left"
+tmux -L "$BARE_SOCK" list-keys -T root WheelUpPane | grep -q 'copy-mode -e' \
+  || die "the wheel no longer enters copy mode"
+echo "== the config's own options, pane keys and wheel handling are set =="
 ver="$(tmux -V | sed -En 's/^tmux (next-)?([0-9]+)\.([0-9]+).*/\2 \3/p')"
 # shellcheck disable=SC2086
 set -- $ver
