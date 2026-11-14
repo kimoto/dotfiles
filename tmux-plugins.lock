@@ -6,8 +6,8 @@
 tmux-plugins/tpm master e261deb1b47614eed3400089ce7197dc68acc4eb
 tmux-plugins/tmux-resurrect master cff343cf9e81983d3da0c8562b01616f12e8d548
 tmux-plugins/tmux-continuum master 0698e8f4b17d6454c71bf5212895ec055c578da0
-jaclu/tmux-menus main 1c3372d489a10907d2dff7731e0a10246b7a6a81
+jaclu/tmux-menus main 1943234dcb00b70595dc5662b70651896aa8823e
 laktak/extrakto master d1af77988081dae496fa4a1f5e5e6bc9ef66767f
-sainnhe/tmux-fzf master e5f427e9dcf180ca92e2f8af47ba07f644fd4585
+sainnhe/tmux-fzf master 2839d6bd0e13b7c5e385e131e4c217917fa73555
 alexwforsythe/tmux-which-key main 85fb9756447b989f3b94e515d1e6ee7fec76cba2
 timvw/tmux-assistant-resurrect main a2bb0a4bd5786ea5ee93e104099a92e16f69e87c
