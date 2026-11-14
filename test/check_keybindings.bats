@@ -31,9 +31,9 @@ bindkey '^X^N' search_snippet_and_replace_lbuffer
 EOF
   cat >"$CHECK_KEYBINDINGS_ABBR_CONFIG" <<'EOF'
 typeset -gA ABBR_MAP=(
-  ci    'git commit -a -v'
-  glg   "git log --graph \
---pretty='%h %s'"
+  ci    'make check'
+  glg   "tail -n 20 \
+--follow"
 )
 bindkey ' ' _abbr_expand_space
 EOF
@@ -168,8 +168,8 @@ EOF
 
 | Word | Expands to |
 |------|------------|
-| `ci` | `git commit -a -v` |
-| `glg` | `git log --graph` |
+| `ci` | `make check` |
+| `glg` | `tail -n 20` |
 
 ### Shell helpers
 
@@ -389,8 +389,64 @@ EOF
   [ "$status" -eq 0 ]
 }
 
+@test "a bindkey into the emacs keymap by name still needs a row" {
+  echo "bindkey -M emacs '^Y' yank" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'ctrl+y' but KEYBINDINGS.md's zsh table has no row"* ]]
+}
+
+@test "a bindkey into the main keymap by name still needs a row" {
+  echo "bindkey -M main ^Y yank" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'ctrl+y' but KEYBINDINGS.md's zsh table has no row"* ]]
+}
+
+@test "a commented-out bindkey is not a binding" {
+  echo "# bindkey '^Y' yank" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "binding a key fzf or the emacs keymap owns is fine while its row stays" {
+  echo "bindkey '^R' my-history-widget" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "an Escape-prefixed bindkey is the Alt key" {
+  echo "bindkey '\\eq' push-line" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  echo "bindkey '^[w' copy-region" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'alt+q' but"* ]]
+  [[ "$output" == *"binds 'alt+w' but"* ]]
+}
+
+@test "a single-quoted ^\\\\ is the same backslash key as the double-quoted one" {
+  sed -i.bak '/undo/d' "$CHECK_KEYBINDINGS_ZSHRC"
+  echo "bindkey '^\\\\' undo" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "an indented continuation of an abbreviation's value is not an abbreviation" {
+  sed -i.bak 's/^--follow"/    --follow -q"/' "$CHECK_KEYBINDINGS_ABBR_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "fails when ABBR_MAP cannot be found at all" {
+  sed -i.bak 's/^typeset -gA ABBR_MAP=(/typeset -A ABBR_MAP=(/' "$CHECK_KEYBINDINGS_ABBR_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no ABBR_MAP entries found"* ]]
+}
+
 @test "fails when an abbreviation is added with no row" {
-  sed -i.bak "s/^  ci /  gp    'git push'\n  ci /" "$CHECK_KEYBINDINGS_ABBR_CONFIG"
+  awk '/^  ci /{print "  gp    \047make push\047"} {print}' "$CHECK_KEYBINDINGS_ABBR_CONFIG" >"$TMP/abbr.new"
+  mv "$TMP/abbr.new" "$CHECK_KEYBINDINGS_ABBR_CONFIG"
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"ABBR_MAP binds 'gp' but KEYBINDINGS.md's Abbreviations table has no row"* ]]

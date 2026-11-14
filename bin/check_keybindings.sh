@@ -276,7 +276,7 @@ table_cells() {
     $0 ~ start { insection = 1; next }
     insection && $0 ~ stop { exit }
     insection && /^\| / { print }
-  ' "$DOC" | grep -vE '^\| (Key|Word) ' | grep -v '^|-----')"
+  ' "$DOC" | grep -vE '^\| (Key|Word) +\|' | grep -v '^|-----')"
   if [ -n "$exclude_re" ]; then
     rows="$(grep -v -E "$exclude_re" <<<"$rows")"
   fi
@@ -352,48 +352,59 @@ tmux_copy_mode_documented_keys() {
     done | sort -u
 }
 
-# One zsh key sequence ("^X^N", "^\\", "^[d") as the doc's canonical form:
-# each keystroke through canon(), chords joined by a space ("ctrl+x ctrl+n").
+# One zsh key sequence as bindkey reads it ("^X^N", "^\\", "^[d", "\ef") in
+# the doc's canonical form: each keystroke through canon(), chords joined by
+# a space ("ctrl+x ctrl+n"). "^[" and "\e" are Escape, the Alt prefix.
 zsh_canon() {
-  local s="$1" out="" key
+  local s="$1" out="" key mod
   while [ -n "$s" ]; do
-    if [ "${s:0:2}" = '^[' ] && [ "${#s}" -ge 3 ]; then
-      key="alt+${s:2:1}"
-      s="${s:3}"
-    elif [ "${s:0:1}" = '^' ] && [ "${#s}" -ge 2 ]; then
-      key="ctrl+${s:1:1}"
+    mod=""
+    if [ "${s:0:2}" = '^[' ] || [ "${s:0:2}" = '\e' ]; then
+      mod="alt+"
+      s="${s:2}"
+    fi
+    if [ "${s:0:1}" = '^' ] && [ "${#s}" -ge 2 ]; then
+      mod="${mod}ctrl+"
+      s="${s:1}"
+    fi
+    # bindkey's own escape: \\ is one backslash key.
+    if [ "${s:0:2}" = "\\\\" ]; then
+      key="\\"
       s="${s:2}"
     else
       key="${s:0:1}"
       s="${s:1}"
     fi
-    out="${out:+$out }$(canon "$key")"
+    out="${out:+$out }$(canon "${mod}${key}")"
   done
   printf '%s\n' "$out"
 }
 
-# The keys .zshrc binds with a plain `bindkey KEY WIDGET`, one canonical key
-# per line. A line with an option (`bindkey -e`, `-M`, `-s`) is not one.
+# The keys .zshrc binds with `bindkey KEY WIDGET` in the keymap the shell
+# uses (none named, or `-M emacs` / `-M main`), one canonical key per line.
+# Other options (`-e`, `-s`, `-M viins`) are not a binding the table lists.
 zsh_configured_keys() {
   local line key
-  local re='^[[:space:]]*bindkey[[:space:]]+("([^"]*)"|'"'"'([^'"'"']*)'"'"'|([^-[:space:]][^[:space:]]*))[[:space:]]'
+  local q="'"
+  local re="^[[:space:]]*bindkey([[:space:]]+-M[[:space:]]+(emacs|main))?[[:space:]]+"
+  re+="(\"([^\"]*)\"|${q}([^${q}]*)${q}|([^-[:space:]][^[:space:]]*))[[:space:]]"
   while IFS= read -r line; do
     [[ "$line" =~ $re ]] || continue
-    if [ -n "${BASH_REMATCH[2]}" ]; then
+    if [ -n "${BASH_REMATCH[4]}" ]; then
       # Double quotes: the shell turns \\ into one backslash before bindkey.
-      key="${BASH_REMATCH[2]//\\\\/\\}"
+      key="${BASH_REMATCH[4]//\\\\/\\}"
     else
-      key="${BASH_REMATCH[3]}${BASH_REMATCH[4]}"
+      key="${BASH_REMATCH[5]}${BASH_REMATCH[6]}"
     fi
     zsh_canon "$key"
   done <"$ZSHRC" | sort -u
 }
 
-# The zsh table's documented keys, one canonical key per line, less
-# ZSH_BOUND_ELSEWHERE. A cell is either alternates ("⌃+A / E") or one
-# chord of space-separated keystrokes ("⌃+X ⌃+N").
+# The zsh table's documented keys, one canonical key per line. A cell is
+# either alternates ("⌃+A / E") or one chord of space-separated keystrokes
+# ("⌃+X ⌃+N").
 zsh_documented_keys() {
-  local cell part out allowed skip
+  local cell part out
   local -a parts
   table_cells '^## zsh' '^### ' |
     while IFS= read -r cell; do
@@ -408,29 +419,19 @@ zsh_documented_keys() {
         out="${out:+$out }$(canon "$part")"
       done
       printf '%s\n' "$out"
-    done |
-    while IFS= read -r cell; do
-      skip=0
-      for allowed in "${ZSH_BOUND_ELSEWHERE[@]}"; do
-        if [ "$cell" = "$allowed" ]; then
-          skip=1
-          break
-        fi
-      done
-      if [ "$skip" -eq 0 ]; then
-        printf '%s\n' "$cell"
-      fi
     done | sort -u
 }
 
-# The words abbr.zsh's ABBR_MAP expands, one per line: each entry's first
-# word, indented, inside `typeset -gA ABBR_MAP=(` ... `)`. A continued
-# value's next line starts at column 0, so it is not an entry.
+# The words abbr.zsh's ABBR_MAP expands, one per line: each entry line
+# (indented word, then a quoted value) inside `typeset -gA ABBR_MAP=(` ...
+# `)`. Exits non-zero when no entry is found, so a renamed or reshaped map
+# fails instead of comparing an empty set.
 abbr_configured_words() {
   awk '
     /^typeset -gA ABBR_MAP=\(/ { inmap = 1; next }
-    inmap && /^\)/ { exit }
-    inmap && /^[[:space:]]+[A-Za-z0-9_-]+[[:space:]]/ { print $1 }
+    inmap && /^[[:space:]]*\)/ { exit }
+    inmap && /^[[:space:]]+[A-Za-z0-9_-]+[[:space:]]+["\047]/ { print $1; n++ }
+    END { if (!n) { print "x no ABBR_MAP entries found" > "/dev/stderr"; exit 1 } }
   ' "$ABBR_CONFIG" | sort -u
 }
 
@@ -459,14 +460,17 @@ keys_missing_from() {
 }
 
 # compare_config_to_doc, plus one line per documented key no config binds.
+# $5, if given, holds keys bound somewhere this script does not parse: a
+# row for one needs no config, but the config binding one still needs a row.
 compare_keys() {
   local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
+  local bound_elsewhere="${5:-}"
   local key found=0
-  compare_config_to_doc "$@" || found=1
+  compare_config_to_doc "$1" "$2" "$3" "$4" || found=1
   while IFS= read -r key; do
     echo "x $doc_name names '$key' but no $config_name binds it"
     found=1
-  done < <(keys_missing_from "$config_keys" "$doc_keys")
+  done < <(keys_missing_from "$config_keys"$'\n'"$bound_elsewhere" "$doc_keys")
   return "$found"
 }
 
@@ -493,7 +497,8 @@ compare_config_to_doc "Hammerspoon" "$(hammerspoon_configured_keys)" \
   "KEYBINDINGS.md's Text editing table" "$(text_editing_documented_keys)" || rc=1
 
 compare_keys ".zshrc's bindkey" "$(zsh_configured_keys)" \
-  "KEYBINDINGS.md's zsh table" "$(zsh_documented_keys)" || rc=1
+  "KEYBINDINGS.md's zsh table" "$(zsh_documented_keys)" \
+  "$(printf '%s\n' "${ZSH_BOUND_ELSEWHERE[@]}")" || rc=1
 
 compare_keys "abbr.zsh's ABBR_MAP" "$(abbr_configured_words)" \
   "KEYBINDINGS.md's Abbreviations table" "$(abbr_documented_words)" || rc=1
