@@ -6,6 +6,8 @@
 # repo's config (including .editorconfig-checker.json excludes/disables) is
 # still what CI exercises via the no-argument test.
 
+load path_helpers
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/lint_editorconfig.sh"
@@ -59,4 +61,14 @@ teardown() {
   cd "$TMP"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
+}
+
+@test "fails, not passes, when neither checker binary is installed" {
+  # Only what the script needs before it looks for the checker, so neither
+  # name can be found on the machine running the suite.
+  only_on_path "$TMP/bin" dirname readlink
+  printf 'clean line\n' >"$TMP/good.txt"
+  PATH="$TMP/bin" run "$SCRIPT" "$TMP/good.txt"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"editorconfig-checker not found"* ]]
 }

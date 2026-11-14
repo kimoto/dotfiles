@@ -3,6 +3,8 @@
 # Tests for bin/run_tests.sh's selection: which .bats files a set of staged
 # paths reaches. RUN_TESTS_LIST=1 prints the selection without running it.
 
+load path_helpers
+
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/run_tests.sh"
@@ -93,4 +95,16 @@ path_without_parallel() {
   [ "$status" -eq 0 ]
   [ "$(cat "$BIN/args")" = "--print-output-on-failure test/protect_main.bats" ]
   rm -rf "$BIN"
+}
+
+@test "without bats it fails instead of reporting a clean run" {
+  # Only what the script needs before it looks for bats, so the bats running
+  # this suite cannot be found.
+  local bin
+  bin="$(mktemp -d)/bin"
+  only_on_path "$bin" dirname readlink
+  RUN_TESTS_LIST='' PATH="$bin" run "$SCRIPT"
+  rm -rf "${bin%/bin}"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"bats not found"* ]]
 }

@@ -37,7 +37,7 @@ confirm() {
   local reply
   printf '%s [Y/n] ' "$1"
   IFS= read -r reply || return 1
-  [[ ! "$reply" == [nN]* ]]
+  [[ "$reply" != [nN]* ]]
 }
 
 # "Error: Refusing to load cask X from untrusted tap T." -> T
