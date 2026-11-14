@@ -103,6 +103,16 @@
       "minimumReleaseAge": null
     },
     {
+      "description": "Ubuntu runners held on 24.04: actionlint 1.7.12 rejects the ubuntu-26.04 label, which fails test/lint_actions.bats. Remove this rule once mise.toml pins an actionlint whose release notes add ubuntu-26.04.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "matchDepNames": [
+        "ubuntu"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
       "matchDepNames": [
         "aqua:biomejs/biome"
