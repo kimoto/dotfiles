@@ -1,7 +1,13 @@
 ---
 name: ci
 on:
-  push: {}
+  # stable only moves to a commit already on main, where this workflow ran on
+  # the push; a run on stable would gate nothing, and the PAT that moves it
+  # fires push every time.
+  # No tags: the repo has none, and a tag trigger makes zizmor treat the cache
+  # steps as release builds.
+  push:
+    branches-ignore: [stable]
   workflow_dispatch: {}
   # A push only ever restores the Homebrew cache keyed on Brewfile.standard's
   # hash, so a green push proves nothing about whether that cached tmux/zsh

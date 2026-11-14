@@ -4,7 +4,8 @@
 -- it, and its message handler) are recorded in `stub`, and timers run when the
 -- test says. Everything else answers with an object that accepts any call.
 
-stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, changeCount = 0,
+stub = { hotkeys = {}, tasks = {}, keystrokes = {}, choosers = {}, timers = {}, taps = {}, changeCount = 0,
+         mouse = { x = 100, y = 100 }, leftDown = true, screen = { x = 0, y = 0, w = 1440, h = 900 },
          popups = {}, pasted = {}, written = {}, clipboard = "the copied text",
          -- Where the selection is: the app in front, and the role of its focused element.
          app = "com.apple.TextEdit", role = "AXStaticText" }
@@ -19,11 +20,19 @@ local function chain(t)
    return setmetatable(t, { __index = function() return function(self) return self end end })
 end
 
-local screen = { frame = function() return { x = 0, y = 0, w = 1440, h = 900 } end }
+-- stub.screen is the display under the mouse; a test can move its origin.
+local screen = { frame = function() return stub.screen end }
 
--- Enough JSON for update()'s arguments: strings, booleans and arrays of them.
+-- Enough JSON for update()'s arguments and the settings form: strings,
+-- booleans, arrays of them, and objects of strings (keys sorted).
 local function json(v)
-   if type(v) == "table" then
+   if type(v) == "table" and #v == 0 and next(v) then
+      local keys = {}
+      for k in pairs(v) do table.insert(keys, k) end
+      table.sort(keys)
+      for i, k in ipairs(keys) do keys[i] = json(k) .. ":" .. json(v[k]) end
+      return "{" .. table.concat(keys, ",") .. "}"
+   elseif type(v) == "table" then
       local parts = {}
       for i = 1, #v do parts[i] = json(v[i]) end
       return "[" .. table.concat(parts, ",") .. "]"
@@ -39,7 +48,7 @@ local pendingHandler
 hs = setmetatable({
    configdir = "/hs",
    mouse = {
-      absolutePosition = function() return { x = 100, y = 100 } end,
+      absolutePosition = function() return { x = stub.mouse.x, y = stub.mouse.y } end,
       getCurrentScreen = function() return screen end,
    },
    screen = { mainScreen = function() return screen end, find = function() return screen end },
@@ -53,10 +62,17 @@ hs = setmetatable({
          table.insert(stub.keystrokes, table.concat(mods, "+") .. "+" .. key)
          stub.changeCount = stub.changeCount + 1  -- the app copies the selection
       end,
-      new = function() return chain({}) end,
-      event = { types = { keyDown = 10 }, properties = { keyboardEventAutorepeat = 8 } },
+      checkMouseButtons = function() return { left = stub.leftDown } end,
+      -- Kept, so a test can send an event through the watcher it made.
+      new = function(types, fn)
+         local tap = chain({ types = types, fn = fn, stopped = false })
+         function tap:stop() self.stopped = true; return self end
+         table.insert(stub.taps, tap)
+         return tap
+      end,
+      event = { types = { keyDown = 10, leftMouseDragged = 6, leftMouseUp = 2 } },
    },
-   keycodes = { map = { c = 8, escape = 53 } },
+   keycodes = { map = { escape = 53 } },
    json = { encode = json },
    -- NSTemporaryDirectory(): the user's own, ending in a slash.
    fs = { temporaryDirectory = function() return (os.getenv("BATS_TEST_TMPDIR") or "/tmp") .. "/" end },
@@ -78,13 +94,16 @@ hs = setmetatable({
       },
       new = function(rect)
          local view = chain({ updates = {}, handler = pendingHandler, rect = rect })
+         -- A copy, as Hammerspoon's is: a frame read earlier does not move with the window.
          function view:frame(f)
             if f then self.rect = f; return self end
-            return self.rect
+            return { x = self.rect.x, y = self.rect.y, w = self.rect.w, h = self.rect.h }
          end
          function view:html(page) self.page = page; return self end
          function view:evaluateJavaScript(js) table.insert(self.updates, js); return self end
          function view:delete() self.deleted = true end
+         function view:allowTextEntry(on) self.textEntry = on; return self end
+         function view:topLeft(p) self.rect.x, self.rect.y = p.x, p.y; return self end
          -- Posts a message from this popup's page, as the page's JavaScript would.
          function view:post(body) self.handler({ body = body }) end
          table.insert(stub.popups, view)
@@ -129,6 +148,7 @@ hs = setmetatable({
    },
    task = {
       new = function(path, done, stream, argv)
+         if type(stream) == "table" then stream, argv = nil, stream end  -- the stream callback is optional
          local t = chain({ path = path, argv = argv, done = done, stream = stream, input = false,
                           terminated = false })
          function t:isRunning() return false end

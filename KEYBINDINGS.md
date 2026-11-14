@@ -71,16 +71,13 @@ Same keys on both.
 Source:
 - `hammerspoon/translate.lua`, which runs `hammerspoon/translate.py` (Claude API)
 
-DeepL's keys, so the DeepL app's own shortcuts are turned off where it is installed.
-
 | Key | Action |
 |-----|--------|
-| ⌃+⌘+⇧+D | Translate the selection into a popup by the mouse: Japanese → English, anything else → Japanese |
-| ⌘+C+C | Same (hold ⌘, press C twice) |
-| ⌘+⇧+C+C | Same, choosing the target language first |
+| ⌃+⌘+⇧+D | Translate the selection into a popup by the mouse: Japanese → English, anything else → Japanese. The popup's ⚙ sets another own language in place of Japanese |
 | ⌃+⌘+⇧+L | Region → translate the text in it |
-| ⌃+⌘+⇧+W | The written job the selection needs, into the same popup, guessed with no menu: in a text field 清書 (rough notes → a message in your own voice), a message in a chat app or Mail 返信案 (a reply in your voice), anything else 要約 (summary in Japanese). The popup's tabs rerun the same text as any other job: 誤字チェック (typos only), 図解 (a diagram, copied as an image), 翻訳 too, and ⌃⌘⇧D's popup has them as well. Your voice comes from `~/.local/share/desktop-translate/style.md`; without it 清書 is plain and polite, and 返信案 asks for the file |
+| ⌃+⌘+⇧+W | The written job the selection needs, into the same popup, guessed with no menu: in a text field 清書 (rough notes → a message in your own voice), a message in a chat app or Mail 返信案 (a reply in your voice), anything else 要約 (summary in your own language). The popup's tabs rerun the same text as any other job: 誤字チェック (typos only), 図解 (a diagram, copied as an image), 翻訳 too, and ⌃⌘⇧D's popup has them as well. Your voice comes from `~/.local/share/desktop-translate/style.md`; without it 清書 is plain and polite, and 返信案 asks for the file |
 | ⌥+click ⧉ | In a 返信案 or 要約 popup: copy the Markdown as it came, instead of rich text (pastes as bold and bullets) with plain text (・ bullets) |
+| Drag the header | Move the popup |
 
 ---
 
@@ -129,7 +126,7 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 Source:
 - Mac: Raycast, in-app
-- Windows: PowerToys Command Palette and Advanced Paste, in-app
+- Windows: PowerToys Command Palette and Advanced Paste, AutoHotkey (`windows/autohotkey/mac-keys.ahk`) for Ctrl+1..2, in-app
 
 | Key | Action |
 |-----|--------|
@@ -137,8 +134,8 @@ Source:
 | ⌃⌘+V | Clipboard history (Windows: Advanced Paste) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
-| Ctrl+1 | Open Chrome (Mac only) |
-| Ctrl+2 | Open Ghostty (Mac only) |
+| Ctrl+1 | Bring Chrome to the front, starting it if needed |
+| Ctrl+2 | Bring the terminal to the front, starting it if needed (Mac: Ghostty, Windows: Windows Terminal) |
 | Ctrl+. | Toggle Raycast Notes (Mac only) |
 | ⌃⌘+H | Search Chrome history (Mac only) |
 | Caps Lock | Hyper Key: ⌃⌥⇧⌘ (Mac only) |
@@ -244,7 +241,16 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + m | Mark pane |
 | prefix + M | Move marked pane here (join-pane) |
 | prefix + Space | Cycle layout |
+| prefix + h, prefix + j, prefix + k, prefix + l (or prefix + C-h, prefix + C-j, prefix + C-k, prefix + C-l) | Select the pane left / below / above / right |
+| prefix + H, prefix + J, prefix + K, prefix + L | Resize the pane by 5 left / down / up / right (repeatable) |
+| prefix + \|, prefix + % | Split right, same cwd |
+| prefix + -, prefix + " | Split below, same cwd |
+| prefix + _ | Split below across the whole window, same cwd |
+| prefix + c | New window, same cwd |
+| prefix + C-n, prefix + C-p | Next / previous window |
+| prefix + <, prefix + > | Swap the window with the previous / next one (repeatable) |
 | prefix + r | Reload ~/.tmux.conf |
+| prefix + R | Reload ~/.tmux.conf, with a message |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
@@ -255,7 +261,7 @@ While the prefix is held, status-right shows `? help  v hunk  t shell`.
 | prefix + V | The same, for the whole branch since it left main (commits too) |
 | prefix + f | fzf switcher across all panes of all sessions: Claude Code waiting on you (⏳) first, then finished (✳), then most recent |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
-| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
+| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions); split right across the whole window until the plugin is installed |
 | prefix + ? | tmux-which-key: menu of tmux commands |
 | prefix + Ctrl-s | Save session state, incl. Claude Code (auto every 15 min) |
 | prefix + Ctrl-r | Restore the last saved session state |
@@ -288,6 +294,8 @@ Rectangle's keys with ⌃⌥ in place of ⌃⌘, for the active floating pane. O
 | y | Copy to clipboard and exit |
 | [ | Jump to previous prompt |
 | ] | Jump to next prompt |
+| WheelUpPane | Scroll up 3 lines |
+| WheelDownPane | Scroll down 3 lines |
 
 ---
 

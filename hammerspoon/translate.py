@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 """Desktop translation with Claude, called by hammerspoon/translate.lua.
 
-Mirrors the DeepL app's shortcuts (see KEYBINDINGS.md, "Translation") but
-runs on the Claude API: images work without a separate OCR step, and the
-style of the translation can be steered (instructions file below).
+A popup like the DeepL app's (keys in KEYBINDINGS.md, "Translation"), but
+on the Claude API: images work without a separate OCR step, and the style
+of the translation can be steered (instructions file below).
 
 Usage:
-  translate.py --clipboard          translate the clipboard (⌘C+C)
+  translate.py --clipboard          translate the clipboard
   translate.py --screen             select a region, translate the text in it
   translate.py --image foo.png      translate the text in an image file
   translate.py --to en "..."        fix the target language; by default
-                                    Japanese becomes English, anything else Japanese
+                                    text in your own language (config.toml's
+                                    language, Japanese by default) becomes English
+                                    (Japanese, if English is your own), anything
+                                    else your own language
   translate.py --rewrite --clipboard
                                     rewrite rough notes as a message in the
                                     user's own style (style file below)
   translate.py --reply --clipboard  draft a reply to a message, in that style
   translate.py --summarize --clipboard
-                                    summarize the text in Japanese
+                                    summarize the text in your own language
   translate.py --proofread --clipboard
                                     fix typos and wrong words, nothing else
   translate.py --diagram --clipboard
@@ -34,14 +37,15 @@ The result goes to stdout, the clipboard, and a dialog (--quiet: no dialog).
 
 One-time setup on a Mac (nothing in bin/mklink.sh does this):
   python3 -m venv ~/.local/share/desktop-translate
-  ~/.local/share/desktop-translate/bin/pip install -U anthropic
-  security add-generic-password -s desktop-translate -a anthropic -w
+  ~/.local/share/desktop-translate/bin/pip install --require-hashes -r ~/.hammerspoon/requirements.txt
+  the key: the popup's gear (any job's popup, even one that failed for want
+    of a key), or security add-generic-password -s desktop-translate -a anthropic -w
     (prompts for the key, so it never lands in shell history)
-  then grant Hammerspoon Accessibility and Screen Recording. If the DeepL
-  app is installed, turn off its own shortcuts, or both apps answer ⌘C+C.
+  then grant Hammerspoon Accessibility and Screen Recording.
 
 Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
-(it stays on the machine, so the endpoint's address never reaches this repo):
+(it stays on the machine, so the endpoint's address never reaches this repo).
+The gear sets provider, base_url and model there, and the key in the Keychain:
   provider = "openai"          # OpenAI Responses API; "anthropic" by default
   base_url = "https://llm.example/v1"
   model = "..."                # required for "openai"
@@ -49,7 +53,7 @@ Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
 A model per job, where speed matters more than the voice (the job names are the flags without --, and "translate"):
   [models]
   summarize = "claude-haiku-5-5"
-"openai" needs `pip install -U openai` in the same venv, and its key under
+"openai" comes from the same requirements file, and needs its key under
 its own account: security add-generic-password -s desktop-translate -a openai -w
 
 The key is read from the Keychain only, inside this process. Never from the
@@ -79,12 +83,14 @@ import base64
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 import tomllib
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -117,7 +123,26 @@ REWRITE_EDITS = DATA_DIR / "rewrite-edits.jsonl"
 # Enough to show the user's habits; every one goes out with each rewrite.
 EXAMPLE_EDITS = 5
 
-LANG_NAMES = {"ja": "Japanese", "en": "English"}
+# What the settings form offers as the user's own language: the one a
+# translation and a summary are written in, and whose text goes to English.
+# Each is named for the model, then as its own readers write it, for the menu.
+LANGUAGES = {
+    "ja": ("Japanese", "日本語"),
+    "en": ("English", "English"),
+    "zh": ("Simplified Chinese", "简体中文"),
+    "zh-TW": ("Traditional Chinese", "繁體中文"),
+    "ko": ("Korean", "한국어"),
+    "fr": ("French", "Français"),
+    "de": ("German", "Deutsch"),
+    "es": ("Spanish", "Español"),
+}
+LANG_NAMES = {code: name for code, (name, _) in LANGUAGES.items()}
+DEFAULT_LANGUAGE = "ja"
+
+
+def counterpart(language: str) -> str:
+    """Where text already in the own language goes."""
+    return "ja" if language == "en" else "en"
 
 # A rewrite is edited in the popup as text, so Markdown marks would show.
 PLAIN_TEXT = "Write plain text with no Markdown: no ** or # marks. Start each list item with ・ ."
@@ -152,7 +177,8 @@ Answer what the message asks, and decide nothing on the user's behalf: where the
 a fact, a date or a yes/no the user has not given, leave a short placeholder in 【】 instead.
 """ + LIGHT_MARKDOWN + "\n"
 
-SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in Japanese,
+# {language} is the own language's name, put in by task_system_prompt.
+SUMMARY_SYSTEM = """You summarize text for the user on their desktop. Output only the summary, in {language},
 whatever the language of the text: a one-line gist, then at most five short bullets, the
 whole well under half the length of the text. Merge related points instead of following the
 text sentence by sentence; where everything looks important, keep what the reader must act on
@@ -203,10 +229,8 @@ EDITS_INTRO = ("Earlier drafts and what the user sent instead. Follow the prefer
 
 
 def load_config() -> dict:
-    if not CONFIG.exists():
-        return {"provider": "anthropic"}
     try:
-        config = tomllib.loads(CONFIG.read_text(encoding="utf-8"))
+        config = tomllib.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
     except tomllib.TOMLDecodeError as e:
         fail(f"設定ファイルを読めません（{CONFIG}）: {e}")
     config.setdefault("provider", "anthropic")
@@ -214,25 +238,179 @@ def load_config() -> dict:
         fail(f"provider は {' か '.join(PROVIDERS)} です（{CONFIG}）。")
     if config["provider"] == "openai" and not config.get("model"):
         fail(f'provider = "openai" には model が要ります（{CONFIG}）。')
+    config.setdefault("language", DEFAULT_LANGUAGE)
+    # A TOML list or table cannot be looked up in a dict at all: type first.
+    if not isinstance(config["language"], str) or config["language"] not in LANG_NAMES:
+        fail(f"language は {', '.join(LANG_NAMES)} のどれかです（{CONFIG}）。")
     return config
 
 
 def api_key(provider: str) -> str:
+    key = stored_key(provider)
+    if key:
+        return key
+    # The command, not just the place: -w with no value asks for the key, so
+    # it never lands in argv or the shell history.
+    fail(f"API キーが未設定です。右上の歯車から入れるか、ターミナルで次を実行してキーを貼ってください。\n\n"
+         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
+
+
+def find_key(provider: str, *flags: str) -> subprocess.CompletedProcess | None:
     # The account names the provider: with only -s, the first of several
     # entries under the service would answer, whichever provider it was for.
     try:
-        key = subprocess.run(
-            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", provider, "-w"],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip()
+        return subprocess.run(["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", provider, *flags],
+                              capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return None
+
+
+def stored_key(provider: str) -> str:
+    """The key in the Keychain, or "" when there is none."""
+    found = find_key(provider, "-w")
+    return found.stdout.strip() if found and found.returncode == 0 else ""
+
+
+def has_key(provider: str) -> bool:
+    # Without -w or -g, security prints the item's attributes, never the key.
+    found = find_key(provider)
+    return bool(found and found.returncode == 0)
+
+
+# The popup's settings form: these keys only, each left out to take the default.
+SETTINGS_KEYS = ("provider", "base_url", "model", "language")
+# What else decides those, for the form to show: the model variable wins over
+# the file (model_for), and each SDK reads its base URL variable when the file
+# names none.
+SETTINGS_ENV = ("DESKTOP_TRANSLATE_MODEL", "ANTHROPIC_BASE_URL", "OPENAI_BASE_URL")
+# The characters API keys and PATs are made of. Nothing else: the key goes
+# inside the quotes of a `security -i` command line, whose parser is not
+# documented, so no character that could end the quote or the command may.
+KEY_PATTERN = re.compile(r"[A-Za-z0-9._~+/=:-]+")
+# Plain http only where the key cannot leave the machine.
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def without_userinfo(url: str) -> str:
+    """The URL as it may be shown on screen: no user:password@."""
+    parts = urllib.parse.urlsplit(url)
+    if "@" not in parts.netloc:
+        return url
+    return parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]).geturl()
+
+
+def current_settings() -> dict:
+    """What the form shows. Never the key: only whether one is stored."""
+    try:
+        config = tomllib.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
+    except tomllib.TOMLDecodeError:
+        config = {}  # the form can still write a fresh one; a run says what is wrong
+    settings = {k: str(config.get(k, "")) for k in SETTINGS_KEYS}
+    settings["keys"] = {p: has_key(p) for p in PROVIDERS}
+    settings["default_model"] = ANTHROPIC_MODEL
+    # [code, label, the counterpart's label], so the form's hint says what instruction() does.
+    settings["languages"] = [[code, label, LANGUAGES[counterpart(code)][1]] for code, (_, label) in LANGUAGES.items()]
+    if settings["language"] not in LANGUAGES:
+        settings["language"] = ""  # the menu shows the default; saving replaces what the run refused
+    # As this process sees them: Hammerspoon starts it with launchctl's
+    # environment, not a shell's, so `echo $X` in a terminal can differ.
+    settings["env"] = {name: without_userinfo(os.environ[name]) for name in SETTINGS_ENV if os.environ.get(name)}
+    return settings
+
+
+def with_top_level(text: str, values: dict) -> str:
+    """config.toml with the top-level keys in values set, or removed where
+    empty. Everything else ([models], comments) stays as written."""
+    lines = text.splitlines()
+    top = next((i for i, line in enumerate(lines) if line.lstrip().startswith("[")), len(lines))
+    head, rest = lines[:top], lines[top:]
+    for key, value in values.items():
+        name = rf"""\s*(?:{key}|"{key}"|'{key}')\s*="""
+        at = next((i for i, line in enumerate(head) if re.match(name, line)), None)
+        if not value:
+            if at is not None:
+                del head[at]
+            continue
+        # JSON's string syntax is a valid TOML basic string.
+        new_line = f"{key} = {json.dumps(value)}"
+        if at is None:
+            while head and not head[-1].strip():
+                head.pop()
+            head.append(new_line)
+            continue
+        # A comment after a one-line string value stays with it.
+        old = re.match(name + r"""\s*(?:"(?:[^"\\]|\\.)*"|'[^']*')\s*(#.*)$""", head[at])
+        head[at] = new_line + (f"  {old[1]}" if old else "")
+    if head and rest and head[-1].strip():
+        head.append("")
+    return "\n".join(head + rest) + "\n"
+
+
+def store_key(provider: str, key: str) -> None:
+    # On stdin, not in argv, where any process listing could read it.
+    command = f'add-generic-password -U -s {KEYCHAIN_SERVICE} -a {provider} -w "{key}"\n'
+    subprocess.run(["security", "-i"], input=command, capture_output=True, text=True, check=False)
+    # security -i exits 0 whether or not its commands worked, and an entry
+    # that was there before proves nothing: read the key back.
+    if stored_key(provider) != key:
+        fail("PAT を Keychain に保存できませんでした。")
+
+
+def check_endpoint(url: str) -> None:
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme == "https" and parts.hostname:
+        return
+    if parts.scheme == "http" and parts.hostname in LOCAL_HOSTS:
+        return
+    fail("endpoint は https:// で始まる URL です（http:// は localhost だけ）。")
+
+
+def save_settings(form: dict) -> None:
+    values = {k: str(form.get(k) or "").strip() for k in SETTINGS_KEYS}
+    key = str(form.get("key") or "").strip()
+    provider = values["provider"] or "anthropic"
+    if provider not in PROVIDERS:
+        fail(f"provider は {' か '.join(PROVIDERS)} です。")
+    if values["provider"] == "anthropic":
+        values["provider"] = ""  # the default, so the file says only what differs
+    if provider == "openai" and not values["model"]:
+        fail("OpenAI 互換の endpoint にはモデル名が要ります。")
+    if values["language"] and values["language"] not in LANG_NAMES:
+        fail(f"言語は {', '.join(LANG_NAMES)} のどれかです。")
+    if values["language"] == DEFAULT_LANGUAGE:
+        values["language"] = ""
+    if values["base_url"]:
+        check_endpoint(values["base_url"])
+    if key and not KEY_PATTERN.fullmatch(key):
+        fail("PAT に使えない文字が入っています（英数字と . _ ~ + / = : - だけ）。")
+    saved = current_settings()
+    # The stored key goes wherever the endpoint points, so moving the endpoint
+    # takes the key typed again: a form filled in by anything but the user
+    # cannot send the key somewhere new.
+    moved = (provider, values["base_url"]) != (saved["provider"] or "anthropic", saved["base_url"])
+    if not key and moved:
+        fail("API か endpoint を変えるときは、PAT も入れ直してください。")
+    if not key and not has_key(provider):
+        fail("PAT を入れてください。")
+    old = CONFIG.read_text(encoding="utf-8") if CONFIG.exists() else ""
+    new = with_top_level(old, values)
+    try:
+        tomllib.loads(new)
+    except tomllib.TOMLDecodeError as e:
+        fail(f"設定ファイルを書き換えられません（{CONFIG}）: {e}")
+    # The file is written first and swapped in last, so a failure anywhere
+    # leaves the old file and the old key together.
+    part = CONFIG.with_name(CONFIG.name + ".part")
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        write_private(part, new)
         if key:
-            return key
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pass
-    # The command, not just the place: -w with no value asks for the key, so
-    # it never lands in argv or the shell history.
-    fail(f"API キーが未設定です。ターミナルで次を実行し、キーを貼ってください。\n\n"
-         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
+            store_key(provider, key)
+        part.replace(CONFIG)  # whole, so a run reading it meanwhile never sees half
+    except OSError as e:
+        fail(f"設定ファイルを書けません（{CONFIG}）: {e}")
+    finally:
+        part.unlink(missing_ok=True)
 
 
 def is_mostly_japanese(text: str) -> bool:
@@ -242,28 +420,38 @@ def is_mostly_japanese(text: str) -> bool:
     return ja > 0 and ja >= latin * 0.3
 
 
-def target_for(text: str | None, forced: str | None) -> str:
+def target_for(text: str | None, forced: str | None, language: str = DEFAULT_LANGUAGE) -> str:
+    """The language to translate into, or "auto" for the model to choose.
+
+    Japanese is told apart here, by script, so the model is told one target;
+    an image, or any other own language, leaves the choice to the model.
+    """
     if forced:
         return forced
-    if text is None:  # an image: only the model can see which language it is
+    if text is None or language != "ja":
         return "auto"
     return "en" if is_mostly_japanese(text) else "ja"
 
 
-def instruction(target: str) -> str:
-    if target == "auto":
-        return ("Translate the text in this image. If it is mostly Japanese, translate into "
-                "English; otherwise translate into Japanese. If there is no text, say so in Japanese.")
-    return f"Translate the following into {LANG_NAMES[target]}."
+def instruction(target: str, language: str = DEFAULT_LANGUAGE, image: bool = False) -> str:
+    if target != "auto":
+        return f"Translate the following into {LANG_NAMES[target]}."
+    own = LANG_NAMES[language]
+    other = LANG_NAMES[counterpart(language)]
+    rule = f"If it is mostly {own}, translate into {other}; otherwise translate into {own}."
+    if image:
+        return f"Translate the text in this image. {rule} If there is no text, say so in {own}."
+    return f"Translate the following. {rule}"
 
 
-def task_system_prompt(task: Task) -> str:
+def task_system_prompt(task: Task, language: str = DEFAULT_LANGUAGE) -> str:
+    system = task.system.replace("{language}", LANG_NAMES[language])
     if not task.needs_style:
-        return task.system
+        return system
     if STYLE.exists():
-        prompt = task.system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
+        prompt = system + "\n" + VOICE + STYLE.read_text(encoding="utf-8").strip()
     elif task.plain_voice:
-        prompt = task.system + "\n" + task.plain_voice
+        prompt = system + "\n" + task.plain_voice
     else:
         fail(f"文体メモがありません（{STYLE}）。自分の文面の特徴と手本を数通書いてください。")
     edits = recent_edits() if task.learns_edits else []
@@ -586,6 +774,20 @@ def main() -> None:
     if args.record_edit:
         record_edit(sys.stdin.read())
         return
+    if args.settings:
+        print(json.dumps(current_settings()))
+        return
+    if args.save_settings:
+        try:
+            try:
+                form = json.loads(sys.stdin.read())
+            except json.JSONDecodeError as e:
+                fail(f"設定を読めません: {e}")
+            save_settings(form if isinstance(form, dict) else {})
+        except Failed as e:
+            print(e, file=sys.stderr)  # the popup shows it; no notification on top
+            sys.exit(1)
+        return
     ready = ready or Prepared()
     try:
         run(args, ready)
@@ -614,24 +816,31 @@ def parser() -> argparse.ArgumentParser:
     source.add_argument("--reply", dest="task", action="store_const", const="reply",
                         help="draft a reply to a message, in the user's style")
     source.add_argument("--summarize", dest="task", action="store_const", const="summarize",
-                        help="summarize the text in Japanese")
+                        help="summarize the text in your own language")
     source.add_argument("--proofread", dest="task", action="store_const", const="proofread",
                         help="fix typos and wrong words, nothing else")
     source.add_argument("--diagram", dest="task", action="store_const", const="diagram",
                         help="draw the text as one SVG diagram")
-    p.add_argument("--to", choices=["ja", "en"], help="target language (default: automatic)")
+    p.add_argument("--to", choices=list(LANG_NAMES), help="target language (default: automatic)")
     p.add_argument("--quiet", action="store_true", help="no dialog")
     p.add_argument("--timing", action="store_true", help="say on stderr how long each stage took")
     p.add_argument("--best", action="store_true", help="use the default model, not the job's faster one")
     p.add_argument("--record-edit", action="store_true",
                    help="log the last rewrite as the user edited it (the edited text on stdin)")
+    p.add_argument("--settings", action="store_true",
+                   help="print provider, base_url and model as JSON, and whether each provider's key is stored")
+    p.add_argument("--save-settings", action="store_true",
+                   help="save the JSON on stdin: provider, base_url, model (empty: the default), key (empty: keep)")
     return p
 
 
 def run(args, ready: Prepared) -> None:
+    # Read here as well as in Prepared: the instruction is written before the
+    # client is ready, and a TOML read is far quicker than the SDK import.
+    language = load_config()["language"]
     if args.task:
         task = TASKS[args.task]
-        system = task_system_prompt(task)
+        system = task_system_prompt(task, language)
         text = read_text(args)
         if not text.strip():
             fail(task.empty)
@@ -655,7 +864,8 @@ def run(args, ready: Prepared) -> None:
         if path is None:
             return  # region selection cancelled with Esc
         try:
-            content = [image_block(path), {"type": "text", "text": instruction(target_for(None, args.to))}]
+            ask = instruction(target_for(None, args.to, language), language, image=True)
+            content = [image_block(path), {"type": "text", "text": ask}]
         finally:
             if args.screen:
                 path.unlink()
@@ -663,7 +873,8 @@ def run(args, ready: Prepared) -> None:
         text = read_text(args)
         if not text.strip():
             fail("訳す文がありません。")
-        content = [{"type": "text", "text": f"{instruction(target_for(text, args.to))}\n\n{text}"}]
+        ask = instruction(target_for(text, args.to, language), language)
+        content = [{"type": "text", "text": f"{ask}\n\n{text}"}]
 
     show(translate(content, system_prompt(), ready, "translate", args.best), args.quiet, "翻訳")
 

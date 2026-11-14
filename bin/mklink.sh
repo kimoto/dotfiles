@@ -99,6 +99,8 @@ for agent in "$BASE_DIR"/claudecode/agents/*.md; do
     ln -nsf "$agent" "$dest"
 done
 
+"$BASE_DIR/bin/prune_claude_links.sh" "$HOME/.claude"
+
 # claude-hud's look. Only the file: the directory also holds its caches. A real
 # file there is this machine's until someone moves it in by hand.
 mkdir -p ./.claude/plugins/claude-hud

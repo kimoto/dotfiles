@@ -65,6 +65,16 @@
       "description": "The Neovim release CI tests against, which it downloads rather than installs from a package manager."
     }
   ],
+  "pip-compile": {
+    "description": "The translator's Python deps. Renovate bumps the pins in hammerspoon/requirements.in (7-day age) and regenerates this lock, hashes included; indirect deps resolve to whatever PyPI has at that moment.",
+    "managerFilePatterns": [
+      "/^hammerspoon/requirements\\.txt$/"
+    ]
+  },
+  "pip_requirements": {
+    "description": "Off: its only match is the lock above, which pip-compile owns; a second manager would bump versions without regenerating the hashes.",
+    "enabled": false
+  },
   "packageRules": [
     {
       "description": "Commit types must pass bin/check_commit_msgs_range.sh.",

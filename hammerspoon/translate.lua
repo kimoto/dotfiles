@@ -1,14 +1,10 @@
--- DeepL's shortcuts, answered by translate.py (Claude) instead of the DeepL
--- app. Why, and the one-time setup: the header of translate.py.
+-- A translation popup like the DeepL app's, answered by translate.py
+-- (Claude). Why, and the one-time setup: the header of translate.py.
 -- NOTE: keybindings below are documented in KEYBINDINGS.md ("Translation") —
 -- update it when they change.
 
 local PYTHON = os.getenv("HOME") .. "/.local/share/desktop-translate/bin/python"
 local SCRIPT = hs.configdir .. "/translate.py"
--- The second C must come within this many seconds to count as ⌘C+C.
-local DOUBLE_PRESS = 0.5
--- The first ⌘C is a real copy; give the app time to fill the clipboard.
-local CLIPBOARD_WAIT = 0.15
 -- How long a sent ⌘C may take to reach the clipboard before "nothing was
 -- selected" is the better guess than "the app is slow".
 local COPY_TIMEOUT = 0.5
@@ -50,7 +46,7 @@ html, body { margin: 0; background: transparent; }
 .card { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
   overflow: hidden; font: 15px/1.65 -apple-system, "Hiragino Sans", sans-serif; }
 header { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 16px;
-  border-bottom: 1px solid var(--line); -webkit-user-select: none; cursor: default; }
+  border-bottom: 1px solid var(--line); -webkit-user-select: none; cursor: grab; }
 .title { font-weight: 600; font-size: 13px; }
 .status { flex: 1; font-size: 12px; color: var(--muted); }
 .status.busy::after { content: ""; display: inline-block; width: 9px; height: 9px; margin-left: 6px;
@@ -86,6 +82,19 @@ nav { display: flex; gap: 2px; padding: 4px 10px; border-bottom: 1px solid var(-
 nav[hidden] { display: none; }
 nav button { width: auto; height: 24px; padding: 0 8px; font-size: 12px; }
 nav button.current { background: var(--hover); color: var(--fg); font-weight: 600; cursor: default; }
+form { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; padding: 14px 18px 16px;
+  font-size: 13px; }
+form[hidden] { display: none; }
+form label { color: var(--muted); }
+form input, form select { font: 13px -apple-system, sans-serif; padding: 5px 8px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--fg); min-width: 0; }
+form .note { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin: 0; }
+form .note.error { color: var(--err); }
+form .hint { grid-column: 2; margin: -4px 0 0; font-size: 11px; color: var(--muted); }
+form .hint[hidden] { display: none; }
+form .actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+form .actions button { width: auto; height: auto; padding: 5px 14px; border: 1px solid var(--line); color: var(--fg); }
+form .actions button[type=submit] { background: var(--fg); color: var(--bg); }
 </style></head><body><div class="card">
 <header>
   <span class="title">{{TITLE}}</span><span class="status busy" id="status"></span>
@@ -93,10 +102,31 @@ nav button.current { background: var(--hover); color: var(--fg); font-weight: 60
     <path d="M20 4v5h-5"/></svg></button>
   <button id="copy" title="コピー"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
+  <button id="gear" title="設定（endpoint・PAT）"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73
+      l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38
+      a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18
+      a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08
+      a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08
+      a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg></button>
   <button id="close" title="閉じる（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
 <nav id="tabs" hidden></nav>
 <main id="text"></main>
+<form id="settings" hidden autocomplete="off">
+  <label for="s-language">表示言語</label><select id="s-language"></select>
+  <p class="hint" id="s-language-hint"></p>
+  <label for="s-provider">API</label>
+  <select id="s-provider"><option value="anthropic">Anthropic</option>
+    <option value="openai">OpenAI 互換（Responses API）</option></select>
+  <label for="s-base">endpoint</label><input id="s-base" placeholder="空欄で標準">
+  <p class="hint" id="s-base-env" hidden></p>
+  <label for="s-model">モデル</label><input id="s-model">
+  <p class="hint" id="s-model-env" hidden></p>
+  <label for="s-key">PAT</label><input id="s-key" type="password">
+  <p class="note" id="s-note">PAT 以外は空欄で標準の値を使います。</p>
+  <div class="actions"><button type="button" id="s-cancel">戻る</button><button type="submit">保存</button></div>
+</form>
 </div><script>
 const post = (m) => window.webkit.messageHandlers.translate.postMessage(m);
 const fit = () => post({ height: Math.ceil(document.querySelector('.card').getBoundingClientRect().height) });
@@ -187,6 +217,101 @@ copy.onclick = (e) => {
 };
 document.getElementById('close').onclick = () => post({ close: true });
 document.getElementById('best').onclick = () => post({ best: true });
+// The window has no title bar, so the header is what moves it; Lua follows the
+// mouse from here until the button is let go.
+document.querySelector('header').onmousedown = (e) => {
+  if (e.button === 0 && !e.target.closest('button')) post({ drag: { x: e.clientX, y: e.clientY } });
+};
+// The form replaces the answer until saved or left; the answer is kept in Lua.
+const form = document.getElementById('settings');
+const field = (id) => document.getElementById('s-' + id);
+let current = null;
+// Set by the gear, cleared by 戻る: settings read after the form was left
+// must not bring it back.
+let settingsWanted = false;
+// A value an environment variable decides is shown with the variable's name.
+// The fields stay the file's own, which is what saving writes.
+const MODEL_VAR = 'DESKTOP_TRANSLATE_MODEL';
+function hint(id, text) {
+  field(id).textContent = text || '';
+  field(id).hidden = !text;
+}
+function placeholders() {
+  const provider = field('provider').value;
+  const openai = provider === 'openai';
+  const urlVar = openai ? 'OPENAI_BASE_URL' : 'ANTHROPIC_BASE_URL';
+  const envUrl = current.env[urlVar];
+  field('base').placeholder = envUrl || '空欄で標準';
+  hint('base-env', envUrl && '空欄のときは環境変数 ' + urlVar + ' の値を使います');
+  field('model').placeholder = openai ? '必須' : '空欄で標準（' + current.default_model + '）';
+  // translate.py refuses a moved endpoint without the key typed again.
+  const moved = provider !== (current.provider || 'anthropic') || field('base').value.trim() !== current.base_url;
+  field('key').placeholder = moved ? '必須（API か endpoint を変えたため）'
+    : current.keys[provider] ? '保存済み（変えるときだけ入力）' : '必須';
+  fit();
+}
+function showSettings(settings) {
+  if (!settingsWanted) return;
+  current = settings;
+  current.env = current.env || {};
+  const envModel = current.env[MODEL_VAR];
+  // The menu comes from translate.py, the one list of languages it knows.
+  field('language').replaceChildren(...settings.languages.map(([code, label]) => new Option(label, code)));
+  field('language').value = settings.language;
+  if (field('language').selectedIndex < 0) field('language').selectedIndex = 0;
+  languageHint();
+  field('provider').value = settings.provider || 'anthropic';
+  field('base').value = settings.base_url;
+  field('model').value = settings.model;
+  hint('model-env', envModel && 'いまは環境変数 ' + MODEL_VAR + '（' + envModel + '）が優先されます');
+  field('key').value = '';
+  placeholders();
+  settingsNote('PAT 以外は空欄で標準の値を使います。', false);
+  t.hidden = true;
+  document.getElementById('tabs').hidden = true;
+  form.hidden = false;
+  field('base').focus();
+  fit();
+}
+const save = form.querySelector('button[type=submit]');
+function settingsNote(text, error) {
+  const n = field('note');
+  n.textContent = text;
+  n.className = 'note' + (error ? ' error' : '');
+  save.disabled = false;
+  fit();
+}
+function hideSettings() {
+  settingsWanted = false;
+  save.disabled = false;
+  form.hidden = true;
+  t.hidden = false;
+  document.getElementById('tabs').hidden = !tabs;
+  fit();
+}
+function showStatus(text, kind) {
+  const s = document.getElementById('status');
+  s.textContent = text;
+  s.className = 'status ' + kind;
+}
+function languageHint() {
+  const [, own, other] = current.languages[field('language').selectedIndex];
+  hint('language-hint', '翻訳と要約は' + own + 'で出ます。' + own + 'の文は' + other + 'に訳します。');
+  fit();
+}
+field('language').onchange = languageHint;
+field('provider').onchange = placeholders;
+field('base').oninput = placeholders;
+document.getElementById('gear').onclick = () => { settingsWanted = true; post({ settings: true }); };
+field('cancel').onclick = () => { hideSettings(); post({ settingsClosed: true }); };
+form.onsubmit = (e) => {
+  e.preventDefault();
+  if (save.disabled) return;
+  settingsNote('保存しています…', false);
+  save.disabled = true;
+  post({ saveSettings: { language: field('language').value, provider: field('provider').value,
+    base_url: field('base').value, model: field('model').value, key: field('key').value } });
+};
 post({ ready: true });
 </script></body></html>
 ]]
@@ -204,7 +329,47 @@ translatePopup = nil
 translatePopupEsc = nil
 local popup = { text = "", status = "", kind = "", svg = false, ready = false }
 
+-- Follows the mouse with the popup while the button that grabbed its header
+-- is down. A global, like translatePopupEsc: a local would be collected.
+translatePopupDrag = nil
+local function stopDrag()
+   if translatePopupDrag then translatePopupDrag:stop() end
+   translatePopupDrag = nil
+end
+
+-- How much of the header stays on screen, so the popup can always be grabbed again.
+local DRAG_MARGIN = 60
+
+local function clamp(v, lo, hi)
+   return math.max(lo, math.min(v, hi))
+end
+
+-- `grip` is where in the popup the header was pressed, as the page saw it:
+-- the popup keeps that point under the mouse however late this runs.
+local function startDrag(view, grip)
+   stopDrag()
+   -- Let go before this ran: a watcher started now would wait for a release
+   -- that already happened, and move the popup on the next drag anywhere.
+   if not hs.eventtap.checkMouseButtons().left then return end
+   local types = hs.eventtap.event.types
+   translatePopupDrag = hs.eventtap.new({ types.leftMouseDragged, types.leftMouseUp }, function(e)
+      if e:getType() == types.leftMouseUp then
+         stopDrag()
+         return false
+      end
+      local mouse = hs.mouse.absolutePosition()
+      local screen = (hs.mouse.getCurrentScreen() or hs.screen.mainScreen()):frame()
+      local w = view:frame().w
+      view:topLeft({
+         x = clamp(mouse.x - grip.x, screen.x + DRAG_MARGIN - w, screen.x + screen.w - DRAG_MARGIN),
+         y = clamp(mouse.y - grip.y, screen.y, screen.y + screen.h - DRAG_MARGIN),
+      })
+      return false
+   end):start()
+end
+
 local function closePopup()
+   stopDrag()
    if translatePopupEsc then translatePopupEsc:stop() end
    if translatePopup then translatePopup:delete() end
    translatePopupEsc, translatePopup = nil, nil
@@ -286,6 +451,72 @@ local function recordEdit(text)
    if translateEditTask:start() then translateEditTask:closeInput() end
 end
 
+local function trim(s)
+   return (s:gsub("%s+$", ""))
+end
+
+-- The settings form's round trips to translate.py: it owns the config file
+-- and the Keychain entry, so the form never parses or stores either.
+-- Each running task is held here until it answers: a task nothing refers to
+-- can be collected before its callback, and a second click must not drop the
+-- first one's.
+translateSettingsTasks = {}
+local function settingsCall(args, input, done)
+   local cannotStart = PYTHON .. " を起動できません。準備の手順は translate.py の先頭にあります。"
+   local task
+   task = hs.task.new(PYTHON, function(...)
+      translateSettingsTasks[task] = nil
+      done(...)
+   end, args)
+   if not task then return done(-1, "", cannotStart) end
+   -- Input first: given after start(), it never reaches the child's stdin.
+   -- The PAT goes this way, never in argv.
+   if input then task:setInput(input) end
+   if not task:start() then return done(-1, "", cannotStart) end
+   translateSettingsTasks[task] = true
+   if input then task:closeInput() end
+end
+
+-- Only the status line: the answer under the form stays as it is, edits and all.
+local function settingsStatus(view, text, kind)
+   view:evaluateJavaScript("showStatus(..." .. hs.json.encode({ text, kind }) .. ")")
+end
+
+local function openSettings(view, mode)
+   -- The form takes typing even where the answer itself is not editable.
+   view:allowTextEntry(true)
+   settingsCall({ SCRIPT, "--settings" }, nil, function(code, stdout, stderr)
+      if translatePopup ~= view then return end
+      if code ~= 0 then
+         view:allowTextEntry(mode.editable)
+         settingsStatus(view, "設定を読めません: " .. trim(stderr), "error")
+         return
+      end
+      view:evaluateJavaScript("showSettings(" .. stdout .. ")")
+   end)
+end
+
+local function saveSettings(view, mode, form)
+   settingsCall({ SCRIPT, "--save-settings" }, hs.json.encode(form), function(code, _, stderr)
+      if translatePopup ~= view then return end
+      if code ~= 0 then
+         local reason = trim(stderr)
+         if reason == "" then reason = "保存できませんでした（終了コード " .. code .. "）。" end
+         view:evaluateJavaScript("settingsNote(..." .. hs.json.encode({ reason, true }) .. ")")
+         return
+      end
+      view:allowTextEntry(mode.editable)
+      view:evaluateJavaScript("hideSettings()")
+      if popup.kind == "error" then
+         -- The failure was most likely the key just saved; "info", not "done",
+         -- so a summary's popup does not copy this line as its answer.
+         setPopup("設定を保存しました。もう一度キーを押してください。", "保存しました", "info")
+      elseif popup.kind ~= "busy" then  -- a run still streaming keeps its spinner
+         settingsStatus(view, "設定を保存しました", "done")
+      end
+   end)
+end
+
 local run  -- below; the popup's retry button and tabs start it again
 
 -- The arguments that run `job` on `source` itself, not on the clipboard: by
@@ -361,6 +592,15 @@ local function openPopup(mode, source, at)
          if source and MODES[body.job] then
             run(jobArgs(body.job, source), MODES[body.job], nil, translatePopup:frame())
          end
+      elseif body.settings then
+         openSettings(view, mode)
+      elseif body.settingsClosed then
+         view:allowTextEntry(mode.editable)
+      elseif body.saveSettings then
+         saveSettings(view, mode, body.saveSettings)
+      elseif body.drag then
+         local grip = type(body.drag) == "table" and body.drag
+         if grip and type(grip.x) == "number" and type(grip.y) == "number" then startDrag(view, grip) end
       elseif body.close then
          closePopup()
       end
@@ -545,20 +785,6 @@ function run(args, mode, ready, at)
    end
 end
 
-local function chooseLanguageThen(args, ready)
-   local chooser = hs.chooser.new(function(choice)
-      if not choice then return ready.cancel() end
-      local argv = { "--to", choice.lang }
-      for _, a in ipairs(args) do table.insert(argv, a) end
-      run(argv, nil, ready)
-   end)
-   chooser:choices({
-      { text = "日本語へ", lang = "ja" },
-      { text = "英語へ", lang = "en" },
-   })
-   chooser:show()
-end
-
 -- Copy the selection, then hand it on. Waiting on the clipboard's change
 -- count, not a fixed delay: with nothing selected ⌘C changes nothing, and
 -- working on whatever was copied before would answer the wrong question.
@@ -616,33 +842,6 @@ local function whereSelected()
    local focused = hs.axuielement.systemWideElement():attributeValue("AXFocusedUIElement")
    return app and app:bundleID(), focused and focused:attributeValue("AXRole")
 end
-
-local lastCopy = 0
-local C = hs.keycodes.map["c"]
-local AUTOREPEAT = hs.eventtap.event.properties.keyboardEventAutorepeat
-
--- ⌘C+C is two presses of C with ⌘ held, which hs.hotkey cannot express, so
--- watch every keyDown and let it through untouched: the copy still happens.
--- A global, like the watchers in init.lua: a local would be collected.
-translateCopyWatcher = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(e)
-   if e:getKeyCode() ~= C or e:getProperty(AUTOREPEAT) ~= 0 then return false end
-   local flags = e:getFlags()
-   if not flags.cmd or flags.alt or flags.ctrl then return false end
-
-   local now = hs.timer.secondsSinceEpoch()
-   if now - lastCopy < DOUBLE_PRESS then
-      lastCopy = 0
-      local shift = flags.shift
-      local ready = prepare()
-      hs.timer.doAfter(CLIPBOARD_WAIT, function()
-         if shift then chooseLanguageThen({ "--clipboard" }, ready) else run({ "--clipboard" }, nil, ready) end
-      end)
-   else
-      lastCopy = now
-   end
-   return false
-end)
-translateCopyWatcher:start()
 
 -- On release, not press, so the ⌘C sent does not land while D is still down.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "d", nil, translateSelection)

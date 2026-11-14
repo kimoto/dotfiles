@@ -62,6 +62,13 @@ teardown() {
   [[ "$output" == *"[Layer One] A | do alpha"* ]]
 }
 
+@test "shows a key cell's escaped pipe as the | key" {
+  printf '%s\n' '' '## Pipes' '' '| Key | Action |' '|-----|--------|' '| prefix + \| | split |' >>"$DOC"
+  KEYBINDINGS_MD="$DOC" run "$SCRIPT" --list
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[Pipes] prefix + | | split"* ]]
+}
+
 @test "appends the subsection to the layer when there is one" {
   KEYBINDINGS_MD="$DOC" run "$SCRIPT" --list
   [ "$status" -eq 0 ]

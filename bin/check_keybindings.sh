@@ -1,16 +1,18 @@
 #!/bin/bash
 
-# Pins KEYBINDINGS.md's "Terminal" and "AeroSpace" tables against
-# config/ghostty/config's `keybind = ` lines and .aerospace.toml's
-# `key = command` bindings, so a renamed or removed keybind fails here
-# instead of leaving the reference quietly wrong — the failure mode
-# claudecode/rules/tooling.md names: a rule held up by remembering.
+# Pins six of KEYBINDINGS.md's tables against the configs that bind their
+# keys: Terminal (config/ghostty/config's `keybind = ` lines), AeroSpace and
+# Service mode (.aerospace.toml's `key = command` bindings), tmux's With
+# prefix and Copy mode (.tmux.conf), and Text editing (hammerspoon/init.lua's
+# remaps, in one direction: the rest of that table is macOS built-in). A
+# renamed or removed keybind fails here instead of leaving the reference
+# quietly wrong — the failure mode claudecode/rules/tooling.md names: a rule
+# held up by remembering.
 #
-# Four layers of #249 so far (Ghostty, AeroSpace, tmux's prefix and
-# copy-mode tables, and Hammerspoon). tmux's root table is not covered: its
-# rows name the Mac keys (⌘, ⌥⌘) that Ghostty translates before tmux sees
-# them, so checking it needs that translation, not just .tmux.conf. zsh and
-# Neovim are not covered yet; each needs its own per-syntax key extraction.
+# Not covered yet (#249): tmux's root table, whose rows name the Mac keys
+# (⌘, ⌥⌘) that Ghostty translates before tmux sees them, so checking it needs
+# that translation, not just .tmux.conf; zsh and Neovim, each of which needs
+# its own per-syntax key extraction; and the tables no config here binds.
 
 set -euo pipefail
 
@@ -38,7 +40,6 @@ TMUX_PREFIX_BOUND_ELSEWHERE=(
   "*"     # tmux 3.7's own default: new floating pane
   "f"     # config/tmux-agent-status/agent-status.tmux, its own default key
   "F"     # tmux-fzf's default key
-  "\\"    # tmux-menus' default trigger
   "Enter" # tmux-menus' second default trigger
   "C-s"   # tmux-resurrect's default save key
   "C-r"   # tmux-resurrect's default restore key
@@ -219,8 +220,11 @@ hammerspoon_configured_keys() {
 # Case is kept: tmux binds m and M separately.
 tmux_canon() {
   local k="$1"
-  k="${k#[\"\']}"
-  k="${k%[\"\']}"
+  # A lone quote is the key itself (the doc's `prefix + "`), not quoting.
+  if [ "${#k}" -gt 1 ]; then
+    k="${k#[\"\']}"
+    k="${k%[\"\']}"
+  fi
   k="${k/#Ctrl-/C-}"
   printf '%s\n' "$k"
 }
@@ -263,7 +267,8 @@ table_cells() {
   if [ -n "$exclude_re" ]; then
     rows="$(grep -v -E "$exclude_re" <<<"$rows")"
   fi
-  sed -E 's/^\| *([^|]+) *\|.*/\1/' <<<"$rows" | sed -E 's/ *$//'
+  # A key cell can hold the | key only escaped, as \|, which must not end it.
+  sed -E 's/\\\|/@PIPE@/g; s/^\| *([^|]+) *\|.*/\1/' <<<"$rows" | sed -E 's/ *$//; s/@PIPE@/|/g'
 }
 
 # The Terminal table's documented keys, one canonical key per line. Rows

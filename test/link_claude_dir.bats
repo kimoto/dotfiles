@@ -88,7 +88,7 @@ teardown() {
   # Retiring a rule must not read as a broken link.
   fake_repo="$HOME_SANDBOX/repo"
   mkdir -p "$fake_repo/bin" "$fake_repo/claudecode/rules" "$fake_repo/claudecode/skills"
-  cp "$LINK" "$fake_repo/bin/"
+  cp "$LINK" "$REPO_ROOT/bin/prune_claude_links.sh" "$fake_repo/bin/"
   : >"$fake_repo/claudecode/rules/something-else.md"
 
   HOME="$HOME_SANDBOX" run "$fake_repo/bin/link_claude_dir.sh"
@@ -190,4 +190,37 @@ teardown() {
   [[ "$output" == *"ok   cloud settings"* ]]
   [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" \
       = "$REPO_ROOT/claudecode/settings-cloud.json" ]
+}
+
+@test "a link to a skill or agent since removed from the repo is taken down" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills" "$HOME_SANDBOX/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+  ln -s "$REPO_ROOT/claudecode/agents/retired-agent.md" \
+    "$HOME_SANDBOX/.claude/agents/retired-agent.md"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
+  [ ! -L "$HOME_SANDBOX/.claude/agents/retired-agent.md" ]
+}
+
+@test "a broken link that points outside the repo is left alone" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills"
+  ln -s "$HOME_SANDBOX/elsewhere/their-skill" \
+    "$HOME_SANDBOX/.claude/skills/their-skill"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/skills/their-skill" ]
+}
+
+@test "a broken link from another checkout of this repo is taken down too" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills"
+  ln -s "$HOME_SANDBOX/other-clone/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+
+  HOME="$HOME_SANDBOX" run "$LINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
 }

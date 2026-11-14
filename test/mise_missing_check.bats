@@ -13,6 +13,9 @@ setup() {
   STUB_DIR="$TMP/bin"
   mkdir -p "$STUB_DIR"
   PATH="$STUB_DIR:$PATH"
+  PIN=$(sed -n 's/^MISE_VERSION=.*:-\([^}]*\)}.*/\1/p' \
+    "$REPO_ROOT/bin/install_check_tools.sh")
+  [ -n "$PIN" ]
 }
 
 # Each run leaves a detached job that writes a temp file and renames it into
@@ -27,8 +30,9 @@ teardown() {
   rm -rf "$TMP"
 }
 
-# $1 is what `--missing` prints. Bare `ls` answers with an installed tool, so
-# dropping the flag is caught here and not on a machine that then always warns.
+# $1 is what `--missing` prints, $2 what `--version` names (CI's pin if unset).
+# Bare `ls` answers with an installed tool, so dropping the flag is caught here
+# and not on a machine that then always warns.
 #
 # Each call gets its own directory prepended to PATH rather than rewriting
 # $STUB_DIR/mise in place: the script under test backgrounds and detaches a
@@ -41,6 +45,7 @@ stub_mise() {
   cat >"$dir/mise" <<EOF
 #!/bin/bash
 case " \$* " in
+  *" --version "*) printf '%s linux-x64 (2026-10-17)\n' "${2:-$PIN}" ;;
   *" --missing "*) printf '%s' "$1" ;;
   *)               printf 'go  1.27.1  ~/.config/mise/config.toml  latest\n' ;;
 esac
@@ -91,6 +96,31 @@ node  26.8.2 (missing)  ~/.config/mise/config.toml  latest'
   stub_mise ''
   run "$SCRIPT"; wait_for '[ ! -s "$CACHE/mise_missing" ]'
   run "$SCRIPT"
+  [ -z "$output" ]
+}
+
+@test "a mise other than CI's pinned release warns, naming both" {
+  stub_mise '' 2026.9.1
+  run "$SCRIPT"; wait_for '[ -s "$CACHE/mise_missing" ]'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"2026.9.1 here, $PIN in CI"* ]]
+}
+
+@test "missing tools and a version drift are both reported" {
+  stub_mise 'go 1.27.1 (missing) config latest' 2026.9.1
+  run "$SCRIPT"; wait_for '[ -s "$CACHE/mise_missing" ]'
+  run "$SCRIPT"
+  [[ "$output" == *"1 tool"* ]]
+  [[ "$output" == *"2026.9.1 here"* ]]
+}
+
+@test "no pin to compare against is silent" {
+  mkdir -p "$TMP/nopin"
+  cp "$SCRIPT" "$TMP/nopin/"
+  stub_mise '' 2026.9.1
+  run "$TMP/nopin/mise_missing_check.sh"; wait_for '[ -f "$CACHE/mise_missing" ]'
+  run "$TMP/nopin/mise_missing_check.sh"
   [ -z "$output" ]
 }
 

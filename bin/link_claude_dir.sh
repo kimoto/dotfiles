@@ -77,6 +77,11 @@ done
 # A failed link looks like one that worked; silence is the failure mode.
 missing=0
 
+if ! "$BASE_DIR/bin/prune_claude_links.sh" "$CLAUDE_DIR" >/dev/null; then
+  echo "  MISS broken links left in $CLAUDE_DIR" >&2
+  missing=1
+fi
+
 # Any .md: retiring a rule must not read as a broken link.
 report_rules() {
   if [ -n "$(find "$2/" -maxdepth 1 -name '*.md' -print -quit 2>/dev/null)" ]; then

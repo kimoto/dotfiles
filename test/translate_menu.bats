@@ -5,7 +5,8 @@
 # must hold: ⌃⌘⇧W guesses the job from where the selection is and runs it on
 # the clipboard, each popup tab reruns the copied text as its own job under its
 # own title, and a diagram never shows as SVG markup, ends in a reason when it
-# fails, and is pasted as an image. The popup's look and the real keys are
+# fails, and is pasted as an image; the gear's form hands the PAT over on
+# stdin, never in argv. The popup's look and the real keys are
 # checked by hand on a Mac.
 
 setup() {
@@ -439,4 +440,204 @@ diagram() {
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = 0 ]
   [ "${lines[1]}" = 'append(...["あ"])' ]
+}
+
+@test "the gear reads the settings into the form, and saving sends the PAT on stdin, never argv" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ settings = true })
+    local read = stub.tasks[#stub.tasks]
+    print(table.concat(read.argv, ' '):match('%-%-%S+$'), tostring(view.textEntry))
+    read.done(0, '{\"model\":\"\"}', '')
+    print(view.updates[#view.updates])
+    view:post({ saveSettings = { provider = 'anthropic', base_url = '', model = '', key = 'sk-1' } })
+    local save = stub.tasks[#stub.tasks]
+    print(table.concat(save.argv, ' '):match('%-%-%S+$'), save.input, tostring(save.closed))
+    print(tostring(table.concat(save.argv, ' '):find('sk%-1')))
+    save.done(1, '', 'PAT を入れてください。\n')
+    print(view.updates[#view.updates])
+    save.done(0, '', '')
+    print(view.updates[#view.updates], tostring(view.textEntry))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf -- '--settings\ttrue')" ]
+  [ "${lines[1]}" = 'showSettings({"model":""})' ]
+  local form='{"base_url":"","key":"sk-1","model":"","provider":"anthropic"}'
+  [ "${lines[2]}" = "$(printf -- '--save-settings\t%s\ttrue' "$form")" ]
+  [ "${lines[3]}" = nil ]
+  [ "${lines[4]}" = 'settingsNote(...["PAT を入れてください。",true])' ]
+  [ "${lines[5]}" = "$(printf 'hideSettings()\tfalse')" ]
+}
+
+# A translation in the state `how` leaves it (done, error, busy), on a ready
+# page, then the gear and a save that succeeds; prints the page's last call.
+save_after() {
+  drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    local how = '$1'
+    if how == 'done' then stub.tasks[1].done(0, 'ANSWER', '') end
+    if how == 'error' then stub.tasks[1].done(1, '', 'API キーが未設定です。') end
+    view:post({ settings = true })
+    stub.tasks[#stub.tasks].done(0, '{}', '')
+    local sent = #view.updates
+    view:post({ saveSettings = { key = 'k' } })
+    stub.tasks[#stub.tasks].done(0, '', '')
+    for i = sent + 1, #view.updates do print(view.updates[i]) end"
+}
+
+@test "a save leaves the answer under the form as it is, and says so on the status line only" {
+  run save_after done
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '%s\n' 'hideSettings()' 'showStatus(...["設定を保存しました","done"])')" ]
+}
+
+@test "a save after a failed run replaces the failure, without making it an answer to copy" {
+  run save_after error
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 'hideSettings()' ]
+  [ "${lines[1]}" = 'update(...["設定を保存しました。もう一度キーを押してください。","保存しました","info",false,false])' ]
+}
+
+@test "a save while the answer still streams leaves its spinner" {
+  run save_after busy
+  [ "$status" -eq 0 ]
+  [ "$output" = 'hideSettings()' ]
+}
+
+@test "settings that cannot be read keep the answer, and the popup stops taking typing" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ ready = true })
+    stub.tasks[1].done(0, 'ANSWER', '')
+    local sent = #view.updates
+    view:post({ settings = true })
+    stub.tasks[#stub.tasks].done(1, '', 'boom\n')
+    print(#view.updates - sent, view.updates[#view.updates], tostring(view.textEntry))"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '1\tshowStatus(...["設定を読めません: boom","error"])\tfalse')" ]
+}
+
+@test "leaving the form gives the keyboard back, and a second save does not drop the first" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ settings = true })
+    view:post({ settingsClosed = true })
+    print(tostring(view.textEntry))
+    view:post({ saveSettings = { key = 'a' } })
+    local first = stub.tasks[#stub.tasks]
+    view:post({ saveSettings = { key = 'b' } })
+    local held = 0
+    for _ in pairs(translateSettingsTasks) do held = held + 1 end
+    first.done(0, '', '')
+    local left = 0
+    for _ in pairs(translateSettingsTasks) do left = left + 1 end
+    print(held, left)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = false ]
+  [ "${lines[1]}" = "$(printf '3\t2')" ]
+}
+
+# Opens a popup, presses its header 20 px in and 10 px down, then runs the Lua
+# in $1 with `view`, `tap` (the drag's watcher) and move(x, y) / release().
+drag() {
+  drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    view:post({ drag = { x = 20, y = 10 } })
+    local tap = stub.taps[#stub.taps]
+    local types = hs.eventtap.event.types
+    local function send(type) tap.fn({ getType = function() return type end }) end
+    local function move(x, y) stub.mouse = { x = x, y = y }; send(types.leftMouseDragged) end
+    local function release() send(types.leftMouseUp) end
+    $1"
+}
+
+@test "loading it watches no keys, so every ⌘C goes straight to the app" {
+  run drive "
+    local keys = 0
+    for _, tap in ipairs(stub.taps) do
+      for _, type in ipairs(tap.types) do
+        if type == hs.eventtap.event.types.keyDown then keys = keys + 1 end
+      end
+    end
+    print(keys)"
+  [ "$status" -eq 0 ]
+  [ "$output" = 0 ]
+}
+
+@test "dragging the header keeps the pressed point under the mouse until the button is let go" {
+  run drag "
+    move(150, 130)
+    print(view:frame().x, view:frame().y)
+    move(170, 150)
+    print(view:frame().x, view:frame().y, tostring(tap.stopped))
+    release()
+    print(tostring(tap.stopped))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '130\t120')" ]
+  [ "${lines[1]}" = "$(printf '150\t140\tfalse')" ]
+  [ "${lines[2]}" = true ]
+}
+
+@test "a dragged popup keeps its header on the screen" {
+  run drag "
+    move(5000, -300)
+    print(view:frame().x, view:frame().y)
+    move(-5000, 5000)
+    print(view:frame().x, view:frame().y)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '1380\t0')" ]
+  [ "${lines[1]}" = "$(printf -- '-460\t840')" ]
+}
+
+@test "on a display that does not start at 0,0, the header stays on that display" {
+  run drag "
+    stub.screen = { x = 1440, y = -200, w = 1000, h = 800 }
+    move(-5000, -5000)
+    print(view:frame().x, view:frame().y)
+    move(9000, 9000)
+    print(view:frame().x, view:frame().y)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$(printf '980\t-200')" ]
+  [ "${lines[1]}" = "$(printf '2380\t540')" ]
+}
+
+@test "a second drag ends the first one's watcher, and a malformed one starts none" {
+  run drag "
+    view:post({ drag = { x = 5, y = 5 } })
+    print(tostring(tap.stopped))
+    local taps = #stub.taps
+    view:post({ drag = true })
+    view:post({ drag = { x = 'a', y = 1 } })
+    print(#stub.taps - taps)"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = true ]
+  [ "${lines[1]}" = 0 ]
+}
+
+@test "a click let go before Lua heard of it starts no drag, and closing ends one" {
+  run drive "
+    stub.hotkeys['ctrl+cmd+shift+d']()
+    stub.tick()
+    local view = stub.popups[#stub.popups]
+    local taps = #stub.taps
+    stub.leftDown = false
+    view:post({ drag = { x = 20, y = 10 } })
+    print(#stub.taps - taps)
+    stub.leftDown = true
+    view:post({ drag = { x = 20, y = 10 } })
+    view:post({ close = true })
+    print(tostring(stub.taps[#stub.taps].stopped))"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 0 ]
+  [ "${lines[1]}" = true ]
 }

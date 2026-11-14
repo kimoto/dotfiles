@@ -5,18 +5,30 @@
 #
 #   ci/advance_stable.sh <sha>
 #
-# Needs GH_TOKEN with contents:write and GITHUB_REPOSITORY. Only ever moves
-# stable forward: a run that finishes after a newer one already advanced it
-# (the macOS and Linux bootstraps race) leaves it where it is.
+# Needs GITHUB_REPOSITORY, and GH_TOKEN with contents and workflows write:
+# stable may land on a commit that changes .github/workflows.
+#
+# Only ever moves stable forward: a run that finishes after a newer one already
+# advanced it (the macOS and Linux bootstraps race) leaves it where it is.
 set -euo pipefail
 
 sha="${1:?usage: advance_stable.sh <sha>}"
 repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 
-if ! gh api "repos/$repo/git/ref/heads/stable" >/dev/null 2>&1; then
-    gh api -X POST "repos/$repo/git/refs" -f ref=refs/heads/stable -f sha="$sha" >/dev/null
-    echo "created stable at $sha"
-    exit 0
+# Only a 404 means stable is missing; a bad or expired token must not read as one.
+# 2>&1 >/dev/null keeps gh's error message and drops the ref JSON.
+if ! err="$(gh api "repos/$repo/git/ref/heads/stable" 2>&1 >/dev/null)"; then
+    case "$err" in
+        *"HTTP 404"*)
+            gh api -X POST "repos/$repo/git/refs" -f ref=refs/heads/stable -f sha="$sha" >/dev/null
+            echo "created stable at $sha"
+            exit 0
+            ;;
+        *)
+            echo "cannot read stable: $err" >&2
+            exit 1
+            ;;
+    esac
 fi
 
 # stable...sha: "ahead" means sha descends from stable.
