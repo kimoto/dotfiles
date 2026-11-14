@@ -6,7 +6,9 @@
 # config/ghostty/config's `keybind = ` lines, its "AeroSpace" /
 # "Service mode" tables against .aerospace.toml's `key = command` bindings,
 # its tmux "With prefix" / "Copy mode" tables against .tmux.conf, and
-# hammerspoon/init.lua's remaps against its "Text editing" table, so a
+# hammerspoon/init.lua's remaps against its "Text editing" table, and its
+# zsh / "Abbreviations" tables against .zshrc's `bindkey` lines and
+# config/zsh/abbr.zsh's ABBR_MAP, so a
 # renamed or removed keybind fails here instead of leaving the reference
 # quietly wrong.
 
@@ -19,6 +21,22 @@ setup() {
   export CHECK_KEYBINDINGS_TMUX_CONFIG="$TMP/tmux.conf"
   export CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG="$TMP/init.lua"
   export CHECK_KEYBINDINGS_DOC="$TMP/KEYBINDINGS.md"
+  export CHECK_KEYBINDINGS_ZSHRC="$TMP/zshrc"
+  export CHECK_KEYBINDINGS_ABBR_CONFIG="$TMP/abbr.zsh"
+  cat >"$CHECK_KEYBINDINGS_ZSHRC" <<'EOF'
+bindkey -e
+bindkey "^\\" undo
+bindkey '^X^N' search_snippet_and_replace_lbuffer
+  bindkey '^X?' keys_widget
+EOF
+  cat >"$CHECK_KEYBINDINGS_ABBR_CONFIG" <<'EOF'
+typeset -gA ABBR_MAP=(
+  ci    'git commit -a -v'
+  glg   "git log --graph \
+--pretty='%h %s'"
+)
+bindkey ' ' _abbr_expand_space
+EOF
   cat >"$CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG" <<'EOF'
 remapKey({"alt"}, "b", keyCode("left", {"alt"}))
 remapKey({"alt"}, "f", keyCode("right", {"alt"}))
@@ -133,6 +151,31 @@ EOF
 | [ | Jump to previous prompt |
 
 ---
+EOF
+  cat >>"$CHECK_KEYBINDINGS_DOC" <<'EOF'
+
+## zsh
+
+| Key | Action |
+|-----|--------|
+| ⌃+R | History search |
+| ⌃+X ⌃+N | Snippet search |
+| ⌃+X ? | Keybinding cheatsheet |
+| ⌃+\ | Undo |
+| ⌃+A / E | Beginning / end of line |
+
+### Abbreviations (Space / Enter, command position only)
+
+| Word | Expands to |
+|------|------------|
+| `ci` | `git commit -a -v` |
+| `glg` | `git log --graph` |
+
+### Shell helpers
+
+| Command | Action |
+|---------|--------|
+| `g [query]` | Jump to a repo |
 EOF
 }
 
@@ -318,4 +361,44 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"binds 'alt+d'"* ]]
+}
+
+@test "accepts a zsh config and doc that agree, fzf and emacs-keymap keys included" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "fails when a zsh bindkey is renamed out from under the doc" {
+  sed -i.bak "s/'^X^N'/'^X^S'/" "$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'ctrl+x ctrl+s' but KEYBINDINGS.md's zsh table has no row"* ]]
+  [[ "$output" == *"zsh table names 'ctrl+x ctrl+n' but no"* ]]
+}
+
+@test "a double-quoted \\\\ in a bindkey is the one backslash key the doc shows" {
+  sed -i.bak '/undo/d' "$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"zsh table names 'ctrl+\\' but no"* ]]
+}
+
+@test "a bindkey with an option is not a key binding" {
+  echo "bindkey -M viins '^Y' yank" >>"$CHECK_KEYBINDINGS_ZSHRC"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "fails when an abbreviation is added with no row" {
+  sed -i.bak "s/^  ci /  gp    'git push'\n  ci /" "$CHECK_KEYBINDINGS_ABBR_CONFIG"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ABBR_MAP binds 'gp' but KEYBINDINGS.md's Abbreviations table has no row"* ]]
+}
+
+@test "fails when the doc names an abbreviation ABBR_MAP does not have" {
+  sed -i.bak 's/^| `ci` |/| `cm` |/' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Abbreviations table names 'cm' but no"* ]]
 }
