@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Pins six of KEYBINDINGS.md's tables against the configs that bind their
+# Pins eight of KEYBINDINGS.md's tables against the configs that bind their
 # keys: Terminal (config/ghostty/config's `keybind = ` lines), AeroSpace and
 # Service mode (.aerospace.toml's `key = command` bindings), tmux's With
-# prefix and Copy mode (.tmux.conf), and Text editing (hammerspoon/init.lua's
-# remaps, in one direction: the rest of that table is macOS built-in). A
+# prefix and Copy mode (.tmux.conf), Text editing (hammerspoon/init.lua's
+# remaps, in one direction: the rest of that table is macOS built-in), and
+# zsh's keys (.zshrc's `bindkey` lines) and Abbreviations
+# (config/zsh/abbr.zsh's ABBR_MAP). A
 # renamed or removed keybind fails here instead of leaving the reference
 # quietly wrong — the failure mode claudecode/rules/tooling.md names: a rule
 # held up by remembering.
 #
 # Not covered yet (#249): tmux's root table, whose rows name the Mac keys
 # (⌘, ⌥⌘) that Ghostty translates before tmux sees them, so checking it needs
-# that translation, not just .tmux.conf; zsh and Neovim, each of which needs
-# its own per-syntax key extraction; and the tables no config here binds.
+# that translation, not just .tmux.conf; Neovim, which needs its own key
+# extraction from Lua; zsh's Shell helpers, which are functions, not keys;
+# and the tables no config here binds.
 
 set -euo pipefail
 
@@ -25,6 +28,8 @@ GHOSTTY_CONFIG="${CHECK_KEYBINDINGS_GHOSTTY_CONFIG:-config/ghostty/config}"
 AEROSPACE_CONFIG="${CHECK_KEYBINDINGS_AEROSPACE_CONFIG:-.aerospace.toml}"
 HAMMERSPOON_CONFIG="${CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG:-hammerspoon/init.lua}"
 TMUX_CONFIG="${CHECK_KEYBINDINGS_TMUX_CONFIG:-.tmux.conf}"
+ZSHRC="${CHECK_KEYBINDINGS_ZSHRC:-.zshrc}"
+ABBR_CONFIG="${CHECK_KEYBINDINGS_ABBR_CONFIG:-config/zsh/abbr.zsh}"
 DOC="${CHECK_KEYBINDINGS_DOC:-KEYBINDINGS.md}"
 
 # Ghostty keybinds with no row of their own in the Terminal table: they are
@@ -43,6 +48,14 @@ TMUX_PREFIX_BOUND_ELSEWHERE=(
   "Enter" # tmux-menus' second default trigger
   "C-s"   # tmux-resurrect's default save key
   "C-r"   # tmux-resurrect's default restore key
+)
+
+# Rows of the zsh table whose key .zshrc never binds with its own `bindkey`.
+ZSH_BOUND_ELSEWHERE=(
+  "ctrl+r" # fzf's key-bindings.zsh (sheldon plugin): history search
+  "ctrl+t" # fzf's key-bindings.zsh (sheldon plugin): file picker
+  # zsh's own emacs keymap, which `bindkey -e` selects.
+  "ctrl+a" "ctrl+e" "ctrl+w" "ctrl+u" "ctrl+l" "alt+b" "alt+f" "alt+d"
 )
 
 # Canonicalize one key spec (a Ghostty trigger like "super+shift+o", or a
@@ -263,7 +276,7 @@ table_cells() {
     $0 ~ start { insection = 1; next }
     insection && $0 ~ stop { exit }
     insection && /^\| / { print }
-  ' "$DOC" | grep -v '^| Key ' | grep -v '^|-----')"
+  ' "$DOC" | grep -vE '^\| (Key|Word) +\|' | grep -v '^|-----')"
   if [ -n "$exclude_re" ]; then
     rows="$(grep -v -E "$exclude_re" <<<"$rows")"
   fi
@@ -339,6 +352,94 @@ tmux_copy_mode_documented_keys() {
     done | sort -u
 }
 
+# One zsh key sequence as bindkey reads it ("^X^N", "^\\", "^[d", "\ef") in
+# the doc's canonical form: each keystroke through canon(), chords joined by
+# a space ("ctrl+x ctrl+n"). "^[" and "\e" are Escape, the Alt prefix.
+zsh_canon() {
+  local s="$1" out="" key mod
+  while [ -n "$s" ]; do
+    mod=""
+    if [ "${s:0:2}" = '^[' ] || [ "${s:0:2}" = '\e' ]; then
+      mod="alt+"
+      s="${s:2}"
+    fi
+    if [ "${s:0:1}" = '^' ] && [ "${#s}" -ge 2 ]; then
+      mod="${mod}ctrl+"
+      s="${s:1}"
+    fi
+    # bindkey's own escape: \\ is one backslash key.
+    if [ "${s:0:2}" = "\\\\" ]; then
+      key="\\"
+      s="${s:2}"
+    else
+      key="${s:0:1}"
+      s="${s:1}"
+    fi
+    out="${out:+$out }$(canon "${mod}${key}")"
+  done
+  printf '%s\n' "$out"
+}
+
+# The keys .zshrc binds with `bindkey KEY WIDGET` in the keymap the shell
+# uses (none named, or `-M emacs` / `-M main`), one canonical key per line.
+# Other options (`-e`, `-s`, `-M viins`) are not a binding the table lists.
+zsh_configured_keys() {
+  local line key
+  local q="'"
+  local re="^[[:space:]]*bindkey([[:space:]]+-M[[:space:]]+(emacs|main))?[[:space:]]+"
+  re+="(\"([^\"]*)\"|${q}([^${q}]*)${q}|([^-[:space:]][^[:space:]]*))[[:space:]]"
+  while IFS= read -r line; do
+    [[ "$line" =~ $re ]] || continue
+    if [ -n "${BASH_REMATCH[4]}" ]; then
+      # Double quotes: the shell turns \\ into one backslash before bindkey.
+      key="${BASH_REMATCH[4]//\\\\/\\}"
+    else
+      key="${BASH_REMATCH[5]}${BASH_REMATCH[6]}"
+    fi
+    zsh_canon "$key"
+  done <"$ZSHRC" | sort -u
+}
+
+# The zsh table's documented keys, one canonical key per line. A cell is
+# either alternates ("⌃+A / E") or one chord of space-separated keystrokes
+# ("⌃+X ⌃+N").
+zsh_documented_keys() {
+  local cell part out
+  local -a parts
+  table_cells '^## zsh' '^### ' |
+    while IFS= read -r cell; do
+      if [[ "$cell" == *" / "* ]]; then
+        expand_cell "$cell"
+        continue
+      fi
+      # read -a, not an unquoted $cell: the "?" of "⌃+X ?" would glob.
+      read -ra parts <<<"$cell"
+      out=""
+      for part in "${parts[@]}"; do
+        out="${out:+$out }$(canon "$part")"
+      done
+      printf '%s\n' "$out"
+    done | sort -u
+}
+
+# The words abbr.zsh's ABBR_MAP expands, one per line: each entry line
+# (indented word, then a quoted value) inside `typeset -gA ABBR_MAP=(` ...
+# `)`. Exits non-zero when no entry is found, so a renamed or reshaped map
+# fails instead of comparing an empty set.
+abbr_configured_words() {
+  awk '
+    /^typeset -gA ABBR_MAP=\(/ { inmap = 1; next }
+    inmap && /^[[:space:]]*\)/ { exit }
+    inmap && /^[[:space:]]+[A-Za-z0-9_-]+[[:space:]]+["\047]/ { print $1; n++ }
+    END { if (!n) { print "x no ABBR_MAP entries found" > "/dev/stderr"; exit 1 } }
+  ' "$ABBR_CONFIG" | sort -u
+}
+
+# The Abbreviations table's documented words, backticks dropped.
+abbr_documented_words() {
+  table_cells '^### Abbreviations' '^### ' | tr -d '`' | sort -u
+}
+
 # Prints one line per configured key with no documented row. $1/$3 name the
 # two sides for the message; $2/$4 are their newline-separated canonical key
 # sets.
@@ -359,14 +460,17 @@ keys_missing_from() {
 }
 
 # compare_config_to_doc, plus one line per documented key no config binds.
+# $5, if given, holds keys bound somewhere this script does not parse: a
+# row for one needs no config, but the config binding one still needs a row.
 compare_keys() {
   local config_name="$1" config_keys="$2" doc_name="$3" doc_keys="$4"
+  local bound_elsewhere="${5:-}"
   local key found=0
-  compare_config_to_doc "$@" || found=1
+  compare_config_to_doc "$1" "$2" "$3" "$4" || found=1
   while IFS= read -r key; do
     echo "x $doc_name names '$key' but no $config_name binds it"
     found=1
-  done < <(keys_missing_from "$config_keys" "$doc_keys")
+  done < <(keys_missing_from "$config_keys"$'\n'"$bound_elsewhere" "$doc_keys")
   return "$found"
 }
 
@@ -391,5 +495,12 @@ compare_keys ".tmux.conf's copy-mode-vi table" "$(tmux_configured_keys copy-mode
 # config here binds, as its Source line declares.
 compare_config_to_doc "Hammerspoon" "$(hammerspoon_configured_keys)" \
   "KEYBINDINGS.md's Text editing table" "$(text_editing_documented_keys)" || rc=1
+
+compare_keys ".zshrc's bindkey" "$(zsh_configured_keys)" \
+  "KEYBINDINGS.md's zsh table" "$(zsh_documented_keys)" \
+  "$(printf '%s\n' "${ZSH_BOUND_ELSEWHERE[@]}")" || rc=1
+
+compare_keys "abbr.zsh's ABBR_MAP" "$(abbr_configured_words)" \
+  "KEYBINDINGS.md's Abbreviations table" "$(abbr_documented_words)" || rc=1
 
 exit "$rc"
