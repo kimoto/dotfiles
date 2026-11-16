@@ -32,19 +32,7 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - もう `Brewfile.*` か `mise.toml` にあるもの
 - ★**closed かつ未マージの `routine:tool-scout` PR で出したツールは、却下されたもの。二度と出さない。**`gh api "repos/<owner>/dotfiles/pulls?state=all&per_page=100&page=N"`（owner は `git remote get-url origin` から）（全ページ）をラベルで絞って確かめる
   - ⚠️ 照会に失敗したら、**却下の履歴を確かめられないまま提案しない。**PR を作らず「却下履歴を照会できなかった」と報告して終わる。「照会した上で候補が無かった」と混同しない
-- 調べて見送ったもの（2026-10-23）。理由が変わらない限り出さない:
-
-| ツール | 見送った理由 |
-|---|---|
-| shfmt | シェル全体の再インデントが要る |
-| stylua | 手で揃えた整形（コメントの位置・リスト）を崩す |
-| selene, rumdl, markdownlint | 書式の指摘しか出ない |
-| lychee | Markdown の中のリンクがほとんど無い |
-| age | 呼ぶ先のスクリプトが無い |
-| lazygit, git-absorb, just, atuin, watchexec, trash-cli, macmon | 組み込む先が無い、または既存と役割が重なる |
-| betterleaks | 秘密の検査は gitleaks に決めている |
-| rtk | エージェントのコマンドの経路に第三者のツールを入れない |
-| mergiraf | 過去の merge をやり直して確かめたが、解ける conflict がほとんど無かった（#478） |
+- dotfiles の `docs/scouts.md` の `## Decided against: tools` 節に載っているもの（調べて見送ったツール）。理由が変わらない限り出さない。新しく見送ったら、その節に1行足す
 
 ## 4. 確度の門（全部満たすものだけ PR にする）
 
