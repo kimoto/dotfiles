@@ -142,6 +142,11 @@ jobs:
       - name: Test Codex config merge
         shell: pwsh
         run: ./test/link_codex.ps1
+      # A workstation runs the script in Windows PowerShell 5.1, not pwsh, and
+      # the two differ in how native-command errors and link targets surface.
+      - name: Test Codex config merge (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./test/link_codex.ps1
       - name: Test AutoHotkey installer
         shell: pwsh
         run: ./test/install_mac_keys.ps1
