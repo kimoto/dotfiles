@@ -15,7 +15,9 @@ will prompt on the Windows side.
 
 ## Codex
 
-Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex/config.toml](../codex/config.toml) while preserving the app's machine-specific settings, then shares Claude instructions and rules through native Windows symlinks. The script locates the checkout automatically; see [Codex setup](../codex/README.md).
+Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex/config.toml](../codex/config.toml) while preserving the app's machine-specific settings, then shares Claude instructions, rules, skills, and agents through native Windows symlinks. The script locates the checkout automatically; see [Codex setup](../codex/README.md).
+
+Skills and agents are linked one by one into `%USERPROFILE%\.claude`, as `bin/mklink.sh` does on macOS and Linux, so Claude Code started on Windows follows the same rules and has the same skills as in WSL. The links point at the WSL checkout over `\\wsl.localhost`, so a `git pull` there updates both. Creating a symlink needs Developer Mode (Settings → System → For developers) or an administrator PowerShell.
 
 ## macOS → Windows
 
