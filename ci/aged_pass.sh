@@ -18,7 +18,8 @@ shift 2
 [ "$#" -gt 0 ] || { echo "usage: aged_pass.sh <workflow-file> <days> <event>..." >&2; exit 2; }
 repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 
-cutoff="$(date -u -d "-$days days" +%Y-%m-%dT%H:%M:%SZ)"
+# jq, not `date -d`: BSD date on macOS has no -d, and jq is already needed.
+cutoff="$(jq -nr --argjson d "$days" 'now - $d * 86400 | todate')"
 events="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
 
 gh api "repos/$repo/actions/workflows/$workflow/runs?branch=main&status=success&per_page=100" \

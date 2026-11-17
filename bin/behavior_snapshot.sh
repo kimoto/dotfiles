@@ -28,8 +28,8 @@
 # config/sheldon/plugins.toml or the files only it sources (config/zsh/*.zsh).
 #
 # Paths are rewritten to <HOME> and <REPO>, and values that move on every run
-# (time, PIDs, random numbers, the tty) are dropped, so two loads of the same
-# config print the same bytes.
+# (time, PIDs, random numbers, the tty, vim's maxmem/maxmemtot) are dropped,
+# so two loads of the same config print the same bytes.
 
 set -euo pipefail
 
@@ -158,8 +158,12 @@ EOF
     # input and output are not a terminal, and compare loads it twice.
     (cd "$home" && env -i HOME="$home" PATH="$PATH" TERM=xterm-256color \
         vim --not-a-term -N -u "$home/.vimrc" -i NONE -S "$home/probe.vim" </dev/null >/dev/null 2>&1) || rc=$?
+    # maxmem and maxmemtot default to a share of the memory free at startup,
+    # so two loads of the same config can differ. A .vimrc that sets them
+    # goes unseen; none does.
     if [ "$rc" -eq 0 ]; then
-        { cat "$out"; echo; echo "--- g: ---"; sort "$out.g"; } | normalize "$home" "$checkout"
+        { grep -vE '^ +maxmem(tot)?=' "$out"; echo; echo "--- g: ---"; sort "$out.g"; } |
+            normalize "$home" "$checkout"
     fi
     rm -rf "$home"
     return "$rc"

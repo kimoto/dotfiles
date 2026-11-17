@@ -114,6 +114,19 @@ EOF
   [ "$output" -lt 1000 ]
 }
 
+@test "hook: one failing hook makes the item fail, however fast" {
+  command -v jq >/dev/null || skip "jq not installed"
+  ln -s "$(command -v jq)" "$BIN/jq"
+  cat >"$REPO/.claude/settings.json" <<'EOF'
+{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "exit 1"}]}],
+  "Stop": [{"hooks": [{"type": "command", "command": "sleep 0.1"}]}]
+}}
+EOF
+  SPEED_REPORT_RUNS=1 report hook
+  [ "$output" = fail ]
+}
+
 @test "rules: bytes of claudecode/rules and AGENTS.md" {
   report rules
   [ "$status" -eq 0 ]
