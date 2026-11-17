@@ -6,15 +6,17 @@
 # prefix and Copy mode (.tmux.conf), Text editing (hammerspoon/init.lua's
 # remaps, in one direction: the rest of that table is macOS built-in), and
 # zsh's keys (.zshrc's `bindkey` lines) and Abbreviations
-# (config/zsh/abbr.zsh's ABBR_MAP). A
+# (config/zsh/abbr.zsh's ABBR_MAP), and Neovim's Space (leader) keys
+# (config/nvim/lua's `vim.keymap.set` lines). A
 # renamed or removed keybind fails here instead of leaving the reference
 # quietly wrong — the failure mode claudecode/rules/tooling.md names: a rule
 # held up by remembering.
 #
 # Not covered yet (#249): tmux's root table, whose rows name the Mac keys
 # (⌘, ⌥⌘) that Ghostty translates before tmux sees them, so checking it needs
-# that translation, not just .tmux.conf; Neovim, which needs its own key
-# extraction from Lua; zsh's Shell helpers, which are functions, not keys;
+# that translation, not just .tmux.conf; Neovim's non-leader keys (Ctrl,
+# Tab, g-prefixed LSP maps, insert-mode completion), whose cells mix
+# plugin defaults and builtins with maps; zsh's Shell helpers, which are functions, not keys;
 # and the tables no config here binds.
 
 set -euo pipefail
@@ -30,6 +32,7 @@ HAMMERSPOON_CONFIG="${CHECK_KEYBINDINGS_HAMMERSPOON_CONFIG:-hammerspoon/init.lua
 TMUX_CONFIG="${CHECK_KEYBINDINGS_TMUX_CONFIG:-.tmux.conf}"
 ZSHRC="${CHECK_KEYBINDINGS_ZSHRC:-.zshrc}"
 ABBR_CONFIG="${CHECK_KEYBINDINGS_ABBR_CONFIG:-config/zsh/abbr.zsh}"
+NVIM_DIR="${CHECK_KEYBINDINGS_NVIM_DIR:-config/nvim/lua}"
 DOC="${CHECK_KEYBINDINGS_DOC:-KEYBINDINGS.md}"
 
 # Ghostty keybinds with no row of their own in the Terminal table: they are
@@ -56,6 +59,11 @@ ZSH_BOUND_ELSEWHERE=(
   "ctrl+t" # fzf's key-bindings.zsh (sheldon plugin): file picker
   # zsh's own emacs keymap, which `bindkey -e` selects.
   "ctrl+a" "ctrl+e" "ctrl+w" "ctrl+u" "ctrl+l" "alt+b" "alt+f" "alt+d"
+)
+
+# Space rows of the Neovim tables that no `vim.keymap.set` here binds.
+NVIM_LEADER_BOUND_ELSEWHERE=(
+  "Space+j" # any-jump.vim's own default mapping
 )
 
 # Canonicalize one key spec (a Ghostty trigger like "super+shift+o", or a
@@ -440,6 +448,62 @@ abbr_documented_words() {
   table_cells '^### Abbreviations' '^### ' | tr -d '`' | sort -u
 }
 
+# The leader keys config/nvim's Lua maps, one "Space+<keys>" per line:
+# every `'<leader>xx'` lhs of a `vim.keymap.set` line, and a
+# `'<leader>' .. i` lhs expanded over the `for i = lo, hi do` above it.
+# Exits non-zero when none is found, so a moved config fails instead of
+# comparing an empty set.
+nvim_configured_leader_keys() {
+  find "$NVIM_DIR" -name '*.lua' -exec cat {} + |
+    awk '
+      /^[[:space:]]*--/ { next }
+      match($0, /for [A-Za-z_]+ = [0-9]+, *[0-9]+ do/) {
+        split(substr($0, RSTART + 4, RLENGTH - 7), f, /[ =,]+/)
+        var = f[1]; lo = f[2]; hi = f[3]
+      }
+      /keymap\.set\(/ && match($0, /["\047]<leader>[^"\047]*["\047]( \.\. [A-Za-z_]+)?/) {
+        lhs = substr($0, RSTART + 9, RLENGTH - 9)
+        if (lhs ~ / \.\. /) {
+          split(lhs, g, /["\047] \.\. /)
+          if (g[2] != var) { print "x cannot expand <leader> .. " g[2] > "/dev/stderr"; bad = 1; next }
+          for (n = lo; n <= hi; n++) { print "Space+" g[1] n; found++ }
+        } else {
+          print "Space+" substr(lhs, 1, length(lhs) - 1); found++
+        }
+      }
+      END {
+        if (!found) print "x no <leader> maps found under the Neovim config" > "/dev/stderr"
+        if (!found || bad) exit 1
+      }
+    ' | sort -u
+}
+
+# The Space keys the Neovim tables name, one "Space+<keys>" per line. A cell
+# holds alternates ("Space+n / p", "Space+dr / Space+dl", the second sharing
+# the first's Space when it has none of its own) and "~" ranges
+# ("Space+1~6").
+nvim_documented_leader_keys() {
+  local cell part keys lo hi n
+  # A variable, not $'\n' inside the expansion: bash 3.2 keeps that literal.
+  local nl=$'\n'
+  table_cells '^## Neovim' '^---$' |
+    grep -E '(^|[ /])Space\+' |
+    while IFS= read -r cell; do
+      while IFS= read -r part; do
+        keys="${part#Space+}"
+        if [[ "$keys" == *"~"* ]]; then
+          lo="${keys%~*}"
+          hi="${keys#*~}"
+          for ((n = lo; n <= hi; n++)); do
+            printf 'Space+%s\n' "$n"
+          done
+        else
+          printf 'Space+%s\n' "$keys"
+        fi
+      done <<<"${cell// \/ /$nl}"
+    done | sort -u
+}
+
 # Prints one line per configured key with no documented row. $1/$3 name the
 # two sides for the message; $2/$4 are their newline-separated canonical key
 # sets.
@@ -502,5 +566,9 @@ compare_keys ".zshrc's bindkey" "$(zsh_configured_keys)" \
 
 compare_keys "abbr.zsh's ABBR_MAP" "$(abbr_configured_words)" \
   "KEYBINDINGS.md's Abbreviations table" "$(abbr_documented_words)" || rc=1
+
+compare_keys "config/nvim's keymaps" "$(nvim_configured_leader_keys)" \
+  "KEYBINDINGS.md's Neovim section" "$(nvim_documented_leader_keys)" \
+  "$(printf '%s\n' "${NVIM_LEADER_BOUND_ELSEWHERE[@]}")" || rc=1
 
 exit "$rc"
