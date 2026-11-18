@@ -38,7 +38,10 @@ mkrepo() {
 commit_scan() {
   local payload
   payload=$(jq -nc --arg c "$1" --arg d "${2:-$REPO}" '{tool_input: {command: $c}, cwd: $d}')
-  run bash -c 'printf "%s" "$1" | "$2"' _ "$payload" "$COMMIT_SCAN"
+  # From $TMP, outside this checkout: with HOME swapped, a mise shim for
+  # gitleaks refuses the checkout's untrusted mise.toml, and that error exits
+  # like a finding.
+  run bash -c 'cd "$3" && printf "%s" "$1" | "$2"' _ "$payload" "$COMMIT_SCAN" "$TMP"
 }
 
 @test "git hook: a staged secret refuses the commit" {
@@ -180,6 +183,19 @@ commit_scan() {
   printf '[extend]\nuseDefault = true\n[[allowlists]]\nregexes = ["%s"]\n' "$TOKEN" >"$REPO/.gitleaks.toml"
   commit_scan 'git add creds.txt && git commit -m add'
   [ "$status" -eq 0 ]
+}
+
+@test "commit: gitleaks failing to run is not reported as a secret" {
+  mkrepo
+  printf 'hello\n' >"$REPO/a.txt"
+  mkdir -p "$TMP/bin"
+  printf '#!/bin/sh\ncat >/dev/null\necho "mise ERROR config not trusted" >&2\nexit 1\n' >"$TMP/bin/gitleaks"
+  chmod +x "$TMP/bin/gitleaks"
+  PATH="$TMP/bin:$PATH" commit_scan 'git add a.txt && git commit -m add'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"could not scan"* ]]
+  [[ "$output" == *"mise ERROR"* ]]
+  [[ "$output" != *"looks like a secret"* ]]
 }
 
 @test "commit: outside a repo it fails open" {

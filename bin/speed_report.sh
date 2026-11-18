@@ -206,7 +206,7 @@ measure_hook() {
         done | awk '
             $0 !~ /^[0-9]+$/ { bad = $0; next }
             $0 > max { max = $0 }
-            END { print bad != "" ? bad : (NR ? max : "n/a") }'
+            END { print (bad != "" ? bad : (NR ? max : "n/a")) }'
 }
 
 # One commit that changes COMMIT_FILE, in a throwaway worktree of HEAD, so

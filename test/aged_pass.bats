@@ -25,7 +25,8 @@ teardown() {
   rm -rf "$TMP"
 }
 
-ago() { date -u -d "-$1 days" +%Y-%m-%dT%H:%M:%SZ; }
+# Not the script's own expression, so a wrong sign or unit there cannot cancel out.
+ago() { jq -nr --argjson t "$(($(date -u +%s) - $1 * 86400))" '$t | todate'; }
 
 runs() {
   printf '{"workflow_runs":[%s]}' "$(IFS=,; echo "$*")" >"$RUNS"

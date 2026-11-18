@@ -102,6 +102,17 @@ report=$(
 status=$?
 [ "$status" -eq 1 ] || exit 0
 
+# gitleaks exits 1 for its own errors too (a mise shim refusing an untrusted
+# config, say). Still refuse — nothing was scanned — but say what happened.
+if ! printf '%s\n' "$report" | grep -q '^RuleID:'; then
+  {
+    echo "gitleaks could not scan this commit:"
+    printf '%s\n' "$report" | head -n 5
+    echo "Fix gitleaks and commit again; do not bypass this check yourself."
+  } >&2
+  exit 2
+fi
+
 {
   echo "gitleaks found what looks like a secret in the changes this commit can include (values redacted):"
   printf '%s\n' "$report" | grep -E '^(Finding|RuleID|File|Line|Secret):' | head -n 40
