@@ -23,6 +23,21 @@ setup() {
   export CHECK_KEYBINDINGS_DOC="$TMP/KEYBINDINGS.md"
   export CHECK_KEYBINDINGS_ZSHRC="$TMP/zshrc"
   export CHECK_KEYBINDINGS_ABBR_CONFIG="$TMP/abbr.zsh"
+  export CHECK_KEYBINDINGS_NVIM_DIR="$TMP/nvim"
+  mkdir -p "$CHECK_KEYBINDINGS_NVIM_DIR/plugins"
+  cat >"$CHECK_KEYBINDINGS_NVIM_DIR/keymaps.lua" <<'EOF'
+vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Window: focus right' })
+for i = 1, 3 do
+  vim.keymap.set('n', '<leader>' .. i, ':b ' .. i .. '<CR>', { desc = 'Buffer ' .. i })
+end
+vim.keymap.set('n', '<leader>n', ':bn<CR>', { desc = 'Buffer: next' })
+vim.keymap.set("n", "<leader>p", ':bp<CR>', { desc = 'Buffer: previous' })
+EOF
+  cat >"$CHECK_KEYBINDINGS_NVIM_DIR/plugins/telescope.lua" <<'EOF'
+vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Find files' })
+vim.keymap.set('n', '<leader>dr', dap.repl.open, { desc = 'Debug: open REPL' })
+vim.keymap.set('n', '<leader>dl', dap.run_last, { desc = 'Debug: run last' })
+EOF
   cat >"$CHECK_KEYBINDINGS_ZSHRC" <<'EOF'
 bindkey -e
 bindkey "^\\" undo
@@ -176,6 +191,27 @@ EOF
 | Command | Action |
 |---------|--------|
 | `g [query]` | Jump to a repo |
+
+---
+
+## Neovim (leader: Space)
+
+### Windows / buffers / tools
+
+| Key | Action |
+|-----|--------|
+| ⌃+h/j/k/l | Move between windows |
+| Space+1~3 | Go to buffer 1~3 |
+| Space+n / p | Next / previous buffer |
+| ⌃+Space | Toggle terminal |
+
+### Telescope
+
+| Key | Action |
+|-----|--------|
+| Space+ff | Find files |
+| Space+dr / Space+dl | Open REPL / run last |
+| Space+j | Jump to definition (any-jump) |
 EOF
 }
 
@@ -457,4 +493,37 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Abbreviations table names 'cm' but no"* ]]
+}
+
+@test "accepts Neovim leader maps and a doc that agree, loop and plugin-default keys included" {
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "fails when a Neovim leader map is renamed out from under the doc" {
+  sed -i.bak "s/'<leader>ff'/'<leader>fF'/" "$CHECK_KEYBINDINGS_NVIM_DIR/plugins/telescope.lua"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'Space+fF' but KEYBINDINGS.md's Neovim section has no row"* ]]
+  [[ "$output" == *"Neovim section names 'Space+ff' but no"* ]]
+}
+
+@test "fails when a leader map's loop range grows past the doc's range" {
+  sed -i.bak 's/^for i = 1, 3 do/for i = 1, 4 do/' "$CHECK_KEYBINDINGS_NVIM_DIR/keymaps.lua"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"binds 'Space+4' but KEYBINDINGS.md's Neovim section has no row"* ]]
+}
+
+@test "fails when the second alternate of a Space row loses its map" {
+  sed -i.bak '/<leader>p/d' "$CHECK_KEYBINDINGS_NVIM_DIR/keymaps.lua"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Neovim section names 'Space+p' but no"* ]]
+}
+
+@test "a commented-out leader map is not a binding" {
+  echo "-- vim.keymap.set('n', '<leader>zz', ':q<CR>')" >>"$CHECK_KEYBINDINGS_NVIM_DIR/keymaps.lua"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
 }
