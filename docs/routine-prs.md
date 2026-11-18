@@ -12,21 +12,29 @@ looks the same wherever it is opened.
 
 ## Status
 
-Comment-only class A merges itself: the routine adds `automerge:candidate`
-and turns on squash auto-merge, so the PR lands once the required checks
-pass. Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails
-there; use the GitHub MCP `enable_pr_auto_merge` or the REST route
-`PUT repos/<owner>/<repo>/pulls/<n>/ccr/auto_merge` instead. The owner chose this on 2026-10-31, after a trial
-week (2026-10-24, when this note landed, to 2026-10-31) in which every
-comment-only A PR was merged untouched.
+Every PR merges itself once the required checks pass, except class C. Open
+it ready for review, not as a draft, and turn on squash auto-merge in the
+same step: the required checks are the gate, and the owner does not read it.
+Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails there; use
+the GitHub MCP `enable_pr_auto_merge` or the REST route
+`PUT repos/<owner>/<repo>/pulls/<n>/ccr/auto_merge` instead.
 
-Version bumps and refactors in class A still get the label only, until the
-review on 2026-11-07: in the trial week, refactor A PRs were labelled without
-the evidence the class asks for.
+⚠️ Do not turn a draft ready and arm auto-merge at once. A required job
+skipped while the PR was a draft counts as passed, so the PR can merge before
+the new run starts. Arm it only once that run shows up.
+
+Never arm auto-merge, in any class, on a PR that publishes material from a
+private source to a public site. Publishing cannot be undone.
+
+Other repos set their own bar: where a repo's own instructions say how its
+PRs merge, or forbid auto-merge for some of them, those win over this note.
+
+The owner chose this on 2026-11-16, after the comment-only trial from
+2026-10-31.
 
 ## Classes
 
-**A — may merge itself once checks pass** (for now, comment-only only; see Status)
+**A — merges itself once checks pass**
 
 - Comment- and blank-line-only changes: the diff with comments and blank lines
   stripped is empty.
@@ -38,17 +46,21 @@ Never class A, even when the above holds: changes to `.github/workflows/`,
 authentication or permissions, hook registration, and security fixes. Those
 go to B or C by direction (below).
 
-**B — the owner merges on the title**
+**B — merges itself once checks pass; the owner may skim the title afterwards**
 
 - Adding a test or a check, wording fixes, removing something unused.
+- New features (a new tool, binding, or default).
 - Security or workflow changes that *tighten*: add a pin, a signature or
   checksum check, a timeout, or remove a permission.
 
-**C — the owner reads the diff**
+**C — the owner reads the diff before it merges**
+
+A class C PR carries one unticked box, `- [ ] Owner read the diff`. In this
+repo the required `require-checklist` job then holds the merge until the
+owner ticks it; elsewhere, leave auto-merge off.
 
 - Security or workflow changes that *loosen*: widen a permission, drop a check,
   unpin, add a network fetch.
-- New features (a new tool, binding, or default).
 - Anything the routine itself is unsure about.
 
 Telling tighten from loosen is a judgement, not a machine check, so the routine
@@ -70,8 +82,8 @@ What changes for you: <one sentence> · class <A|B|C> · <feel|speed|safety|plum
 ## Limits
 
 - Assign every routine PR to `kimoto`.
-- At most 5 open routine PRs in class B or C across all repos; class A PRs do
-  not count. A routine that would go over opens nothing and says so in its
+- At most 5 open class C routine PRs across all repos; PRs that merge
+  themselves do not count. A routine that would go over opens nothing and says so in its
   report. More open PRs means less careful review.
 - When the owner closes a routine PR unmerged, they leave a one-line reason as
   a comment.
