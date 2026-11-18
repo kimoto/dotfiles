@@ -150,3 +150,19 @@ advancing when it does.
 - A macOS CI e2e that drives the Hammerspoon popup with real keys (2026-10-28): the
   owner deferred it; whether the runner can grant Accessibility is untried, and
   `test/translate_menu.bats` covers the wiring.
+
+## Decided against: tools
+
+Tools `tool-intake` looked at and did not add (checked 2026-10-23). They stay
+out until the reason changes.
+
+- shfmt: it would re-indent every shell file.
+- stylua: it breaks the hand-kept layout (comment position, lists).
+- selene, rumdl, markdownlint: they only report style.
+- lychee: the Markdown here has almost no links.
+- age: no script calls it.
+- lazygit, git-absorb, just, atuin, watchexec, trash-cli, macmon: nothing to
+  wire them into, or they overlap a tool already here.
+- betterleaks: secret scanning is settled on gitleaks.
+- rtk: no third-party tool goes in the path of agent commands.
+- mergiraf: see `Decided against: features` (#478).
