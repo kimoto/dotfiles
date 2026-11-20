@@ -6,13 +6,16 @@ description: いま居る repo の commit（か、これから開く PR の題�
 # branch のレビュー
 
 ★**レビュアーに渡すのは「repo のパス」「範囲」「目的」だけ。**書き手の推論を渡すと、それを確かめる係になってしまう。
+「目的」は、その変更で何が変わるかの1文（commit の題か、これから開く PR の題から書く）。なぜそう作ったかは書かない。
+例外は2つだけ: 直しの見直しで渡す「前回の指摘と、それを直した commit」（下の「範囲」）と、`review-rules` に渡す PR の題と本文（下の「PR の題と本文」）。
 ⚠️ public repo では、security の指摘を commit・PR の文面に書かない。
 
 ## 範囲
 
 どこまで・誰に見せるかは呼んだ側が決める。迷ったら広く見る。
 
-- 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。base は先に fetch しておく。
+- 言われた範囲があればそれ。無ければ、まだ誰も見ていない commit（push を止めた hook が示す）。
+- `<base>` は、PR があればその PR が向かうブランチ、無ければこれから向ける先（ふつうは既定ブランチ。`git ls-remote --symref origin HEAD` の `refs/heads/<base>`）。`origin/<base>` を先に fetch しておく。⚠️ `main` と決め打ちしない。別のブランチへ向かう PR では、見る範囲が実際の差分とずれる。
 - ★**既定は、最終的な差分を通しで（`<base>...HEAD`）見る。**重複や security の穴は、足した分だけを見ても分からない。誰が見るかは下の節で決める。
 - 前回の指摘を直しただけの小さな commit なら、その分を下の 1 と、その指摘を出した係だけで見てよい。**前回の指摘と、それぞれを直した commit は渡す。却下した理由は渡さない。**
 - revert だけなら回さない。docs だけでも 1 は回す。
@@ -45,8 +48,9 @@ subagent には Agent tool が無いので、全員を回す subagent を1つ挟
 3. `review-rules` agent — commit メッセージと差分のコメント、差分のせいで古くなった差分の外の文章。
 4. `review-portability` agent — CI・bash 3.2・コンテナなど、別の環境での違い。
 5. `review-refactor`・`review-tests`・`review-security`・`review-speed` の各 agent。
-   ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、代わりに subagent に `~/.claude/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
-   sweep の無い correctness・correctness-checklist・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md`（`~/.claude/skills/review-branch` のリンク先から3つ上が dotfiles）を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
+   ⚠️ `~/.claude/agents/<名前>.md` が無いマシン（pull したがリンクし直していない）では、dotfiles の中を直接読ませる。dotfiles の場所は、この skill を読み込んだときに示された base directory を `readlink -f` で解き、その3つ上（`claudecode/skills/review-branch` の外）。こうすれば、いま読んでいるこの skill と同じ checkout から読む。
+   代わりに subagent に dotfiles の `claudecode/skills/<対応する sweep>/SKILL.md` の**差分モード**をやらせ、括弧の model を指定する（各 agent の frontmatter と同じ）。対応: refactor → refactor-sweep（sonnet）、tests → test-sweep（sonnet）、security → security-audit（opus）、speed → bottleneck-sweep（sonnet）。
+   sweep の無い correctness・correctness-checklist・rules・portability は、subagent に dotfiles の `claudecode/agents/<名前>.md` を読ませてそのとおりにやらせ、model はその frontmatter に合わせる。レビューする repo の中を探さない。
 
 ## 終わったら
 
