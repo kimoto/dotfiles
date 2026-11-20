@@ -114,9 +114,9 @@ require_grep "ls -l output missing bin/mkworld.sh" "$ls_out" "mkworld.sh"
 # Sourcing a file keeps every `$` expansion inside the inner zsh, after .zshrc
 # has loaded. It still loads .zshrc only once.
 # _evalcache (mroth/evalcache, driven by the sheldon inlines) keys its cache on
-# the command line alone, so `brew upgrade direnv` leaves a cached init script
-# that still `source`s the *old* Cellar path — and zsh then prints
-# "_direnv_hook:2: no such file or directory: .../Cellar/direnv/<old>/bin/direnv"
+# the command line alone, so a `brew upgrade` of a cached tool leaves its init
+# script still `source`ing the *old* Cellar path — and zsh then prints
+# "no such file or directory: .../Cellar/<tool>/<old>/bin/<tool>"
 # on every single prompt until the cache is deleted by hand. .zshrc drops any
 # cache entry older than the binary it wraps; both halves are asserted here.
 echo "== evalcache staleness =="
