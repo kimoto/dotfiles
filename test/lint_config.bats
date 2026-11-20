@@ -89,3 +89,37 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }
+
+# mise.lock next to a linted mise.toml: every pipx uv project it points at must
+# be there, or `mise install` stops with no hint that `mise lock` was skipped.
+mise_lock_fixture() {
+  printf '[tools]\n"pipx:demo" = "1.0"\n' >"$TMP/mise.toml"
+  cat >"$TMP/mise.lock" <<'LOCK'
+[[tools."pipx:demo"]]
+version = "1.0"
+backend = "pipx:demo"
+uv = { path = ".mise/locks/pipx-demo/1.0~abc", digest = "sha256:00" }
+LOCK
+}
+
+@test "accepts a mise.lock whose uv project directories exist" {
+  mise_lock_fixture
+  mkdir -p "$TMP/.mise/locks/pipx-demo/1.0~abc"
+  run "$SCRIPT" "$TMP/mise.toml"
+  [ "$status" -eq 0 ]
+}
+
+@test "rejects a mise.lock that names a missing uv project directory" {
+  mise_lock_fixture
+  run "$SCRIPT" "$TMP/mise.toml"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"names .mise/locks/pipx-demo/1.0~abc, which does not exist; run 'mise lock'"* ]]
+}
+
+@test "rejects a mise.lock it cannot read, instead of finding no uv paths" {
+  mise_lock_fixture
+  printf '[[tools."pipx:demo"]\nversion = = "1.0"\n' >"$TMP/mise.lock"
+  run "$SCRIPT" "$TMP/mise.toml"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"cannot read the uv lock paths in $TMP/mise.lock"* ]]
+}
