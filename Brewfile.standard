@@ -19,8 +19,6 @@ brew "coreutils"
 brew "curl"
 # Power of curl, ease of use of httpie
 brew "curlie"
-# Load/unload environment variables based on $PWD
-brew "direnv"
 # Command-line DNS client (dig replacement) with colored output
 brew "doggo"
 # Program that can automate interactive applications

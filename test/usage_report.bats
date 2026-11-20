@@ -89,6 +89,13 @@ EOF
   [[ "$output" == *extended_history* ]]
 }
 
+@test "fails instead of calling everything unused when the history is missing" {
+  rm -f "$HISTFILE"
+  report
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot read history: $HISTFILE"* ]]
+}
+
 @test "the real .zshrc yields names, none of them hooks or widgets" {
   unset USAGE_REPORT_CONFIG
   printf ': 1760500000:0;ls\n' >"$HISTFILE"

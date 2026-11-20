@@ -64,3 +64,17 @@ setup() {
   [[ "$output" != *"Tmux Plugin Manager not configured"* ]]
   [[ "$output" != *"server version is too old"* ]]
 }
+
+@test "stops when a plugin cannot be checked out at its pinned commit" {
+  command -v tmux >/dev/null 2>&1 || skip "tmux not installed"
+  # tpm is already cloned, but from a remote that does not have the commit
+  # tmux-plugins.lock pins: the script must stop rather than run tpm unpinned.
+  git init -q --bare "$BATS_TEST_TMPDIR/empty.git"
+  git init -q "$BATS_TEST_TMPDIR/home/.tmux/plugins/tpm"
+  git -C "$BATS_TEST_TMPDIR/home/.tmux/plugins/tpm" remote add origin "$BATS_TEST_TMPDIR/empty.git"
+
+  run env HOME="$BATS_TEST_TMPDIR/home" ./bin/install_tmux_plugins.sh
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"CI error: cannot fetch tmux-plugins/tpm at "* ]]
+}

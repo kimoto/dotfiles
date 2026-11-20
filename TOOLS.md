@@ -21,7 +21,6 @@ _Source: `Brewfile.standard`._
 | [coreutils](https://formulae.brew.sh/formula/coreutils) | GNU File, Shell, and Text utilities |
 | [curl](https://formulae.brew.sh/formula/curl) | Get a file from an HTTP, HTTPS or FTP server |
 | [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
-| [direnv](https://formulae.brew.sh/formula/direnv) | Load/unload environment variables based on $PWD |
 | [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
 | [expect](https://formulae.brew.sh/formula/expect) | Program that can automate interactive applications |
 | [eza](https://formulae.brew.sh/formula/eza) | Modern, maintained replacement for ls |

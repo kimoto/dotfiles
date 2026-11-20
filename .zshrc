@@ -71,9 +71,9 @@ path=(
 
 # _evalcache (mroth/evalcache, loaded as a sheldon plugin and driven by the
 # inlines in config/sheldon/plugins.toml) names its cache after the command
-# line alone — nothing about the binary. So `brew upgrade direnv` leaves a
-# cache that still `source`s the previous Cellar path, and every prompt prints
-#   _direnv_hook:2: no such file or directory: .../Cellar/direnv/2.35.0/bin/direnv
+# line alone — nothing about the binary. So a `brew upgrade` of a cached tool
+# leaves a cache that still `source`s the previous Cellar path, and every
+# prompt prints "no such file or directory: .../Cellar/<tool>/<old>/bin/<tool>"
 # until someone deletes the file by hand. Drop any entry the binary has
 # outlived; the sheldon inlines below regenerate it on this same startup.
 #
@@ -83,7 +83,7 @@ path=(
 # under WSL that is the inherited Windows path over the 9p mount, ~90ms each.
 # This way it is one stat per Homebrew prefix per entry.
 for _evalcache_file in ${ZSH_EVALCACHE_DIR:-$HOME/.zsh-evalcache}/init-*.sh(N); do
-  # init-direnv-hook-zsh.sh -> direnv
+  # init-starship-init-zsh.sh -> starship
   _evalcache_cmd=${${_evalcache_file:t}#init-}
   _evalcache_cmd=${_evalcache_cmd%%-*}
   for _evalcache_bin in ${^_brew_bins}/$_evalcache_cmd(N-*); do
@@ -127,24 +127,6 @@ if builtin command -v sheldon >/dev/null; then
   fi
   [[ -s "$_sheldon_cache" ]] && source "$_sheldon_cache"
   unset _sheldon_cache _sheldon_toml _sheldon_lock
-fi
-
-# direnv's own hook (`direnv hook zsh`, above) reruns `direnv export zsh` -
-# a real fork - on every single prompt, not just on cd, so an .envrc edited
-# in place reloads without leaving and re-entering the directory. Measured
-# at ~10-15ms per prompt on this machine (EDR-backed exec overhead), same
-# story as update_tmux_window below: skip the recheck unless $PWD actually
-# changed since the last one. Trade-off: an .envrc edited while sitting in
-# the same directory won't reload until the next real cd (or `direnv reload`).
-if (( ${precmd_functions[(I)_direnv_hook]} )); then
-  _direnv_hook_if_pwd_changed() {
-    [[ "$PWD" == "${_direnv_checked_pwd:-}" ]] && return
-    _direnv_checked_pwd="$PWD"
-    _direnv_hook
-  }
-  _direnv_note_pwd() { _direnv_checked_pwd="$PWD" }
-  precmd_functions[${precmd_functions[(I)_direnv_hook]}]=_direnv_hook_if_pwd_changed
-  chpwd_functions+=(_direnv_note_pwd)
 fi
 
 # CI strict mode: fail on actual command errors during .zshrc load.
