@@ -23,7 +23,13 @@ end
 -- A global: a task or timer only a local refers to can be collected mid-run.
 tidyTask = nil
 
+-- Off until the one-time setup is done and this file is made, so a machine
+-- without the rclone remote is not told every hour that a run failed. Read on
+-- every run, so making or removing it takes effect without a reload.
+local ENABLED = os.getenv("HOME") .. "/.local/state/tidy_to_drive/enabled"
+
 local function runTidy()
+   if not hs.fs.attributes(ENABLED) then return end
    if tidyTask and tidyTask:isRunning() then return end
    tidyTask = hs.task.new("/bin/bash", function(exitCode, stdout, stderr)
       appendLog(stdout)

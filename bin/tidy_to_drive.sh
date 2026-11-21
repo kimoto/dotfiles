@@ -20,6 +20,8 @@
 # One-time setup: brew install rclone webp, then make a remote whose root is
 # the folder holding both destinations (its id is in the folder's Drive URL):
 #   rclone config create gdrive-docs drive scope=drive root_folder_id=<id>
+# then try TIDY_DRY_RUN=1, and switch the hourly run on with
+#   mkdir -p ~/.local/state/tidy_to_drive && touch ~/.local/state/tidy_to_drive/enabled
 #
 # Settings (environment, all optional):
 #   TIDY_SOURCE_DIRS    colon-separated folders, top level only (default ~/Desktop)
