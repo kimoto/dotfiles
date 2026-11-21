@@ -422,6 +422,12 @@ seal() {
   "$DOTFILES_ROOT/bin/seal.sh" "$@"
 }
 
+# Prints a secret from Bitwarden, through a Keychain copy so a new shell
+# never asks for the master password. See bin/secret.sh.
+secret() {
+  "$DOTFILES_ROOT/bin/secret.sh" "$@"
+}
+
 #=====================
 # zle widgets
 #=====================

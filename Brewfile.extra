@@ -11,6 +11,8 @@ brew "age"
 brew "bats-core"
 # Searches a binary image for embedded files and executable code
 brew "binwalk"
+# Bitwarden CLI, where secrets live (bin/secret.sh)
+brew "bitwarden-cli"
 # Versatile and fast Unicode/ASCII/ANSI graphics renderer
 brew "chafa"
 # Structural diff that understands syntax (on-demand via `git dft`)
