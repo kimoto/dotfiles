@@ -1,0 +1,3 @@
+-- ~/.hammerspoon.local (Lua): Hammerspoon code for this machine only, run near the end of
+-- hammerspoon/init.lua. For modules that live in another (private) checkout.
+-- dofile(os.getenv("HOME") .. "/src/example/module.lua")

@@ -5,10 +5,14 @@ again?** One bar for everything costs effort where nothing is at stake.
 
 - **Always**: record the sha256, download it back, compare. An upload that
   exited 0 proves nothing about what was stored.
+  ★Anything moved off the machine gets the same compare, and the original
+  goes only after it matches.
 - ★**A leak would hurt** (secrets, keys, personal data) → encrypt with
   `age -r` before it leaves the machine. Trust no provider. The private key
   lives on the owner's machine and in a password manager, never beside the
   backup.
+  A filing place the owner reads in the provider's own app (documents in
+  Drive) is not a backup and stays readable; its account's sign-in guards it.
 - ★**It cannot be made again** → restore it into an empty instance on a
   schedule and compare counts; keep a second copy on the owner's machine.
 - **It can be made again** → don't back it up; check the source still exists.
