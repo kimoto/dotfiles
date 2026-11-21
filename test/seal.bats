@@ -25,14 +25,20 @@ if [ "$1" = -d ]; then
   [ "${STUB_CORRUPT:-0}" = 1 ] && printf x
   exit 0
 fi
-# age -r RECIPIENT -o OUT
+# age -r RECIPIENT, ciphertext on stdout behind age's own header line.
 [ "${STUB_FAIL:-0}" = 1 ] && { cat >/dev/null; exit 1; }
 # A file appearing in the folder while it is being sealed.
 [ -n "${STUB_WRITE_DURING:-}" ] && echo late >"$STUB_WRITE_DURING"
-{ echo "stub-age $1 $2"; cat; } >"$4"
+[ "${STUB_NO_HEADER:-0}" = 1 ] && { cat; exit 0; }
+echo "age-encryption.org/v1 stub-age $1 $2"
+cat
 STUB
   chmod +x "$TMP/bin/age" "$TMP/bin/age-keygen"
   export PATH="$TMP/bin:$PATH"
+  # Never the developer's own keys: a real recipients file or SEAL_RECIPIENT
+  # in the shell would change which branch each test takes.
+  unset SEAL_RECIPIENT SEAL_IDENTITY_CMD
+  export SEAL_RECIPIENTS="$TMP/no-recipients"
   export SEAL_IDENTITY="$TMP/key.txt"
   echo AGE-SECRET-KEY-STUB >"$SEAL_IDENTITY"
   echo one >"$TMP/work/album/a.mp4"
@@ -195,4 +201,110 @@ teardown() {
   run "$SCRIPT" "$TMP/work/album/a.mp4"
   [ "$status" -eq 0 ]
   [ -f "$TMP/work/album/a.mp4.tar.age" ]
+}
+
+@test "--public-only seals to the pinned key with no secret key at all, and keeps the original" {
+  rm "$SEAL_IDENTITY"
+  printf '# the one key\nage1pinned\n' >"$TMP/recipients"
+  export SEAL_RECIPIENTS="$TMP/recipients"
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"not yet opened"* ]]
+  head -n 1 "$TMP/work/album.tar.age" | grep -q 'stub-age -r age1pinned'
+  [ -f "$TMP/work/album/a.mp4" ]
+  echo AGE-SECRET-KEY-STUB >"$SEAL_IDENTITY"
+  mkdir "$TMP/out"
+  run "$SCRIPT" --open "$TMP/work/album.tar.age" "$TMP/out"
+  [ "$status" -eq 0 ]
+  diff -r "$TMP/work/album" "$TMP/out/album"
+}
+
+@test "--public-only with no key file stops before writing, even when a secret key could make one" {
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"needs the public key"* ]]
+  [ ! -e "$TMP/work/album.tar.age" ]
+  [ ! -e "$TMP/work/album.tar.age.part" ]
+}
+
+@test "--public-only refuses a key file with no key, or with two" {
+  export SEAL_RECIPIENTS="$TMP/recipients"
+  printf '# nothing yet\n' >"$TMP/recipients"
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"holds no key"* ]]
+  printf 'age1one\nage1two\n' >"$TMP/recipients"
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"exactly one"* ]]
+  [ ! -e "$TMP/work/album.tar.age" ]
+}
+
+@test "--public-only refuses a SEAL_RECIPIENT that differs from the pinned key" {
+  printf 'age1pinned\n' >"$TMP/recipients"
+  export SEAL_RECIPIENTS="$TMP/recipients" SEAL_RECIPIENT=age1other
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *differs* ]]
+  [ ! -e "$TMP/work/album.tar.age" ]
+}
+
+@test "--public-only throws away a file without an age header" {
+  printf 'age1pinned\n' >"$TMP/recipients"
+  export SEAL_RECIPIENTS="$TMP/recipients"
+  STUB_NO_HEADER=1 run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"age header"* ]]
+  [ ! -e "$TMP/work/album.tar.age" ]
+  [ ! -e "$TMP/work/album.tar.age.part" ]
+}
+
+@test "--public-only takes SEAL_RECIPIENT alone as the pinned key" {
+  rm "$SEAL_IDENTITY"
+  export SEAL_RECIPIENT=age1given
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -eq 0 ]
+  head -n 1 "$TMP/work/album.tar.age" | grep -q 'stub-age -r age1given'
+}
+
+@test "--public-only refuses a key that is not an age key" {
+  export SEAL_RECIPIENT=ssh-ed25519
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"not an age1"* ]]
+  [ ! -e "$TMP/work/album.tar.age" ]
+}
+
+@test "--open prints the same tar hash sealing printed, and a corrupted one does not" {
+  printf 'age1pinned\n' >"$TMP/recipients"
+  export SEAL_RECIPIENTS="$TMP/recipients"
+  run "$SCRIPT" --public-only "$TMP/work/album"
+  [ "$status" -eq 0 ]
+  sealed=$(sed -n 's/.*tar sha256 \([0-9a-f]*\),.*/\1/p' <<<"$output")
+  [ -n "$sealed" ]
+  mkdir "$TMP/out"
+  run "$SCRIPT" --open "$TMP/work/album.tar.age" "$TMP/out"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tar sha256 $sealed"* ]]
+  rm -rf "$TMP/out"
+  mkdir "$TMP/out"
+  STUB_CORRUPT=1 run "$SCRIPT" --open "$TMP/work/album.tar.age" "$TMP/out"
+  [[ "$output" != *"tar sha256 $sealed"* ]]
+}
+
+@test "a name starting with - given as is is still a path" {
+  mkdir "$TMP/work/-draft"
+  echo d >"$TMP/work/-draft/d.txt"
+  cd "$TMP/work"
+  run "$SCRIPT" -draft
+  [ "$status" -eq 0 ]
+  [ -f "$TMP/work/-draft.tar.age" ]
+}
+
+@test "--public-only takes exactly one path" {
+  run "$SCRIPT" --public-only
+  [ "$status" -ne 0 ]
+  run "$SCRIPT" --public-only "$TMP/work/album" extra
+  [ "$status" -ne 0 ]
+  [[ "$output" == *usage* ]]
 }
