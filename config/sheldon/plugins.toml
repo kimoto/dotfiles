@@ -94,9 +94,6 @@ inline = '_evalcache zoxide init zsh'
 [plugins.mise]
 inline = '_evalcache mise activate --shims zsh'
 
-[plugins.direnv]
-inline = '_evalcache direnv hook zsh'
-
 # kubectl's completion script is big enough that even the cached copy takes
 # time to parse every startup: defer the parse past the first prompt. Guarded
 # on kubectl so machines without it (kubectl ships in Brewfile.extra, not

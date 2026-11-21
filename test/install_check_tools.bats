@@ -29,6 +29,7 @@ mise_stub() {
   cat >"$TMP/sysbin/mise" <<STUB
 #!/bin/bash
 case "\$1" in
+  --version) [ "\${STUB_MISE_VERSION-$STUB_PIN}" ] && echo "\${STUB_MISE_VERSION-$STUB_PIN} linux-x64 (2026-01-01)" ;;
   install) exit $1 ;;
   ls) echo '{"aqua:good/tool": [], "aqua:missing/tool": []}' ;;
   bin-paths)
@@ -39,9 +40,12 @@ STUB
   chmod +x "$TMP/sysbin/mise"
 }
 
+# The stub mise reports STUB_MISE_VERSION, the pin it is checked against.
+STUB_PIN=1.0.0
+
 run_install() {
-  run env CHECK_TOOLS_BIN_DIR="$TMP/out" PATH="$TMP/sysbin" \
-    "$REPO_ROOT/bin/install_check_tools.sh"
+  run env CHECK_TOOLS_BIN_DIR="$TMP/out" PATH="$TMP/sysbin" MISE_VERSION="$STUB_PIN" \
+    "$@" "$REPO_ROOT/bin/install_check_tools.sh"
 }
 
 @test "every installed tool is linked onto PATH" {
@@ -58,6 +62,22 @@ run_install() {
   [ -L "$TMP/out/good-tool" ]
 }
 
+@test "a mise on PATH other than the pinned one stops before installing" {
+  mise_stub 0
+  run_install STUB_MISE_VERSION=0.9.0
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"mise on PATH is 0.9.0, but mise.lock is written by 1.0.0"* ]]
+  [ ! -e "$TMP/out/good-tool" ]
+}
+
+@test "a mise on PATH that reports no version stops before installing" {
+  mise_stub 0
+  run_install STUB_MISE_VERSION=
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"mise on PATH is unknown, but mise.lock is written by 1.0.0"* ]]
+  [ ! -e "$TMP/out/good-tool" ]
+}
+
 # An apt-get that records each call, so a test can see where it was told to
 # keep the .debs it downloads.
 apt_stub() {
@@ -72,8 +92,7 @@ STUB
 @test "apt keeps its downloads in CHECK_TOOLS_APT_ARCHIVES when it is set" {
   mise_stub 0
   apt_stub
-  run env CHECK_TOOLS_BIN_DIR="$TMP/out" PATH="$TMP/sysbin" \
-    CHECK_TOOLS_APT_ARCHIVES="$TMP/debs" "$REPO_ROOT/bin/install_check_tools.sh"
+  run_install CHECK_TOOLS_APT_ARCHIVES="$TMP/debs"
   [ "$status" -eq 0 ]
   grep -q "^install .*-o Dir::Cache::Archives=$TMP/debs " "$TMP/apt.log"
   [ -d "$TMP/debs/partial" ]

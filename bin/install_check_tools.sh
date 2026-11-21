@@ -99,6 +99,17 @@ if ! command -v mise >/dev/null 2>&1; then
   rm -rf "$tmp"
 fi
 
+# A mise the image already ships is not replaced: anything outside this script
+# (lefthook, `mise lock`) would still find it first on PATH. Stop with both
+# versions instead of letting `--locked` fail below with no hint why.
+found_mise="$(mise --version 2>/dev/null || true)"
+found_mise="${found_mise%% *}"
+if [ "$found_mise" != "$MISE_VERSION" ]; then
+  echo "mise on PATH is ${found_mise:-unknown}, but mise.lock is written by $MISE_VERSION;" \
+    "put mise $MISE_VERSION first on PATH and run this again" >&2
+  exit 1
+fi
+
 cd "$BASE_DIR"
 # A fresh container has never trusted this checkout, and mise refuses an
 # untrusted config rather than prompting when there is no terminal.
