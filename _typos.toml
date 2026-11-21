@@ -7,6 +7,8 @@ ba = "ba"
 fo = "fo"
 # GnuPG's "fingerprint", as in its fpr records (MISE_RELEASE_FPR).
 fpr = "fpr"
+# Spotlight's kMDItemWhereFroms, where a download came from (bin/tidy_classify.sh).
+froms = "froms"
 # test(1)'s "older than" operator, `[ a -ot b ]`.
 ot = "ot"
 
