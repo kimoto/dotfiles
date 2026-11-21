@@ -416,8 +416,9 @@ keys() {
   "$DOTFILES_ROOT/bin/keys.sh" "$@"
 }
 
-# Encrypts a file or folder into PATH.tar.age and checks it opens before
-# saying so; `seal --remove` then drops the original. See bin/seal.sh.
+# Encrypts a file or folder into PATH.tar.age and, unless --public-only,
+# checks it opens before saying so; `seal --remove` then drops the original.
+# See bin/seal.sh.
 seal() {
   "$DOTFILES_ROOT/bin/seal.sh" "$@"
 }

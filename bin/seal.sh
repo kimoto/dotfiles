@@ -2,16 +2,24 @@
 
 # Seals a file or folder into one age-encrypted tar, for what must not be read
 # if it leaks or syncs somewhere by mistake (backups.md: encrypt before it
-# leaves the machine). The archive is decrypted again and hashed against the
-# tar that went in before anything is reported as sealed, so a sealed file is
-# known to open.
+# leaves the machine). Except under --public-only, the archive is decrypted
+# again and hashed against the tar that went in before anything is reported
+# as sealed, so a sealed file is known to open.
 #
 #   seal.sh PATH            -> PATH.tar.age beside PATH; PATH is left alone
 #   seal.sh --remove PATH   -> the same, then PATH is deleted once it checks out
 #   seal.sh --open FILE.tar.age [DIR]   -> unpacks into DIR (default: beside FILE)
+#   seal.sh --public-only PATH          -> seals without the secret key, for
+#                                          runs nobody is there to unlock
 #
 # --remove uses rm, not the Trash: the Trash would keep the very plaintext
 # this is meant to get rid of.
+#
+# --public-only trusts age and checks only what can be checked without
+# decrypting: age and tar succeeded and the file starts with age's header. It
+# never derives the public key from the secret one, and it never removes PATH:
+# nothing has shown the file opens. Keep the tar sha256 it prints; --open
+# prints the same hash for what it unpacked, and only a match shows it opens.
 #
 # Sealing needs only the public key. The check and --open need the secret one,
 # which can stay in a password manager and reach age on stdin, never a file:
@@ -44,6 +52,29 @@ decrypt() {
     else
         age -d -i "$identity" "$1"
     fi
+}
+
+# The one public key --public-only seals to: the recipients file's single key,
+# or SEAL_RECIPIENT, and they must agree when both are set. A run nobody
+# watches must not fall back to some other key, or to none: a file sealed to
+# the wrong key looks fine until the day it will not open.
+pinned_recipient() {
+    local key="${SEAL_RECIPIENT:-}" keys
+    if [ -s "$recipients" ]; then
+        keys=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$recipients" | tr -d ' \t\r' || true)
+        [ -n "$keys" ] || die "$recipients holds no key"
+        [ "$(printf '%s\n' "$keys" | wc -l | tr -d ' ')" -eq 1 ] ||
+            die "$recipients must hold exactly one key for --public-only"
+        [ -z "$key" ] || [ "$key" = "$keys" ] ||
+            die "SEAL_RECIPIENT differs from the key in $recipients"
+        key="$keys"
+    fi
+    [ -n "$key" ] || die "--public-only needs the public key: set SEAL_RECIPIENT or write it to $recipients"
+    case "$key" in
+        age1*) ;;
+        *) die "the public key is not an age1... key" ;;
+    esac
+    printf '%s\n%s\n' -r "$key"
 }
 
 # Prints the two words age takes to name the public key.
@@ -95,19 +126,34 @@ hash_stream() {
 }
 
 # A file already there is kept, never replaced by the sealed copy's older
-# version.
+# version. The tar sha256 printed is the one sealing printed, when it opens to
+# what went in.
 open_sealed() {
-    local file="$1" dir="${2:-}"
+    local file="$1" dir="${2:-}" t
     [ -f "$file" ] || die "no file $file"
     [ -n "$dir" ] || dir=$(dirname -- "$file")
     need_identity
     mkdir -p -- "$dir"
-    decrypt "$file" | tar -x "$(keep_old_flag)" -f - -C "$dir"
-    echo "opened: $file -> $dir"
+    t=$(mktemp -d)
+    mkfifo "$t/tar"
+    hash_stream <"$t/tar" >"$t/hash" &
+    # tar may stop at its end marker before the stream ends; the rest is
+    # drained so the hash covers all of it and tee never gets SIGPIPE.
+    if ! decrypt "$file" | tee "$t/tar" |
+        { tar -x "$(keep_old_flag)" -f - -C "$dir" && cat >/dev/null; }; then
+        wait || true
+        rm -rf "$t"
+        die "could not open $file"
+    fi
+    wait
+    echo "opened: $file -> $dir (tar sha256 $(cat "$t/hash"))"
+    rm -rf "$t"
 }
 
+# MODE is check (decrypt it again), remove (check, then delete PATH) or
+# public (no secret key; PATH is never deleted).
 seal() {
-    local path="$1" remove="$2" abs parent base out fifo hash_in hash_back rargs rflag rvalue
+    local path="$1" mode="$2" abs parent base out fifo hash_in hash_back hash_out rargs rflag rvalue
     path="${path%/}"
     # A link would be sealed as a link and rm would drop only the link,
     # leaving the plaintext it points to.
@@ -126,8 +172,12 @@ seal() {
     [ -n "$base" ] || die "will not seal /"
     out="$parent/$base.tar.age"
     [ ! -e "$out" ] || die "$out already exists"
-    need_identity
-    rargs=$(recipient_args) || die "no public key: set SEAL_RECIPIENT or write it to $recipients"
+    if [ "$mode" = public ]; then
+        rargs=$(pinned_recipient)
+    else
+        need_identity
+        rargs=$(recipient_args) || die "no public key: set SEAL_RECIPIENT or write it to $recipients"
+    fi
     rflag=${rargs%%$'\n'*}
     rvalue=${rargs#*$'\n'}
 
@@ -143,20 +193,34 @@ seal() {
     mkfifo "$fifo"
     snapshot "$abs" >"$tmp/before"
     hash_stream <"$fifo" >"$tmp/in" &
-    if ! tar -cf - -C "$parent" "./$base" | tee "$fifo" | age "$rflag" "$rvalue" -o "$part"; then
+    # The sealed bytes are hashed on their way to disk too: the file sha256 is
+    # what a copy elsewhere (an upload, a download back) is compared with.
+    if ! tar -cf - -C "$parent" "./$base" | tee "$fifo" | age "$rflag" "$rvalue" |
+        tee "$part" | hash_stream >"$tmp/out"; then
         wait || true
         die "could not seal $abs"
     fi
     wait
     hash_in=$(cat "$tmp/in")
-    hash_back=$(decrypt "$part" | hash_stream) || hash_back=""
-    if [ -z "$hash_in" ] || [ "$hash_in" != "$hash_back" ]; then
-        die "the sealed copy did not decrypt to what went in; $abs is untouched"
+    hash_out=$(cat "$tmp/out")
+    [ -n "$hash_in" ] && [ -n "$hash_out" ] || die "could not hash $abs; it is untouched"
+    if [ "$mode" = public ]; then
+        [ "$(head -c 21 "$part")" = "age-encryption.org/v1" ] ||
+            die "the sealed copy does not start with an age header; $abs is untouched"
+    else
+        hash_back=$(decrypt "$part" | hash_stream) || hash_back=""
+        [ "$hash_in" = "$hash_back" ] ||
+            die "the sealed copy did not decrypt to what went in; $abs is untouched"
     fi
     mv "$part" "$out"
     path="$abs"
-    echo "sealed: $path -> $out (tar sha256 $hash_in)"
-    if [ "$remove" = 1 ]; then
+    if [ "$mode" = public ]; then
+        # Not opened yet: the tar hash is what a later --open must reproduce.
+        echo "sealed, not yet opened: $path -> $out (tar sha256 $hash_in, file sha256 $hash_out)"
+    else
+        echo "sealed: $path -> $out (tar sha256 $hash_in, file sha256 $hash_out)"
+    fi
+    if [ "$mode" = remove ]; then
         # The archive is on disk before its plaintext goes.
         sync
         if ! snapshot "$abs" | cmp -s - "$tmp/before"; then
@@ -178,16 +242,21 @@ case "${1:-}" in
     --remove)
         shift
         [ $# -eq 1 ] || die "usage: seal.sh --remove PATH"
-        seal "$1" 1
+        seal "$1" remove
+        ;;
+    --public-only)
+        shift
+        [ $# -eq 1 ] || die "usage: seal.sh --public-only PATH"
+        seal "$1" public
         ;;
     -h | --help)
-        sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '3,31p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     "")
-        die "usage: seal.sh [--remove] PATH | --open FILE.tar.age [DIR]"
+        die "usage: seal.sh [--remove | --public-only] PATH | --open FILE.tar.age [DIR]"
         ;;
     *)
-        [ $# -eq 1 ] || die "usage: seal.sh [--remove] PATH"
-        seal "$1" 0
+        [ $# -eq 1 ] || die "usage: seal.sh [--remove | --public-only] PATH"
+        seal "$1" check
         ;;
 esac
