@@ -5,6 +5,8 @@
 # NOTE: Keep entries sorted A-Z within this file.
 # Static checker for GitHub Actions workflow files
 brew "actionlint"
+# Simple, modern, secure file encryption (bin/seal.sh)
+brew "age"
 # Bash Automated Testing System (bin/run_tests.sh)
 brew "bats-core"
 # Searches a binary image for embedded files and executable code
