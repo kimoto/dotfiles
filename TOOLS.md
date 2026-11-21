@@ -52,6 +52,7 @@ _Source: `Brewfile.extra`._
 | [age](https://formulae.brew.sh/formula/age) | Simple, modern, secure file encryption (bin/seal.sh) |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
+| [bitwarden-cli](https://formulae.brew.sh/formula/bitwarden-cli) | Bitwarden CLI, where secrets live (bin/secret.sh) |
 | [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
