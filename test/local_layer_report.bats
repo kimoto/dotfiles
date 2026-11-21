@@ -25,7 +25,7 @@ teardown() {
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" == *".gitconfig.local .zshrc.local present"* ]]
-  [[ "${lines[1]}" == *".bashrc.local .tmux.conf.local absent"* ]]
+  [[ "${lines[1]}" == *".bashrc.local .hammerspoon.local .tmux.conf.local absent"* ]]
 }
 
 @test "a machine with every local file reports nothing absent" {
@@ -41,7 +41,7 @@ teardown() {
   # would leave that layer unlisted again.
   local f
   for f in $(grep -ohE '[.][a-z.]+[.]local\b' "$REPO_ROOT/.zshrc" "$REPO_ROOT/.bashrc" \
-      "$REPO_ROOT/.tmux.conf" "$REPO_ROOT/.gitconfig" | sort -u); do
+      "$REPO_ROOT/.tmux.conf" "$REPO_ROOT/.gitconfig" "$REPO_ROOT/hammerspoon/init.lua" | sort -u); do
     [ -f "$REPO_ROOT/local.example/$f" ] || { echo "no template for $f" >&2; return 1; }
   done
 }
