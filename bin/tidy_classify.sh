@@ -3,6 +3,7 @@
 # Says what bin/tidy_to_drive.sh should do with one file, by having Claude read
 # it. Prints one line, tab-separated:
 #   keep  <year>/<year-month>_<procedure>  <kind>_<year>_<who>.<ext>
+#   shot      a screenshot, kept as a memory
 #   junk
 #   unsure
 # Anything else is read as unsure by the caller.
@@ -12,8 +13,8 @@
 # only tool it has, with no MCP servers: the file's text is untrusted, and
 # the answer is only ever parsed, never run.
 #
-# Rules go first and settle what they can without a model: a screenshot is
-# junk (the Trash gives back the rare one that mattered). Where a file was
+# Rules go first and settle what they can without a model: a screenshot is a
+# screenshot whatever it shows. Where a file was
 # downloaded from is only passed on as a hint; it cannot name the file.
 #
 # HEIC is converted to JPEG first: the model reads JPEG and PNG, not HEIC.
@@ -26,7 +27,7 @@ model="${TIDY_CLASSIFY_MODEL:-haiku}"
 name=$(basename "$file")
 case "$name" in
     Screenshot* | "Screen Shot"* | スクリーンショット* | CleanShot*)
-        echo junk
+        echo shot
         exit 0
         ;;
 esac
@@ -34,7 +35,7 @@ where_from=""
 # mdls is macOS Spotlight metadata; elsewhere the rules above are all there is.
 if command -v mdls >/dev/null 2>&1; then
     if [ "$(mdls -raw -name kMDItemIsScreenCapture "$file" 2>/dev/null)" = 1 ]; then
-        echo junk
+        echo shot
         exit 0
     fi
     where_from=$(mdls -raw -name kMDItemWhereFroms "$file" 2>/dev/null | tr -d '\n"()' | sed 's/  */ /g') || true
@@ -43,14 +44,19 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-read_path="$file"
+# The model works on a copy in a folder of its own and runs there: Read is
+# allowed without asking only inside its working folder, so a document that
+# tells it to read anything else gets a refusal, not the file.
+original_ext=$(printf '%s' "${file##*.}" | tr '[:upper:]' '[:lower:]')
+read_path="$work/document.$original_ext"
+cp "$file" "$read_path"
 case "$(printf '%s' "${file##*.}" | tr '[:upper:]' '[:lower:]')" in
     heic)
+        sips -s format jpeg "$file" --out "$work/page.jpg" >/dev/null
+        rm -f "$read_path"
         read_path="$work/page.jpg"
-        sips -s format jpeg "$file" --out "$read_path" >/dev/null
         ;;
 esac
-original_ext=$(printf '%s' "${file##*.}" | tr '[:upper:]' '[:lower:]')
 today=$(date +%Y-%m)
 
 prompt=$(
@@ -60,7 +66,7 @@ ${where_from:+It was downloaded from: $where_from}
 
 keep — a record worth filing: something issued by a government office, school, employer, insurer, bank,
 hospital or landlord, or a contract, certificate, statement, tax form or receipt for a procedure.
-junk — anything done with: screenshots of apps or chats, manuals, flyers, tickets for past events, memes,
+junk — anything done with: manuals, flyers, tickets for past events, memes,
 product photos.
 unsure — anything else, or when you cannot read it.
 
@@ -77,10 +83,9 @@ For junk or unsure, the line is just the word.
 EOF
 )
 
-answer=$(claude -p "$prompt" \
+answer=$(cd "$work" && claude -p "$prompt" \
     --model "$model" \
     --tools Read \
-    --allowedTools Read \
     --strict-mcp-config \
     --max-turns 3 \
     --output-format text </dev/null)

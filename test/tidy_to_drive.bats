@@ -17,15 +17,18 @@ setup() {
   export TMPDIR="$TMP"
   export TIDY_STATE_DIR="$TMP/state"
   export MIN_AGE_MINUTES=0
+  export DRIVE_DEST="gdrive-docs:"
+  export SHOT_DEST="gdrive-docs:Shots/"
   mkdir -p "$DESKTOP" "$REMOTE_DIR" "$TRASH_DIR"
 
   STUB="$TMP/stubbin"
   mkdir -p "$STUB"
-  # rclone: "gdrive-paperwork:<path>" is $REMOTE_DIR/<path>.
+  # rclone: "gdrive-docs:<path>" is $REMOTE_DIR/<path>.
   cat >"$STUB/rclone" <<'STUBEOF'
 #!/bin/bash
 if [ "$1" = lsf ]; then
-  [ -e "$REMOTE_DIR/${2#gdrive-paperwork:}" ] && basename "$2"
+  [ "${STUB_LSF_FAIL:-0}" = 1 ] && exit 1
+  [ -e "$REMOTE_DIR/${2#gdrive-docs:}" ] && basename "$2"
   exit 0
 fi
 [ "$1" = copyto ] || exit 2
@@ -35,17 +38,25 @@ ignore=0
 [ "${STUB_READ_STDIN:-0}" = 1 ] && cat >/dev/null
 src="$1" dst="$2"
 case "$dst" in
-  gdrive-paperwork:*)
+  gdrive-docs:*)
     [ "${STUB_UPLOAD_FAIL:-0}" = 1 ] && exit 1
-    out="$REMOTE_DIR/${dst#gdrive-paperwork:}"
+    out="$REMOTE_DIR/${dst#gdrive-docs:}"
     [ "$ignore" = 1 ] && [ -e "$out" ] && exit 0
     mkdir -p "$(dirname "$out")"
     cp "$src" "$out" ;;
   *)
-    cp "$REMOTE_DIR/${src#gdrive-paperwork:}" "$dst"
+    cp "$REMOTE_DIR/${src#gdrive-docs:}" "$dst"
     [ "${STUB_CORRUPT:-0}" = 1 ] && printf x >>"$dst"
     exit 0 ;;
 esac
+STUBEOF
+  # cwebp: a "conversion" whose bytes differ from the input, as a real one's do.
+  cat >"$STUB/cwebp" <<'STUBEOF'
+#!/bin/bash
+[ "${STUB_CWEBP_FAIL:-0}" = 1 ] && exit 1
+args=("$@")
+n=${#args[@]}
+{ echo webp; cat "${args[n-3]}"; } >"${args[n-1]}"
 STUBEOF
   cat >"$STUB/trash" <<'STUBEOF'
 #!/bin/bash
@@ -59,7 +70,7 @@ STUBEOF
 echo "$1" >>"$TMPDIR/classified"
 head -n 1 "$1"
 STUBEOF
-  chmod +x "$STUB/rclone" "$STUB/trash" "$STUB/classify"
+  chmod +x "$STUB/rclone" "$STUB/cwebp" "$STUB/trash" "$STUB/classify"
   export TIDY_CLASSIFIER="$STUB/classify"
   PATH="$STUB:$PATH"
 }
@@ -160,7 +171,7 @@ teardown() {
 
 @test "a destination without a trailing separator still files inside it" {
   keep_line 2026/2026-11_x receipt_2026_taro.pdf >"$DESKTOP/a.pdf"
-  DRIVE_DEST="gdrive-paperwork:Paperwork" run "$SCRIPT"
+  DRIVE_DEST="gdrive-docs:Paperwork" run "$SCRIPT"
   [ "$status" -eq 0 ]
   [ -e "$REMOTE_DIR/Paperwork/2026/2026-11_x/receipt_2026_taro.pdf" ]
 }
@@ -268,4 +279,58 @@ teardown() {
   [ "$status" -eq 0 ]
   [ -e "$TRASH_DIR/a.pdf" ]
   [ -e "$TRASH_DIR/b.pdf" ]
+}
+
+@test "a png screenshot goes up as WebP under its month, and the original goes once that copy comes back" {
+  echo shot >"$DESKTOP/Screenshot 1.png"
+  touch -t 202605011200 "$DESKTOP/Screenshot 1.png"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ ! -e "$DESKTOP/Screenshot 1.png" ]
+  [ "$(head -n 1 "$REMOTE_DIR/Shots/2026/2026-05/Screenshot 1.webp")" = webp ]
+  [ -z "$(ls -A "$TRASH_DIR")" ]
+}
+
+@test "a jpg screenshot goes up as it is" {
+  echo shot >"$DESKTOP/shot.jpg"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ "$(find "$REMOTE_DIR/Shots" -name shot.jpg | wc -l)" -eq 1 ]
+}
+
+@test "a failed WebP conversion keeps the screenshot" {
+  echo shot >"$DESKTOP/a.png"
+  STUB_CWEBP_FAIL=1 run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [ -e "$DESKTOP/a.png" ]
+}
+
+@test "a corrupt WebP download keeps the screenshot" {
+  echo shot >"$DESKTOP/a.png"
+  STUB_CORRUPT=1 run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [ -e "$DESKTOP/a.png" ]
+}
+
+@test "a Drive check that fails keeps the file instead of guessing the name is free" {
+  keep_line 2026/2026-11_x receipt_2026_taro.pdf >"$DESKTOP/a.pdf"
+  STUB_LSF_FAIL=1 run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot check Drive, kept: a.pdf"* ]]
+  [ -e "$DESKTOP/a.pdf" ]
+}
+
+@test "a file that fails three runs in a row stops being retried" {
+  keep_line 2026/2026-11_x receipt_2026_taro.pdf >"$DESKTOP/a.pdf"
+  STUB_UPLOAD_FAIL=1 run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  STUB_UPLOAD_FAIL=1 run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  STUB_UPLOAD_FAIL=1 run "$SCRIPT"
+  [[ "$output" == *"failed 3 times, not retrying"* ]]
+  rm -f "$TMP/classified"
+  STUB_UPLOAD_FAIL=1 run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ ! -e "$TMP/classified" ]
+  [ -e "$DESKTOP/a.pdf" ]
 }

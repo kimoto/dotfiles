@@ -31,17 +31,17 @@ teardown() {
   rm -rf "$TMP"
 }
 
-@test "a screenshot by name is junk without asking the model" {
+@test "a screenshot by name is a shot without asking the model" {
   echo x >"$TMP/files/Screenshot 2026-11-21 at 10.00.00.png"
   run "$SCRIPT" "$TMP/files/Screenshot 2026-11-21 at 10.00.00.png"
-  [ "$output" = junk ]
+  [ "$output" = shot ]
   [ ! -e "$CALLS" ]
 }
 
-@test "a screenshot by Spotlight's mark is junk without asking the model" {
+@test "a screenshot by Spotlight's mark is a shot without asking the model" {
   echo x >"$TMP/files/IMG_1.png"
   STUB_SCREEN=1 run "$SCRIPT" "$TMP/files/IMG_1.png"
-  [ "$output" = junk ]
+  [ "$output" = shot ]
   [ ! -e "$CALLS" ]
 }
 

@@ -17,13 +17,15 @@
 # /bin/bash Full Disk Access. Run from Hammerspoon, the script inherits the
 # Desktop permission granted to that one app.
 #
-# One-time setup: brew install rclone, then make a remote whose root is the
-# filing folder (its id is in the folder's Drive URL):
-#   rclone config create gdrive-paperwork drive scope=drive root_folder_id=<id>
+# One-time setup: brew install rclone webp, then make a remote whose root is
+# the folder holding both destinations (its id is in the folder's Drive URL):
+#   rclone config create gdrive-docs drive scope=drive root_folder_id=<id>
 #
 # Settings (environment, all optional):
 #   TIDY_SOURCE_DIRS    colon-separated folders, top level only (default ~/Desktop)
-#   DRIVE_DEST          rclone path of the filing folder (default gdrive-paperwork:)
+#   DRIVE_DEST          rclone path of the filing folder (default gdrive-docs:14.Paperwork/)
+#   SHOT_DEST           rclone path screenshots go under, as <year>/<year-month>/
+#                       (default gdrive-docs:15.Screenshots/)
 #   MIN_AGE_MINUTES     how long a file sits first (default 4320 = 3 days), so a
 #                       file put there to attach somewhere stays put.
 #   TIDY_CLASSIFIER     command given one file, see tidy_classify.sh
@@ -37,9 +39,11 @@ set -euo pipefail
 exec 2>&1
 
 TIDY_SOURCE_DIRS="${TIDY_SOURCE_DIRS:-$HOME/Desktop}"
-DRIVE_DEST="${DRIVE_DEST:-gdrive-paperwork:}"
+DRIVE_DEST="${DRIVE_DEST:-gdrive-docs:14.Paperwork/}"
+SHOT_DEST="${SHOT_DEST:-gdrive-docs:15.Screenshots/}"
 # A bare folder name would glue onto the next path part.
 case "$DRIVE_DEST" in *: | */) ;; *) DRIVE_DEST="$DRIVE_DEST/" ;; esac
+case "$SHOT_DEST" in *: | */) ;; *) SHOT_DEST="$SHOT_DEST/" ;; esac
 TIDY_CLASSIFIER="${TIDY_CLASSIFIER:-$(cd "$(dirname "$0")" && pwd)/tidy_classify.sh}"
 TIDY_STATE_DIR="${TIDY_STATE_DIR:-$HOME/.local/state/tidy_to_drive}"
 MIN_AGE_MINUTES="${MIN_AGE_MINUTES:-4320}"
@@ -87,9 +91,13 @@ case "$MIN_AGE_MINUTES" in
         exit 1
         ;;
 esac
-if [ "$DRY_RUN" != 1 ] && ! command -v rclone >/dev/null 2>&1; then
-    log "rclone not found (brew install rclone); nothing moved."
-    exit 1
+if [ "$DRY_RUN" != 1 ]; then
+    for tool in rclone cwebp; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            log "$tool not found (brew install rclone webp); nothing moved."
+            exit 1
+        fi
+    done
 fi
 
 # One run at a time: an hourly slot can land while a slow upload still runs.
@@ -113,13 +121,17 @@ work=$(mktemp -d) || {
 }
 trap 'rm -rf "$lock" "$work"' EXIT
 
+# A file that fails the same way every hour would be retried, and its owner
+# notified, every hour; after MAX_TRIES it waits like an unsure one.
+MAX_TRIES=3
 moved=0
 trashed=0
 kept=0
 unsure=0
 mkdir -p "$TIDY_STATE_DIR"
 asked="$TIDY_STATE_DIR/asked"
-touch "$asked"
+tries="$TIDY_STATE_DIR/tries"
+touch "$asked" "$tries"
 
 keep() {
     log "$1, kept: $2"
@@ -146,38 +158,89 @@ to_trash() {
     fi
 }
 
+# file_away ORIGINAL NAME ORIGINAL_HASH UPLOAD UPLOAD_HASH REMOTE
+# Uploads UPLOAD (the original, or a converted copy of it) to REMOTE and
+# deletes ORIGINAL once REMOTE downloads back as UPLOAD's bytes.
 file_away() {
-    local file="$1" name="$2" local_hash="$3" dest="$4" back taken=0
-    if [ -n "$(rclone lsf "$DRIVE_DEST$dest" </dev/null 2>/dev/null)" ]; then
-        taken=1
+    local file="$1" name="$2" local_hash="$3" upload="$4" upload_hash="$5" remote="$6" back taken=0
+    local listed
+    if ! listed=$(rclone lsf "$remote" </dev/null); then
+        keep "cannot check Drive" "$name"
+        return 0
     fi
+    [ -n "$listed" ] && taken=1
     # --ignore-existing: a different file already under that name is never
     # overwritten; its bytes then fail the compare below and this one is kept.
-    if ! rclone copyto --ignore-existing "$file" "$DRIVE_DEST$dest" </dev/null; then
+    if ! rclone copyto --ignore-existing "$upload" "$remote" </dev/null; then
         keep "upload failed" "$name"
         return 0
     fi
     back="$work/back"
     rm -f "$back"
-    if ! rclone copyto "$DRIVE_DEST$dest" "$back" </dev/null; then
+    if ! rclone copyto "$remote" "$back" </dev/null; then
         keep "download-back failed" "$name"
         return 0
     fi
-    if [ "$(sha256_of "$back")" != "$local_hash" ] && [ "$taken" = 0 ]; then
+    local back_hash
+    back_hash=$(sha256_of "$back")
+    if [ -z "$upload_hash" ] || [ -z "$back_hash" ]; then
+        keep "cannot hash the Drive copy" "$name"
+        return 0
+    fi
+    if [ "$back_hash" != "$upload_hash" ] && [ "$taken" = 0 ]; then
         keep "Drive copy differs" "$name"
         return 0
     fi
-    if [ "$(sha256_of "$back")" != "$local_hash" ]; then
+    if [ "$back_hash" != "$upload_hash" ]; then
         # Another file already holds that name; asking again next hour would
         # get the same name, so it waits for the owner like an unsure one.
         printf '%s %s\n' "$local_hash" "$name" >>"$asked"
-        log "unsure (Drive already has a different $dest): $name"
+        log "unsure (Drive already has a different $remote): $name"
         unsure=$((unsure + 1))
         return 0
     fi
     rm -f -- "$file"
-    log "filed: $name -> $dest"
+    log "filed: $name -> $remote"
     moved=$((moved + 1))
+}
+
+# A screenshot is kept as a memory, not trashed: a PNG becomes lossless WebP
+# (smaller for text and flat colour, every pixel the same), other types go up
+# as they are. The month folder is the month it was taken (mtime).
+file_shot() {
+    local file="$1" name="$2" local_hash="$3" ext upload upload_name month
+    ext=$(printf '%s' "${name##*.}" | tr '[:upper:]' '[:lower:]')
+    # perl, because BSD and GNU stat and date spell "mtime as a date" apart.
+    if ! month=$(perl -MPOSIX -e 'print strftime("%Y/%Y-%m", localtime((stat shift)[9]))' "$file") ||
+        [ -z "$month" ]; then
+        keep "cannot read the date" "$name"
+        return 0
+    fi
+    upload="$file"
+    upload_name="$name"
+    if [ "$ext" = png ]; then
+        upload="$work/shot.webp"
+        rm -f "$upload"
+        if ! cwebp -quiet -lossless -mt "$file" -o "$upload" </dev/null; then
+            keep "WebP conversion failed" "$name"
+            return 0
+        fi
+        upload_name="${name%.*}.webp"
+    fi
+    file_away "$file" "$name" "$local_hash" "$upload" "$(sha256_of "$upload")" "$SHOT_DEST$month/$upload_name"
+}
+
+count_try() {
+    local hash n
+    hash=$(sha256_of "$1")
+    [ -n "$hash" ] || return 0
+    echo "$hash" >>"$tries"
+    n=$(grep -c "^$hash\$" "$tries" || true)
+    if [ "$n" -ge "$MAX_TRIES" ]; then
+        printf '%s %s\n' "$hash" "$(basename "$1")" >>"$asked"
+        log "unsure (failed $n times, not retrying): $(basename "$1")"
+        unsure=$((unsure + 1))
+    fi
 }
 
 tidy_one() {
@@ -205,9 +268,11 @@ tidy_one() {
                 [ "${newname##*.}" != "$(printf '%s' "${name##*.}" | tr '[:upper:]' '[:lower:]')" ]; then
                 log "unsure (classifier gave a bad name): $name"
                 verdict=unsure
+                folder=""
+                newname=""
             fi
             ;;
-        junk) ;;
+        junk | shot) ;;
         *) verdict=unsure ;;
     esac
     if [ "$DRY_RUN" = 1 ]; then
@@ -215,7 +280,8 @@ tidy_one() {
         return 0
     fi
     case "$verdict" in
-        keep) file_away "$file" "$name" "$local_hash" "$folder/$newname" ;;
+        keep) file_away "$file" "$name" "$local_hash" "$file" "$local_hash" "$DRIVE_DEST$folder/$newname" ;;
+        shot) file_shot "$file" "$name" "$local_hash" ;;
         junk)
             if to_trash "$file"; then
                 log "trashed: $name"
@@ -254,7 +320,9 @@ for dir in "${sources[@]}"; do
     while IFS= read -r -d '' file; do
         # Keeps a long run's lock from looking abandoned to the next one.
         touch "$lock"
+        kept_before=$kept
         tidy_one "$file"
+        [ "$kept" -eq "$kept_before" ] || count_try "$file"
     done <"$list"
 done
 

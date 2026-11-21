@@ -28,10 +28,10 @@ local function runTidy()
    tidyTask = hs.task.new("/bin/bash", function(exitCode, stdout, stderr)
       appendLog(stdout)
       appendLog(stderr)
-      -- The script's exit codes: 1 kept something back after a failure, 3
+      -- The script's exit codes: 1 a failure (a file kept back, or a missing tool), 3
       -- left files it could not call for the owner to look at.
       local messages = {
-         [1] = "うまく移せなかったファイルがあります。",
+         [1] = "片付けが止まったか、移せなかったファイルがあります。",
          [3] = "残すか迷うファイルがあります。Desktop に置いたままです。",
       }
       if exitCode ~= 0 then
