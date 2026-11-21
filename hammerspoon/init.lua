@@ -59,8 +59,13 @@ setHotkeysEnabled(not frontmost or isRemapTarget(frontmost:name()))
 -- DeepL-style translation shortcuts (hammerspoon/translate.lua).
 require("translate")
 
--- Hourly move of settled Desktop documents to Drive (hammerspoon/tidy.lua).
-require("tidy")
+-- This machine's own additions, kept out of the repo (local.example/). An
+-- error there is shown, not raised, so the reload watcher below still starts.
+local localConfig = os.getenv("HOME") .. "/.hammerspoon.local"
+if hs.fs.attributes(localConfig) then
+   local ok, err = pcall(dofile, localConfig)
+   if not ok then hs.alert.show("~/.hammerspoon.local: " .. tostring(err)) end
+end
 
 -- Auto-reload this config whenever a file in ~/.hammerspoon changes.
 configWatcher = hs.pathwatcher.new(hs.configdir, hs.reload)

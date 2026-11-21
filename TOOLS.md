@@ -102,9 +102,7 @@ _Source: `Brewfile.macos`._
 
 | Tool | Description |
 | --- | --- |
-| [rclone](https://formulae.brew.sh/formula/rclone) | Rsync for cloud storage |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
-| [webp](https://formulae.brew.sh/formula/webp) | Image format providing lossless and lossy compression for web images |
 | [codex](https://formulae.brew.sh/cask/codex) | OpenAI's coding agent that runs in your terminal |
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
 | [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | JetBrains Mono patched with Nerd Font icons |

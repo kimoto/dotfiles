@@ -4,17 +4,11 @@
 tap "kimoto/dotfiles", __dir__, trusted: true
 # Tap for AeroSpace
 tap "nikitabobko/tap"
-# Only bin/tidy_to_drive.sh uses it, and only on the Mac.
-# Rsync for cloud storage
-brew "rclone"
 # macOS-only, not in Brewfile.extra: Homebrew has no Linux bottle for telnet
 # (Tier 3, "no bottle available"). On Linux the distro package supplies
 # /usr/bin/telnet instead — see Brewfile.linux.
 # User interface to the TELNET protocol
 brew "telnet"
-# bin/tidy_to_drive.sh turns PNG screenshots into lossless WebP with it.
-# Image format providing lossless and lossy compression for web images
-brew "webp"
 # The native cask, not npm: an npm install lives in one node version and
 # vanishes when mise moves on.
 # OpenAI's coding agent that runs in your terminal
