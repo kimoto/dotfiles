@@ -10,3 +10,8 @@
 # Not here: anything every machine wants (put it in .zshrc), and settings
 # shared by every machine with the same hostname
 # (~/.config/hosts/<hostname>.zshrc, sourced just before this file).
+
+# seal (bin/seal.sh): the age public key to encrypt to, and how to fetch the
+# secret one for the check and --open, so it never sits in a file.
+# export SEAL_RECIPIENT=age1...
+# export SEAL_IDENTITY_CMD='bw get notes "<item name>"'

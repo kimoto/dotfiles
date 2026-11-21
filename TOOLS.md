@@ -50,6 +50,7 @@ _Source: `Brewfile.extra`._
 | Tool | Description |
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
+| [age](https://formulae.brew.sh/formula/age) | Simple, modern, secure file encryption (bin/seal.sh) |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
 | [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
