@@ -4,15 +4,27 @@
 # `gh pr create` (claude_pr_description_reminder.sh says so) and is woken when
 # it exits. One line on stdout says what happened.
 #
-# Usage: watch_pr.sh <pr number | url | branch>   (gh resolves the repo)
+# Usage: watch_pr.sh [--until-merged] <pr number | url | branch>
+#        (gh resolves the repo)
+# By default it returns once every check has passed, because an agent that
+# started it "to wait for CI" otherwise hears nothing until the merge; waiting
+# for the merge as well is the explicit --until-merged.
 # Exit:  0 merged, 1 a check failed, 2 usage, 3 closed unmerged,
-#        4 GitHub kept failing.
+#        4 GitHub kept failing, 5 every check passed (default mode only).
+# A check that registers more than about 90 s after the others settle is
+# still missed; --until-merged is the wait that cannot be fooled by it.
 set -uo pipefail
 
-if [ $# -ne 1 ]; then
-  echo "usage: watch_pr.sh <pr number | url | branch>" >&2
+usage() {
+  echo "usage: watch_pr.sh [--until-merged] <pr number | url | branch>" >&2
   exit 2
+}
+until_merged=false
+if [ "${1:-}" = --until-merged ]; then
+  until_merged=true
+  shift
 fi
+[ $# -eq 1 ] || usage
 pr=$1
 
 # A PR that just moved (a push, a check finishing) tends to move again soon,
@@ -39,6 +51,12 @@ failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.sta
   | (.name // .context)] | join(", ")'
 running='any(.statusCheckRollup[]?;
   (.status // "") != "" and .status != "COMPLETED" or (.state // "") == "PENDING")'
+# Passed means at least one check, and the newest run of every check concluded
+# with something other than a failure or a cancel. A cancelled newest run is
+# waiting for its replacement, so it is not a pass yet.
+passed='(.statusCheckRollup // []) | length > 0 and all(group_by(.name // .context)[]
+  | max_by(.startedAt // ""); (.conclusion // .state // "")
+      | IN("SUCCESS", "SKIPPED", "NEUTRAL"))'
 
 wait_and_back_off() {
   sleep "$interval"
@@ -48,6 +66,7 @@ wait_and_back_off() {
 
 interval=$min_interval
 previous=""
+same=0
 failures=0
 while true; do
   if ! json=$(gh pr view "$pr" --json state,url,statusCheckRollup 2>/dev/null); then
@@ -63,6 +82,9 @@ while true; do
   if [ "$json" != "$previous" ]; then
     interval=$min_interval
     previous=$json
+    same=0
+  else
+    same=$((same + 1))
   fi
   url=$(jq -r '.url' <<<"$json")
   case $(jq -r '.state' <<<"$json") in
@@ -73,6 +95,16 @@ while true; do
   if [ -n "$failed" ]; then
     echo "check failed ($failed): $url"
     exit 1
+  fi
+  # Three identical polls in a row (about 90 s with the back-off), not one: a
+  # check that registers after the others, such as a workflow_run chained on
+  # them, would otherwise be missed and the PR called green early. A check
+  # still queued or running is never green, even when an older run of it
+  # passed.
+  if ! $until_merged && [ "$same" -ge 2 ] && ! jq -e "$running" <<<"$json" >/dev/null \
+    && jq -e "$passed" <<<"$json" >/dev/null; then
+    echo "checks passed: $url"
+    exit 5
   fi
   if jq -e "$running" <<<"$json" >/dev/null; then
     sleep "$running_interval"

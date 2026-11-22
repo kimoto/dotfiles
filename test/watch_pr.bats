@@ -159,7 +159,7 @@ answer() {
   answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
   answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
   answer 5 MERGED
-  run "$SCRIPT" 7
+  run "$SCRIPT" --until-merged 7
   [ "$(waits)" = "30 60 30 60" ]
 }
 
@@ -169,4 +169,67 @@ answer() {
   answer 3 MERGED
   run "$SCRIPT" 7
   [ "$(waits)" = "30 60" ]
+}
+
+@test "every check passing on three polls in a row ends the watch with exit 5" {
+  answer 1 OPEN '{"name":"ci","conclusion":""}'
+  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
+  answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
+  answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
+  answer 5 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 5 ]
+  [ "$output" = "checks passed: https://github.com/o/r/pull/7" ]
+}
+
+@test "a check that registers after the others were green is waited for" {
+  answer 1 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","status":"IN_PROGRESS","conclusion":""}'
+  answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","conclusion":"FAILURE"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 1 ]
+  [ "$output" = "check failed (late): https://github.com/o/r/pull/7" ]
+}
+
+@test "a cancelled newest run is not a pass" {
+  answer 1 OPEN '{"name":"ci","status":"COMPLETED","conclusion":"CANCELLED"}'
+  answer 2 OPEN '{"name":"ci","status":"COMPLETED","conclusion":"CANCELLED"}'
+  answer 3 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+}
+
+@test "a PR with no checks yet is not a pass" {
+  answer 1 OPEN
+  answer 2 OPEN
+  answer 3 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+}
+
+@test "--until-merged keeps waiting past green checks for the merge" {
+  answer 1 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 3 MERGED '{"name":"ci","conclusion":"SUCCESS"}'
+  run "$SCRIPT" --until-merged 7
+  [ "$status" -eq 0 ]
+  [ "$output" = "merged: https://github.com/o/r/pull/7" ]
+}
+
+@test "--until-merged without a PR prints usage and exits 2" {
+  run "$SCRIPT" --until-merged
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"usage"* ]]
+}
+
+@test "a re-run still queued is not green, though its older run passed" {
+  for n in 1 2 3; do
+    answer "$n" OPEN \
+      '{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":"2026-11-22T00:10:00Z"}' \
+      '{"name":"ci","status":"QUEUED","conclusion":"","startedAt":null}'
+  done
+  answer 4 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
 }
