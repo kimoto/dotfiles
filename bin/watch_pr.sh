@@ -4,15 +4,25 @@
 # `gh pr create` (claude_pr_description_reminder.sh says so) and is woken when
 # it exits. One line on stdout says what happened.
 #
-# Usage: watch_pr.sh <pr number | url | branch>   (gh resolves the repo)
+# Usage: watch_pr.sh [--until-merged] <pr number | url | branch>
+#        (gh resolves the repo)
+# By default it returns once every check has passed, because an agent that
+# started it "to wait for CI" otherwise hears nothing until the merge; waiting
+# for the merge as well is the explicit --until-merged.
 # Exit:  0 merged, 1 a check failed, 2 usage, 3 closed unmerged,
-#        4 GitHub kept failing.
+#        4 GitHub kept failing, 5 every check passed (default mode only).
 set -uo pipefail
 
-if [ $# -ne 1 ]; then
-  echo "usage: watch_pr.sh <pr number | url | branch>" >&2
+usage() {
+  echo "usage: watch_pr.sh [--until-merged] <pr number | url | branch>" >&2
   exit 2
+}
+until_merged=false
+if [ "${1:-}" = --until-merged ]; then
+  until_merged=true
+  shift
 fi
+[ $# -eq 1 ] || usage
 pr=$1
 
 # A PR that just moved (a push, a check finishing) tends to move again soon,
@@ -39,6 +49,12 @@ failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.sta
   | (.name // .context)] | join(", ")'
 running='any(.statusCheckRollup[]?;
   (.status // "") != "" and .status != "COMPLETED" or (.state // "") == "PENDING")'
+# Passed means at least one check, and the newest run of every check concluded
+# with something other than a failure or a cancel. A cancelled newest run is
+# waiting for its replacement, so it is not a pass yet.
+passed='(.statusCheckRollup // []) | length > 0 and all(group_by(.name // .context)[]
+  | max_by(.startedAt // ""); (.conclusion // .state // "")
+      | IN("SUCCESS", "SKIPPED", "NEUTRAL"))'
 
 wait_and_back_off() {
   sleep "$interval"
@@ -60,9 +76,12 @@ while true; do
     continue
   fi
   failures=0
+  unchanged=false
   if [ "$json" != "$previous" ]; then
     interval=$min_interval
     previous=$json
+  else
+    unchanged=true
   fi
   url=$(jq -r '.url' <<<"$json")
   case $(jq -r '.state' <<<"$json") in
@@ -73,6 +92,12 @@ while true; do
   if [ -n "$failed" ]; then
     echo "check failed ($failed): $url"
     exit 1
+  fi
+  # Two identical polls in a row, not one: a check that registers a little
+  # after the others would otherwise be missed, and the PR called green early.
+  if ! $until_merged && $unchanged && jq -e "$passed" <<<"$json" >/dev/null; then
+    echo "checks passed: $url"
+    exit 5
   fi
   if jq -e "$running" <<<"$json" >/dev/null; then
     sleep "$running_interval"
