@@ -38,7 +38,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && printf '%s' "$bare" | grep -qE "${
   url=$(jq -r '.tool_response | tostring' <<<"$payload" 2>/dev/null \
     | grep -oE 'https://github\.com/[^/[:space:]"]+/[^/[:space:]"]+/pull/[0-9]+' | head -1)
   if [ -n "$url" ]; then
-    context="${context:+$context }A pull request was just created: $url. Unless this session can subscribe to PR activity, start \`~/bin/watch_pr.sh $url\` with run_in_background now, so its merge, close or failing check reaches you; re-arm it after you push a fix for a failed check."
+    context="${context:+$context }A pull request was just created: $url. Unless this session can subscribe to PR activity, start \`~/bin/watch_pr.sh $url\` with run_in_background now, so passing checks, a failing check, a merge or a close reaches you; re-arm it after you push a fix for a failed check, or with --until-merged to wait for the merge."
   fi
 fi
 
