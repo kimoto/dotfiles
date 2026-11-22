@@ -171,11 +171,12 @@ answer() {
   [ "$(waits)" = "30 60" ]
 }
 
-@test "every check passing on two polls in a row ends the watch with exit 5" {
+@test "every check passing on three polls in a row ends the watch with exit 5" {
   answer 1 OPEN '{"name":"ci","conclusion":""}'
   answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
   answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
-  answer 4 MERGED
+  answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"e2e","conclusion":"SKIPPED"}'
+  answer 5 MERGED
   run "$SCRIPT" 7
   [ "$status" -eq 5 ]
   [ "$output" = "checks passed: https://github.com/o/r/pull/7" ]
@@ -183,8 +184,9 @@ answer() {
 
 @test "a check that registers after the others were green is waited for" {
   answer 1 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
-  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","status":"IN_PROGRESS","conclusion":""}'
-  answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","conclusion":"FAILURE"}'
+  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}'
+  answer 3 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","status":"IN_PROGRESS","conclusion":""}'
+  answer 4 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"name":"late","conclusion":"FAILURE"}'
   run "$SCRIPT" 7
   [ "$status" -eq 1 ]
   [ "$output" = "check failed (late): https://github.com/o/r/pull/7" ]
@@ -219,4 +221,15 @@ answer() {
   run "$SCRIPT" --until-merged
   [ "$status" -eq 2 ]
   [[ "$output" == *"usage"* ]]
+}
+
+@test "a re-run still queued is not green, though its older run passed" {
+  for n in 1 2 3; do
+    answer "$n" OPEN \
+      '{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS","startedAt":"2026-11-22T00:10:00Z"}' \
+      '{"name":"ci","status":"QUEUED","conclusion":"","startedAt":null}'
+  done
+  answer 4 MERGED
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
 }

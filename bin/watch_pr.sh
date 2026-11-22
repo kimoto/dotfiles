@@ -11,6 +11,8 @@
 # for the merge as well is the explicit --until-merged.
 # Exit:  0 merged, 1 a check failed, 2 usage, 3 closed unmerged,
 #        4 GitHub kept failing, 5 every check passed (default mode only).
+# A check that registers more than about 90 s after the others settle is
+# still missed; --until-merged is the wait that cannot be fooled by it.
 set -uo pipefail
 
 usage() {
@@ -64,6 +66,7 @@ wait_and_back_off() {
 
 interval=$min_interval
 previous=""
+same=0
 failures=0
 while true; do
   if ! json=$(gh pr view "$pr" --json state,url,statusCheckRollup 2>/dev/null); then
@@ -76,12 +79,12 @@ while true; do
     continue
   fi
   failures=0
-  unchanged=false
   if [ "$json" != "$previous" ]; then
     interval=$min_interval
     previous=$json
+    same=0
   else
-    unchanged=true
+    same=$((same + 1))
   fi
   url=$(jq -r '.url' <<<"$json")
   case $(jq -r '.state' <<<"$json") in
@@ -93,9 +96,13 @@ while true; do
     echo "check failed ($failed): $url"
     exit 1
   fi
-  # Two identical polls in a row, not one: a check that registers a little
-  # after the others would otherwise be missed, and the PR called green early.
-  if ! $until_merged && $unchanged && jq -e "$passed" <<<"$json" >/dev/null; then
+  # Three identical polls in a row (about 90 s with the back-off), not one: a
+  # check that registers after the others, such as a workflow_run chained on
+  # them, would otherwise be missed and the PR called green early. A check
+  # still queued or running is never green, even when an older run of it
+  # passed.
+  if ! $until_merged && [ "$same" -ge 2 ] && ! jq -e "$running" <<<"$json" >/dev/null \
+    && jq -e "$passed" <<<"$json" >/dev/null; then
     echo "checks passed: $url"
     exit 5
   fi
