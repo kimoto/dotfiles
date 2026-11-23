@@ -1,0 +1,60 @@
+---
+# windows/setup.ps1 on a bare Windows runner, all the way through: winget
+# import, Codex and Claude links, and the AutoHotkey Startup shortcut. The
+# per-script tests in ci.yml run each part against a sandbox; this is the one
+# place the whole setup runs against a real profile.
+#
+# Free on a public repo but slow (it installs every app), so it runs only when
+# a change can move the result, plus weekly for winget packages drifting.
+name: bootstrap-windows
+on:
+  pull_request:
+    paths:
+      - "windows/setup.ps1"
+      - "windows/link_codex.ps1"
+      - "windows/install_mac_keys.ps1"
+      - "windows/winget-packages.json"
+      - "windows/autohotkey/**"
+      - "codex/config.toml"
+      - "test/setup.ps1"
+      - ".github/workflows/bootstrap-windows.yml"
+  schedule:
+    - cron: "47 7 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: windows-2025
+    # A few times a cold install of every package in the manifest.
+    timeout-minutes: 45
+    # Windows PowerShell 5.1, as on a workstation, not pwsh.
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The check has to be able to fail, or a green run below proves nothing.
+      - name: The check fails on the bare runner
+        run: |
+          ./test/setup.ps1
+          if ($LASTEXITCODE -eq 0) { throw 'test/setup.ps1 passed before setup ran.' }
+          exit 0
+
+      - name: Setup
+        run: ./windows/setup.ps1
+
+      - name: Setup again changes nothing that breaks
+        run: ./windows/setup.ps1
+
+      - name: The machine is set up
+        run: ./test/setup.ps1
