@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     *) shift ;;
   esac
 done
-f="$STUB_KC/$svc--$acct"
+f="$STUB_KC/$svc--${acct//\//%}"
 case "$op" in
   find-generic-password) [ -f "$f" ] || exit 44; cat "$f"; echo ;;
   delete-generic-password) [ -f "$f" ] || exit 44; rm "$f" ;;
@@ -47,22 +47,51 @@ STUB
     "twin" "1" "twin" "2" >"$TMP/vault"
   export STUB_VAULT="$TMP/vault"
   # `bw list` reads a local cache of the vault; `bw sync` refreshes it from the
-  # server copy, vault.server, when a test has put one there.
+  # server copy, vault.server, when a test has put one there. An item's id is
+  # its line number. create and edit log the item they got to written.json;
+  # STUB_BW_DROP makes them report success and keep nothing.
   cat >"$TMP/bin/bw" <<'STUB'
 #!/bin/bash
 echo "bw $*" >>"$STUB_ARGV"
+[ "$1" = encode ] && exec base64
 [ -n "${BW_SESSION:-}" ] || { echo "Vault is locked." >&2; exit 1; }
 [ -z "${STUB_BW_FAIL:-}" ] || { echo "Invalid session." >&2; exit 1; }
-if [ "$1" = sync ]; then
-  [ ! -f "$STUB_VAULT.server" ] || mv "$STUB_VAULT.server" "$STUB_VAULT"
-  exit 0
-fi
-[ "$1 $2 $3" = "list items --search" ] || exit 1
-while IFS=$'\t' read -r name notes; do
-  case "$name" in *"$4"*) jq -n --arg n "$name" --arg v "$notes" '{name: $n, notes: $v}' ;; esac
-done <"$STUB_VAULT" | jq -s .
+item_json() { "$REAL_JQ" -n --argjson i "$1" --arg n "$2" --arg v "$3" '{id: ($i | tostring), name: $n, notes: $v}'; }
+case "$1 $2" in
+  "sync --nointeraction")
+    [ ! -f "$STUB_VAULT.server" ] || mv "$STUB_VAULT.server" "$STUB_VAULT" ;;
+  "list items")
+    i=0
+    while IFS=$'\t' read -r name notes; do
+      i=$((i + 1))
+      case "$name" in *"$4"*) item_json "$i" "$name" "$notes" ;; esac
+    done <"$STUB_VAULT" | "$REAL_JQ" -s . ;;
+  "get template")
+    echo '{"type":1,"name":"","notes":null,"folderId":null,"login":{"username":null},"secureNote":null}' ;;
+  "get item")
+    IFS=$'\t' read -r name notes < <(sed -n "${3}p" "$STUB_VAULT")
+    item_json "$3" "$name" "$notes" ;;
+  "create item" | "edit item")
+    base64 -d >"$TMP_DIR/written.json"
+    [ -z "${STUB_BW_DROP:-}" ] || exit 0
+    line=$("$REAL_JQ" -r '[.name, .notes] | @tsv' "$TMP_DIR/written.json")
+    if [ "$1" = create ]; then
+      printf '%s\n' "$line" >>"$STUB_VAULT"
+    else
+      awk -v n="$3" -v l="$line" 'NR == n { print l; next } { print }' "$STUB_VAULT" >"$STUB_VAULT.new"
+      mv "$STUB_VAULT.new" "$STUB_VAULT"
+    fi ;;
+  *) exit 1 ;;
+esac
 STUB
-  chmod +x "$TMP/bin/security" "$TMP/bin/bw"
+  # jq is real, behind a stub that logs its argv too.
+  export REAL_JQ="$(command -v jq)"
+  printf '#!/bin/bash\necho "jq $*" >>"$STUB_ARGV"\nexec %s "$@"\n' "$(command -v jq)" >"$TMP/bin/jq"
+  # The clipboard: paste prints clip, copy writes it.
+  printf '#!/bin/bash\ncat "$TMP_DIR/clip"\n' >"$TMP/bin/paste"
+  printf '#!/bin/bash\ncat >"$TMP_DIR/clip"\n' >"$TMP/bin/copy"
+  export TMP_DIR="$TMP" SECRET_PASTE=paste SECRET_COPY=copy
+  chmod +x "$TMP/bin/security" "$TMP/bin/bw" "$TMP/bin/jq" "$TMP/bin/paste" "$TMP/bin/copy"
   export PATH="$TMP/bin:$PATH"
   unset BW_SESSION
 }
@@ -72,7 +101,7 @@ teardown() {
 }
 
 copy() {
-  cat "$TMP/kc/dotfiles-secret--$1"
+  cat "$TMP/kc/dotfiles-secret--${1//\//%}"
 }
 
 @test "a refresh copies the secret into the Keychain and prints nothing on stdout" {
@@ -85,7 +114,7 @@ copy() {
 @test "the secret never appears on a command line" {
   BW_SESSION=x run "$SCRIPT" --refresh "api key"
   [ "$status" -eq 0 ]
-  ! grep -q s3cr3t "$STUB_ARGV"
+  run ! grep -q s3cr3t "$STUB_ARGV"
 }
 
 @test "the item is matched by its exact name, not by search" {
@@ -106,14 +135,14 @@ copy() {
   run "$SCRIPT" "api key"
   [ "$status" -eq 0 ]
   [ "$output" = s3cr3t-value ]
-  ! grep -q '^bw' "$STUB_ARGV"
+  run ! grep -q '^bw' "$STUB_ARGV"
 }
 
 @test "a missing copy fails with a command that can be pasted, and does not reach for Bitwarden" {
   BW_SESSION=x run "$SCRIPT" "Bob's key"
   [ "$status" -ne 0 ]
   [[ "$output" == *"--refresh Bob\\'s\\ key"* ]]
-  ! grep -q '^bw' "$STUB_ARGV"
+  run ! grep -q '^bw' "$STUB_ARGV"
 }
 
 @test "a locked Keychain is named as such, not as a missing copy" {
@@ -208,7 +237,7 @@ copy() {
   SECRET_SECURITY=no-such-command BW_SESSION=x run "$SCRIPT" "api key"
   [ "$status" -ne 0 ]
   [[ "$output" == *"needs the macOS Keychain"* ]]
-  ! grep -q '^bw' "$STUB_ARGV"
+  run ! grep -q '^bw' "$STUB_ARGV"
 }
 
 @test "usage errors" {
@@ -221,4 +250,125 @@ copy() {
   run "$SCRIPT" --bogus x
   [ "$status" -ne 0 ]
   [[ "$output" == *usage* ]]
+}
+
+# The value --set reads on stdin, from a file: `run` in a pipeline would run in
+# a subshell and lose $status.
+new_value() {
+  printf '%s' "$1" >"$TMP/in"
+}
+
+@test "--set makes a secure note when there is none, and caches it" {
+  new_value n3w-key
+  BW_SESSION=x run --separate-stderr "$SCRIPT" --set "env/NEW_KEY" - <"$TMP/in"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"stored: env/NEW_KEY"* ]]
+  [ "$(jq -r '[.type, .name, .notes] | @tsv' "$TMP/written.json")" = "$(printf '2\tenv/NEW_KEY\tn3w-key')" ]
+  [ "$(copy "env/NEW_KEY")" = n3w-key ]
+}
+
+@test "--set replaces the notes of the one item with that name, and leaves the rest" {
+  printf 'old' >"$TMP/kc/dotfiles-secret--api key"
+  new_value rotated
+  BW_SESSION=x run "$SCRIPT" --set "api key" - <"$TMP/in"
+  [ "$status" -eq 0 ]
+  grep -qx "$(printf 'api key\trotated')" "$TMP/vault"
+  grep -qx "$(printf 'api key old\tstale')" "$TMP/vault"
+  [ "$(copy "api key")" = rotated ]
+}
+
+@test "--set never puts the new value on a command line" {
+  new_value n3w-key
+  BW_SESSION=x run "$SCRIPT" --set "env/NEW_KEY" - <"$TMP/in"
+  [ "$status" -eq 0 ]
+  new_value rotated
+  BW_SESSION=x run "$SCRIPT" --set "api key" - <"$TMP/in"
+  [ "$status" -eq 0 ]
+  grep -q '^jq ' "$STUB_ARGV"
+  run ! grep -qe n3w-key -e rotated "$STUB_ARGV"
+}
+
+@test "--set reads the clipboard by default, trims it, then clears it" {
+  printf '  n3w-key \n' >"$TMP/clip"
+  BW_SESSION=x run "$SCRIPT" --set "env/NEW_KEY"
+  [ "$status" -eq 0 ]
+  [ "$(copy "env/NEW_KEY")" = n3w-key ]
+  [ ! -s "$TMP/clip" ]
+}
+
+@test "--set refuses a value the Keychain cannot carry before writing Bitwarden" {
+  new_value 'a"b'
+  BW_SESSION=x run "$SCRIPT" --set "api key" - <"$TMP/in"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"has a quote"* ]]
+  run ! grep -qe '^bw create' -e '^bw edit' "$STUB_ARGV"
+  grep -qx "$(printf 'api key\ts3cr3t-value')" "$TMP/vault"
+}
+
+@test "--set with a locked Keychain stops before writing Bitwarden" {
+  new_value rotated
+  STUB_KC_LOCKED=1 BW_SESSION=x run "$SCRIPT" --set "api key" - <"$TMP/in"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *unlock-keychain* ]]
+  run ! grep -q '^bw' "$STUB_ARGV"
+}
+
+@test "--set that fails after writing Bitwarden says so, and clears the clipboard" {
+  printf 'rotated' >"$TMP/clip"
+  STUB_KC_FAIL=1 BW_SESSION=x run "$SCRIPT" --set "api key"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"could not save"* ]]
+  [[ "$output" == *"Bitwarden already holds"*"--refresh api\\ key"* ]]
+  [ ! -s "$TMP/clip" ]
+}
+
+@test "--set says when the clipboard cannot be read" {
+  printf '#!/bin/bash\nexit 1\n' >"$TMP/bin/paste"
+  BW_SESSION=x run "$SCRIPT" --set "api key"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"could not read the clipboard"* ]]
+}
+
+@test "--set refuses an empty value" {
+  printf ' \n' >"$TMP/clip"
+  BW_SESSION=x run "$SCRIPT" --set "api key"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *empty* ]]
+  run ! grep -q '^bw' "$STUB_ARGV"
+}
+
+@test "--set refuses two items with the same name" {
+  new_value x
+  BW_SESSION=x run "$SCRIPT" --set twin - <"$TMP/in"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"2 items"* ]]
+  run ! grep -qe '^bw create' -e '^bw edit' "$STUB_ARGV"
+}
+
+@test "--set that Bitwarden did not keep is reported, and the old copy stays" {
+  printf 'old' >"$TMP/kc/dotfiles-secret--api key"
+  new_value rotated
+  STUB_BW_DROP=1 BW_SESSION=x run "$SCRIPT" --set "api key" - <"$TMP/in"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"did not keep"* ]]
+  [ "$(copy "api key")" = old ]
+}
+
+@test "--set with a locked vault writes nothing and keeps the clipboard" {
+  printf 'n3w-key' >"$TMP/clip"
+  run "$SCRIPT" --set "api key"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *BW_SESSION* ]]
+  [ "$(cat "$TMP/clip")" = n3w-key ]
+  [ ! -e "$TMP/kc/dotfiles-secret--api key" ]
+}
+
+@test "--set usage errors" {
+  run "$SCRIPT" --set
+  [ "$status" -ne 0 ]
+  run "$SCRIPT" --set "api key" value
+  [ "$status" -ne 0 ]
+  [[ "$output" == *usage* ]]
+  run ! grep -q '^bw' "$STUB_ARGV"
 }
