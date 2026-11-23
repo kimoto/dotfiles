@@ -51,6 +51,16 @@
         ]
       },
       {
+        "matcher": "Bash|mcp__.*github.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=$(dirname \"$(dirname \"$(readlink -f ~/.claude/settings.json)\")\"); [ ! -x \"$d/bin/check_private_terms.sh\" ] || \"$d/bin/check_private_terms.sh\" claude-hook",
+            "timeout": 30
+          }
+        ]
+      },
+      {
         "matcher": "Bash|mcp__.*__create_pull_request",
         "hooks": [
           {
