@@ -134,17 +134,17 @@
 
 #HotIf
 
-; ⌃+1..3 bring an app to the front, starting it if it is not running, as the
-; Raycast hotkeys do on the mac (⌃+4..9 are unassigned there too). Global, like
-; Raycast's: it works from inside the terminal too. The $ makes these hook
-; hotkeys, so the Ctrl+N that ⌘+N sends above (script-generated input) cannot
-; trigger them. Windows Terminal stands in for Ghostty, as everywhere else in
-; this file.
-$^1::FocusOrRun("ahk_exe chrome.exe", "chrome.exe")
-$^2::FocusOrRun("ahk_exe WindowsTerminal.exe", "wt.exe")
+; ⌃+1..3 bring an app to the front, starting it if it is not running, and
+; minimize it when it is already in front, as the Raycast hotkeys do on the mac
+; (⌃+4..9 are unassigned there too). Global, like Raycast's: it works from
+; inside the terminal too. The $ makes these hook hotkeys, so the Ctrl+N that
+; ⌘+N sends above (script-generated input) cannot trigger them. Windows
+; Terminal stands in for Ghostty, as everywhere else in this file.
+$^1::ToggleOrRun("ahk_exe chrome.exe", "chrome.exe")
+$^2::ToggleOrRun("ahk_exe WindowsTerminal.exe", "wt.exe")
 ; The window class keeps a Claude Code console out of the match, and starting it
 ; by path or shortcut keeps Run from finding Claude Code's claude.exe on PATH.
-$^3::FocusOrRun("ahk_exe claude.exe ahk_class Chrome_WidgetWin_1", ClaudeDesktopCommand())
+$^3::ToggleOrRun("ahk_exe claude.exe ahk_class Chrome_WidgetWin_1", ClaudeDesktopCommand())
 
 ; The per-user installer's path first, then any Start menu shortcut named Claude,
 ; so an install made another way still starts.
@@ -158,7 +158,13 @@ ClaudeDesktopCommand() {
     return squirrel
 }
 
-FocusOrRun(winTitle, command) {
+; Every window of the app, so the next one does not come forward in its place.
+ToggleOrRun(winTitle, command) {
+    if WinActive(winTitle) {
+        for hwnd in WinGetList(winTitle)
+            WinMinimize("ahk_id " hwnd)
+        return
+    }
     if WinExist(winTitle) {
         WinActivate()
         return

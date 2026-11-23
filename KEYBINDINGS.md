@@ -134,9 +134,9 @@ Source:
 | ⌃⌘+V | Clipboard history (Windows: Advanced Paste) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
-| Ctrl+1 | Bring Chrome to the front, starting it if needed |
-| Ctrl+2 | Bring the terminal to the front, starting it if needed (Mac: Ghostty, Windows: Windows Terminal) |
-| Ctrl+3 | Bring the Claude desktop app to the front, starting it if needed (Mac: hides it if already in front) |
+| Ctrl+1 | Bring Chrome to the front, starting it if needed; hide it if already in front |
+| Ctrl+2 | Bring the terminal to the front, starting it if needed (Mac: Ghostty, Windows: Windows Terminal); hide it if already in front |
+| Ctrl+3 | Bring the Claude desktop app to the front, starting it if needed; hide it if already in front |
 | Ctrl+. | Toggle Raycast Notes (Mac only) |
 | ⌃⌘+H | Search Chrome history (Mac only) |
 | Caps Lock | Hyper Key: ⌃⌥⇧⌘ (Mac only) |
