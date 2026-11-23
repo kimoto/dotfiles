@@ -20,9 +20,22 @@ repo="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 if ! err="$(gh api "repos/$repo/git/ref/heads/stable" 2>&1 >/dev/null)"; then
     case "$err" in
         *"HTTP 404"*)
-            gh api -X POST "repos/$repo/git/refs" -f ref=refs/heads/stable -f sha="$sha" >/dev/null
-            echo "created stable at $sha"
-            exit 0
+            # The macOS and Linux jobs can both see the 404; the one that loses
+            # the create gets 422 "already exists" and goes on to compare, so
+            # it never moves stable backwards.
+            if ! err="$(gh api -X POST "repos/$repo/git/refs" \
+                -f ref=refs/heads/stable -f sha="$sha" 2>&1 >/dev/null)"; then
+                case "$err" in
+                    *"already exists"*) ;;
+                    *)
+                        echo "cannot create stable: $err" >&2
+                        exit 1
+                        ;;
+                esac
+            else
+                echo "created stable at $sha"
+                exit 0
+            fi
             ;;
         *)
             echo "cannot read stable: $err" >&2
