@@ -3,7 +3,17 @@
 The Windows-side counterpart to `Brewfile.macos`: the apps to reinstall after a
 wipe, and which macOS app each one stands in for.
 
-Apply with:
+On a fresh machine, one command does the apps, Codex and Claude config, and
+the AutoHotkey Startup shortcut (`NoWinKeys` and the PowerToys settings below
+stay manual), from the
+main checkout:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1"
+```
+
+The `bootstrap-windows` workflow runs it on a bare `windows-2025` runner.
+The apps alone:
 
 ```powershell
 winget import --import-file windows\winget-packages.json
