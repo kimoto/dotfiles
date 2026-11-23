@@ -1,3 +1,8 @@
 -- ~/.hammerspoon.local (Lua): Hammerspoon code for this machine only, run near the end of
 -- hammerspoon/init.lua. For modules that live in another (private) checkout.
 -- dofile(os.getenv("HOME") .. "/src/example/module.lua")
+
+-- The dark curtain at a chosen end time (hammerspoon/Spoons/Curtain.spoon). Settings go before start(),
+-- e.g. a fixed end each weekday: curtain.dailyDefault = "weekday 18:00"
+-- local curtain = hs.loadSpoon("Curtain")
+-- curtain:start()
