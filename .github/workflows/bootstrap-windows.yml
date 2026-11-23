@@ -1,6 +1,7 @@
 ---
 # windows/setup.ps1 on a bare Windows runner, all the way through: winget
-# import, Codex and Claude links, and the AutoHotkey Startup shortcut. The
+# import, Codex and Claude links, the secret scan before a commit, and the
+# AutoHotkey Startup shortcut. The
 # per-script tests in ci.yml run each part against a sandbox; this is the one
 # place the whole setup runs against a real profile.
 #
@@ -13,6 +14,8 @@ on:
       - "windows/setup.ps1"
       - "windows/link_codex.ps1"
       - "windows/install_mac_keys.ps1"
+      - "windows/install_git_hooks.ps1"
+      - "bin/git_hook_gitleaks.sh"
       - "windows/winget-packages.json"
       - "windows/autohotkey/**"
       - "codex/config.toml"

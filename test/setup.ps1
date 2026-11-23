@@ -39,6 +39,30 @@ if (-not (Test-Path -LiteralPath $shortcutPath)) {
     }
 }
 
+# A staged secret must stop a commit: the config alone would also pass with a
+# hook that never runs. PATH is read again as a new terminal would have it,
+# since winget put gitleaks on it after this process started.
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+    [Environment]::GetEnvironmentVariable('Path', 'User')
+$scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("setup-check-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $scratch | Out-Null
+try {
+    # Assembled here so that this file holds nothing a scanner would flag.
+    $token = 'ghp_' + 'a1B2c3D4e5F6g7H8i9J0' + 'k1L2m3N4o5P6q7R8'
+    Set-Content -LiteralPath (Join-Path $scratch 'creds.txt') -Value "token = `"$token`""
+    $ErrorActionPreference = 'Continue'
+    git -C $scratch init --quiet 2>&1 | Out-Null
+    git -C $scratch add creds.txt 2>&1 | Out-Null
+    git -C $scratch -c user.name=check -c user.email=check@example.invalid -c commit.gpgsign=false `
+        commit --quiet -m check 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $failures.Add('git committed a staged secret; the gitleaks pre-commit hook did not stop it.')
+    }
+    $ErrorActionPreference = 'Stop'
+} finally {
+    Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Output "not ok: $_" }
     exit 1
