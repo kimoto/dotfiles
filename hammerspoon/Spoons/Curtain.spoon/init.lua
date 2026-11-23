@@ -199,44 +199,66 @@ function obj:lift()
    self:saveDeadline()
 end
 
+-- A curtain Esc cannot lift would lock the owner out, so it is not shown. It is tried again after
+-- `after` seconds. The log line and the alert come once per reason, not on every retry, so a reason
+-- that lasts (Secure Keyboard Entry left on) does not flood either.
+local RETRY_SECONDS = 60
+function obj:cannotShow(why, msg, after)
+   self:hide()
+   self.s.snooze_until = os.time() + (after or RETRY_SECONDS)
+   self:saveDeadline()
+   if why == self.notShownWhy then return end
+   self.notShownWhy = why
+   self:log("not-shown", why)
+   hs.alert.show("幕を出せません: " .. msg, 6)
+end
+
 function obj:show(redraw)
    local s = self.s
-   if not redraw then self:log("show", s.deadline and self:clock(s.deadline) or "") end
-   local title = s.deadline and self:clock(s.deadline) or "おしまい"
-   for _, screen in ipairs(hs.screen.allScreens()) do
-      local f = screen:fullFrame()
-      local c = hs.canvas.new(f)
-      c:level(hs.canvas.windowLevels.screenSaver)
-      c:behavior({ "canJoinAllSpaces", "stationary" })
-      -- Swallow clicks so the apps underneath cannot be used through the curtain.
-      c:canvasMouseEvents(true, true)
-      c:mouseCallback(function() end)
-      c:clickActivating(false)
-      c[1] = { type = "rectangle", action = "fill",
-               fillColor = { red = 0.05, green = 0.05, blue = 0.08, alpha = 0.96 } }
-      c[2] = {
-         type = "text", text = title,
-         textSize = 120, textColor = { white = 0.95 }, textAlignment = "center",
-         frame = { x = 0, y = f.h * 0.30, w = f.w, h = 180 },
-      }
-      c[3] = {
-         type = "text", text = HINT,
-         textSize = 22, textColor = { white = 0.6 }, textAlignment = "center",
-         frame = { x = 0, y = f.h * 0.30 + 190, w = f.w, h = 40 },
-      }
-      c:show()
-      table.insert(self.canvases, c)
+   -- Under Secure Input the key tap sees nothing, so Esc would never reach it.
+   if hs.eventtap.isSecureInputEnabled() then
+      return self:cannotShow("secure input", "パスワード入力中などでキーを読めません（解ければ出ます）")
    end
    self.escTap:start()
-   s.shown = true
-   -- Without the key tap (no Accessibility permission, or Secure Input on) Esc could never lift it.
    if not self.escTap:isEnabled() then
-      self:log("tap-off", "no curtain without Esc")
-      self:hide()
-      s.snooze_until = os.time() + L.SNOOZE_SECONDS
-      self:saveDeadline()
-      hs.alert.show("幕を出せません: Hammerspoon にアクセシビリティの許可が要ります", 6)
+      return self:cannotShow("tap off", "Hammerspoon にアクセシビリティの許可が要ります", L.SNOOZE_SECONDS)
    end
+   s.shown = true
+   local title = s.deadline and self:clock(s.deadline) or "おしまい"
+   -- A half-built curtain (an error on the second screen, or no screen at all just after wake)
+   -- would swallow keys over a screen that is not covered.
+   local ok, err = pcall(function()
+      for _, screen in ipairs(hs.screen.allScreens()) do
+         local f = screen:fullFrame()
+         local c = hs.canvas.new(f)
+         c:level(hs.canvas.windowLevels.screenSaver)
+         c:behavior({ "canJoinAllSpaces", "stationary" })
+         -- Swallow clicks so the apps underneath cannot be used through the curtain.
+         c:canvasMouseEvents(true, true)
+         c:mouseCallback(function() end)
+         c:clickActivating(false)
+         c[1] = { type = "rectangle", action = "fill",
+                  fillColor = { red = 0.05, green = 0.05, blue = 0.08, alpha = 0.96 } }
+         c[2] = {
+            type = "text", text = title,
+            textSize = 120, textColor = { white = 0.95 }, textAlignment = "center",
+            frame = { x = 0, y = f.h * 0.30, w = f.w, h = 180 },
+         }
+         c[3] = {
+            type = "text", text = HINT,
+            textSize = 22, textColor = { white = 0.6 }, textAlignment = "center",
+            frame = { x = 0, y = f.h * 0.30 + 190, w = f.w, h = 40 },
+         }
+         c:show()
+         table.insert(self.canvases, c)
+      end
+   end)
+   if not ok or #self.canvases == 0 then
+      -- A screen just plugged in or woken is often ready by the next tick, so retry soon.
+      return self:cannotShow(ok and "no screen" or ("canvas: " .. tostring(err)), "画面を覆えませんでした", 15)
+   end
+   self.notShownWhy = nil
+   if not redraw then self:log("show", s.deadline and self:clock(s.deadline) or "") end
 end
 
 -- While the curtain is up every key and scroll is swallowed, so nothing is typed or closed blind
@@ -313,6 +335,8 @@ function obj:setDeadline(t, from, why)
       s.set_at = t and os.time() or nil
       -- Only a new end ends a snooze, so setting the same end again does not bring the curtain straight back.
       s.snooze_until = nil
+      -- A new end gets its own alert if it cannot be shown either.
+      self.notShownWhy = nil
    end
    s.deadline, s.from = t, from
    self:saveDeadline()
@@ -375,6 +399,10 @@ end
 function obj:step()
    local s, now = self.s, os.time()
    self:refreshOffset()
+   -- Secure Input turned on under a curtain already up: Esc can no longer reach the tap.
+   if s.shown and hs.eventtap.isSecureInputEnabled() then
+      self:cannotShow("secure input", "パスワード入力中などでキーを読めません（解ければ出ます）")
+   end
    if s.paused and now - s.paused_at >= L.STALE_SECONDS then self:dropPause("stale") end
    self:refreshMenu()
    if self.onStep then self.onStep(now) end
