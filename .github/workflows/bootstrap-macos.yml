@@ -151,6 +151,9 @@ jobs:
       - name: mkworld reaches platform
         run: MKWORLD_EXPECT=platform ./bin/mkworld.sh
 
+      - name: A check of the machine just built agrees it is at platform
+        run: MKWORLD_CHECK=1 MKWORLD_EXPECT=platform ./bin/mkworld.sh
+
       # Everything on top of what the image ships: the list was taken before
       # the restore, so what was restored counts too and the archive is the
       # full set. The cache is a bonus on top of a bootstrap that already passed, so a

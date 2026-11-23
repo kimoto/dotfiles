@@ -8,6 +8,10 @@
 #
 # Exit status is 0 whenever minimal was reached. MKWORLD_EXPECT=<phase> turns a
 # lower result into exit 1, for callers (CI) that know how far they should get.
+#
+# MKWORLD_CHECK=1 climbs without installing, linking or changing anything, and
+# names the phase this machine is already at: the question to ask of a machine
+# in use, where a real run would upgrade tools and ask for sudo.
 
 set -euo pipefail
 # Traced in CI, where the log is all anyone sees afterwards; on a person's
@@ -30,6 +34,10 @@ phase_rank() {
 # Fail on a typo before doing any work, not after a Homebrew install.
 [ -z "${MKWORLD_EXPECT:-}" ] || phase_rank "$MKWORLD_EXPECT" >/dev/null
 
+check="${MKWORLD_CHECK:-0}"
+# A check never installs, which is what SKIP_BREW already means to the climb.
+[ "$check" = 1 ] && SKIP_BREW=1
+
 reached=""
 stopped=""
 stop() { stopped="$1"; echo "mkworld: stopping at $reached: $1" >&2; }
@@ -42,11 +50,36 @@ load_brew() {
     fi
 }
 
+# The last line of every run. Nothing reached is a check's result only: a real
+# run aborts in mklink.sh before it gets here.
+report() {
+    echo "mkworld: reached ${reached:-nothing}${stopped:+ (stopped: $stopped)}"
+    [ -n "$reached" ] || exit 1
+    if [ -n "${MKWORLD_EXPECT:-}" ] && [ "$(phase_rank "$reached")" -lt "$(phase_rank "$MKWORLD_EXPECT")" ]; then
+        echo "mkworld: expected to reach $MKWORLD_EXPECT" >&2
+        exit 1
+    fi
+}
+
+# What mklink.sh would have linked, as far as the phase gates lean on it: bash,
+# vim and git for minimal, zsh for basic, ~/.config for the Homebrew tools.
+links_in_place() {
+    local name target
+    for name in .bashrc .vimrc .gitconfig .zshrc .config; do
+        target="$BASE_DIR/$name"
+        [ "$name" = .config ] && target="$BASE_DIR/config"
+        if [ "$(readlink -f "$HOME/$name" 2>/dev/null)" != "$(readlink -f "$target")" ]; then
+            # shellcheck disable=SC2088  # a message, not a path to expand
+            stop "~/$name is not linked to this checkout"; return 1
+        fi
+    done
+}
+
 cd "$HOME"
 
 # Before the climb, so a fresh Ubuntu gets zsh, curl and libatomic1 from apt.
 # A failure only warns: each step that needs a package names it.
-"$BASE_DIR/bin/install_os_packages.sh" || echo "mkworld: OS packages failed to install" >&2
+[ "$check" = 1 ] || "$BASE_DIR/bin/install_os_packages.sh" || echo "mkworld: OS packages failed to install" >&2
 
 # Helpers are executed directly, never as `sh <script>`: each one's shebang
 # picks its interpreter. `sh` would be bash-in-POSIX-mode on macOS but dash on
@@ -55,8 +88,12 @@ cd "$HOME"
 climb() {
     # minimal: the OS's bash, vim and git. The links are the one step whose
     # failure is fatal, since nothing below works without them.
-    mkdir -p ./tmp
-    "$BASE_DIR/bin/mklink.sh"
+    if [ "$check" = 1 ]; then
+        links_in_place || return 0
+    else
+        mkdir -p ./tmp
+        "$BASE_DIR/bin/mklink.sh"
+    fi
     reached=minimal
 
     # basic: the OS's zsh, plus what a git clone brings.
@@ -98,7 +135,9 @@ climb() {
         Darwin)
             bundle_phase Brewfile.macos || return 0
             # System preferences: Finder, key repeat, CleanShot, startup mute (sudo for nvram).
-            if ! "$BASE_DIR/bin/setup_macosx.sh"; then
+            # A check takes them as set: the script only writes, and no one
+            # place reads them all back.
+            if [ "$check" != 1 ] && ! "$BASE_DIR/bin/setup_macosx.sh"; then
                 stop "setup_macosx.sh failed"; return
             fi
             ;;
@@ -123,6 +162,10 @@ bundle_phase() {
 }
 
 climb
+if [ "$check" = 1 ]; then
+    report
+    exit 0
+fi
 load_brew
 
 # What follows is not a phase: each step runs when its own tool is present,
@@ -180,8 +223,4 @@ fi
 "$BASE_DIR/bin/local_layer_report.sh" || true
 
 set +x
-echo "mkworld: reached $reached${stopped:+ (stopped: $stopped)}"
-if [ -n "${MKWORLD_EXPECT:-}" ] && [ "$(phase_rank "$reached")" -lt "$(phase_rank "$MKWORLD_EXPECT")" ]; then
-    echo "mkworld: expected to reach $MKWORLD_EXPECT" >&2
-    exit 1
-fi
+report

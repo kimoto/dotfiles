@@ -41,6 +41,12 @@ A caller that knows how far it should get sets `MKWORLD_EXPECT=<phase>`, and a
 lower result exits 1: CI's brew jobs expect standard, the bootstrap jobs
 expect platform.
 
+`MKWORLD_CHECK=1 ./bin/mkworld.sh` asks the same question of a machine in use:
+it climbs without installing, linking or changing anything, and its last line
+names the phase the machine is already at. With `MKWORLD_EXPECT=platform` it
+exits 1 on anything less. The bootstrap jobs run it after the real run, so the
+check and the bootstrap cannot come to disagree unseen.
+
 Steps that are not a phase (tpm plugins, the Claude Code hooks, mise, lefthook)
 run after the climb whenever their own tool is present, and only warn on
 failure.
