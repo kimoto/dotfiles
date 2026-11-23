@@ -19,6 +19,11 @@ case "$*" in
       missing) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;
       *) echo "gh: Bad credentials (HTTP 401)" >&2; exit 1 ;;
     esac ;;
+  *"-X POST"*)
+    case "${STUB_CREATE:-ok}" in
+      raced) echo "gh: Reference already exists (HTTP 422)" >&2; exit 1 ;;
+      denied) echo "gh: Resource not accessible (HTTP 403)" >&2; exit 1 ;;
+    esac ;;
   *"/compare/"*) echo "$STUB_COMPARE" ;;
   *) : ;;
 esac
@@ -36,6 +41,17 @@ teardown() {
   STUB_STABLE_REF=missing run "$SCRIPT" abc123
   [ "$status" -eq 0 ]
   grep -q -- "-X POST repos/owner/repo/git/refs -f ref=refs/heads/stable -f sha=abc123" "$GH_LOG"
+}
+
+@test "a create that lost the race to another run compares instead of failing" {
+  STUB_STABLE_REF=missing STUB_CREATE=raced STUB_COMPARE=behind run "$SCRIPT" abc123
+  [ "$status" -eq 0 ]
+  grep -q -- "compare/stable...abc123" "$GH_LOG"
+}
+
+@test "a create that fails for another reason fails" {
+  STUB_STABLE_REF=missing STUB_CREATE=denied run "$SCRIPT" abc123
+  [ "$status" -ne 0 ]
 }
 
 @test "fails without creating stable when the ref cannot be read" {
