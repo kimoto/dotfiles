@@ -33,6 +33,12 @@ try loadedTime := FileGetTime(target, "M")
 catch as err
     Fail("Cannot read " target ": " err.Message)
 Run('"' A_AhkPath '" "' target '"')
+; mac-keys.ahk shows its own icon, and a second one for the launcher reads as
+; the hotkeys running twice. So the launcher's icon shows only while mac-keys
+; is not running or the checkout cannot be read: then it is the one way to
+; see, reload or exit the launcher.
+A_IconHidden := true
+unreadable := false
 SetTimer(RestartWhenChanged, 2000)
 WarnIfLauncherDrifted()
 
@@ -43,22 +49,21 @@ WarnIfLauncherDrifted()
 ; a pulled version can break it.) The poll also keeps WSL from idling out,
 ; which the hotkeys depend on anyway.
 RestartWhenChanged() {
-    global loadedTime
-    static changedTime := "", unreadable := false
+    global loadedTime, unreadable
+    static changedTime := ""
     try now := FileGetTime(target, "M")
     catch {
         ; A WSL restart passes in a tick or two; a moved checkout does not, so
         ; say it once rather than stop following the repo in silence.
+        A_IconHidden := false  ; TrayTip needs the icon
         if !unreadable
             TrayTip("Cannot read " target "; not following the repo until it is back.", "mac-keys", "Iconx")
         unreadable := true
         A_IconTip := "mac-keys: cannot read " target
         return
     }
-    if unreadable {
-        unreadable := false
-        A_IconTip := "mac-keys: running " target
-    }
+    unreadable := false
+    ShowIconUnlessRunning()
     if (now = loadedTime) {
         changedTime := ""
         return
@@ -71,6 +76,30 @@ RestartWhenChanged() {
     Run('"' A_AhkPath '" /restart "' target '"')
 }
 
+; Two ticks in a row, because a /restart leaves a moment with no mac-keys.
+ShowIconUnlessRunning() {
+    static missedOnce := false
+    if MacKeysRunning() {
+        missedOnce := false
+        A_IconTip := "mac-keys: running " target
+        A_IconHidden := true
+    } else if missedOnce {
+        A_IconTip := "mac-keys: not running " target
+        A_IconHidden := false
+    } else
+        missedOnce := true
+}
+
+; An AutoHotkey script's hidden main window is titled with its path. Compared
+; as text, since a path holding "ahk_" would read as a WinTitle criterion.
+MacKeysRunning() {
+    DetectHiddenWindows(true)  ; a timer thread does not inherit it reliably
+    for hwnd in WinGetList("ahk_class AutoHotkey")
+        if InStr(WinGetTitle(hwnd), target " - AutoHotkey") = 1
+            return true
+    return false
+}
+
 WarnIfLauncherDrifted() {
     SplitPath(target, , &repoDir)
     repoCopy := repoDir "\launch-mac-keys.ahk"
@@ -81,7 +110,8 @@ WarnIfLauncherDrifted() {
     }
     if (repoText !== FileRead(A_ScriptFullPath))  ; != ignores case
         MsgBox(A_ScriptFullPath " differs from the repo's copy.`n"
-            . "Run windows\install_mac_keys.ps1 again.", "mac-keys", "Icon!")
+            . "Run windows\install_mac_keys.ps1 again, then open mac-keys in shell:startup "
+            . "to replace this launcher.", "mac-keys", "Icon!")
 }
 
 Fail(message) {
