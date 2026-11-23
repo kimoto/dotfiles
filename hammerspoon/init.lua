@@ -56,6 +56,21 @@ appWatcher:start()
 local frontmost = hs.application.frontmostApplication()
 setHotkeysEnabled(not frontmost or isRemapTarget(frontmost:name()))
 
+-- ===== App toggle =====
+-- ⌃3 brings Claude forward and hides it on a second press, matching the
+-- Raycast hotkeys on ⌃1/⌃2.
+-- Bound with hs.hotkey.bind, not remapKey, so it also works from the terminal.
+local claudeBundleID = "com.anthropic.claudefordesktop"
+hs.hotkey.bind({"ctrl"}, "3", function()
+   local front = hs.application.frontmostApplication()
+   -- With no window open, a hide would change nothing on screen, so open one.
+   if front and front:bundleID() == claudeBundleID and front:mainWindow() then
+      front:hide()
+   elseif not hs.application.launchOrFocusByBundleID(claudeBundleID) then
+      hs.alert.show("Claude app not found: " .. claudeBundleID)
+   end
+end)
+
 -- DeepL-style translation shortcuts (hammerspoon/translate.lua).
 require("translate")
 
