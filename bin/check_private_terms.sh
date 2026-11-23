@@ -37,19 +37,16 @@ load_terms() {
   [ -s "$terms_file" ]
 }
 
-# report <where> <line>: say which word matched <line>, unless redacting.
+# report <where> <line>: say what text matched, unless redacting. The text,
+# never the pattern: the text is already in what was written, while a
+# pattern (or a list joined into one) would hand out the whole list.
 report() {
-  local where=$1 line=$2 term
+  local where=$1 line=$2
   if [ "${PRIVATE_TERMS_REDACT:-}" = 1 ]; then
     printf '%s: private term found\n' "$where" >>"$findings"
     return
   fi
-  while IFS= read -r term; do
-    if grep -qiE -e "$term" <<<"$line"; then
-      printf '%s: matches "%s"\n' "$where" "$term" >>"$findings"
-      return
-    fi
-  done <"$terms_file"
+  printf '%s: "%s"\n' "$where" "$(grep -oiE -f "$terms_file" <<<"$line" | head -n 1)" >>"$findings"
 }
 
 # flush: print the findings; true when there were none.
@@ -179,7 +176,7 @@ claude_hook() {
   fi
 
   if ! flush; then
-    echo "This goes to a public repo and holds words about the owner's private life (listed above)." >&2
+    echo "This goes to a public repo and holds words about the owner's private life (quoted above)." >&2
     echo "Reword it without them. If one is a false match, ask the owner; do not bypass this check." >&2
     exit 2
   fi

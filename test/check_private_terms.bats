@@ -52,7 +52,8 @@ bash_hook() {
 @test "text: a listed word fails and is named" {
   run bash -c 'printf "fine\nat the Hidden-Place\n" | "$1" text "PR body"' _ "$CHECK"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'PR body line 2: matches "hidden[ -]?place"'* ]]
+  [[ "$output" == *'PR body line 2: "Hidden-Place"'* ]]
+  [[ "$output" != *'[ -]?'* ]]
 }
 
 @test "text: redacted report says where, never the word" {
@@ -85,8 +86,8 @@ bash_hook() {
   git -C "$REPO" add new.txt && commit -m "chore: tidy" -m "for the secretword"
   run bash -c 'cd "$1" && "$2" range "$3..HEAD"' _ "$REPO" "$CHECK" "$base"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"new.txt:3: matches"* ]]
-  [[ "$output" == *"message line 3: matches \"secretword\""* ]]
+  [[ "$output" == *"new.txt:3: \"hidden place\""* ]]
+  [[ "$output" == *"message line 3: \"secretword\""* ]]
   [[ "$output" != *old.txt* ]]
 }
 
@@ -111,7 +112,7 @@ bash_hook() {
   printf 'secretword\n' >"$REPO/a.txt"
   bash_hook "git add a.txt && git commit -m x"
   [ "$status" -eq 2 ]
-  [[ "$output" == *'matches "secretword"'* ]]
+  [[ "$output" == *'"secretword"'* ]]
 }
 
 @test "claude-hook: a staged change is scanned, not only untracked files" {
