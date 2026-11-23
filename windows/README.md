@@ -235,4 +235,9 @@ At login the launcher starts WSL, runs `mac-keys.ahk` from the checkout over
 `\\wsl.localhost`, and restarts it whenever the file changes, so a `git pull`
 is the whole deploy. AutoHotkey refuses a broken version with a dialog and
 keeps the running one. If the launcher's own copy differs from the repo's, it
-says so at login; run the installer again.
+says so at login; run the installer again, then open `mac-keys` in
+`shell:startup` so the new launcher replaces the running one.
+
+Only `mac-keys.ahk` keeps a tray icon while it runs. The launcher's icon shows
+while WSL starts, while `mac-keys.ahk` is not running (it failed to load, or
+was exited), and while the checkout cannot be read.
