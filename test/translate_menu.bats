@@ -173,6 +173,16 @@ ROWS
   [ "$output" = "$(printf '0\t--quiet --clipboard')" ]
 }
 
+@test "⌃⌘⇧S summarizes whatever is selected, even in a text field" {
+  run drive "
+    stub.role = 'AXTextArea'
+    stub.hotkeys['ctrl+cmd+shift+s']()
+    stub.tick()
+    print(#stub.choosers, stub.sent(stub.tasks[1]))"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '0\t--quiet --summarize --clipboard')" ]
+}
+
 # A faster model's answer can be redone on the default one; by then the
 # clipboard holds that answer, so the retry carries the text that was copied.
 @test "an answer from a faster model offers a retry on the default model, with the original text" {
