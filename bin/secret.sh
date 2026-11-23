@@ -5,7 +5,8 @@
 # secret is changed; the macOS login Keychain holds a copy, because asking bw
 # at every new shell would ask for the master password every time.
 #
-#   secret.sh ITEM             the notes of the Bitwarden item named ITEM
+#   secret.sh ITEM             the Bitwarden item named ITEM: its password,
+#                              or its notes when it has none
 #   secret.sh --refresh ITEM   fetch it from Bitwarden again into the copy
 #                              (prints nothing; run it after changing ITEM)
 #   secret.sh --forget ITEM    drop the copy
@@ -59,7 +60,7 @@ die() {
 }
 
 command -v "$security_cmd" >/dev/null 2>&1 ||
-    die "needs the macOS Keychain; on this machine read it with: bw get notes ITEM"
+    die "needs the macOS Keychain; on this machine read it with: bw get password ITEM (or notes)"
 
 # Prints the copy; fails quietly only when there is none.
 cached() {
@@ -87,13 +88,22 @@ named_items() {
     jq --arg n "$1" '[.[] | select(.name == $n)]' <<<"$items"
 }
 
+# The same rule homeprobe-secrets reads an item by: the password field or the
+# notes, never both, so one item can serve both tools. ITEMS is named_items'.
+one_field() {
+    if ! jq -e '.[0] | (.login.password // "") == "" or (.notes // "") == ""' <<<"$2" >/dev/null; then
+        die "Bitwarden item \"$1\" has both a password and notes; keep only one"
+    fi
+}
+
 from_bitwarden() {
     local items count
     bw_ready
     items=$(named_items "$1")
     count=$(jq length <<<"$items")
     [ "$count" -eq 1 ] || die "Bitwarden has $count items named \"$1\"; need exactly one"
-    jq -j '.[0].notes // ""' <<<"$items"
+    one_field "$1" "$items"
+    jq -j '.[0] | if (.login.password // "") != "" then .login.password else .notes // "" end' <<<"$items"
 }
 
 # `security -i` splits its line on quotes and reads it into a fixed buffer, and
@@ -124,15 +134,16 @@ store() {
 refresh() {
     local value
     value=$(from_bitwarden "$1")
-    [ -n "$value" ] || die "Bitwarden item \"$1\" has empty notes"
+    [ -n "$value" ] || die "Bitwarden item \"$1\" has neither a password nor notes"
     store "$1" "$value"
     echo "cached: $1" >&2
 }
 
 # The new value reaches jq and bw through a pipe, never argv. Only an item with
-# exactly this name is touched, and only its notes; with none, a secure note is
-# made. A value the Keychain could not carry, or a Keychain that cannot be
-# read, is refused before Bitwarden is written.
+# exactly this name is touched, and only the field that holds its value (the
+# password if it has one, else the notes); with none, a secure note is made.
+# A value the Keychain could not carry, or a Keychain that cannot be read, is
+# refused before Bitwarden is written.
 set_value() {
     local item="$1" from="$2" value items count id
     if [ "$from" = - ]; then
@@ -161,9 +172,13 @@ set_value() {
                 die "could not create \"$item\" in Bitwarden (see bw's message above)"
             ;;
         1)
+            # Which field to replace would be a guess, and the other may be a
+            # password nobody else has a copy of.
+            one_field "$item" "$items"
             id=$(jq -r '.[0].id' <<<"$items")
             bw get item "$id" --nointeraction |
-                jq --rawfile v <(printf '%s' "$value") '.notes = $v' |
+                jq --rawfile v <(printf '%s' "$value") \
+                    'if (.login.password // "") != "" then .login.password = $v else .notes = $v end' |
                 bw encode | bw edit item "$id" --nointeraction >/dev/null ||
                 die "could not update \"$item\" in Bitwarden (see bw's message above)"
             ;;

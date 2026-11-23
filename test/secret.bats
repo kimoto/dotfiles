@@ -42,9 +42,10 @@ case "$op" in
 esac
 STUB
   # The vault: a name, a tab, the notes. --search matches any name containing it.
+  # Notes written as pw=VALUE stand for an item whose password is VALUE.
   printf '%s\t%s\n' "api key" "s3cr3t-value" "api key old" "stale" "empty" "" \
     "quoted" 'a"b' "backslash" 'a\b' "apostrophe" "a'b" "accent" "x$(printf '\303\251')y" \
-    "twin" "1" "twin" "2" >"$TMP/vault"
+    "twin" "1" "twin" "2" "token" "pw=t0ken" "doubled" "both=n" >"$TMP/vault"
   export STUB_VAULT="$TMP/vault"
   # `bw list` reads a local cache of the vault; `bw sync` refreshes it from the
   # server copy, vault.server, when a test has put one there. An item's id is
@@ -56,7 +57,12 @@ echo "bw $*" >>"$STUB_ARGV"
 [ "$1" = encode ] && exec base64
 [ -n "${BW_SESSION:-}" ] || { echo "Vault is locked." >&2; exit 1; }
 [ -z "${STUB_BW_FAIL:-}" ] || { echo "Invalid session." >&2; exit 1; }
-item_json() { "$REAL_JQ" -n --argjson i "$1" --arg n "$2" --arg v "$3" '{id: ($i | tostring), name: $n, notes: $v}'; }
+item_json() {
+  "$REAL_JQ" -n --argjson i "$1" --arg n "$2" --arg v "$3" '{id: ($i | tostring), name: $n} +
+    if ($v | startswith("pw=")) then {notes: null, login: {password: ($v | ltrimstr("pw="))}}
+    elif ($v | startswith("both=")) then {notes: ($v | ltrimstr("both=")), login: {password: "p"}}
+    else {notes: $v} end'
+}
 case "$1 $2" in
   "sync --nointeraction")
     [ ! -f "$STUB_VAULT.server" ] || mv "$STUB_VAULT.server" "$STUB_VAULT" ;;
@@ -74,7 +80,9 @@ case "$1 $2" in
   "create item" | "edit item")
     base64 -d >"$TMP_DIR/written.json"
     [ -z "${STUB_BW_DROP:-}" ] || exit 0
-    line=$("$REAL_JQ" -r '[.name, .notes] | @tsv' "$TMP_DIR/written.json")
+    line=$("$REAL_JQ" -r \
+      '[.name, if (.login.password // "") != "" then "pw=" + .login.password else .notes end] | @tsv' \
+      "$TMP_DIR/written.json")
     if [ "$1" = create ]; then
       printf '%s\n' "$line" >>"$STUB_VAULT"
     else
@@ -182,10 +190,10 @@ copy() {
   [ "$(copy "api key")" = s3cr3t-value ]
 }
 
-@test "empty notes are refused, not cached" {
+@test "an item with neither a password nor notes is refused, not cached" {
   BW_SESSION=x run "$SCRIPT" --refresh empty
   [ "$status" -ne 0 ]
-  [[ "$output" == *"empty notes"* ]]
+  [[ "$output" == *"neither a password nor notes"* ]]
   [ ! -e "$TMP/kc/dotfiles-secret--empty" ]
 }
 
@@ -371,4 +379,34 @@ new_value() {
   [ "$status" -ne 0 ]
   [[ "$output" == *usage* ]]
   run ! grep -q '^bw' "$STUB_ARGV"
+}
+
+@test "an item whose value is in the password field is read from there" {
+  BW_SESSION=x run "$SCRIPT" --refresh token
+  [ "$status" -eq 0 ]
+  [ "$(copy token)" = t0ken ]
+}
+
+@test "an item with both a password and notes is refused" {
+  BW_SESSION=x run "$SCRIPT" --refresh doubled
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"both a password and notes"* ]]
+  [ ! -e "$TMP/kc/dotfiles-secret--doubled" ]
+}
+
+@test "--set replaces the password of an item that keeps its value there" {
+  new_value n3w
+  BW_SESSION=x run "$SCRIPT" --set token - <"$TMP/in"
+  [ "$status" -eq 0 ]
+  grep -qx "$(printf 'token\tpw=n3w')" "$TMP/vault"
+  [ "$(copy token)" = n3w ]
+}
+
+@test "--set refuses an item with both a password and notes before writing it" {
+  new_value n3w
+  BW_SESSION=x run "$SCRIPT" --set doubled - <"$TMP/in"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"both a password and notes"* ]]
+  grep -qx "$(printf 'doubled\tboth=n')" "$TMP/vault"
+  run ! grep -q '^bw edit' "$STUB_ARGV"
 }
