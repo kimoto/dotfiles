@@ -134,13 +134,28 @@
 
 #HotIf
 
-; ⌃+1 and ⌃+2 bring an app to the front, starting it if it is not running, as
-; the Raycast hotkeys do on the mac (⌃+3..9 are unassigned there too). Global, like Raycast's: it works from inside the
+; ⌃+1..3 bring an app to the front, starting it if it is not running, as
+; the Raycast hotkeys do on the mac (⌃+4..9 are unassigned there too). Global, like Raycast's: it works from inside the
 ; terminal too. The $ makes these hook hotkeys, so the Ctrl+N that ⌘+N sends
 ; above (script-generated input) cannot trigger them. Windows Terminal stands in
 ; for Ghostty, as everywhere else in this file.
 $^1::FocusOrRun("ahk_exe chrome.exe", "chrome.exe")
 $^2::FocusOrRun("ahk_exe WindowsTerminal.exe", "wt.exe")
+; The window class keeps a Claude Code console out of the match, and starting it
+; by path or shortcut keeps Run from finding Claude Code's claude.exe on PATH.
+$^3::FocusOrRun("ahk_exe claude.exe ahk_class Chrome_WidgetWin_1", ClaudeDesktopCommand())
+
+; The per-user installer's path first, then any Start menu shortcut named Claude,
+; so an install made another way still starts.
+ClaudeDesktopCommand() {
+    squirrel := EnvGet("LOCALAPPDATA") "\AnthropicClaude\claude.exe"
+    if FileExist(squirrel)
+        return squirrel
+    for dir in [A_Programs, A_ProgramsCommon]
+        loop files dir "\Claude.lnk", "R"
+            return A_LoopFileFullPath
+    return squirrel
+}
 
 FocusOrRun(winTitle, command) {
     if WinExist(winTitle) {
