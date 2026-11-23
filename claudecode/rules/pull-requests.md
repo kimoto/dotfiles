@@ -26,8 +26,10 @@ nothing checked it, say so plainly: that is the finding, and "none" hides it.
 ticked, so an empty one at merge cannot be told from an ignored one.
 
 ⚠️ **On a public repo, write nothing a stranger shouldn't read** — no repo they
-cannot open, no server layout, nothing on where secrets live. Check the
-visibility first: an edit does not unpublish.
+cannot open, no server layout, nothing on where secrets live, nothing on the
+owner's employer, home, health, family or hours. Check the visibility first: an
+edit does not unpublish. ★A word that slipped through once goes on the private
+list `bin/check_private_terms.sh` reads, not only into a promise.
 
 **One PR per change, ideally one commit.** Fill the repo's PR template, if it
 has one. An auto-created PR (web, remote) starts empty, so backfill it before

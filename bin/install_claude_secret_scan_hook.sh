@@ -1,6 +1,8 @@
 #!/bin/sh
 # Register (default) or remove (--uninstall) the gitleaks scan before a commit
-# the model runs (claude_commit_secret_scan.sh) in ~/.claude/settings.json.
+# the model runs (claude_commit_secret_scan.sh), and the private-word scan
+# before anything it sends to a public repo (check_private_terms.sh), in
+# ~/.claude/settings.json.
 # How the merge stays safe: bin/claude_settings_lib.sh. rmworld.sh runs --uninstall.
 set -eu
 
@@ -11,15 +13,17 @@ set -eu
 # guard keeps the hook a no-op when ~/bin is gone instead of erroring.
 # shellcheck disable=SC2016
 COMMIT_SCAN='[ ! -x "$HOME/bin/claude_commit_secret_scan.sh" ] || "$HOME/bin/claude_commit_secret_scan.sh"'
+# shellcheck disable=SC2016
+TERMS_SCAN='[ ! -x "$HOME/bin/check_private_terms.sh" ] || "$HOME/bin/check_private_terms.sh" claude-hook'
 
 settings_open "$@"
 
-STRIP=$(strip_def strip_security 'contains("claude_commit_secret_scan.sh")')
+STRIP=$(strip_def strip_security 'contains("claude_commit_secret_scan.sh") or contains("check_private_terms.sh")')
 
 if [ "$MODE" = "--uninstall" ]; then
   jq "$STRIP strip_security" "$SETTINGS" >"$tmp"
 else
-  jq --arg commit "$COMMIT_SCAN" "$STRIP"'
+  jq --arg commit "$COMMIT_SCAN" --arg terms "$TERMS_SCAN" "$STRIP"'
     def ensure($event; $matcher; $c; $timeout):
       .hooks[$event] = ((.hooks[$event] // [])
         + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: $timeout}]}]);
@@ -27,6 +31,8 @@ else
     # gitleaks reads the whole diff; 30s covers a large one without letting a
     # hung scan hold the session.
     | ensure("PreToolUse"; "Bash"; $commit; 30)
+    # A GitHub MCP write carries its PR or issue text in the call itself.
+    | ensure("PreToolUse"; "Bash|mcp__.*github.*"; $terms; 30)
   ' "$SETTINGS" >"$tmp"
 fi
 
