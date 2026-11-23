@@ -5,8 +5,7 @@ wipe, and which macOS app each one stands in for.
 
 On a fresh machine, one command does the apps, Codex and Claude config, and
 the AutoHotkey Startup shortcut (`NoWinKeys` and the PowerToys settings below
-stay manual), from the
-main checkout:
+stay manual), from the main checkout:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1"
