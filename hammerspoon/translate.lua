@@ -855,6 +855,12 @@ hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "w", nil, function()
       run({ "--" .. job, "--clipboard" }, MODES[job], ready)
    end, ready)
 end)
+-- A summary only when asked for: a short text never gets one it did not want,
+-- and ⌃⌘⇧D stays as fast as a plain translation.
+hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "s", nil, function()
+   local ready = prepare()
+   copySelectionThen(function() run({ "--summarize", "--clipboard" }, MODES.summarize, ready) end, ready)
+end)
 -- screencapture runs as Hammerspoon's child and needs its permission; say so
 -- up front rather than after a selection that cannot come back with anything.
 hs.hotkey.bind({ "ctrl", "cmd", "shift" }, "l", function()
