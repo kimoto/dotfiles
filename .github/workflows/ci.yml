@@ -153,6 +153,19 @@ jobs:
       - name: Test the curtain under AutoHotkey
         shell: pwsh
         run: ./test/curtain_ahk.ps1
+      # Claude Code on Windows runs a hook's command in Git Bash, which is what
+      # `shell: bash` is on this runner. bats is not on the image; the commit
+      # is the v1.14.0 tag. autocrlf off, or bats' own scripts arrive with CRs.
+      - name: The Claude Code hooks pass their tests under Git Bash
+        shell: bash
+        run: |
+          # RUNNER_TEMP is D:\a\_temp, and its colon would split PATH.
+          bats_dir="$(cygpath -u "$RUNNER_TEMP")/bats"
+          git init --quiet "$bats_dir"
+          git -C "$bats_dir" fetch --quiet --depth 1 \
+            https://github.com/bats-core/bats-core eb7f42f8d608ac693d7a4b67474f6714ea68cfc5
+          git -C "$bats_dir" -c core.autocrlf=false checkout --quiet FETCH_HEAD
+          PATH="$bats_dir/bin:$PATH" ./bin/run_tests.sh test/claude_*.bats
 
   # mise picks each tool's release asset for the host arch, and the Claude Code
   # web sandbox that runs bin/install_check_tools.sh via the SessionStart hook

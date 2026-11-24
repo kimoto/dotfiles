@@ -1,3 +1,5 @@
 # A shell script checked out on Windows must keep LF: Git for Windows runs the
 # pre-commit secret scan from this checkout, and sh reads a CR as part of the line.
+# The same holds for the bats tests CI runs under Git Bash.
 *.sh text eol=lf
+*.bats text eol=lf
