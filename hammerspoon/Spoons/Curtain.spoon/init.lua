@@ -36,6 +36,12 @@ obj.dailyDefault = nil
 obj.fromLabels = {}
 -- function(now), each tick before the curtain decides: a machine's own automatic ends go here.
 obj.onStep = nil
+-- Automatic ends a later poll may replace with an earlier one; removing one by hand skips it
+-- (stateDir/<from>-skip) so the same end is not set again. An extension with its own polled
+-- source adds it here, e.g. polled.calendar = true (daily is always polled). Such a
+-- source must never set an end later than dailyEnd(), or the daily check swaps the two back
+-- and forth each tick.
+obj.polled = { daily = true }
 
 local JST_FALLBACK = 9 * 3600
 local ESC = hs.keycodes.map["escape"]
@@ -43,15 +49,13 @@ local HINT = "ここまで、と決めた時刻です。続ける時だけ Esc �
 local NEAR_SECONDS = 15 * 60
 -- Six cells: readable at a glance, and short enough for a crowded menu bar.
 local BAR_CELLS = 6
--- A daily end was armed whenever the Mac got to it, so its bar covers the last hour only.
+-- A polled end was armed whenever the Mac got to it, so its bar covers the last hour only.
 local AUTO_BAR_SECONDS = 3600
 -- Within the last hour the menu bar counts down to the second; further out, the end time.
 local COUNTDOWN_SECONDS = 3600
 -- A few weeks of evenings, and at most LOG_TRIM_BYTES/2, so a copy of it stays small.
 local LOG_KEEP = 2000
 local LOG_TRIM_BYTES = 300 * 1000
--- Ends the daily check may replace with an earlier one; any other end is left alone.
-local POLLED = { daily = true }
 
 local function path(self, name) return self.stateDir .. "/" .. name end
 
@@ -334,7 +338,7 @@ function obj:refreshMenu()
       self.menu:setTitle("⏳")
    elseif s.deadline > now then
       -- The bar shows the share left since the end was set; the text, minutes or the time.
-      local start = POLLED[s.from or ""] and s.deadline - AUTO_BAR_SECONDS or s.set_at
+      local start = self:isPolled(s.from or "") and s.deadline - AUTO_BAR_SECONDS or s.set_at
       local bar = L.bar(now, start, s.deadline, BAR_CELLS)
       local text = s.deadline - now <= COUNTDOWN_SECONDS and ("あと " .. L.countdown(now, s.deadline))
          or (self:clock(s.deadline) .. "まで")
@@ -386,19 +390,24 @@ end
 -- A request from elsewhere older than this is stale: the owner has decided since.
 function obj:lastChange() return readLine(path(self, "changed")) or "" end
 
-local SKIP = { daily = "daily-skip" }
+-- For extensions: whether from is a polled source. Daily always is, even if polled is replaced by a
+-- table without it.
+function obj:isPolled(from) return from == "daily" or (self.polled or {})[from] == true end
+
+-- For extensions: the end of this polled source that was removed by hand, or nil.
 function obj:skipOf(from)
-   return tonumber(readLine(path(self, SKIP[from])) or "")
+   if not self:isPolled(from or "") then return nil end
+   return tonumber(readLine(path(self, from .. "-skip")) or "")
 end
 
--- For extensions: remove the end time on purpose. A daily end is remembered as skipped,
+-- For extensions: remove the end time on purpose. A polled end is remembered as skipped,
 -- so the next poll does not set the same one again.
 function obj:clearDeadline(why)
    local s = self.s
    if why ~= "paused" then self:dropPause(why or "manual") end
-   if SKIP[s.from or ""] and s.deadline then
+   if self:isPolled(s.from or "") and s.deadline then
       self:ensureState()
-      local f = io.open(path(self, SKIP[s.from]), "w")
+      local f = io.open(path(self, s.from .. "-skip"), "w")
       if f then f:write(tostring(s.deadline) .. "\n"); f:close() end
    end
    self:setDeadline(nil, nil, why or "manual")
@@ -422,7 +431,7 @@ end
 
 function obj:checkDaily(now)
    local s = self.s
-   if s.deadline and (not POLLED[s.from or ""] or now >= s.deadline) then return end
+   if s.deadline and (not self:isPolled(s.from or "") or now >= s.deadline) then return end
    -- Only an earlier end replaces the one set: daily_end drops an end in its last minute, so recomputing
    -- from nothing would lose tonight's curtain.
    local d = self:dailyEnd(now)
