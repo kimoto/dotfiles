@@ -10,6 +10,9 @@
      "PackageIdentifier": "DeepL.DeepL"
     },
     {
+     "PackageIdentifier": "Gitleaks.Gitleaks"
+    },
+    {
      "PackageIdentifier": "Google.JapaneseIME"
     },
     {

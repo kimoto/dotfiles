@@ -39,8 +39,44 @@ if (-not (Test-Path -LiteralPath $shortcutPath)) {
     }
 }
 
+# A staged secret must stop a commit: the config alone would also pass with a
+# hook that never runs. PATH is read again as a new terminal would have it,
+# since winget put gitleaks on it after this process started.
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+    [Environment]::GetEnvironmentVariable('Path', 'User')
+$scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("setup-check-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $scratch | Out-Null
+try {
+    # Assembled here so that this file holds nothing a scanner would flag.
+    $token = 'ghp_' + 'a1B2c3D4e5F6g7H8i9J0' + 'k1L2m3N4o5P6q7R8'
+    Set-Content -LiteralPath (Join-Path $scratch 'creds.txt') -Value "token = `"$token`""
+    $ErrorActionPreference = 'Continue'
+    $commit = @('-C', $scratch, '-c', 'user.name=check', '-c', 'user.email=check@example.invalid',
+        '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'check')
+    git -C $scratch init --quiet 2>&1 | Out-Null
+    # A commit that must go through first, so a refusal below is the scan's
+    # and not a repo that cannot commit at all.
+    Set-Content -LiteralPath (Join-Path $scratch 'plain.txt') -Value 'nothing to find'
+    git -C $scratch add plain.txt 2>&1 | Out-Null
+    git @commit 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add('git could not commit a harmless file in a scratch repo.')
+    }
+    git -C $scratch add creds.txt 2>&1 | Out-Null
+    $refusal = (git @commit 2>&1 | Out-String)
+    if ($LASTEXITCODE -eq 0 -or $refusal -notmatch 'gitleaks: commit refused') {
+        $failures.Add('git committed a staged secret; the gitleaks pre-commit hook did not stop it.')
+    }
+    $ErrorActionPreference = 'Stop'
+} finally {
+    Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Output "not ok: $_" }
     exit 1
 }
 Write-Output 'ok setup'
+# Spelled out: the refused commit above left a non-zero $LASTEXITCODE, which
+# PowerShell would otherwise hand back as this script's.
+exit 0

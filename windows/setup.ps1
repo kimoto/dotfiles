@@ -1,5 +1,5 @@
 # One command for a fresh Windows machine: the apps, then Codex and Claude
-# config, then the AutoHotkey keys. Run from Windows PowerShell, from the main
+# config, the secret scan before every commit, then the AutoHotkey keys. Run from Windows PowerShell, from the main
 # checkout the hotkeys should follow (see README.md, step 3):
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File \\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1
 # Safe to run again; each step skips what is already in place.
@@ -28,6 +28,10 @@ Invoke-Step 'winget import' {
 
 Invoke-Step 'link_codex' {
     & (Join-Path $PSScriptRoot 'link_codex.ps1')
+}
+
+Invoke-Step 'install_git_hooks' {
+    & (Join-Path $PSScriptRoot 'install_git_hooks.ps1')
 }
 
 Invoke-Step 'install_mac_keys' {
