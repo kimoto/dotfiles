@@ -113,5 +113,11 @@ eq("tap: the release after the lift is swallowed, then the tap stops",
 eq("tap: other keys after the lift pass", L.tap_action(false, true, false, false), "pass")
 eq("tap: nothing held, nothing swallowed", L.tap_action(false, false, true, true), "pass")
 
+-- the ring shown while Esc is held: the share of the hold still to go, and whole seconds left
+local f, n = L.hold_left(0, 5); eq("hold: full ring at the press", f, 1); eq("hold: all seconds left", n, 5)
+f, n = L.hold_left(2.5, 5); eq("hold: half the ring half way", f, 0.5); eq("hold: seconds round up", n, 3)
+f, n = L.hold_left(4.99, 5); eq("hold: one second shown until the end", n, 1)
+f, n = L.hold_left(6, 5); eq("hold: ring never below empty", f, 0); eq("hold: seconds never below zero", n, 0)
+
 if fails > 0 then os.exit(1) end
 print("ok")

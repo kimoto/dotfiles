@@ -7,6 +7,15 @@ local M = {}
 M.HOLD_SECONDS = 5
 -- A lifted curtain comes back after this, if the Mac is still in use.
 M.SNOOZE_SECONDS = 5 * 60
+
+-- While Esc is held: the share of the hold still to go (1 at the press, 0 at the lift) for the ring,
+-- and the whole seconds left for the text.
+function M.hold_left(elapsed, total)
+   local f = 1 - elapsed / total
+   if f < 0 then f = 0 elseif f > 1 then f = 1 end
+   return f, math.max(0, math.ceil(total - elapsed))
+end
+
 -- Idle this long, counted from the deadline, means the owner walked away: the
 -- deadline is done. Idle that began before the deadline (a video watched
 -- without touching the keys) does not count, so the curtain still comes up.
