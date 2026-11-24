@@ -105,6 +105,11 @@ jobs:
             brew bundle check --verbose --file="$f"
           done
 
+      - name: A check of the machine just built agrees it is at platform
+        # The command a machine in use is asked: it installs nothing, so a
+        # pass here is what a pass there means.
+        run: MKWORLD_CHECK=1 MKWORLD_EXPECT=platform ./bin/mkworld.sh
+
       - name: Unit tests (bats) against a $HOME the dotfiles are linked into
         # ci.yml runs these in a job with a pristine $HOME. Here ~/.gitconfig is
         # the repo's, so the fixtures inherit commit.gpgsign = true and a
