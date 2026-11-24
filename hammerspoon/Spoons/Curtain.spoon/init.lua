@@ -177,10 +177,29 @@ function obj:setText(sub)
    for _, c in ipairs(self.canvases) do c[3].text = sub end
 end
 
+-- The ring under the hint shows how much of the Esc hold is still to go: a full circle at the
+-- press that empties until the lift. nil hides it (Esc released, or not held yet).
+local RING_COLOR = { white = 0.9, alpha = 0.9 }
+local RING_TRACK = { white = 0.3, alpha = 0.6 }
+local HIDDEN = { alpha = 0 }
+function obj:setRing(share)
+   for _, c in ipairs(self.canvases) do
+      c[4].strokeColor = share and RING_TRACK or HIDDEN
+      c[5].strokeColor = share and share > 0 and RING_COLOR or HIDDEN
+      -- Just short of 360: an arc whose ends meet may draw as nothing rather than a full circle.
+      if share and share > 0 then c[5].endAngle = 359.9 * share end
+   end
+end
+
+function obj:stopHold()
+   if self.holdTimer then self.holdTimer:stop(); self.holdTimer = nil end
+   self:setRing(nil)
+end
+
 function obj:hide()
    for _, c in ipairs(self.canvases) do c:delete() end
    self.canvases = {}
-   if self.holdTimer then self.holdTimer:stop(); self.holdTimer = nil end
+   self:stopHold()
    if self.escTap and not self.drainTimer then self.escTap:stop() end
    self.s.shown = false
 end
@@ -213,6 +232,8 @@ function obj:cannotShow(why, msg, after)
    hs.alert.show("幕を出せません: " .. msg, 6)
 end
 
+local RING_RADIUS = 48
+local RING_WIDTH = 8
 function obj:show(redraw)
    local s = self.s
    -- Under Secure Input the key tap sees nothing, so Esc would never reach it.
@@ -249,6 +270,12 @@ function obj:show(redraw)
             textSize = 22, textColor = { white = 0.6 }, textAlignment = "center",
             frame = { x = 0, y = f.h * 0.30 + 190, w = f.w, h = 40 },
          }
+         -- The hold ring: a dim track and the arc left on it, hidden until Esc is held (setRing).
+         local ring = { x = f.w / 2, y = f.h * 0.30 + 190 + 40 + 30 + RING_RADIUS }
+         c[4] = { type = "circle", action = "stroke", center = ring, radius = RING_RADIUS,
+                  strokeWidth = RING_WIDTH, strokeColor = HIDDEN }
+         c[5] = { type = "arc", action = "stroke", arcRadii = false, center = ring, radius = RING_RADIUS,
+                  startAngle = 0, endAngle = 359.9, strokeWidth = RING_WIDTH, strokeColor = HIDDEN }
          c:show()
          table.insert(self.canvases, c)
       end
@@ -275,17 +302,23 @@ function obj:makeEscTap()
       if e:getType() == T.scrollWheel or e:getType() == T.flagsChanged then return true end
       if e:getKeyCode() ~= ESC then return true end
       if e:getType() == T.keyUp then
-         if self.holdTimer then self.holdTimer:stop(); self.holdTimer = nil end
+         self:stopHold()
          self:setText(HINT)
          return true
       end
       if self.holdTimer then return true end
-      local left = L.HOLD_SECONDS
-      self:setText("あと " .. left .. " 秒")
-      self.holdTimer = hs.timer.doEvery(1, function()
-         left = left - 1
-         if left <= 0 then self:lift() else self:setText("あと " .. left .. " 秒") end
-      end)
+      -- Redrawn about 30 times a second so the ring empties smoothly rather than in 5 steps.
+      -- A monotonic clock, so a clock change while Esc is held neither shortens nor stretches the hold.
+      local function seconds() return hs.timer.absoluteTime() / 1e9 end
+      local pressed = seconds()
+      local function redraw()
+         local share, left = L.hold_left(seconds() - pressed, L.HOLD_SECONDS)
+         if share <= 0 then self:lift(); return end
+         self:setRing(share)
+         self:setText("あと " .. left .. " 秒")
+      end
+      self.holdTimer = hs.timer.doEvery(1 / 30, redraw)
+      redraw()
       return true
    end)
 end
