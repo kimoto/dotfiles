@@ -51,11 +51,20 @@ try {
     $token = 'ghp_' + 'a1B2c3D4e5F6g7H8i9J0' + 'k1L2m3N4o5P6q7R8'
     Set-Content -LiteralPath (Join-Path $scratch 'creds.txt') -Value "token = `"$token`""
     $ErrorActionPreference = 'Continue'
+    $commit = @('-C', $scratch, '-c', 'user.name=check', '-c', 'user.email=check@example.invalid',
+        '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'check')
     git -C $scratch init --quiet 2>&1 | Out-Null
+    # A commit that must go through first, so a refusal below is the scan's
+    # and not a repo that cannot commit at all.
+    Set-Content -LiteralPath (Join-Path $scratch 'plain.txt') -Value 'nothing to find'
+    git -C $scratch add plain.txt 2>&1 | Out-Null
+    git @commit 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        $failures.Add('git could not commit a harmless file in a scratch repo.')
+    }
     git -C $scratch add creds.txt 2>&1 | Out-Null
-    git -C $scratch -c user.name=check -c user.email=check@example.invalid -c commit.gpgsign=false `
-        commit --quiet -m check 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    $refusal = (git @commit 2>&1 | Out-String)
+    if ($LASTEXITCODE -eq 0 -or $refusal -notmatch 'gitleaks: commit refused') {
         $failures.Add('git committed a staged secret; the gitleaks pre-commit hook did not stop it.')
     }
     $ErrorActionPreference = 'Stop'
@@ -68,3 +77,6 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 Write-Output 'ok setup'
+# Spelled out: the refused commit above left a non-zero $LASTEXITCODE, which
+# PowerShell would otherwise hand back as this script's.
+exit 0
