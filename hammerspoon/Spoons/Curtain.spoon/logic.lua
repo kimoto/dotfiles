@@ -27,6 +27,20 @@ M.QUESTIONS = {
 }
 M.NO_ANSWER = "なし"
 
+-- A way out if the curtain itself goes wrong (the questions stuck on screen): typing this word lifts
+-- at once. A word, not a chord: Caps Lock is a four-modifier key on this Mac, so any modifier chord
+-- is one reflex away. The lift is logged as EMERGENCY and counted like any other.
+M.EMERGENCY = "非常口"
+M.EMERGENCY_WORD = "exit"
+
+-- How much of the word is typed after `key` (a key name, "e"), given `typed` letters before it:
+-- a wrong key starts again, from 1 when it is the first letter. Done when it equals #EMERGENCY_WORD.
+function M.emergency_step(typed, key)
+   local w = M.EMERGENCY_WORD
+   if w:sub(typed + 1, typed + 1) == key then return typed + 1 end
+   return w:sub(1, 1) == key and 1 or 0
+end
+
 -- Question q's answer for number key n, or nil for a key that is not one of its choices.
 function M.answer_of(q, n) return M.QUESTIONS[q].choices[n] end
 

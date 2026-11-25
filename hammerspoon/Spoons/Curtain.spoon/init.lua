@@ -260,10 +260,10 @@ function obj:ask(q)
    if not self.holdTimer then self:setText(self:hint()) end
 end
 
--- Lifts the curtain and logs the answers given, "なし" for the rest.
-function obj:lift()
+-- Lifts the curtain and logs the answers given, "なし" for the rest, or `detail` instead.
+function obj:lift(detail)
    local answers = self.answers or {}
-   self:log("lift", L.answers_detail(answers))
+   self:log("lift", detail or L.answers_detail(answers))
    -- Keys still down (Esc held, the number key that answered last) are eaten until released.
    self.draining = {}
    for code in pairs(self.keysDown or {}) do self.draining[code] = true end
@@ -307,7 +307,7 @@ function obj:show(redraw)
       return self:cannotShow("tap off", "Hammerspoon にアクセシビリティの許可が要ります", L.SNOOZE_SECONDS)
    end
    s.shown = true
-   if not redraw then self.keysDown, self.escSpent = {}, nil end
+   if not redraw then self.keysDown, self.escSpent, self.typed = {}, nil, 0 end
    -- A half-built curtain (an error on the second screen, or no screen at all just after wake)
    -- would swallow keys over a screen that is not covered.
    local ok, err = pcall(function()
@@ -345,6 +345,12 @@ function obj:show(redraw)
             textSize = 28, textColor = { white = 0.75 }, textAlignment = "center",
             frame = { x = 0, y = top + SUB_Y, w = f.w, h = 90 },
          }
+         -- Small and dim at the bottom, so the way out is not forgotten on a machine that rarely needs it.
+         c[7] = {
+            type = "text", text = "非常口: " .. L.EMERGENCY_WORD .. " と打つ（記録に残ります）",
+            textSize = 14, textColor = { white = 0.35 }, textAlignment = "center",
+            frame = { x = 0, y = f.h - 60, w = f.w, h = 24 },
+         }
          c:show()
          table.insert(self.canvases, c)
       end
@@ -361,7 +367,7 @@ end
 
 -- While the curtain is up every key and scroll is swallowed, so nothing is typed or closed blind
 -- underneath. Esc held: a key down starts the count, a key up before it ends cancels it. After the
--- lift it eats Esc alone, until a release or L.DRAIN_SECONDS.
+-- lift it eats the keys still held, until each is released or L.DRAIN_SECONDS.
 function obj:makeEscTap()
    local T = hs.eventtap.event.types
    return hs.eventtap.new({ T.keyDown, T.keyUp, T.flagsChanged, T.scrollWheel }, function(e)
@@ -379,6 +385,10 @@ function obj:makeEscTap()
       local code, isDown = e:getKeyCode(), e:getType() == T.keyDown
       -- Every key held under the curtain, so a lift can eat the releases still to come.
       self.keysDown[code] = isDown or nil
+      if isDown and code ~= ESC then
+         self.typed = L.emergency_step(self.typed or 0, hs.keycodes.map[code])
+         if self.typed == #L.EMERGENCY_WORD then self:lift(L.EMERGENCY); return true end
+      end
       if code ~= ESC then
          -- A held number key repeats: only its first press answers, or it would answer the next question too.
          local isRepeat = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) ~= 0

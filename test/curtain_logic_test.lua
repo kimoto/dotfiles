@@ -30,6 +30,15 @@ eq("hold: capped", L.hold_seconds(20), L.MAX_HOLD_SECONDS)
 eq("hold: a new press starts it", L.starts_hold(false, false), true)
 eq("hold: the press that brought the questions does not", L.starts_hold(false, true), false)
 eq("hold: not twice at once", L.starts_hold(true, false), false)
+local function typeWord(keys)
+   local n = 0
+   for k in keys:gmatch(".") do n = L.emergency_step(n, k) end
+   return n
+end
+eq("emergency: the word", typeWord("exit"), #L.EMERGENCY_WORD)
+eq("emergency: a slip starts again", typeWord("exxit"), 0)
+eq("emergency: a restart on the first letter", typeWord("exeexit"), #L.EMERGENCY_WORD)
+eq("emergency: half way", typeWord("ex"), 2)
 eq("first hold asks", L.after_hold(false), "ask")
 eq("hold while asking lifts", L.after_hold(true), "lift")
 eq("past: first minute", L.past(160, 101), "ちょうど今")
