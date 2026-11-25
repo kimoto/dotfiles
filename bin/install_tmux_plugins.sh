@@ -70,11 +70,16 @@ tmux -L "$SOCK" source-file "$CONF" 2>/dev/null || true
 TMUX="$(tmux -L "$SOCK" display-message -p '#{socket_path},#{pid},0')"
 export TMUX
 
+# Read the list while the server is known to be up: asked after tpm ran, a
+# server that has gone away answers with nothing, and nothing would be pinned.
+PLUGINS=$(tmux -L "$SOCK" show-option -gqv @tpm_plugins) || die "cannot read @tpm_plugins"
+[ -n "$PLUGINS" ] || die "@tpm_plugins is empty in $CONF"
+
 echo "== installing plugins from @tpm_plugins =="
 "$TPM/bin/install_plugins"
 
 echo "== pinning to $LOCK =="
-for repo in $(tmux -L "$SOCK" show-option -gqv @tpm_plugins); do
+for repo in $PLUGINS; do
   pin "$repo" "$PLUGIN_DIR/${repo##*/}"
 done
 
