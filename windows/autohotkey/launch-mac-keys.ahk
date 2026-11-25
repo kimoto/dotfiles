@@ -2,8 +2,8 @@
 #SingleInstance Force
 Persistent
 
-; Runs mac-keys.ahk straight from the WSL checkout and restarts it when the
-; file changes, so a pull is the whole deploy. This is the one file copied to
+; Runs mac-keys.ahk straight from the WSL checkout and restarts it when it or
+; a file it includes changes, so a pull is the whole deploy. This is the one file copied to
 ; Windows, and it says so when its copy has drifted from the repo's. The
 ; watching lives here, not in mac-keys.ahk, because a read over
 ; \\wsl.localhost can stall, and there it would stall the hotkeys with it.
@@ -29,7 +29,7 @@ if !FileExist(target)
         . "run windows\install_mac_keys.ps1 from the main checkout.")
 
 A_IconTip := "mac-keys: running " target
-try loadedTime := FileGetTime(target, "M")
+try loadedTime := ScriptsTime()
 catch as err
     Fail("Cannot read " target ": " err.Message)
 Run('"' A_AhkPath '" "' target '"')
@@ -44,14 +44,14 @@ WarnIfLauncherDrifted()
 
 ; Restarts only once the mtime has held for one tick, so a checkout caught
 ; mid-write is not loaded. A version that fails to load needs no guard:
-; AutoHotkey refuses it with a dialog and keeps the running one. (mac-keys.ahk
-; does nothing at load but define hotkeys, so failing to load is the only way
-; a pulled version can break it.) The poll also keeps WSL from idling out,
-; which the hotkeys depend on anyway.
+; AutoHotkey refuses it with a dialog and keeps the running one. (At load
+; mac-keys.ahk defines hotkeys and starts the curtain from what it saved, so
+; failing to load is the only way a pulled version can break it.) The poll
+; also keeps WSL from idling out, which the hotkeys depend on anyway.
 RestartWhenChanged() {
     global loadedTime, unreadable
     static changedTime := ""
-    try now := FileGetTime(target, "M")
+    try now := ScriptsTime()
     catch {
         ; A WSL restart passes in a tick or two; a moved checkout does not, so
         ; say it once rather than stop following the repo in silence.
@@ -74,6 +74,18 @@ RestartWhenChanged() {
     }
     loadedTime := now
     Run('"' A_AhkPath '" /restart "' target '"')
+}
+
+; The newest change among mac-keys.ahk and the files beside it that it
+; includes (curtain.ahk and its rules), so a pull touching only those restarts
+; it too. Throws, like FileGetTime, when mac-keys.ahk cannot be read.
+ScriptsTime() {
+    newest := FileGetTime(target, "M")
+    SplitPath(target, , &dir)
+    loop files dir "\*.ahk"
+        if A_LoopFileName != "launch-mac-keys.ahk" && A_LoopFileTimeModified > newest
+            newest := A_LoopFileTimeModified
+    return newest
 }
 
 ; Two ticks in a row, because a /restart leaves a moment with no mac-keys.
