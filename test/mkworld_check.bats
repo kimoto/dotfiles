@@ -69,3 +69,13 @@ check() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"~/.zshrc is not linked to this checkout"* ]]
 }
+
+@test "a check names the checkout it ran from, even when called through a link" {
+  PATH="$BIN" "$REPO_ROOT/bin/mklink.sh" >/dev/null 2>&1
+  # Resolved like the script resolves it: a checkout under a linked directory
+  # is named by its real path.
+  checkout=$(readlink -f "$REPO_ROOT")
+  commit=$(git -C "$checkout" rev-parse --short HEAD)
+  run env -u CI -u MKWORLD_TRACE PATH="$BIN" MKWORLD_CHECK=1 "$HOME/bin/mkworld.sh"
+  [ "${lines[0]}" = "mkworld: checking $checkout at $commit" ]
+}

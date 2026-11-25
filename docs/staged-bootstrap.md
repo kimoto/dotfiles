@@ -43,7 +43,9 @@ expect platform.
 
 `MKWORLD_CHECK=1 ./bin/mkworld.sh` asks the same question of a machine in use:
 it climbs without installing, linking or changing anything, and its last line
-names the phase the machine is already at. With `MKWORLD_EXPECT=platform` it
+names the phase the machine is already at. Its first line names the checkout
+and commit that answered, because `~/bin/mkworld.sh` is a link into one
+checkout and need not be the one just pulled. With `MKWORLD_EXPECT=platform` it
 exits 1 on anything less. The bootstrap jobs run it after the real run, so the
 check and the bootstrap cannot come to disagree unseen.
 

@@ -35,8 +35,15 @@ phase_rank() {
 [ -z "${MKWORLD_EXPECT:-}" ] || phase_rank "$MKWORLD_EXPECT" >/dev/null
 
 check="${MKWORLD_CHECK:-0}"
-# A check never installs, which is what SKIP_BREW already means to the climb.
-[ "$check" = 1 ] && SKIP_BREW=1
+if [ "$check" = 1 ]; then
+    # A check never installs, which is what SKIP_BREW already means to the climb.
+    SKIP_BREW=1
+    # Which checkout is answering: ~/bin is a link, so ~/bin/mkworld.sh and
+    # ./bin/mkworld.sh typed at home run the linked checkout, not always the
+    # one just pulled.
+    checked_commit=$(git -C "$BASE_DIR" rev-parse --short HEAD 2>/dev/null || echo 'an unknown commit')
+    echo "mkworld: checking $BASE_DIR at $checked_commit"
+fi
 
 reached=""
 stopped=""
