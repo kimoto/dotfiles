@@ -1,6 +1,6 @@
 ---
 name: tool-intake
-description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfile に足して dotfiles のどこかに組み込むところまでを1本の PR にする。★「便利なツール探して」「Brewfile に足せるのある?」と言われた時と、週次 routine（tool-scout）から使う。どの repo から呼ばれても dotfiles に PR を出す。⚠️ Brewfile に足すだけの PR は出さない・1回1ツール・マージしない。
+description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfile に足して dotfiles のどこかに組み込むところまでを1本の PR にする。★「便利なツール探して」「Brewfile に足せるのある?」と言われた時と、週次 routine（tool-scout）から使う。どの repo から呼ばれても dotfiles に PR を出す。⚠️ Brewfile に足すだけの PR は出さない・1回1ツール・組み込めない良い候補は issue で聞く・マージしない。
 ---
 
 # 新しいツールを入れて、組み込むところまで
@@ -59,8 +59,18 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - ラベル `routine` と `routine:tool-scout`（付ける前に `"$(readlink -f ~/.claude/skills/tool-intake)/../../../bin/routine_labels.sh" routine:tool-scout` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は dotfiles の `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
+## 5b. 組み込み先が触れないときは聞く（issue 最大1件）
+
+★門を全部通るのに、組み込み先（lefthook・CI など）を呼ぶ側が触れない決まりのせいで PR にできない候補は、
+報告の文に書くだけだと消える。1件だけ、`trend-intake` の「一番の候補を持ち主に聞く」と同じ形の issue にする。
+
+- 題は `tool: <ツール> を <組み込み先> に入れるか`。本文に門を通った根拠（analytics の順位・出典 URL）と、組み込みの案
+- ラベル `routine:tool-scout` と `needs-decision`。closed の `routine:tool-scout` の issue・PR で出したツールは出さない
+- 選択肢は `1. 入れる → ai-ok`・`2. 見送る → 閉じる`。閉じた issue がそのまま見送りの記録になる
+
 ## 6. 報告
 
 - PR を出したら: 「🧰 tool-intake: PR <URL>（<ツール>・<組み込み先>）」
 - 門を通る候補が無かったら、PR も issue も作らない: 「🧰 tool-intake: 候補なし（見た範囲）」
+- 組み込み先が呼ぶ側に禁じられていて PR にできなかったら: 「🧰 tool-intake: 聞いた <issue の URL>（<ツール>・<組み込み先>）」
 - 確かめられなかったら: 「⚠️ tool-intake: 確認できなかった（理由）」
