@@ -132,9 +132,9 @@
 #!Up::Send("!{Up}")
 #!Down::Send("!{Down}")
 
-; ⌘+V pastes, as Ghostty does it itself on the mac. ⌘+C is not mapped:
-; Windows Terminal passes a copy with nothing selected on to the shell, which
-; may read it as ^C and interrupt what is running.
+; ⌘+V pastes, as Ghostty does it itself on the mac. ⌘+C is not mapped: a copy
+; key with nothing selected reaches the shell as ^C, so the Windows Terminal
+; fragment turns on copyOnSelect instead (windows/README.md).
 #v::Send("^+v")
 
 #HotIf

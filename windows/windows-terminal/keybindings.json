@@ -1,4 +1,5 @@
 {
+  "copyOnSelect": true,
   "actions": [
     {
       "command": { "action": "sendInput", "input": "\n" },
