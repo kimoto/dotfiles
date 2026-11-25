@@ -27,11 +27,13 @@ if [ "$1" = -d ]; then
 fi
 # age -r RECIPIENT, ciphertext on stdout behind age's own header line.
 [ "${STUB_FAIL:-0}" = 1 ] && { cat >/dev/null; exit 1; }
-# A file appearing in the folder while it is being sealed.
-[ -n "${STUB_WRITE_DURING:-}" ] && echo late >"$STUB_WRITE_DURING"
 [ "${STUB_NO_HEADER:-0}" = 1 ] && { cat; exit 0; }
 echo "age-encryption.org/v1 stub-age $1 $2"
 cat
+# A file appearing in the folder while it is being sealed. Only once stdin has
+# ended, so tar is done reading the folder: written earlier, GNU tar sometimes
+# sees the change itself and stops before there is a sealed copy to keep.
+[ -z "${STUB_WRITE_DURING:-}" ] || echo late >"$STUB_WRITE_DURING"
 STUB
   chmod +x "$TMP/bin/age" "$TMP/bin/age-keygen"
   export PATH="$TMP/bin:$PATH"
