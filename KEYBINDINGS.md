@@ -82,6 +82,18 @@ Source:
 
 ---
 
+## Curtain (Mac / Windows)
+
+Source:
+- Mac: `hammerspoon/Spoons/Curtain.spoon`, end times from the ⏳ menu bar item
+- Windows: `windows/autohotkey/curtain.ahk`, end times from the tray icon's 暗い幕 menu
+
+| Key | Action |
+|-----|--------|
+| Esc held 5 s | Lift the curtain; it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
+
+---
+
 ## Terminal (intercepts before tmux)
 
 Source:

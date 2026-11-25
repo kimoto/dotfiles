@@ -150,6 +150,9 @@ jobs:
       - name: Test AutoHotkey installer
         shell: pwsh
         run: ./test/install_mac_keys.ps1
+      - name: Test the curtain under AutoHotkey
+        shell: pwsh
+        run: ./test/curtain_ahk.ps1
 
   # mise picks each tool's release asset for the host arch, and the Claude Code
   # web sandbox that runs bin/install_check_tools.sh via the SessionStart hook

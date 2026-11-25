@@ -348,3 +348,7 @@ RectangleMonitor(hwnd) {
     }
     return MonitorGetPrimary()
 }
+
+; The dark curtain at an end time, the Windows half of the Mac's Curtain Spoon.
+; Here so it starts, restarts and follows a pull with these hotkeys.
+#Include %A_LineFile%\..\curtain.ahk

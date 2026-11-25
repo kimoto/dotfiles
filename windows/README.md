@@ -35,6 +35,7 @@ Skills and agents are linked one by one into `%USERPROFILE%\.claude`, as `bin/mk
 | `rectangle` | PowerToys (FancyZones) | `Microsoft.PowerToys` | Snap-to-region window management. FancyZones is the direct analogue and PowerToys carries Run + Keyboard Manager too. |
 | `raycast` | PowerToys (Command Palette, Advanced Paste) | `Microsoft.PowerToys` | Command Palette is the closest launcher to Raycast, and Advanced Paste in the same suite covers the searchable clipboard history that Raycast supplied on the mac. One install instead of a separate launcher. |
 | `hammerspoon` | AutoHotkey v2 | `AutoHotkey.AutoHotkey` | The Hammerspoon config is global emacs-style text remaps that exclude one app (Ghostty). PowerToys Keyboard Manager can remap but cannot *exclude* an app, which is the whole trick — AHK's `#HotIf not WinActive(...)` can. |
+| `Curtain.spoon` | `autohotkey/curtain.ahk` | `AutoHotkey.AutoHotkey` | The dark curtain at an end time. Included by `mac-keys.ahk`, so it needs no install of its own; the end, the log and an optional `daily-end` live in `%LOCALAPPDATA%\curtain`. |
 | `cleanshot` | ShareX | `ShareX.ShareX` | Region/window/scrolling capture, annotation, upload. The usual CleanShot answer on Windows. |
 | `monitorcontrol` | Twinkle Tray | `xanderfrangos.twinkletray` | DDC/CI brightness for external displays from the tray, same job. |
 | `ghostty` | Windows Terminal | `Microsoft.WindowsTerminal` | Already the WSL host terminal — see the profile note below. |
