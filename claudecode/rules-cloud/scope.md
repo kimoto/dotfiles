@@ -36,3 +36,10 @@ using the GitHub-issued noreply address for the account the branch pushes as
 (visible on a prior commit that already pushed successfully, or in that
 account's GitHub email settings) — an address git cannot verify is still one
 GitHub accepts, since it already knows the address belongs to that account.
+
+## A screen for GUI apps
+
+To see or drive a Linux GUI app (Electron, Tauri, Qt, a desktop build of a
+cross-platform app), run `~/dotfiles/bin/virtual_desktop.sh start`: a virtual
+display you type into and click with `xdotool` and capture with `shot FILE`.
+No VM is needed. A web page needs none of this — Playwright is already here.
