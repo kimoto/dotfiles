@@ -19,11 +19,12 @@ function M.hold_left(elapsed, total)
 end
 
 -- Asked in turn once Esc has been held, each answered with a number key, so the log can show what
--- keeps the evening going: why, and whether it is still the main task or a side track. Holding Esc
--- again after a release lifts without the answers still missing.
+-- keeps the owner going: why, and whether it is still the main task or a side track. Releasing Esc
+-- and holding it again lifts with the questions not yet answered logged as NO_ANSWER.
+M.MAIN_TASK = "本題"
 M.QUESTIONS = {
    { title = "なぜ続ける?", choices = { "区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他" } },
-   { title = "続けるのは本題?", choices = { "本題", "脇道" } },
+   { title = "続けるのは本題?", choices = { M.MAIN_TASK, "脇道" } },
 }
 M.NO_ANSWER = "なし"
 
@@ -48,7 +49,7 @@ end
 -- answering buys as little as a side track, or skipping the question would be the way to more time.
 M.SIDE_SNOOZE_SECONDS = 2 * 60
 function M.snooze_for(answers)
-   return answers[2] == "本題" and M.SNOOZE_SECONDS or M.SIDE_SNOOZE_SECONDS
+   return answers[2] == M.MAIN_TASK and M.SNOOZE_SECONDS or M.SIDE_SNOOZE_SECONDS
 end
 
 -- What a finished Esc hold does: the first asks why, one held while asking lifts without a reason.
@@ -232,10 +233,10 @@ function M.tap_action(shown, draining, is_lifting_key, is_up)
    return "swallow"
 end
 
--- An Esc press starts the hold only when no hold runs and it is a new press, not a repeat: once the
--- questions come up the press that brought them is spent, so skipping them takes a release and a
--- second press, never the same press held a little long.
-function M.starts_hold(holding, is_repeat) return not holding and not is_repeat end
+-- An Esc press starts the hold only when no hold runs and the press is not spent: the press that
+-- brought the questions up is, until released, so skipping them takes a release and a second press,
+-- never the same press held a little long.
+function M.starts_hold(holding, spent) return not holding and not spent end
 
 -- How long after the lift a still-held key is eaten at most, in case its release never arrives.
 M.DRAIN_SECONDS = 10

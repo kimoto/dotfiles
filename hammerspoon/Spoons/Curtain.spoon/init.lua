@@ -246,23 +246,22 @@ function obj:stopDrain()
    if self.escTap and not self.s.shown then self.escTap:stop() end
 end
 
--- Starts asking question q, or lifts once every question has an answer. key: as for lift.
-function obj:ask(q, key)
-   if q > #L.QUESTIONS then return self:lift(key) end
+-- Starts asking question q, or lifts once every question has an answer.
+function obj:ask(q)
+   if q > #L.QUESTIONS then return self:lift() end
    self.asking = q
    self.answers = self.answers or {}
    self:refreshClock()
-   if not self.holdTimer then self:setText(ASK_HINT) end
+   if not self.holdTimer then self:setText(self:hint()) end
 end
 
--- Lifts the curtain and logs the answers given, "なし" for the rest. key: the number key that gave
--- the last answer, still down like a held Esc.
-function obj:lift(key)
+-- Lifts the curtain and logs the answers given, "なし" for the rest.
+function obj:lift()
    local answers = self.answers or {}
    self:log("lift", L.answers_detail(answers))
+   -- Keys still down (Esc held, the number key that answered last) are eaten until released.
    self.draining = {}
-   if self.escDown then self.draining[ESC] = true end
-   if key then self.draining[key] = true end
+   for code in pairs(self.keysDown or {}) do self.draining[code] = true end
    if self.drainTimer then self.drainTimer:stop(); self.drainTimer = nil end
    if next(self.draining) then
       self.drainTimer = hs.timer.doAfter(L.DRAIN_SECONDS, function() self:stopDrain() end)
@@ -286,6 +285,9 @@ function obj:cannotShow(why, msg, after)
    hs.alert.show("幕を出せません: " .. msg, 6)
 end
 
+-- Rows under the clock, from its top: the end or the question (two lines high), then the hint.
+local SUB_Y = 190
+local HINT_Y = 290
 local RING_RADIUS = 48
 local RING_WIDTH = 8
 function obj:show(redraw)
@@ -299,7 +301,7 @@ function obj:show(redraw)
       return self:cannotShow("tap off", "Hammerspoon にアクセシビリティの許可が要ります", L.SNOOZE_SECONDS)
    end
    s.shown = true
-   if not redraw then self.escDown = false end
+   if not redraw then self.keysDown, self.escSpent = {}, nil end
    -- A half-built curtain (an error on the second screen, or no screen at all just after wake)
    -- would swallow keys over a screen that is not covered.
    local ok, err = pcall(function()
@@ -323,10 +325,10 @@ function obj:show(redraw)
          c[3] = {
             type = "text", text = self:hint(),
             textSize = 22, textColor = { white = 0.6 }, textAlignment = "center",
-            frame = { x = 0, y = top + 290, w = f.w, h = 40 },
+            frame = { x = 0, y = top + HINT_Y, w = f.w, h = 40 },
          }
          -- The hold ring: a dim track and the arc left on it, hidden until Esc is held (setRing).
-         local ring = { x = f.w / 2, y = top + 290 + 40 + 30 + RING_RADIUS }
+         local ring = { x = f.w / 2, y = top + HINT_Y + 40 + 30 + RING_RADIUS }
          c[4] = { type = "circle", action = "stroke", center = ring, radius = RING_RADIUS,
                   strokeWidth = RING_WIDTH, strokeColor = HIDDEN }
          c[5] = { type = "arc", action = "stroke", arcRadii = false, center = ring, radius = RING_RADIUS,
@@ -335,7 +337,7 @@ function obj:show(redraw)
             type = "text", text = self:subLine(),
             -- Two lines high: the first question with its five choices wraps on a laptop screen.
             textSize = 28, textColor = { white = 0.75 }, textAlignment = "center",
-            frame = { x = 0, y = top + 190, w = f.w, h = 90 },
+            frame = { x = 0, y = top + SUB_Y, w = f.w, h = 90 },
          }
          c:show()
          table.insert(self.canvases, c)
@@ -368,27 +370,27 @@ function obj:makeEscTap()
          return act ~= "pass"
       end
       if e:getType() == T.scrollWheel or e:getType() == T.flagsChanged then return true end
-      if e:getKeyCode() ~= ESC then
-         local n = DIGITS[e:getKeyCode()]
+      local code, isDown = e:getKeyCode(), e:getType() == T.keyDown
+      -- Every key held under the curtain, so a lift can eat the releases still to come.
+      self.keysDown[code] = isDown or nil
+      if code ~= ESC then
          -- A held number key repeats: only its first press answers, or it would answer the next question too.
-         local first = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) == 0
-         local answer = self.asking and n and first and e:getType() == T.keyDown and L.answer_of(self.asking, n)
+         local isRepeat = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) ~= 0
+         local answer = isDown and not isRepeat and self.asking and DIGITS[code]
+            and L.answer_of(self.asking, DIGITS[code])
          if answer then
             self.answers[self.asking] = answer
-            self:ask(self.asking + 1, e:getKeyCode())
+            self:ask(self.asking + 1)
          end
          return true
       end
-      if e:getType() == T.keyUp then
-         self.escDown = false
+      if not isDown then
+         self.escSpent = nil
          self:stopHold()
          self:setText(self:hint())
          return true
       end
-      self.escDown = true
-      -- A repeat is the same press still held: after the questions come up, only a new press counts.
-      local isRepeat = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) ~= 0
-      if not L.starts_hold(self.holdTimer ~= nil, isRepeat) then return true end
+      if not L.starts_hold(self.holdTimer ~= nil, self.escSpent) then return true end
       -- Redrawn about 30 times a second so the ring empties smoothly rather than in 5 steps.
       -- A monotonic clock, so a clock change while Esc is held neither shortens nor stretches the hold.
       local function seconds() return hs.timer.absoluteTime() / 1e9 end
@@ -399,6 +401,7 @@ function obj:makeEscTap()
             if L.after_hold(self.asking ~= nil) == "lift" then self:lift(); return end
             -- The questions come up and the hold ends there: holding on does nothing, so skipping
             -- them takes a release and a second press, never the same press held a little long.
+            self.escSpent = true
             self:stopHold()
             self:ask(1)
             return
