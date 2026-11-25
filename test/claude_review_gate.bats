@@ -176,6 +176,14 @@ with_remote() {
   [ -z "$output" ]
 }
 
+@test "a jq that ends its lines with CR LF, as jq.exe does, still gets a push denied" {
+  mkdir "$TMP/shim"
+  printf '#!/bin/sh\n%s "$@" | sed "s/\\$/\\r/"\n' "$(command -v jq)" >"$TMP/shim/jq"
+  chmod +x "$TMP/shim/jq"
+  PATH="$TMP/shim:$PATH" pre_bash "git push -u origin feat/x"
+  [ "$(decision)" = deny ]
+}
+
 @test "git -C names the repo, wherever the session stands" {
   pre_bash "git -C '$REPO' push" "$TMP"
   [ "$(decision)" = deny ]

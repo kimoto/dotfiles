@@ -121,11 +121,16 @@ resolve() {
 }
 
 # dir after a cd or git -C to p: an absolute p replaces it, a relative one is
-# taken from it, and one resolve cannot read leaves it as it was.
+# taken from it, and one resolve cannot read leaves it as it was. Absolute is
+# /… or, on Windows, a drive: C:/… or C:\….
 walk() {
   local p
   p=$(resolve "$2")
-  case $p in '') printf '%s' "$1" ;; /*) printf '%s' "$p" ;; *) printf '%s/%s' "$1" "$p" ;; esac
+  case $p in
+    '') printf '%s' "$1" ;;
+    /* | [A-Za-z]:[/\\]*) printf '%s' "$p" ;;
+    *) printf '%s/%s' "$1" "$p" ;;
+  esac
 }
 
 # Deny the push when this branch carries commits no review has seen. Returns
