@@ -15,6 +15,8 @@ setup() {
   SKILL="$REPO_ROOT/claudecode/skills/review-branch/SKILL.md"
   # Resolved, so paths match what git prints (macOS mktemp gives /var, git /private/var).
   TMP="$(cd "$(mktemp -d)" && pwd -P)"
+  # Git Bash: git.exe prints C:/…, never /tmp/….
+  if command -v cygpath >/dev/null 2>&1; then TMP="$(cygpath -ml "$TMP")"; fi
   export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
   mkdir -p "$HOME"
   SETTINGS="$HOME/.claude/settings.json"
