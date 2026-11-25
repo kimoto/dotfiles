@@ -104,6 +104,7 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 | Key | Action |
 |-----|--------|
+| ⌘+V | Paste; built into Ghostty, mapped by AutoHotkey (Windows only) |
 | ⌘+1~9 | tmux window 1~9 (sends ESC+1~9) |
 | ⌘+⌥+← / → | Previous / next tmux window |
 | ⌘+⌥+↑ / ↓ | Previous / next tmux session |
