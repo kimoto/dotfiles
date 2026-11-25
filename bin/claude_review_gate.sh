@@ -70,6 +70,8 @@ case "$payload" in
   *) exit 0 ;;
 esac
 
+# tr: a native jq.exe under Git Bash ends each line with CR LF, and the CR
+# would stay on every field.
 {
   IFS= read -r event
   IFS= read -r session
@@ -80,7 +82,7 @@ esac
   IFS= read -r cmd
 } < <(jq -r '(.hook_event_name // ""), (.session_id // ""), (.cwd // ""), (.tool_name // ""),
   (.tool_input.head // ""), ((.tool_input.owner // "") + "/" + (.tool_input.repo // "")),
-  (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null)
+  (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null | tr -d '\r')
 
 [ "$event" = PreToolUse ] || exit 0
 
@@ -119,11 +121,16 @@ resolve() {
 }
 
 # dir after a cd or git -C to p: an absolute p replaces it, a relative one is
-# taken from it, and one resolve cannot read leaves it as it was.
+# taken from it, and one resolve cannot read leaves it as it was. Absolute is
+# /… or, on Windows, a drive: C:/… or C:\….
 walk() {
   local p
   p=$(resolve "$2")
-  case $p in '') printf '%s' "$1" ;; /*) printf '%s' "$p" ;; *) printf '%s/%s' "$1" "$p" ;; esac
+  case $p in
+    '') printf '%s' "$1" ;;
+    /* | [A-Za-z]:[/\\]*) printf '%s' "$p" ;;
+    *) printf '%s/%s' "$1" "$p" ;;
+  esac
 }
 
 # Deny the push when this branch carries commits no review has seen. Returns

@@ -15,6 +15,8 @@ setup() {
   SKILL="$REPO_ROOT/claudecode/skills/review-branch/SKILL.md"
   # Resolved, so paths match what git prints (macOS mktemp gives /var, git /private/var).
   TMP="$(cd "$(mktemp -d)" && pwd -P)"
+  # Git Bash: git.exe prints C:/…, never /tmp/….
+  if command -v cygpath >/dev/null 2>&1; then TMP="$(cygpath -ml "$TMP")"; fi
   export HOME="$TMP/home" XDG_STATE_HOME="$TMP/state"
   mkdir -p "$HOME"
   SETTINGS="$HOME/.claude/settings.json"
@@ -46,8 +48,9 @@ pre_mcp() {
       tool_input: {owner: "o", repo: "r", head: $h, base: "main", title: "t"}}')"
 }
 
-decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output"; }
-reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output"; }
+# tr: a native jq.exe under Git Bash ends its lines with CR LF.
+decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output" | tr -d '\r'; }
+reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output" | tr -d '\r'; }
 
 with_remote() {
   git init -q --bare "$TMP/remote.git"
@@ -171,6 +174,20 @@ with_remote() {
   with_remote main
   pre_bash "git push"
   [ -z "$output" ]
+}
+
+@test "a jq that ends its lines with CR LF, as jq.exe does, still gets a push denied" {
+  mkdir "$TMP/shim"
+  printf '#!/bin/sh\n"%s" "$@" | awk '"'"'{ printf "%%s\\r\\n", $0 }'"'"'\n' "$(command -v jq)" >"$TMP/shim/jq"
+  chmod +x "$TMP/shim/jq"
+  PATH="$TMP/shim:$PATH" pre_bash "git push -u origin feat/x"
+  [ "$(decision)" = deny ]
+}
+
+@test "a cd to a Windows drive path is followed, in either slash" {
+  command -v cygpath >/dev/null 2>&1 || skip "drive paths exist only under Git Bash"
+  pre_bash "cd '$(cygpath -w "$REPO")' && git push" "$TMP"
+  [ "$(decision)" = deny ]
 }
 
 @test "git -C names the repo, wherever the session stands" {

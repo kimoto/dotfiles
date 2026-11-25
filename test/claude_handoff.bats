@@ -75,6 +75,9 @@ start() { run sh -c "printf '{\"cwd\":\"%s\",\"source\":\"%s\"}' '$WORK' '$1' | 
 }
 
 @test "the saved prompt is private to the user" {
+  # NTFS keeps no mode bits, so umask changes nothing a test can read; there
+  # the user profile's own ACL is what keeps the file from other accounts.
+  case "$(uname -s)" in MINGW* | MSYS*) skip "no mode bits on NTFS" ;; esac
   save "目的: X"
   [ "$(stat -c %a "$CLAUDE_HANDOFF_STATE"/*.md 2>/dev/null || stat -f %Lp "$CLAUDE_HANDOFF_STATE"/*.md)" = 600 ]
 }
