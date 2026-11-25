@@ -70,6 +70,8 @@ case "$payload" in
   *) exit 0 ;;
 esac
 
+# tr: a native jq.exe under Git Bash ends each line with CR LF, and the CR
+# would stay on every field.
 {
   IFS= read -r event
   IFS= read -r session
@@ -80,7 +82,7 @@ esac
   IFS= read -r cmd
 } < <(jq -r '(.hook_event_name // ""), (.session_id // ""), (.cwd // ""), (.tool_name // ""),
   (.tool_input.head // ""), ((.tool_input.owner // "") + "/" + (.tool_input.repo // "")),
-  (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null)
+  (.tool_input.command // "" | gsub("\n"; "; "))' <<<"$payload" 2>/dev/null | tr -d '\r')
 
 [ "$event" = PreToolUse ] || exit 0
 

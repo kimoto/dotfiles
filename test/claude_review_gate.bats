@@ -46,8 +46,9 @@ pre_mcp() {
       tool_input: {owner: "o", repo: "r", head: $h, base: "main", title: "t"}}')"
 }
 
-decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output"; }
-reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output"; }
+# tr: a native jq.exe under Git Bash ends its lines with CR LF.
+decision() { jq -r '.hookSpecificOutput.permissionDecision' <<<"$output" | tr -d '\r'; }
+reason() { jq -r '.hookSpecificOutput.permissionDecisionReason' <<<"$output" | tr -d '\r'; }
 
 with_remote() {
   git init -q --bare "$TMP/remote.git"
