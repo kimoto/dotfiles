@@ -9,6 +9,23 @@ local function eq(name, got, want)
    end
 end
 
+eq("reason 1", L.answer_of(1, 1), "区切りが悪い")
+eq("reason 5", L.answer_of(1, 5), "その他")
+eq("no reason 6", L.answer_of(1, 6), nil)
+eq("main task", L.answer_of(2, 1), "本題")
+eq("no answer 3 to the second", L.answer_of(2, 3), nil)
+eq("question line", L.question_line(2), "続けるのは本題?　1 本題　2 脇道")
+eq("answers: both", L.answers_detail({ "区切りが悪い", "脇道" }), "区切りが悪い 脇道")
+eq("answers: none given", L.answers_detail({}), "なし なし")
+eq("snooze: main task", L.snooze_for({ "区切りが悪い", "本題" }), L.SNOOZE_SECONDS)
+eq("snooze: side track", L.snooze_for({ "区切りが悪い", "脇道" }), L.SIDE_SNOOZE_SECONDS)
+eq("snooze: no answer is as short as a side track", L.snooze_for({}), L.SIDE_SNOOZE_SECONDS)
+eq("first hold asks", L.after_hold(false), "ask")
+eq("hold while asking lifts", L.after_hold(true), "lift")
+eq("past: first minute", L.past(160, 101), "ちょうど今")
+eq("past: minutes", L.past(100 + 27 * 60, 100), "過ぎて 27分")
+eq("past: hours", L.past(100 + 65 * 60, 100), "過ぎて 1時間5分")
+
 eq("no deadline", L.decide({}, 100, 0), nil)
 eq("before deadline", L.decide({ deadline = 200 }, 100, 0), nil)
 eq("deadline reached", L.decide({ deadline = 100 }, 100, 0), "show")

@@ -4,7 +4,8 @@
 --- session that should have ended stops being visible. Nothing is closed: apps
 --- and unsaved work stay as they are under it. Lifting it takes Esc held for
 --- five seconds, so a reflex press is not enough, and it comes back five
---- minutes later while the Mac is still in use. Rules: logic.lua.
+--- minutes later while the Mac is still in use. Once held, it asks why with number
+--- keys and logs the answers. Rules: logic.lua.
 ---
 --- Opt in per machine, in ~/.hammerspoon.local:
 ---   hs.loadSpoon("Curtain"):start()
@@ -45,7 +46,16 @@ obj.polled = { daily = true }
 
 local JST_FALLBACK = 9 * 3600
 local ESC = hs.keycodes.map["escape"]
-local HINT = "ここまで、と決めた時刻です。続ける時だけ Esc を5秒押し続ける"
+local HINT = "続ける時だけ Esc を5秒押し続ける"
+local ASK_HINT = "数字キーで答える（Esc を5秒押し続けると答えずに上げる）"
+-- Number keys, top row and keypad, to the number they type, for the questions after the hold.
+local DIGITS = {}
+for i = 1, 9 do
+   for _, name in ipairs({ tostring(i), "pad" .. i }) do
+      local code = hs.keycodes.map[name]
+      if code then DIGITS[code] = i end
+   end
+end
 local NEAR_SECONDS = 15 * 60
 -- Six cells: readable at a glance, and short enough for a crowded menu bar.
 local BAR_CELLS = 6
@@ -181,6 +191,26 @@ function obj:setText(sub)
    for _, c in ipairs(self.canvases) do c[3].text = sub end
 end
 
+-- The hint line when Esc is not held: how to lift, or how to answer while asking.
+function obj:hint() return self.asking and ASK_HINT or HINT end
+
+-- The line under the clock: the end and how long ago it was, or the question being asked.
+function obj:subLine()
+   if self.asking then return L.question_line(self.asking) end
+   local d = self.s.deadline
+   if not d then return "" end
+   return self:clock(d) .. " に終わり・" .. L.past(os.time(), d)
+end
+
+-- The big clock is the time now, so a curtain left up still tells the time.
+function obj:refreshClock()
+   local now, sub = self:clock(os.time()), self:subLine()
+   for _, c in ipairs(self.canvases) do
+      if c[2].text ~= now then c[2].text = now end
+      if c[6].text ~= sub then c[6].text = sub end
+   end
+end
+
 -- The ring under the hint shows how much of the Esc hold is still to go: a full circle at the
 -- press that empties until the lift. nil hides it (Esc released, or not held yet).
 local RING_COLOR = { white = 0.9, alpha = 0.9 }
@@ -204,6 +234,8 @@ function obj:hide()
    for _, c in ipairs(self.canvases) do c:delete() end
    self.canvases = {}
    self:stopHold()
+   if self.clockTimer then self.clockTimer:stop(); self.clockTimer = nil end
+   self.asking, self.answers = nil, nil
    if self.escTap and not self.drainTimer then self.escTap:stop() end
    self.s.shown = false
 end
@@ -213,12 +245,25 @@ function obj:stopDrain()
    if self.escTap and not self.s.shown then self.escTap:stop() end
 end
 
+-- Starts asking question q, or lifts once every question has an answer.
+function obj:ask(q)
+   if q > #L.QUESTIONS then return self:lift() end
+   self.asking = q
+   self.answers = self.answers or {}
+   self:refreshClock()
+   if not self.holdTimer then self:setText(ASK_HINT) end
+end
+
+-- Lifts the curtain and logs the answers given, "なし" for the rest.
 function obj:lift()
-   self:log("lift", "Esc 長押し")
-   if self.drainTimer then self.drainTimer:stop() end
-   self.drainTimer = hs.timer.doAfter(L.DRAIN_SECONDS, function() self:stopDrain() end)
+   local answers = self.answers or {}
+   self:log("lift", L.answers_detail(answers))
+   -- Only a held Esc has a release still to come; after a number key there is nothing to eat.
+   local escHeld = self.holdTimer ~= nil
+   if self.drainTimer then self.drainTimer:stop(); self.drainTimer = nil end
+   if escHeld then self.drainTimer = hs.timer.doAfter(L.DRAIN_SECONDS, function() self:stopDrain() end) end
    self:hide()
-   self.s.snooze_until = os.time() + L.SNOOZE_SECONDS
+   self.s.snooze_until = os.time() + L.snooze_for(answers)
    self:saveDeadline()
 end
 
@@ -249,7 +294,6 @@ function obj:show(redraw)
       return self:cannotShow("tap off", "Hammerspoon にアクセシビリティの許可が要ります", L.SNOOZE_SECONDS)
    end
    s.shown = true
-   local title = s.deadline and self:clock(s.deadline) or "おしまい"
    -- A half-built curtain (an error on the second screen, or no screen at all just after wake)
    -- would swallow keys over a screen that is not covered.
    local ok, err = pcall(function()
@@ -264,22 +308,28 @@ function obj:show(redraw)
          c:clickActivating(false)
          c[1] = { type = "rectangle", action = "fill",
                   fillColor = { red = 0.05, green = 0.05, blue = 0.08, alpha = 0.96 } }
+         local top = f.h * 0.30
          c[2] = {
-            type = "text", text = title,
+            type = "text", text = self:clock(os.time()),
             textSize = 120, textColor = { white = 0.95 }, textAlignment = "center",
-            frame = { x = 0, y = f.h * 0.30, w = f.w, h = 180 },
+            frame = { x = 0, y = top, w = f.w, h = 180 },
          }
          c[3] = {
-            type = "text", text = HINT,
+            type = "text", text = self:hint(),
             textSize = 22, textColor = { white = 0.6 }, textAlignment = "center",
-            frame = { x = 0, y = f.h * 0.30 + 190, w = f.w, h = 40 },
+            frame = { x = 0, y = top + 240, w = f.w, h = 40 },
          }
          -- The hold ring: a dim track and the arc left on it, hidden until Esc is held (setRing).
-         local ring = { x = f.w / 2, y = f.h * 0.30 + 190 + 40 + 30 + RING_RADIUS }
+         local ring = { x = f.w / 2, y = top + 240 + 40 + 30 + RING_RADIUS }
          c[4] = { type = "circle", action = "stroke", center = ring, radius = RING_RADIUS,
                   strokeWidth = RING_WIDTH, strokeColor = HIDDEN }
          c[5] = { type = "arc", action = "stroke", arcRadii = false, center = ring, radius = RING_RADIUS,
                   startAngle = 0, endAngle = 359.9, strokeWidth = RING_WIDTH, strokeColor = HIDDEN }
+         c[6] = {
+            type = "text", text = self:subLine(),
+            textSize = 30, textColor = { white = 0.75 }, textAlignment = "center",
+            frame = { x = 0, y = top + 190, w = f.w, h = 44 },
+         }
          c:show()
          table.insert(self.canvases, c)
       end
@@ -289,6 +339,8 @@ function obj:show(redraw)
       return self:cannotShow(ok and "no screen" or ("canvas: " .. tostring(err)), "画面を覆えませんでした", 15)
    end
    self.notShownWhy = nil
+   -- Every second, so the clock turns over on the minute rather than up to a tick late.
+   if not self.clockTimer then self.clockTimer = hs.timer.doEvery(1, function() self:refreshClock() end) end
    if not redraw then self:log("show", s.deadline and self:clock(s.deadline) or "") end
 end
 
@@ -304,10 +356,20 @@ function obj:makeEscTap()
          return act ~= "pass"
       end
       if e:getType() == T.scrollWheel or e:getType() == T.flagsChanged then return true end
-      if e:getKeyCode() ~= ESC then return true end
+      if e:getKeyCode() ~= ESC then
+         local n = DIGITS[e:getKeyCode()]
+         -- A held number key repeats: only its first press answers, or it would answer the next question too.
+         local first = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) == 0
+         local answer = self.asking and n and first and e:getType() == T.keyDown and L.answer_of(self.asking, n)
+         if answer then
+            self.answers[self.asking] = answer
+            self:ask(self.asking + 1)
+         end
+         return true
+      end
       if e:getType() == T.keyUp then
          self:stopHold()
-         self:setText(HINT)
+         self:setText(self:hint())
          return true
       end
       if self.holdTimer then return true end
@@ -317,9 +379,15 @@ function obj:makeEscTap()
       local pressed = seconds()
       local function redraw()
          local share, left = L.hold_left(seconds() - pressed, L.HOLD_SECONDS)
-         if share <= 0 then self:lift(); return end
+         if share <= 0 then
+            if L.after_hold(self.asking ~= nil) == "lift" then self:lift(); return end
+            -- Still held: the questions come up, and holding on as long again lifts without them.
+            pressed = seconds()
+            self:ask(1)
+            return
+         end
          self:setRing(share)
-         self:setText("あと " .. left .. " 秒")
+         self:setText(self.asking and ("答えずに上げるまで あと " .. left .. " 秒") or ("あと " .. left .. " 秒"))
       end
       self.holdTimer = hs.timer.doEvery(1 / 30, redraw)
       redraw()
@@ -593,7 +661,7 @@ end
 --- Takes the curtain down and stops everything start() started. The end time stays saved.
 function obj:stop()
    if self.s and self.s.shown then self:hide() end
-   for _, k in ipairs({ "tick", "secondTimer", "holdTimer", "drainTimer" }) do
+   for _, k in ipairs({ "tick", "secondTimer", "holdTimer", "drainTimer", "clockTimer" }) do
       if self[k] then self[k]:stop(); self[k] = nil end
    end
    if self.escTap then self.escTap:stop(); self.escTap = nil end

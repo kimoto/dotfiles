@@ -1,7 +1,8 @@
 -- What the curtain should do at a given moment, kept apart from Hammerspoon so
 -- it can be tested with plain Lua (test/curtain_logic_test.lua at the repo root).
 -- tz everywhere: seconds the owner's clock is ahead of UTC, whatever zone the Mac is in.
--- windows/autohotkey/curtain-logic.ahk ports these rules for Windows: change both together.
+-- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the questions after the hold:
+-- change both together.
 local M = {}
 
 -- Esc must be held this long to lift the curtain, so a reflex press is not enough.
@@ -15,6 +16,48 @@ function M.hold_left(elapsed, total)
    local f = 1 - elapsed / total
    if f < 0 then f = 0 elseif f > 1 then f = 1 end
    return f, math.max(0, math.ceil(total - elapsed))
+end
+
+-- Asked in turn once Esc has been held, each answered with a number key, so the log can show what
+-- keeps the evening going: why, and whether it is still the main task or a side track. Holding Esc
+-- the same time again lifts without the answers still missing.
+M.QUESTIONS = {
+   { title = "なぜ続ける?", choices = { "区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他" } },
+   { title = "続けるのは本題?", choices = { "本題", "脇道" } },
+}
+M.NO_ANSWER = "なし"
+
+-- Question q's answer for number key n, or nil for a key that is not one of its choices.
+function M.answer_of(q, n) return M.QUESTIONS[q].choices[n] end
+
+-- Question q as one line for the curtain, "なぜ続ける?　1 区切りが悪い　2 …".
+function M.question_line(q)
+   local out = { M.QUESTIONS[q].title }
+   for i, c in ipairs(M.QUESTIONS[q].choices) do out[#out + 1] = i .. " " .. c end
+   return table.concat(out, "　")
+end
+
+-- The answers for the log, one per question in order, "なし" for one not given.
+function M.answers_detail(answers)
+   local out = {}
+   for i = 1, #M.QUESTIONS do out[i] = answers[i] or M.NO_ANSWER end
+   return table.concat(out, " ")
+end
+
+-- How long the lifted curtain stays away: a side track buys less time than the main task. Not
+-- answering buys as little as a side track, or skipping the question would be the way to more time.
+M.SIDE_SNOOZE_SECONDS = 2 * 60
+function M.snooze_for(answers)
+   return answers[2] == "本題" and M.SNOOZE_SECONDS or M.SIDE_SNOOZE_SECONDS
+end
+
+-- What a finished Esc hold does: the first asks why, one held while asking lifts without a reason.
+function M.after_hold(asking) return asking and "lift" or "ask" end
+
+-- How long the end has been passed, for the line under the clock: "ちょうど今" in its first minute.
+function M.past(now, deadline)
+   if now - deadline < 60 then return "ちょうど今" end
+   return "過ぎて " .. M.left(deadline, now)
 end
 
 -- Idle this long, counted from the deadline, means the owner walked away: the
