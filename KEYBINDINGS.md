@@ -91,7 +91,7 @@ Source:
 | Key | Action |
 |-----|--------|
 | Esc held 5 s | Lift the curtain; it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
-| 1–5, then 1–2 (Mac) | After the 5 s hold, answer why you keep going and whether it is the main task; the answers go to the log and the curtain lifts, for 5 minutes on the main task and 2 on a side track. Holding Esc another 5 s lifts without them, for 2 minutes |
+| 1–5, then 1–2 (Mac) | After the 5 s hold, answer why you keep going and whether it is the main task; the answers go to the log and the curtain lifts, for 5 minutes on the main task and 2 on a side track. Releasing Esc and holding it another 5 s lifts without them, for 2 minutes |
 
 ---
 

@@ -1,7 +1,7 @@
 -- What the curtain should do at a given moment, kept apart from Hammerspoon so
 -- it can be tested with plain Lua (test/curtain_logic_test.lua at the repo root).
 -- tz everywhere: seconds the owner's clock is ahead of UTC, whatever zone the Mac is in.
--- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the questions after the hold:
+-- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the clock line and the questions:
 -- change both together.
 local M = {}
 
@@ -20,7 +20,7 @@ end
 
 -- Asked in turn once Esc has been held, each answered with a number key, so the log can show what
 -- keeps the evening going: why, and whether it is still the main task or a side track. Holding Esc
--- the same time again lifts without the answers still missing.
+-- again after a release lifts without the answers still missing.
 M.QUESTIONS = {
    { title = "なぜ続ける?", choices = { "区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他" } },
    { title = "続けるのは本題?", choices = { "本題", "脇道" } },
@@ -223,16 +223,21 @@ function M.bar(now, start, deadline, cells)
 end
 
 -- What the key tap does with one event. While the curtain is up it eats everything.
--- Once a held Esc has lifted it, the same Esc is still down: its repeats and its
--- release would land in the app in front, so they are eaten too, and the release ends that.
-function M.tap_action(shown, draining, is_esc, is_up)
+-- The key that lifted it (Esc held, or the number key that answered last) is still down: its repeats
+-- and its release would land in the app in front, so they are eaten too, and the release ends that.
+function M.tap_action(shown, draining, is_lifting_key, is_up)
    if shown then return "swallow" end
-   if not (draining and is_esc) then return "pass" end
+   if not (draining and is_lifting_key) then return "pass" end
    if is_up then return "swallow_stop" end
    return "swallow"
 end
 
--- How long after the lift a still-held Esc is eaten at most, in case its release never arrives.
+-- An Esc press starts the hold only when no hold runs and it is a new press, not a repeat: once the
+-- questions come up the press that brought them is spent, so skipping them takes a release and a
+-- second press, never the same press held a little long.
+function M.starts_hold(holding, is_repeat) return not holding and not is_repeat end
+
+-- How long after the lift a still-held key is eaten at most, in case its release never arrives.
 M.DRAIN_SECONDS = 10
 
 return M
