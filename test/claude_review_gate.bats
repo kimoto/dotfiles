@@ -178,9 +178,15 @@ with_remote() {
 
 @test "a jq that ends its lines with CR LF, as jq.exe does, still gets a push denied" {
   mkdir "$TMP/shim"
-  printf '#!/bin/sh\n%s "$@" | sed "s/\\$/\\r/"\n' "$(command -v jq)" >"$TMP/shim/jq"
+  printf '#!/bin/sh\n"%s" "$@" | awk '"'"'{ printf "%%s\\r\\n", $0 }'"'"'\n' "$(command -v jq)" >"$TMP/shim/jq"
   chmod +x "$TMP/shim/jq"
   PATH="$TMP/shim:$PATH" pre_bash "git push -u origin feat/x"
+  [ "$(decision)" = deny ]
+}
+
+@test "a cd to a Windows drive path is followed, in either slash" {
+  command -v cygpath >/dev/null 2>&1 || skip "drive paths exist only under Git Bash"
+  pre_bash "cd '$(cygpath -w "$REPO")' && git push" "$TMP"
   [ "$(decision)" = deny ]
 }
 
