@@ -1,8 +1,8 @@
 -- What the curtain should do at a given moment, kept apart from Hammerspoon so
 -- it can be tested with plain Lua (test/curtain_logic_test.lua at the repo root).
 -- tz everywhere: seconds the owner's clock is ahead of UTC, whatever zone the Mac is in.
--- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the clock line and the questions:
--- change both together.
+-- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the clock line, the
+-- questions and the longer holds: change both together.
 local M = {}
 
 -- Esc must be held this long to lift the curtain, so a reflex press is not enough.
@@ -21,10 +21,9 @@ end
 -- Asked in turn once Esc has been held, each answered with a number key, so the log can show what
 -- keeps the owner going: why, and whether it is still the main task or a side track. Releasing Esc
 -- and holding it again lifts with the questions not yet answered logged as NO_ANSWER.
-M.MAIN_TASK = "本題"
 M.QUESTIONS = {
    { title = "なぜ続ける?", choices = { "区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他" } },
-   { title = "続けるのは本題?", choices = { M.MAIN_TASK, "脇道" } },
+   { title = "続けるのは本題?", choices = { "本題", "脇道" } },
 }
 M.NO_ANSWER = "なし"
 
@@ -45,11 +44,12 @@ function M.answers_detail(answers)
    return table.concat(out, " ")
 end
 
--- How long the lifted curtain stays away: a side track buys less time than the main task. Not
--- answering buys as little as a side track, or skipping the question would be the way to more time.
-M.SIDE_SNOOZE_SECONDS = 2 * 60
-function M.snooze_for(answers)
-   return answers[2] == M.MAIN_TASK and M.SNOOZE_SECONDS or M.SIDE_SNOOZE_SECONDS
+-- Each lift for the same end makes the next hold longer: 5, 10, 15 … seconds, up to 30. The weight
+-- is on going on again and again, not on an answer, so an honest "side track" costs no more than
+-- "main task" and the log stays worth reading.
+M.MAX_HOLD_SECONDS = 30
+function M.hold_seconds(lifts)
+   return math.min(M.HOLD_SECONDS * ((lifts or 0) + 1), M.MAX_HOLD_SECONDS)
 end
 
 -- What a finished Esc hold does: the first asks why, one held while asking lifts without a reason.

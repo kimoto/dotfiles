@@ -3,7 +3,7 @@
 --- At an end time the owner sets, covers every screen with a dark curtain so a
 --- session that should have ended stops being visible. Nothing is closed: apps
 --- and unsaved work stay as they are under it. Lifting it takes Esc held for
---- five seconds, so a reflex press is not enough. Then it asks why with number
+--- five seconds (longer each time for the same end), so a reflex press is not enough. Then it asks why with number
 --- keys, logs the answers, and comes back a few minutes later while the Mac is
 --- still in use. Rules: logic.lua.
 ---
@@ -46,8 +46,6 @@ obj.polled = { daily = true }
 
 local JST_FALLBACK = 9 * 3600
 local ESC = hs.keycodes.map["escape"]
-local HINT = "続ける時だけ Esc を5秒押し続ける"
-local ASK_HINT = "数字キーで答える（答えずに上げるなら、Esc を一度離してもう5秒）"
 -- Number keys, top row and keypad, to the number they type, for the questions after the hold.
 local DIGITS = {}
 for i = 1, 9 do
@@ -136,11 +134,11 @@ function obj:saveDeadline()
    local s = self.s
    if s.deadline then
       -- Lines: end, snooze (so a reload during it does not bring the curtain straight back), from,
-      -- and when the end was set (the start of the menu bar's bar).
+      -- when the end was set (the start of the menu bar's bar), and how often it was lifted.
       local f = io.open(path(self, "deadline"), "w")
       if f then
          f:write(tostring(s.deadline) .. "\n" .. tostring(s.snooze_until or "") .. "\n" .. (s.from or "") .. "\n"
-            .. tostring(s.set_at or "") .. "\n")
+            .. tostring(s.set_at or "") .. "\n" .. tostring(s.lifts or 0) .. "\n")
          f:close()
       end
    else
@@ -155,10 +153,12 @@ function obj:loadDeadline()
    local z = tonumber(f:read("*l") or "")
    local from = f:read("*l")
    local set_at = tonumber(f:read("*l") or "")
+   local lifts = tonumber(f:read("*l") or "")
    f:close()
    if t and os.time() - t < L.STALE_SECONDS then
       local s = self.s
       s.deadline, s.snooze_until, s.from, s.set_at = t, z, L.auto_from(from) and from or nil, set_at
+      s.lifts = lifts
    end
 end
 
@@ -192,7 +192,12 @@ function obj:setText(sub)
 end
 
 -- The hint line when Esc is not held: how to lift, or how to answer while asking.
-function obj:hint() return self.asking and ASK_HINT or HINT end
+function obj:hint()
+   local secs = L.hold_seconds(self.s.lifts)
+   if self.asking then return "数字キーで答える（答えずに上げるなら、Esc を一度離してもう" .. secs .. "秒）" end
+   return "続ける時だけ Esc を" .. secs .. "秒押し続ける"
+      .. ((self.s.lifts or 0) > 0 and ("（この終わりで " .. self.s.lifts + 1 .. "回目）") or "")
+end
 
 -- The line under the clock: the end and how long ago it was, or the question being asked.
 function obj:subLine()
@@ -267,7 +272,8 @@ function obj:lift()
       self.drainTimer = hs.timer.doAfter(L.DRAIN_SECONDS, function() self:stopDrain() end)
    end
    self:hide()
-   self.s.snooze_until = os.time() + L.snooze_for(answers)
+   self.s.snooze_until = os.time() + L.SNOOZE_SECONDS
+   self.s.lifts = (self.s.lifts or 0) + 1
    self:saveDeadline()
 end
 
@@ -396,7 +402,7 @@ function obj:makeEscTap()
       local function seconds() return hs.timer.absoluteTime() / 1e9 end
       local pressed = seconds()
       local function redraw()
-         local share, left = L.hold_left(seconds() - pressed, L.HOLD_SECONDS)
+         local share, left = L.hold_left(seconds() - pressed, L.hold_seconds(self.s.lifts))
          if share <= 0 then
             if L.after_hold(self.asking ~= nil) == "lift" then self:lift(); return end
             -- The questions come up and the hold ends there: holding on does nothing, so skipping
@@ -458,6 +464,8 @@ function obj:setDeadline(t, from, why)
       if why then d[#d + 1] = why end
       self:log(t and "set" or "clear", table.concat(d, " "))
       s.set_at = t and os.time() or nil
+      -- A new end starts the count of lifts again.
+      if t ~= s.deadline then s.lifts = nil end
       -- Only a new end ends a snooze, so setting the same end again does not bring the curtain straight back.
       s.snooze_until = nil
       -- A new end gets its own alert if it cannot be shown either.
