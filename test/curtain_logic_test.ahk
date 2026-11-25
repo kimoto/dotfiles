@@ -75,7 +75,7 @@ Eq("bar: none when the end has come", L.Bar(T0 + 600, T0, T0 + 600, 6), "")
 Eq("bar: none without a start", L.Bar(T0, 0, T0 + 600, 6), "")
 Eq("bar: a start after now counts as now", L.Bar(T0, T0 + 60, T0 + 600, 6), "▰▰▰▰▰▰")
 
-Eq("countdown: minutes and seconds", L.Countdown(T0, T0 + 754), "12:35")
+Eq("countdown: minutes and seconds", L.Countdown(T0, T0 + 754), "12:34")
 Eq("countdown: seconds keep their zero", L.Countdown(T0, T0 + 65), "1:05")
 Eq("countdown: under a minute", L.Countdown(T0, T0 + 9), "0:09")
 Eq("countdown: an hour or more shows hours", L.Countdown(T0, T0 + 3723), "1:02:03")
