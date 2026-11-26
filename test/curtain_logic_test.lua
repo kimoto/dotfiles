@@ -9,6 +9,42 @@ local function eq(name, got, want)
    end
 end
 
+eq("reason 1", L.answer_of(1, 1), "区切りが悪い")
+eq("reason 5", L.answer_of(1, 5), "その他")
+eq("no reason 6", L.answer_of(1, 6), nil)
+eq("main task", L.answer_of(2, 1), "本題")
+eq("no answer 3 to the second", L.answer_of(2, 3), nil)
+eq("question line", L.question_line(2), "続けるのは本題?　1 本題　2 脇道")
+eq("answers: both", L.answers_detail({ "区切りが悪い", "脇道" }), "区切りが悪い 脇道")
+eq("answers: only the first", L.answers_detail({ "区切りが悪い" }), "区切りが悪い なし")
+eq("question line: the first, all five in order", L.question_line(1),
+   "なぜ続ける?　1 区切りが悪い　2 仕事・締切　3 ただ続けたい　4 まだ眠くない　5 その他")
+eq("tap: a number key still down after the last answer is eaten",
+   L.tap_action(false, true, true, false), "swallow")
+eq("answers: none given", L.answers_detail({}), "なし なし")
+eq("hold: first lift", L.hold_seconds(0), 5)
+eq("hold: no count yet", L.hold_seconds(nil), 5)
+eq("hold: second lift", L.hold_seconds(1), 10)
+eq("hold: third lift", L.hold_seconds(2), 15)
+eq("hold: capped", L.hold_seconds(20), L.MAX_HOLD_SECONDS)
+eq("hold: a new press starts it", L.starts_hold(false, false), true)
+eq("hold: the press that brought the questions does not", L.starts_hold(false, true), false)
+eq("hold: not twice at once", L.starts_hold(true, false), false)
+local function typeWord(keys)
+   local n = 0
+   for k in keys:gmatch(".") do n = L.emergency_step(n, k) end
+   return n
+end
+eq("emergency: the word", typeWord("exit"), #L.EMERGENCY_WORD)
+eq("emergency: a slip starts again", typeWord("exxit"), 0)
+eq("emergency: a restart on the first letter", typeWord("exeexit"), #L.EMERGENCY_WORD)
+eq("emergency: half way", typeWord("ex"), 2)
+eq("first hold asks", L.after_hold(false), "ask")
+eq("hold while asking lifts", L.after_hold(true), "lift")
+eq("past: first minute", L.past(160, 101), "ちょうど今")
+eq("past: minutes", L.past(100 + 27 * 60, 100), "過ぎて 27分")
+eq("past: hours", L.past(100 + 65 * 60, 100), "過ぎて 1時間5分")
+
 eq("no deadline", L.decide({}, 100, 0), nil)
 eq("before deadline", L.decide({ deadline = 200 }, 100, 0), nil)
 eq("deadline reached", L.decide({ deadline = 100 }, 100, 0), "show")

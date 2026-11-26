@@ -90,7 +90,9 @@ Source:
 
 | Key | Action |
 |-----|--------|
-| Esc held 5 s | Lift the curtain; it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
+| Esc held 5 s | Lift the curtain (on the Mac, after the questions below, and 5 s longer for each lift of the same end, up to 30 s); it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
+| 1–5, then 1–2 (Mac) | After the hold, answer why you keep going and whether it is the main task; the answers go to the log and the curtain lifts. Releasing Esc and holding it again lifts without them |
+| type `exit` (Mac) | Lift the curtain at once, a way out if it goes wrong, written small at the bottom of the curtain; logged as 非常口 and counted like any lift |
 
 ---
 

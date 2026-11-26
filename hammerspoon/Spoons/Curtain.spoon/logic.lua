@@ -1,7 +1,8 @@
 -- What the curtain should do at a given moment, kept apart from Hammerspoon so
 -- it can be tested with plain Lua (test/curtain_logic_test.lua at the repo root).
 -- tz everywhere: seconds the owner's clock is ahead of UTC, whatever zone the Mac is in.
--- windows/autohotkey/curtain-logic.ahk ports these rules for Windows: change both together.
+-- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the clock line, the
+-- questions and the longer holds: change both together.
 local M = {}
 
 -- Esc must be held this long to lift the curtain, so a reflex press is not enough.
@@ -15,6 +16,63 @@ function M.hold_left(elapsed, total)
    local f = 1 - elapsed / total
    if f < 0 then f = 0 elseif f > 1 then f = 1 end
    return f, math.max(0, math.ceil(total - elapsed))
+end
+
+-- Asked in turn once Esc has been held, each answered with a number key, so the log can show what
+-- keeps the owner going: why, and whether it is still the main task or a side track. Releasing Esc
+-- and holding it again lifts with the questions not yet answered logged as NO_ANSWER.
+M.QUESTIONS = {
+   { title = "なぜ続ける?", choices = { "区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他" } },
+   { title = "続けるのは本題?", choices = { "本題", "脇道" } },
+}
+M.NO_ANSWER = "なし"
+
+-- A way out if the curtain itself goes wrong (the questions stuck on screen): typing this word lifts
+-- at once. A word, not a chord: Caps Lock is a four-modifier key on this Mac, so any modifier chord
+-- is one reflex away. The lift is logged as EMERGENCY and counted like any other.
+M.EMERGENCY = "非常口"
+M.EMERGENCY_WORD = "exit"
+
+-- How much of the word is typed after `key` (a key name, "e"), given `typed` letters before it:
+-- a wrong key starts again, from 1 when it is the first letter. Done when it equals #EMERGENCY_WORD.
+function M.emergency_step(typed, key)
+   local w = M.EMERGENCY_WORD
+   if w:sub(typed + 1, typed + 1) == key then return typed + 1 end
+   return w:sub(1, 1) == key and 1 or 0
+end
+
+-- Question q's answer for number key n, or nil for a key that is not one of its choices.
+function M.answer_of(q, n) return M.QUESTIONS[q].choices[n] end
+
+-- Question q as one line for the curtain, "なぜ続ける?　1 区切りが悪い　2 …".
+function M.question_line(q)
+   local out = { M.QUESTIONS[q].title }
+   for i, c in ipairs(M.QUESTIONS[q].choices) do out[#out + 1] = i .. " " .. c end
+   return table.concat(out, "　")
+end
+
+-- The answers for the log, one per question in order, "なし" for one not given.
+function M.answers_detail(answers)
+   local out = {}
+   for i = 1, #M.QUESTIONS do out[i] = answers[i] or M.NO_ANSWER end
+   return table.concat(out, " ")
+end
+
+-- Each lift for the same end makes the next hold longer: 5, 10, 15 … seconds, up to 30. The weight
+-- is on going on again and again, not on an answer, so an honest "side track" costs no more than
+-- "main task" and the log stays worth reading.
+M.MAX_HOLD_SECONDS = 30
+function M.hold_seconds(lifts)
+   return math.min(M.HOLD_SECONDS * ((lifts or 0) + 1), M.MAX_HOLD_SECONDS)
+end
+
+-- What a finished Esc hold does: the first asks why, one held while asking lifts without a reason.
+function M.after_hold(asking) return asking and "lift" or "ask" end
+
+-- How long the end has been passed, for the line under the clock: "ちょうど今" in its first minute.
+function M.past(now, deadline)
+   if now - deadline < 60 then return "ちょうど今" end
+   return "過ぎて " .. M.left(deadline, now)
 end
 
 -- Idle this long, counted from the deadline, means the owner walked away: the
@@ -180,16 +238,21 @@ function M.bar(now, start, deadline, cells)
 end
 
 -- What the key tap does with one event. While the curtain is up it eats everything.
--- Once a held Esc has lifted it, the same Esc is still down: its repeats and its
--- release would land in the app in front, so they are eaten too, and the release ends that.
-function M.tap_action(shown, draining, is_esc, is_up)
+-- The key that lifted it (Esc held, or the number key that answered last) is still down: its repeats
+-- and its release would land in the app in front, so they are eaten too, and the release ends that.
+function M.tap_action(shown, draining, is_lifting_key, is_up)
    if shown then return "swallow" end
-   if not (draining and is_esc) then return "pass" end
+   if not (draining and is_lifting_key) then return "pass" end
    if is_up then return "swallow_stop" end
    return "swallow"
 end
 
--- How long after the lift a still-held Esc is eaten at most, in case its release never arrives.
+-- An Esc press starts the hold only when no hold runs and the press is not spent: the press that
+-- brought the questions up is, until released, so skipping them takes a release and a second press,
+-- never the same press held a little long.
+function M.starts_hold(holding, spent) return not holding and not spent end
+
+-- How long after the lift a still-held key is eaten at most, in case its release never arrives.
 M.DRAIN_SECONDS = 10
 
 return M
