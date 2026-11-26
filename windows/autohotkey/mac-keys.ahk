@@ -132,6 +132,11 @@
 #!Up::Send("!{Up}")
 #!Down::Send("!{Down}")
 
+; ⌘+V pastes, as Ghostty does it itself on the mac. ⌘+C is not mapped: a copy
+; key with nothing selected reaches the shell as ^C, so the Windows Terminal
+; fragment turns on copyOnSelect instead (windows/README.md).
+#v::Send("^+v")
+
 #HotIf
 
 ; ⌃+1..3 bring an app to the front, starting it if it is not running, and

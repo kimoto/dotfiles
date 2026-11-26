@@ -93,9 +93,15 @@ this list, never as the list itself.
 
 ## Windows Terminal
 
-Merge the `actions` and `keybindings` arrays from `windows-terminal/keybindings.json`
-into the live `settings.json`, retaining other entries and replacing existing
-bindings for the same keys. This is a merge fragment, not a complete settings file.
+Merge `copyOnSelect` and the `actions` and `keybindings` arrays from
+`windows-terminal/keybindings.json` into the live `settings.json`, retaining other
+entries and replacing existing bindings for the same keys. This is a merge fragment,
+not a complete settings file.
+`copyOnSelect` copies a selection as it is made, standing in for ⌘+C, which
+AutoHotkey leaves unmapped here: Windows Terminal hands a copy key with nothing
+selected on to the shell, where Ctrl+C or Ctrl+Shift+C would arrive as ^C.
+Inside tmux a drag is tmux's own selection, copied with `y` as on the Mac;
+copyOnSelect covers Shift+drag and a window without tmux.
 Shift+Enter and Alt+Enter (Option on the Mac keyboard) send LF / Ctrl+J,
 which inserts a newline in Claude Code, including through tmux. Plain Enter is unchanged.
 These bindings apply to every Terminal profile: at a shell prompt they can execute
