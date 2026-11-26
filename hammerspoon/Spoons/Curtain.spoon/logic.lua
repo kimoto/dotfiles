@@ -1,8 +1,7 @@
 -- What the curtain should do at a given moment, kept apart from Hammerspoon so
 -- it can be tested with plain Lua (test/curtain_logic_test.lua at the repo root).
 -- tz everywhere: seconds the owner's clock is ahead of UTC, whatever zone the Mac is in.
--- windows/autohotkey/curtain-logic.ahk ports these rules for Windows, all but the clock line, the
--- questions and the longer holds: change both together.
+-- windows/autohotkey/curtain-logic.ahk ports these rules for Windows: change both together.
 local M = {}
 
 -- Esc must be held this long to lift the curtain, so a reflex press is not enough.

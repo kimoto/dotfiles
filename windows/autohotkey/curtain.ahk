@@ -1,15 +1,17 @@
 #Requires AutoHotkey v2.0
 
 ; At an end time the owner sets, covers every screen with a dark curtain so a
-; session that should have ended stops being visible. Nothing is closed. Esc
-; held for five seconds lifts it, and it comes back five minutes later while
-; the machine is still in use. The Windows half of
+; session that should have ended stops being visible, and shows the time. Nothing
+; is closed. Esc held for five seconds (five more for each lift of the same end)
+; brings up two questions, answered with number keys and logged; then it lifts,
+; and comes back five minutes later while the machine is still in use. Typing
+; exit lifts it at once. The Windows half of
 ; hammerspoon/Spoons/Curtain.spoon, with its rules in curtain-logic.ahk.
 ;
 ; mac-keys.ahk includes this file, so the launcher that keeps mac-keys running
 ; and restarts it when any of its .ahk files changes carries the curtain too. A restart keeps the end:
 ; it lives in %LOCALAPPDATA%\curtain\deadline, with the Spoon's lines (end,
-; snooze, from, set at). Local, not over \\wsl.localhost, so a stalled WSL
+; snooze, from, set at, lifts). Local, not over \\wsl.localhost, so a stalled WSL
 ; cannot stall the curtain.
 ;
 ; Set the end from the tray icon's 暗い幕 menu. A fixed end every night goes in
@@ -18,7 +20,6 @@
 #Include %A_LineFile%\..\curtain-logic.ahk
 
 class Curtain {
-    static HINT := "ここまで、と決めた時刻です。続ける時だけ Esc を5秒押し続ける"
     static BAR_CELLS := 6
     ; A daily end was armed whenever the machine got to it, so its bar covers the last hour only.
     static AUTO_BAR_SECONDS := 3600
@@ -28,12 +29,23 @@ class Curtain {
     static DRAIN_MS := 10000
 
     static dir := EnvGet("LOCALAPPDATA") "\curtain"
-    static s := {deadline: 0, snoozeUntil: 0, shown: false, from: "", setAt: 0}
+    static s := {deadline: 0, snoozeUntil: 0, shown: false, from: "", setAt: 0, lifts: 0}
     static tz := 0
     static screens := []
     static ih := ""
     static holdStart := 0
     static draining := false
+    ; The question being asked (0 for none) and the answers so far, question to answer.
+    static asking := 0
+    static answers := Map()
+    ; Every key held under the curtain, so a repeat is told from a press and a lift can eat the releases.
+    static keysDown := Map()
+    ; The keys still to be released after a lift.
+    static drainKeys := Map()
+    ; The Esc press that brought the questions up, until it is released.
+    static escSpent := false
+    ; How much of the emergency word is typed.
+    static typed := 0
     static wasSuspended := false
     static badge := ""
     static badgeText := ""
@@ -85,7 +97,8 @@ class Curtain {
             try FileDelete(this.File("deadline"))
             return
         }
-        this.WriteFile("deadline", s.deadline "`n" (s.snoozeUntil || "") "`n" s.from "`n" (s.setAt || "") "`n")
+        this.WriteFile("deadline", s.deadline "`n" (s.snoozeUntil || "") "`n" s.from "`n" (s.setAt || "") "`n"
+            . s.lifts "`n")
     }
 
     static Load() {
@@ -94,7 +107,7 @@ class Curtain {
         t := num(1)
         if t && CurtainLogic.Now() - t < CurtainLogic.STALE_SECONDS {
             s := this.s
-            s.deadline := t, s.snoozeUntil := num(2), s.setAt := num(4)
+            s.deadline := t, s.snoozeUntil := num(2), s.setAt := num(4), s.lifts := num(5)
             s.from := lines.Length >= 3 ? lines[3] : ""
         }
     }
@@ -105,6 +118,9 @@ class Curtain {
         if t != s.deadline || from != s.from {
             this.Log(t ? "set" : "clear", Trim((t ? this.Clock(t) " " (from || "chosen") : "") " " why))
             s.setAt := t ? CurtainLogic.Now() : 0
+            ; A new end starts the count of lifts again.
+            if t != s.deadline
+                s.lifts := 0
             ; Only a new end ends a snooze, so setting the same end again does not bring the curtain straight back.
             s.snoozeUntil := 0
         }
@@ -151,6 +167,7 @@ class Curtain {
         }
         ; Another window brought to the front (a notification, an app that steals focus) goes back under.
         if s.shown && this.screens.Length {
+            this.RefreshClock()
             for sc in this.screens
                 try WinMoveTop(sc.gui)
             try WinActivate(this.screens[1].gui)
@@ -166,10 +183,12 @@ class Curtain {
         ; A lift's drain may still hold the last hook; two hooks would leave Esc eaten for good.
         this.StopDrain(true)
         ih := InputHook("L0 I")
-        ih.KeyOpt("{All}", "S")
-        ih.KeyOpt("{Esc}", "N")
-        ih.OnKeyDown := (ih, vk, sc) => Curtain.EscDown(vk)
-        ih.OnKeyUp := (ih, vk, sc) => Curtain.EscUp(vk)
+        ih.KeyOpt("{All}", "SN")
+        ih.OnKeyDown := (ih, vk, sc) => Curtain.KeyDown(vk)
+        ih.OnKeyUp := (ih, vk, sc) => Curtain.KeyUp(vk)
+        this.keysDown := Map(), this.escSpent := false, this.typed := 0
+        this.asking := 0, this.answers := Map()
+        now := CurtainLogic.Now()
         try {
             loop MonitorGetCount() {
                 MonitorGet(A_Index, &l, &t, &r, &b)
@@ -177,16 +196,25 @@ class Curtain {
                 g.BackColor := "0D0D14"
                 g.MarginX := 0, g.MarginY := 0
                 w := r - l, h := b - t
+                ; The time now, so a curtain left up still tells the time.
                 g.SetFont("s96 cF2F2F2", "Yu Gothic UI")
-                g.AddText("x0 y" Round(h * 0.30) " w" w " Center", this.Clock(s.deadline))
+                clock := g.AddText("x0 y" Round(h * 0.30) " w" w " Center", this.Clock(now))
+                ; The end and how long ago it was, or the question. Two lines high: the first question
+                ; with its five choices wraps on a laptop screen.
+                g.SetFont("s22 cBFBFBF")
+                sub := g.AddText("x40 y+16 w" (w - 80) " h80 Center", this.SubLine())
                 g.SetFont("s18 c999999")
-                hint := g.AddText("x0 y+24 w" w " Center", this.HINT)
+                hint := g.AddText("x0 y+16 w" w " Center", this.Hint())
                 ; The share of the Esc hold still to go: full at the press, empty at the lift.
                 bar := g.AddProgress("x" (w // 2 - 160) " y+36 w320 h10 -Theme cE6E6E6 Background4D4D4D"
                     . " Range0-1000 Hidden", 1000)
+                ; Small and dim at the bottom, so the way out is not forgotten on a machine that rarely needs it.
+                g.SetFont("s11 c595959")
+                g.AddText("x0 y" (h - 60) " w" w " Center",
+                    "非常口: " CurtainLogic.EMERGENCY_WORD " と打つ（記録に残ります）")
                 g.Show("x" l " y" t " w" w " h" h)
                 WinSetTransparent(245, g)
-                this.screens.Push({gui: g, hint: hint, bar: bar})
+                this.screens.Push({gui: g, clock: clock, sub: sub, hint: hint, bar: bar})
             }
         } catch as err {
             ; A half-built curtain would swallow keys over a screen that is not covered.
@@ -220,24 +248,98 @@ class Curtain {
         if this.s.shown
             Suspend(this.wasSuspended)
         this.s.shown := false
+        this.asking := 0, this.answers := Map()
     }
 
-    static EscDown(vk) {
-        ; Auto-repeat sends Esc down again and again: only the first starts the count.
-        if vk != 0x1B || this.draining || this.holdStart || !this.s.shown
+    ; The hint line when Esc is not held: how to lift, or how to answer while asking.
+    static Hint() {
+        secs := CurtainLogic.HoldSeconds(this.s.lifts)
+        if this.asking
+            return "数字キーで答える（答えずに上げるなら、Esc を一度離してもう" secs "秒）"
+        return "続ける時だけ Esc を" secs "秒押し続ける"
+            . (this.s.lifts > 0 ? "（この終わりで " this.s.lifts + 1 "回目）" : "")
+    }
+
+    ; The line under the clock: the end and how long ago it was, or the question being asked.
+    static SubLine() {
+        if this.asking
+            return CurtainLogic.QuestionLine(this.asking)
+        d := this.s.deadline
+        return d ? this.Clock(d) " に終わり・" CurtainLogic.Past(CurtainLogic.Now(), d) : ""
+    }
+
+    static RefreshClock() {
+        now := this.Clock(CurtainLogic.Now()), sub := this.SubLine()
+        for sc in this.screens {
+            if sc.clock.Value != now
+                sc.clock.Value := now
+            if sc.sub.Value != sub
+                sc.sub.Value := sub
+        }
+    }
+
+    static SetHint(text) {
+        for sc in this.screens
+            sc.hint.Value := text
+    }
+
+    ; The number a key types, top row or keypad, or 0.
+    static Digit(vk) => (vk >= 0x31 && vk <= 0x39) ? vk - 0x30 : (vk >= 0x61 && vk <= 0x69) ? vk - 0x60 : 0
+
+    ; Starts asking question q, or lifts once every question has an answer.
+    static Ask(q) {
+        if q > CurtainLogic.QUESTIONS.Length
+            return this.Lift()
+        this.asking := q
+        this.RefreshClock()
+        if !this.holdStart
+            this.SetHint(this.Hint())
+    }
+
+    static KeyDown(vk) {
+        if this.draining || !this.s.shown
+            return
+        ; Auto-repeat sends a held key down again and again: only its first press counts.
+        isRepeat := this.keysDown.Has(vk)
+        this.keysDown[vk] := true
+        if vk != 0x1B {
+            if isRepeat
+                return
+            this.typed := CurtainLogic.EmergencyStep(this.typed, GetKeyName(Format("vk{:X}", vk)))
+            if this.typed = StrLen(CurtainLogic.EMERGENCY_WORD)
+                return this.Lift(CurtainLogic.EMERGENCY)
+            n := this.Digit(vk)
+            if this.asking && n {
+                answer := CurtainLogic.AnswerOf(this.asking, n)
+                if answer != "" {
+                    this.answers[this.asking] := answer
+                    this.Ask(this.asking + 1)
+                }
+            }
+            return
+        }
+        if !CurtainLogic.StartsHold(this.holdStart != 0, this.escSpent)
             return
         this.holdStart := A_TickCount
-        ; About 30 times a second, so the bar empties smoothly rather than in 5 steps.
+        ; About 30 times a second, so the bar empties smoothly rather than in steps.
         SetTimer(this.HoldTick, 33)
         this.HoldTick.Call()
     }
 
-    static EscUp(vk) {
-        if vk != 0x1B
+    static KeyUp(vk) {
+        if this.draining {
+            if this.drainKeys.Has(vk)
+                this.drainKeys.Delete(vk)
+            if !this.drainKeys.Count
+                this.StopDrain()
             return
-        if this.draining
-            return this.StopDrain()
-        this.StopHold()
+        }
+        if this.keysDown.Has(vk)
+            this.keysDown.Delete(vk)
+        if vk = 0x1B {
+            this.escSpent := false
+            this.StopHold()
+        }
     }
 
     ; A bound copy, so SetTimer can stop the same object it started.
@@ -245,13 +347,20 @@ class Curtain {
 
     static Hold() {
         ; A_TickCount does not move with the clock, so changing the time neither shortens nor stretches the hold.
-        r := CurtainLogic.HoldLeft((A_TickCount - this.holdStart) / 1000, CurtainLogic.HOLD_SECONDS)
-        if r[1] <= 0
-            return this.Lift()
+        r := CurtainLogic.HoldLeft((A_TickCount - this.holdStart) / 1000, CurtainLogic.HoldSeconds(this.s.lifts))
+        if r[1] <= 0 {
+            if CurtainLogic.AfterHold(this.asking) = "lift"
+                return this.Lift()
+            ; The questions come up and the hold ends there: holding on does nothing, so skipping
+            ; them takes a release and a second press, never the same press held a little long.
+            this.escSpent := true
+            this.StopHold()
+            return this.Ask(1)
+        }
         for sc in this.screens {
             sc.bar.Value := Round(r[1] * 1000)
             sc.bar.Visible := true
-            sc.hint.Value := "あと " r[2] " 秒"
+            sc.hint.Value := (this.asking ? "答えずに上げるまで あと " : "あと ") r[2] " 秒"
         }
     }
 
@@ -260,20 +369,26 @@ class Curtain {
         this.holdStart := 0
         for sc in this.screens {
             sc.bar.Visible := false
-            sc.hint.Value := this.HINT
+            sc.hint.Value := this.Hint()
         }
     }
 
-    ; The Esc that lifted the curtain is still down: its repeats and its release would land in the
-    ; app in front, so they are eaten until the release or DRAIN_MS.
-    static Lift() {
-        this.Log("lift", "Esc 長押し")
-        this.draining := true
-        this.ih.KeyOpt("{All}", "-S +V")
-        this.ih.KeyOpt("{Esc}", "S")
-        SetTimer(() => Curtain.StopDrain(), -this.DRAIN_MS)
+    ; Lifts the curtain and logs the answers given, "なし" for the rest, or detail instead.
+    ; The keys still down (Esc held, the number key that answered last) would send their repeats and
+    ; releases to the app in front, so they are eaten until released or DRAIN_MS.
+    static Lift(detail := "") {
+        this.Log("lift", detail != "" ? detail : CurtainLogic.AnswersDetail(this.answers))
+        this.drainKeys := this.keysDown.Clone()
+        if this.drainKeys.Count {
+            this.draining := true
+            this.ih.KeyOpt("{All}", "-S +V")
+            for vk in this.drainKeys
+                this.ih.KeyOpt("{vk" Format("{:X}", vk) "}", "S")
+            SetTimer(() => Curtain.StopDrain(), -this.DRAIN_MS)
+        }
         this.Hide()
         this.s.snoozeUntil := CurtainLogic.Now() + CurtainLogic.SNOOZE_SECONDS
+        this.s.lifts += 1
         this.Save()
     }
 
@@ -281,6 +396,7 @@ class Curtain {
         if !this.draining && !always
             return
         this.draining := false
+        this.drainKeys := Map()
         if this.ih && (always || !this.s.shown)
             this.ih.Stop(), this.ih := ""
     }

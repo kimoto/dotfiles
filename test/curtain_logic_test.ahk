@@ -16,6 +16,42 @@ Eq(name, got, want) {
 }
 S(deadline := 0, snoozeUntil := 0, shown := false) => {deadline: deadline, snoozeUntil: snoozeUntil, shown: shown}
 
+Eq("reason 1", L.AnswerOf(1, 1), "区切りが悪い")
+Eq("reason 5", L.AnswerOf(1, 5), "その他")
+Eq("no reason 6", L.AnswerOf(1, 6), "")
+Eq("main task", L.AnswerOf(2, 1), "本題")
+Eq("no answer 3 to the second", L.AnswerOf(2, 3), "")
+Eq("question line", L.QuestionLine(2), "続けるのは本題?　1 本題　2 脇道")
+Eq("question line: the first, all five in order", L.QuestionLine(1),
+    "なぜ続ける?　1 区切りが悪い　2 仕事・締切　3 ただ続けたい　4 まだ眠くない　5 その他")
+Eq("answers: both", L.AnswersDetail(Map(1, "区切りが悪い", 2, "脇道")), "区切りが悪い 脇道")
+Eq("answers: only the first", L.AnswersDetail(Map(1, "区切りが悪い")), "区切りが悪い なし")
+Eq("answers: none given", L.AnswersDetail(Map()), "なし なし")
+Eq("hold: first lift", L.HoldSeconds(0), 5)
+Eq("hold: second lift", L.HoldSeconds(1), 10)
+Eq("hold: third lift", L.HoldSeconds(2), 15)
+Eq("hold: capped", L.HoldSeconds(20), L.MAX_HOLD_SECONDS)
+Eq("hold: a new press starts it", L.StartsHold(false, false), true)
+Eq("hold: the press that brought the questions does not", L.StartsHold(false, true), false)
+Eq("hold: not twice at once", L.StartsHold(true, false), false)
+TypeWord(keys) {
+    n := 0
+    loop parse keys
+        n := CurtainLogic.EmergencyStep(n, A_LoopField)
+    return n
+}
+Eq("emergency: the word", TypeWord("exit"), StrLen(L.EMERGENCY_WORD))
+Eq("emergency: a slip starts again", TypeWord("exxit"), 0)
+Eq("emergency: a restart on the first letter", TypeWord("exeexit"), StrLen(L.EMERGENCY_WORD))
+Eq("emergency: half way", TypeWord("ex"), 2)
+Eq("emergency: a key with no name", L.EmergencyStep(4, ""), 0)
+Eq("emergency: upper case is another key", TypeWord("EXIT"), 0)
+Eq("first hold asks", L.AfterHold(false), "ask")
+Eq("hold while asking lifts", L.AfterHold(true), "lift")
+Eq("past: first minute", L.Past(160, 101), "ちょうど今")
+Eq("past: minutes", L.Past(100 + 27 * 60, 100), "過ぎて 27分")
+Eq("past: hours", L.Past(100 + 65 * 60, 100), "過ぎて 1時間5分")
+
 Eq("no deadline", L.Decide(S(), 100, 0), "")
 Eq("before deadline", L.Decide(S(200), 100, 0), "")
 Eq("deadline reached", L.Decide(S(100), 100, 0), "show")

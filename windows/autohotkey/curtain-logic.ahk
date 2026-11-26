@@ -106,6 +106,67 @@ class CurtainLogic {
         return [f, Max(0, Ceil(total - elapsed))]
     }
 
+    ; Asked in turn once Esc has been held, each answered with a number key, so the log can show what
+    ; keeps the owner going: why, and whether it is still the main task or a side track.
+    static QUESTIONS := [
+        {title: "なぜ続ける?", choices: ["区切りが悪い", "仕事・締切", "ただ続けたい", "まだ眠くない", "その他"]},
+        {title: "続けるのは本題?", choices: ["本題", "脇道"]}
+    ]
+    static NO_ANSWER := "なし"
+
+    ; A way out if the curtain itself goes wrong: typing this word lifts at once. A word, not a
+    ; chord, as on the Mac, where Caps Lock holds four modifiers. Logged as EMERGENCY.
+    static EMERGENCY := "非常口"
+    static EMERGENCY_WORD := "exit"
+
+    ; How much of the word is typed after key (a key name, "e"), given typed letters before it:
+    ; a wrong key starts again, from 1 when it is the first letter.
+    static EmergencyStep(typed, key) {
+        w := this.EMERGENCY_WORD
+        if key = ""
+            return 0
+        if typed < StrLen(w) && SubStr(w, typed + 1, 1) == key
+            return typed + 1
+        return SubStr(w, 1, 1) == key ? 1 : 0
+    }
+
+    ; Question q's answer for number key n, or "" for a key that is not one of its choices.
+    static AnswerOf(q, n) {
+        c := this.QUESTIONS[q].choices
+        return n >= 1 && n <= c.Length ? c[n] : ""
+    }
+
+    ; Question q as one line for the curtain, "なぜ続ける?　1 区切りが悪い　2 …".
+    static QuestionLine(q) {
+        out := this.QUESTIONS[q].title
+        for i, c in this.QUESTIONS[q].choices
+            out .= "　" i " " c
+        return out
+    }
+
+    ; The answers (a Map from question to answer) for the log, "なし" for one not given.
+    static AnswersDetail(answers) {
+        out := ""
+        loop this.QUESTIONS.Length
+            out .= (A_Index > 1 ? " " : "") (answers.Has(A_Index) ? answers[A_Index] : this.NO_ANSWER)
+        return out
+    }
+
+    ; Each lift for the same end makes the next hold longer: 5, 10, 15 … seconds, up to 30. The weight
+    ; is on going on again and again, not on an answer, so an honest "side track" costs no more.
+    static MAX_HOLD_SECONDS := 30
+    static HoldSeconds(lifts) => Min(this.HOLD_SECONDS * (lifts + 1), this.MAX_HOLD_SECONDS)
+
+    ; What a finished Esc hold does: the first asks why, one held while asking lifts without a reason.
+    static AfterHold(asking) => asking ? "lift" : "ask"
+
+    ; An Esc press starts the hold only when no hold runs and the press is not spent: the press that
+    ; brought the questions up is, until released, so skipping them takes a second press.
+    static StartsHold(holding, spent) => !holding && !spent
+
+    ; How long the end has been passed, for the line under the clock: "ちょうど今" in its first minute.
+    static Past(now, deadline) => now - deadline < 60 ? "ちょうど今" : "過ぎて " this.Left(deadline, now)
+
     ; A fixed end ("HH:MM"): the next such time, if at least a minute and under 14 hours away and
     ; later than skip (an end removed by hand), else 0. So a late start does not stretch the evening.
     static DailyEnd(now, tz, hhmm, skip := 0) {
