@@ -102,12 +102,6 @@
   event = pre-commit
   command = "[ ! -x \"$HOME/bin/git_hook_gitleaks.sh\" ] || \"$HOME/bin/git_hook_gitleaks.sh\""
 
-# Words about the owner's private life never reach a public remote. The words
-# live outside this repo; how, and why: bin/check_private_terms.sh. No "$@":
-# git appends it to a command that needs a shell, which hands this the remote.
-[hook "dotfiles-private-terms"]
-  event = pre-push
-  command = "[ ! -x \"$HOME/bin/check_private_terms.sh\" ] || \"$HOME/bin/check_private_terms.sh\" pre-push"
 
 # --------
 # local

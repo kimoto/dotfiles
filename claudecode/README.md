@@ -56,7 +56,8 @@ ignore rule would apply in every repo on the machine.
   because a container never runs `mkworld.sh`. Its `PreToolUse` hook is
   the gitleaks commit scan `install_claude_secret_scan_hook.sh` registers on a
   workstation, so a cloud session on any repo gets it too, beside the
-  private-word scan the same installer registers (`bin/check_private_terms.sh`). Its `PostToolUse`
+  privacy review of public-repo writes the same installer registers
+  (`bin/claude_public_privacy_check.sh`). Its `PostToolUse`
   hook is the after-push PR description reminder, which after `gh pr create`
   also has the agent start `bin/watch_pr.sh`
   (`bin/claude_pr_description_reminder.sh`), which `install_claude_pr_hooks.sh`
