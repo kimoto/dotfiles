@@ -46,6 +46,8 @@ class Curtain {
     static escSpent := false
     ; How much of the emergency word is typed.
     static typed := 0
+    ; When the curtain came up (A_TickCount), for the grace before Enter counts.
+    static shownTick := 0
     static wasSuspended := false
     static badge := ""
     static badgeText := ""
@@ -187,6 +189,11 @@ class Curtain {
         ih.OnKeyDown := (ih, vk, sc) => Curtain.KeyDown(vk, sc)
         ih.OnKeyUp := (ih, vk, sc) => Curtain.KeyUp(vk)
         this.keysDown := Map(), this.escSpent := false, this.typed := 0
+        ; An Enter already held when the curtain comes up repeats under it; known as held, its
+        ; repeats are not taken for a fresh press.
+        if GetKeyState("Enter", "P")
+            this.keysDown[0x0D] := true
+        this.shownTick := A_TickCount
         this.asking := 0, this.answers := Map()
         now := CurtainLogic.Now()
         try {
@@ -256,7 +263,8 @@ class Curtain {
         secs := CurtainLogic.HoldSeconds(this.s.lifts)
         if this.asking
             return "数字キーで答える（答えずに上げるなら、Esc を一度離してもう" secs "秒）"
-        return "続ける時だけ Esc を" secs "秒押し続ける"
+        return (CurtainLogic.CanFinish(this.s.from) ? CurtainLogic.DONE "なら Enter　・　" : "")
+            . "続ける時だけ Esc を" secs "秒押し続ける"
             . (this.s.lifts > 0 ? "（この終わりで " this.s.lifts + 1 "回目）" : "")
     }
 
@@ -315,6 +323,10 @@ class Curtain {
             this.typed := CurtainLogic.EmergencyStep(this.typed, GetKeyName(Format("vk{:X}", vk)))
             if this.typed = StrLen(CurtainLogic.EMERGENCY_WORD)
                 return this.Lift(CurtainLogic.EMERGENCY)
+            ; Enter, on the main keyboard or the keypad: the work is done.
+            if vk = 0x0D && CurtainLogic.CanFinish(this.s.from)
+                && CurtainLogic.FinishReady((A_TickCount - this.shownTick) / 1000)
+                return this.Finish()
             n := this.Digit(vk, sc)
             if this.asking && n {
                 answer := CurtainLogic.AnswerOf(this.asking, n)
@@ -381,10 +393,27 @@ class Curtain {
     }
 
     ; Lifts the curtain and logs the answers given, "なし" for the rest, or detail instead.
-    ; The keys still down (Esc held, the number key that answered last) would send their repeats and
-    ; releases to the app in front, so they are eaten until released or DRAIN_MS.
     static Lift(detail := "") {
         this.Log("lift", detail != "" ? detail : CurtainLogic.AnswersDetail(this.answers))
+        this.DrainHeld()
+        this.Hide()
+        this.s.snoozeUntil := CurtainLogic.Now() + CurtainLogic.SNOOZE_SECONDS
+        this.s.lifts += 1
+        this.Save()
+    }
+
+    ; The work is done: the curtain goes and the end with it, so it does not come back.
+    static Finish() {
+        d := this.s.deadline
+        this.Log("done", d ? this.Clock(d) " " CurtainLogic.Past(CurtainLogic.Now(), d) : "")
+        this.DrainHeld()
+        this.Hide()
+        this.SetDeadline(0, "", "done")
+    }
+
+    ; The keys still down (Esc held, the number key that answered last, Enter) would send their
+    ; repeats and releases to the app in front, so they are eaten until released or DRAIN_MS.
+    static DrainHeld() {
         this.drainKeys := Map()
         for vk in this.keysDown
             if this.IsDown(vk)
@@ -396,10 +425,6 @@ class Curtain {
                 this.ih.KeyOpt("{vk" Format("{:X}", vk) "}", "S")
             SetTimer(() => Curtain.StopDrain(), -this.DRAIN_MS)
         }
-        this.Hide()
-        this.s.snoozeUntil := CurtainLogic.Now() + CurtainLogic.SNOOZE_SECONDS
-        this.s.lifts += 1
-        this.Save()
     }
 
     static StopDrain(always := false) {
