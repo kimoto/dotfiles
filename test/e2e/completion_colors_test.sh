@@ -47,7 +47,15 @@ mkdir -p "$WORK/zdir"
 : >"$WORK/qfile.txt"
 
 SOCK="ci_complcolor_e2e_$$"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; rm -rf "$TMP" 2>/dev/null || true; }
+private_tmux_tmpdir
+cleanup() {
+  local swept=0
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
+  rm -rf "$TMP" 2>/dev/null || true
+  return "$swept"
+}
 trap cleanup EXIT
 
 # capture-pane -e keeps the SGR sequences; everything this test asserts on is

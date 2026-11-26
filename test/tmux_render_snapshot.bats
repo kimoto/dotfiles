@@ -10,13 +10,28 @@
 # against is drawn once for the file.
 setup_file() {
   command -v tmux >/dev/null 2>&1 || return 0
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$BATS_TEST_DIRNAME/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   export GOLDEN="$BATS_FILE_TMPDIR/golden.txt"
   TMUX_RENDER_GOLDEN="$GOLDEN" "$BATS_TEST_DIRNAME/../bin/tmux_render_snapshot.sh" update
 }
 
+# Runs after a failed setup_file too, and sees its variables.
+teardown_file() {
+  ! declare -F sweep_private_tmux_tmpdir >/dev/null || sweep_private_tmux_tmpdir
+}
+
 setup() {
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$BATS_TEST_DIRNAME/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   SNAP="$BATS_TEST_DIRNAME/../bin/tmux_render_snapshot.sh"
   E=$'\033'
+}
+
+teardown() {
+  sweep_private_tmux_tmpdir
 }
 
 needs_golden() {

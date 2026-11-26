@@ -22,7 +22,15 @@ BRANCH_CMD="hunk_branch_diff.sh"
 
 TMP="$(mktemp -d)"
 SOCK="ci_claude_hunk_$$"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; rm -rf "$TMP"; }
+private_tmux_tmpdir
+cleanup() {
+  local swept=0
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write under $TMP.
+  sweep_private_tmux_tmpdir || swept=$?
+  rm -rf "$TMP"
+  return "$swept"
+}
 trap cleanup EXIT
 
 mkdir -p "$TMP/stub" "$TMP/plain"

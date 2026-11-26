@@ -29,7 +29,8 @@ REPO="$PWD"
 echo "== $(tmux -V), $("$ZSH_BIN" --version) =="
 
 SOCK="ci_tmux_e2e_$$"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
+private_tmux_tmpdir
+cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; sweep_private_tmux_tmpdir; }
 trap cleanup EXIT
 
 # Prime the wordcode cache before the pane starts. .zshrc compiles itself to

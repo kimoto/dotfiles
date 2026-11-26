@@ -11,6 +11,9 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$REPO_ROOT/test/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   command -v zsh >/dev/null || skip "zsh not installed"
   TMP="$(fixture_tmpdir)"
   REPO="$TMP/repo"
@@ -43,7 +46,11 @@ EOF
 }
 
 teardown() {
+  local swept=0
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$TMP"
+  return "$swept"
 }
 
 need_tmux() {

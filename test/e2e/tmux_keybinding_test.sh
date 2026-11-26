@@ -25,9 +25,11 @@ echo "== driving bindings from: $CONF =="
 
 OUTER="ci_tmux_kb_out_$$"
 INNER="ci_tmux_kb_in_$$"
+private_tmux_tmpdir
 cleanup() {
   tmux -L "$INNER" kill-server 2>/dev/null || true
   tmux -L "$OUTER" kill-server 2>/dev/null || true
+  sweep_private_tmux_tmpdir
 }
 trap cleanup EXIT
 

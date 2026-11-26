@@ -19,11 +19,16 @@ echo "== $(tmux -V), $("$ZSH_BIN" --version) =="
 SOCK="ci_long_command_bell_$$"
 WORK="$(mktemp -d)"
 CLIENT_PID=
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   exec 4>&- 2>/dev/null || true
   [ -n "$CLIENT_PID" ] && kill "$CLIENT_PID" 2>/dev/null || true
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$WORK"
+  return "$swept"
 }
 trap cleanup EXIT
 

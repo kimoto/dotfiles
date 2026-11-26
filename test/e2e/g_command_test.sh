@@ -81,7 +81,15 @@ EOF
 chmod +x "$STUB_BIN/ghq" "$STUB_BIN/bat"
 
 SOCK="ci_g_e2e_$$"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; rm -rf "$TMP" 2>/dev/null || true; }
+private_tmux_tmpdir
+cleanup() {
+  local swept=0
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
+  rm -rf "$TMP" 2>/dev/null || true
+  return "$swept"
+}
 trap cleanup EXIT
 
 # Launch an interactive zsh in a real terminal, under the shared CI pane

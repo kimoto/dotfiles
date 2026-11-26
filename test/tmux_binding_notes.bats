@@ -6,6 +6,13 @@
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$REPO_ROOT/test/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
+}
+
+teardown() {
+  sweep_private_tmux_tmpdir
 }
 
 @test "every bind-key in .tmux.conf has a note" {
