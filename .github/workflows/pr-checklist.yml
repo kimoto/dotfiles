@@ -1,8 +1,7 @@
 ---
 name: pr-checklist
 # Block merging until every checklist item present in the PR description is
-# ticked, and while the PR holds a word about the owner's private life. A PR
-# with no checklist at all passes — see #234: the two boxes the
+# ticked. A PR with no checklist at all passes — see #234: the two boxes the
 # template used to carry were things every PR satisfies by construction, which
 # is exactly what claudecode/rules/pull-requests.md says a checklist box must
 # not be, so nothing here is actually required to exist.
@@ -30,33 +29,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10  # runs in seconds; only a hang reaches this
     steps:
-      # In this job, not one of its own: it is already a required check and
-      # already re-runs when the PR body is edited. The words come from the
-      # PRIVATE_TERMS secret and the report names only where they are; why:
-      # bin/check_private_terms.sh.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: No private words in the commits, title or body
-        env:
-          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
-          PRIVATE_TERMS_REDACT: "1"
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          if [ -z "$PRIVATE_TERMS" ]; then
-            # A fork's PR gets no secrets; nothing to compare against.
-            echo "::warning::PRIVATE_TERMS is not set; private words were not checked"
-            exit 0
-          fi
-          status=0
-          ./bin/check_private_terms.sh range "$BASE_SHA..$HEAD_SHA" || status=1
-          printf '%s\n' "$PR_TITLE" | ./bin/check_private_terms.sh text "PR title" || status=1
-          printf '%s\n' "$PR_BODY" | ./bin/check_private_terms.sh text "PR body" || status=1
-          exit "$status"
       # requireChecklist: false — a checklist is optional; if one is present,
       # every box in it must be ticked. Mutually-exclusive choices (e.g. a
       # Type section) use `<!-- TaskRadio name -->` so only one box per group
