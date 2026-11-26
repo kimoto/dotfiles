@@ -59,7 +59,7 @@ A class C PR carries one unticked box, `- [ ] Owner read the diff`. In this
 repo the required `require-checklist` job then holds the merge until the
 owner ticks it; elsewhere, leave auto-merge off. While the box is unticked,
 `claude-review.yml` keeps one review comment on the PR, updated on each push
-(each push is one billed review), once the owner has added the
+(each push, reopen or ready-for-review is one billed review), once the owner has added the
 `ANTHROPIC_API_KEY` secret. It is not a required check, and it gives security
 findings as a count only; the local review-security pass holds the details.
 
