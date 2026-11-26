@@ -28,6 +28,10 @@ Run `./windows/link_codex.ps1` in PowerShell. It merges the defaults from [codex
 
 Skills and agents are linked one by one into `%USERPROFILE%\.claude`, as `bin/mklink.sh` does on macOS and Linux, so Claude Code started on Windows follows the same rules and has the same skills as in WSL. The links point at the WSL checkout over `\\wsl.localhost`, so a `git pull` there updates both. Creating a symlink needs Developer Mode (Settings → System → For developers) or an administrator PowerShell.
 
+## Claude Code hooks
+
+`./windows/install_claude_hooks.ps1` (run by `setup.ps1`) registers the same hooks `bin/mkworld.sh` registers on macOS and Linux — the review gate, the secret scan, the context and idle checks, the handoff and the PR description reminder — in `%USERPROFILE%\.claude\settings.json`. Claude Code on Windows runs them in Git Bash, so the script runs the same `bin/install_claude_*.sh` there. The commands point at the WSL checkout's `bin/`, not `~/bin`, and match the PowerShell tool as well as Bash. They need `jq`, which the winget manifest installs. The tmux hooks stay out.
+
 ## macOS → Windows
 
 | `Brewfile.macos` | Windows | winget ID | Why this one |

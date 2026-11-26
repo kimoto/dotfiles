@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stops a `git commit` that Claude is about to run when gitleaks finds a secret
-# in it. Claude Code PreToolUse hook for Bash, registered by
+# in it. Claude Code PreToolUse hook for Bash and PowerShell, registered by
 # bin/install_claude_secret_scan_hook.sh (and claudecode/settings-cloud.json).
 #
 # Only needed where Git is older than 2.54. On 2.54+ the .gitconfig hook
@@ -49,7 +49,7 @@ grep -qE "$commit_re" <<<"$bare" || exit 0
 # git -C <dir> commit: the commit happens there, not in cwd.
 dir=$(grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:];&|]+' <<<"$bare" | head -n 1 | awk '{print $3}')
 if [ -n "$dir" ]; then
-  case "$dir" in /*) ;; *) dir="${cwd:-.}/$dir" ;; esac
+  case "$dir" in /* | [A-Za-z]:[/\\]*) ;; *) dir="${cwd:-.}/$dir" ;; esac
 else
   dir="${cwd:-.}"
 fi

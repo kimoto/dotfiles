@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $failures = [System.Collections.Generic.List[string]]::new()
+. (Join-Path $repoDirectory 'windows/git_bash.ps1')
 
 $manifest = Get-Content -Raw -LiteralPath (Join-Path $repoDirectory 'windows/winget-packages.json') | ConvertFrom-Json
 foreach ($package in $manifest.Sources.Packages) {
@@ -67,9 +68,76 @@ try {
     if ($LASTEXITCODE -eq 0 -or $refusal -notmatch 'gitleaks: commit refused') {
         $failures.Add('git committed a staged secret; the gitleaks pre-commit hook did not stop it.')
     }
+
+    # The same secret must stop a commit Claude Code would run through its
+    # PowerShell tool: the registered command, run as Claude Code runs it, in
+    # Git Bash. --no-verify, so the scan is the hook's and not Git's.
+    $settingsPath = Join-Path $env:USERPROFILE '.claude/settings.json'
+    $scan = $null
+    if (Test-Path -LiteralPath $settingsPath) {
+        $scan = @((Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json).hooks.PreToolUse |
+            Where-Object { ($_.matcher -split '\|') -contains 'PowerShell' } |
+            ForEach-Object { $_.hooks } |
+            Where-Object { $_.command -like '*claude_commit_secret_scan.sh*' }) | Select-Object -First 1
+    }
+    if ($null -eq $scan) {
+        $failures.Add("$settingsPath runs no secret scan on PowerShell tool calls.")
+    } else {
+        # A file, not an argument: Windows PowerShell 5.1 drops the quotes
+        # inside an argument it hands a native program.
+        $hookFile = Join-Path $scratch 'hook.sh'
+        [System.IO.File]::WriteAllText($hookFile, $scan.command + "`n")
+        $payload = @{ tool_name = 'PowerShell'; cwd = $scratch
+            tool_input = @{ command = 'git commit --no-verify -m check' } } | ConvertTo-Json -Compress
+        $blocked = ($payload | & (Find-GitBash) ($hookFile -replace '\\', '/') 2>&1 | Out-String)
+        if ($LASTEXITCODE -ne 2 -or $blocked -notmatch 'looks like a secret') {
+            $failures.Add("the Claude Code secret scan let a staged secret through (exit $LASTEXITCODE): $blocked")
+        }
+    }
     $ErrorActionPreference = 'Stop'
 } finally {
     Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The review gate must stop a push typed through the PowerShell tool, run the
+# way Claude Code runs it: the registered command, in Git Bash, with the
+# payload on stdin. Registered alone would also pass with a path that does not
+# reach the script, or a matcher that never fires.
+$gate = $null
+if (Test-Path -LiteralPath $settingsPath) {
+    $settings = Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json
+    $gate = @($settings.hooks.PreToolUse | Where-Object { @($_.matcher -split '\|') -contains 'PowerShell' } |
+        ForEach-Object { $_.hooks } | Where-Object { $_.command -match 'claude_review_gate\.sh' })[0]
+}
+if ($null -eq $gate) {
+    $failures.Add("$settingsPath has no review gate for the PowerShell tool.")
+} else {
+    $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("gate-check-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $scratch | Out-Null
+    $savedState = $env:XDG_STATE_HOME
+    try {
+        $ErrorActionPreference = 'Continue'
+        git -C $scratch init --quiet -b check 2>&1 | Out-Null
+        git -C $scratch -c user.name=check -c user.email=check@example.invalid -c commit.gpgsign=false `
+            commit --quiet --allow-empty -m check 2>&1 | Out-Null
+        # A file, not bash -c: Windows PowerShell 5.1 drops the quotes inside
+        # a native argument, and the command is all quotes.
+        $hookFile = Join-Path $scratch 'hook.sh'
+        [System.IO.File]::WriteAllText($hookFile, $gate.command + "`n")
+        $payload = @{ hook_event_name = 'PreToolUse'; session_id = 'check'; cwd = $scratch
+            tool_name = 'PowerShell'; tool_input = @{ command = 'git push -u origin check' }
+        } | ConvertTo-Json -Compress
+        # The gate's memory of stopped pushes stays out of the real profile.
+        $env:XDG_STATE_HOME = (Join-Path $scratch 'state') -replace '\\', '/'
+        $answer = ($payload | & (Find-GitBash) ($hookFile -replace '\\', '/') 2>&1 | Out-String)
+        if ($answer -notmatch '"permissionDecision"\s*:\s*"deny"') {
+            $failures.Add("the registered review gate let an unreviewed push through: $answer")
+        }
+        $ErrorActionPreference = 'Stop'
+    } finally {
+        $env:XDG_STATE_HOME = $savedState
+        Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if ($failures.Count -gt 0) {

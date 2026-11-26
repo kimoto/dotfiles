@@ -259,15 +259,36 @@ fake_git_version() {
   n=$(jq '[.hooks.PreToolUse[].hooks[].command | select(contains("claude_commit_secret_scan.sh"))] | length' \
     "$SETTINGS")
   [ "$n" -eq 1 ]
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash")' "$SETTINGS" >/dev/null
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell")' "$SETTINGS" >/dev/null
   jq -e '.theme == "dark" and (.hooks.Stop | length == 1)' "$SETTINGS" >/dev/null
   run "$INSTALLER" --uninstall
   [ "$status" -eq 0 ]
   jq -e '.hooks.PreToolUse == null and .theme == "dark" and (.hooks.Stop | length == 1)' "$SETTINGS" >/dev/null
 }
 
+@test "CLAUDE_HOOK_BIN points the registered commands at another bin" {
+  CLAUDE_HOOK_BIN=//wsl.localhost/Ubuntu/home/u/dotfiles/bin run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  jq -e '[.hooks.PreToolUse[].hooks[].command] | length == 2 and all(
+    contains("[ ! -x \"//wsl.localhost/Ubuntu/home/u/dotfiles/bin/claude_") and (contains("$HOME") | not))' \
+    "$SETTINGS" >/dev/null
+  # Back to the default, the old commands are replaced, not kept beside it.
+  run "$INSTALLER"
+  jq -e '[.hooks.PreToolUse[].hooks[].command] | length == 2 and all(contains("\"$HOME/bin/claude_"))' \
+    "$SETTINGS" >/dev/null
+}
+
+@test "a CLAUDE_HOOK_BIN the command could not quote registers nothing, and fails" {
+  for bad in '/tmp/a$b/bin' '/tmp/a"b/bin' '/tmp/a`b/bin' 'C:\\x\\bin'; do
+    CLAUDE_HOOK_BIN=$bad run "$INSTALLER"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"CLAUDE_HOOK_BIN holds"* ]]
+    [ ! -f "$SETTINGS" ] || ! grep -q claude_commit_secret_scan.sh "$SETTINGS"
+  done
+}
+
 @test "cloud settings register the same handler" {
   cloud="$REPO_ROOT/claudecode/settings-cloud.json"
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash")
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell")
     | .hooks[].command | contains("claude_commit_secret_scan.sh")' "$cloud" >/dev/null
 }

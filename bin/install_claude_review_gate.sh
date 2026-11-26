@@ -8,10 +8,7 @@ set -eu
 # shellcheck source=bin/claude_settings_lib.sh
 . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
 
-# Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
-# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
-# shellcheck disable=SC2016
-GATE='[ ! -x "$HOME/bin/claude_review_gate.sh" ] || "$HOME/bin/claude_review_gate.sh"'
+GATE=$(guarded claude_review_gate.sh)
 
 settings_open "$@"
 
@@ -25,7 +22,7 @@ else
       .hooks[$event] = ((.hooks[$event] // [])
         + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: 10}]}]);
     strip_gate
-    | ensure("PreToolUse"; "Bash|mcp__.*__create_pull_request"; $gate)
+    | ensure("PreToolUse"; "Bash|PowerShell|mcp__.*__create_pull_request"; $gate)
   ' "$SETTINGS" >"$tmp"
 fi
 

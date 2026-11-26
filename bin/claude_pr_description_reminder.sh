@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code PostToolUse hook for Bash calls (registered in every repo by
+# Claude Code PostToolUse hook for Bash and PowerShell calls (registered in every repo by
 # bin/install_claude_pr_hooks.sh, and by settings-cloud.json in a container):
 # after a push, remind the agent that the PR description may no longer hold;
 # after `gh pr create`, have it watch the new PR so a merge, a close or a
