@@ -59,10 +59,10 @@ description: dotfiles 専用。流行りの CLI ツールを1つ選び、Brewfil
 - ラベル `routine` と `routine:tool-scout`（付ける前に `"$(readlink -f ~/.claude/skills/tool-intake)/../../../bin/routine_labels.sh" routine:tool-scout` で色を揃えて無ければ作る。`gh` が無ければ飛ばす）、assignee は dotfiles の `## Scouts` 節に書かれた人（無ければ付けない）。`subscribe_pr_activity` して CI を green にする
 - **マージしない**
 
-## 5b. 組み込み先が触れないときは聞く（issue 最大1件）
+## 5b. 組み込み先が触れないときは聞く（issue 最大3件）
 
 ★門を全部通るのに、組み込み先（lefthook・CI など）を呼ぶ側が触れない決まりのせいで PR にできない候補は、
-報告の文に書くだけだと消える。1件だけ、`trend-intake` の「一番の候補を持ち主に聞く」と同じ形の issue にする。
+報告の文に書くだけだと消える。3件まで、`trend-intake` の「良い候補を持ち主に聞く」と同じ形の issue にする（1件1 issue）。
 
 - 題は `tool: <ツール> を <組み込み先> に入れるか`。本文に門を通った根拠（analytics の順位・出典 URL）と、組み込みの案
 - ラベル `routine:tool-scout` と `needs-decision`。closed の `routine:tool-scout` の issue・PR で出したツールは出さない
