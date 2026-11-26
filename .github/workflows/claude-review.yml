@@ -137,7 +137,7 @@ jobs:
             ${{ steps.diff.outputs.fence }}
           claude_args: >-
             --model opus
-            --max-turns 3
+            --max-turns 5
             --disallowedTools "Bash,BashOutput,KillShell,Read,Write,Edit,MultiEdit,NotebookEdit"
             "Glob,Grep,LS,WebFetch,WebSearch,Task,Skill,SlashCommand,TodoWrite"
             --permission-mode default
@@ -149,6 +149,12 @@ jobs:
             "properties":{"file":{"type":"string"},"line":{"type":"integer"},"how":{"type":"string"}}}},
             "security_count":{"type":"integer"},
             "looked_at":{"type":"array","items":{"type":"string"}}}}'
+
+      # A run that got no JSON back says so, so it cannot pass for a run that
+      # was skipped for want of a key.
+      - name: Note a review with no result
+        if: steps.claude.outcome == 'success' && steps.claude.outputs.structured_output == ''
+        run: echo "::warning::The reviewer returned no result; nothing was posted."
 
       # One comment per PR, edited on each new push, so fixups do not stack
       # comments. Found by the marker on its first line.
