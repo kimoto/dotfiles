@@ -38,8 +38,8 @@ run_payload() {
 }
 
 pre_bash() {
-  run_payload "$(jq -cn --arg c "$1" --arg d "${2:-$REPO}" \
-    '{hook_event_name: "PreToolUse", session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: $c}}')"
+  run_payload "$(jq -cn --arg c "$1" --arg d "${2:-$REPO}" --arg t "${TOOL:-Bash}" \
+    '{hook_event_name: "PreToolUse", session_id: "s1", cwd: $d, tool_name: $t, tool_input: {command: $c}}')"
 }
 
 pre_mcp() {
@@ -146,6 +146,12 @@ with_remote() {
     review-security review-speed; do
     sed -n '2,/^---$/p' "$REPO_ROOT/claudecode/agents/$agent.md" | grep -qx 'omitClaudeMd: true'
   done
+}
+
+@test "a push typed through the PowerShell tool is stopped the same way" {
+  TOOL=PowerShell pre_bash "git push -u origin feat/x"
+  [ "$status" -eq 0 ]
+  [ "$(decision)" = deny ]
 }
 
 @test "the same HEAD is stopped once; a new commit is stopped again" {
@@ -428,7 +434,7 @@ with_remote() {
   cp "$TMP/old.json" "$SETTINGS"
   run "$INSTALLER"
   [ "$status" -eq 0 ]
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS" >/dev/null
   run jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' "$SETTINGS"
   [ "$status" -ne 0 ]
@@ -440,7 +446,7 @@ with_remote() {
 }
 
 @test "the cloud settings run the same gate on the same events" {
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*__create_pull_request")
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell|mcp__.*__create_pull_request")
     | .hooks[].command | select(contains("claude_review_gate.sh"))' \
     "$REPO_ROOT/claudecode/settings-cloud.json" >/dev/null
   ! jq -e '.hooks.Stop[]?.hooks[].command | select(contains("claude_review_gate.sh"))' \

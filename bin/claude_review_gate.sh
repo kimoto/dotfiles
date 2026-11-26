@@ -207,7 +207,9 @@ push_gate() {
   for ((i = 0; i < ${#branches[@]}; i++)); do judge_branch "$dir" "${branches[i]}"; done
 }
 
-if [ "$tool" = Bash ] && printf '%s' "$bare" \
+# PowerShell: Claude Code's other shell tool on Windows, where git and gh are
+# typed the same way.
+if [[ "$tool" == Bash || "$tool" == PowerShell ]] && printf '%s' "$bare" \
   | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
   push_gate
 fi

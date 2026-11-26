@@ -9,12 +9,11 @@ set -eu
 . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
 
 # Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
-# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
+# guard keeps the hook a no-op when ~/.config is gone instead of erroring.
 # shellcheck disable=SC2016
 HOOK='"$HOME/.config/tmux-agent-status/scripts/hook.sh"'
 GUARDED="[ ! -x $HOOK ] || $HOOK"
-# shellcheck disable=SC2016
-GUARDED_HUNK='[ ! -x "$HOME/bin/claude_tmux_hunk.sh" ] || "$HOME/bin/claude_tmux_hunk.sh"'
+GUARDED_HUNK=$(guarded claude_tmux_hunk.sh)
 
 settings_open "$@"
 

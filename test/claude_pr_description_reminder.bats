@@ -134,10 +134,10 @@ count_ours() {
      | select(.command | contains("claude_pr_description_reminder.sh"))] | length' "$SETTINGS"
 }
 
-@test "install registers the hook on Bash PostToolUse, guarded on ~/bin" {
+@test "install registers the hook on Bash and PowerShell PostToolUse, guarded on ~/bin" {
   run "$INSTALLER"
   [ "$status" -eq 0 ]
-  [ "$(jq -r '.hooks.PostToolUse[0].matcher' "$SETTINGS")" = Bash ]
+  [ "$(jq -r '.hooks.PostToolUse[0].matcher' "$SETTINGS")" = "Bash|PowerShell" ]
   cmd="$(jq -r '.hooks.PostToolUse[0].hooks[0].command' "$SETTINGS")"
   [[ "$cmd" == *'[ ! -x "$HOME/bin/claude_pr_description_reminder.sh" ]'* ]]
 }
@@ -185,8 +185,8 @@ JSON
   [ "$(cat "$SETTINGS")" = "not json" ]
 }
 
-@test "the cloud settings run the same handler on Bash PostToolUse" {
-  jq -e '.hooks.PostToolUse[] | select(.matcher == "Bash") | .hooks[].command
+@test "the cloud settings run the same handler on Bash and PowerShell PostToolUse" {
+  jq -e '.hooks.PostToolUse[] | select(.matcher == "Bash|PowerShell") | .hooks[].command
     | select(contains("claude_pr_description_reminder.sh"))' \
     "$REPO_ROOT/claudecode/settings-cloud.json" >/dev/null
 }

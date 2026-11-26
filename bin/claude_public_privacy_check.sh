@@ -79,7 +79,9 @@ collect() {
   tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null)
   cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null)
 
-  if [ "$tool" != Bash ]; then
+  # PowerShell: Claude Code's other shell tool on Windows, where git and gh
+  # are typed the same way.
+  if [ "$tool" != Bash ] && [ "$tool" != PowerShell ]; then
     # A GitHub write names its repo; reads say nothing.
     case "$tool" in
       mcp__*github*__get_* | mcp__*github*__list_* | mcp__*github*__search_* | mcp__*github*__*_read) exit 0 ;;
@@ -108,7 +110,7 @@ collect() {
   [ -n "$kind" ] || exit 0
 
   dir=$(grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:];&|]+' <<<"$bare" | head -n 1 | awk '{print $3}')
-  case "$dir" in "") dir=${cwd:-.} ;; /*) ;; *) dir="${cwd:-.}/$dir" ;; esac
+  case "$dir" in "") dir=${cwd:-.} ;; /* | [A-Za-z]:[/\\]*) ;; *) dir="${cwd:-.}/$dir" ;; esac
   root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
   target=$(grep -oE '(-R|--repo)[[:space:]=]+[^[:space:]/]+/[^[:space:];&|]+' <<<"$bare" | head -n 1 |
     sed -E 's#^(-R|--repo)[[:space:]=]+##; s#/# #')
@@ -134,7 +136,7 @@ collect() {
     gh)
       # The body a PR or issue reads from a file.
       while IFS= read -r f; do
-        case "$f" in /*) ;; *) f="${cwd:-.}/$f" ;; esac
+        case "$f" in /* | [A-Za-z]:[/\\]*) ;; *) f="${cwd:-.}/$f" ;; esac
         # shellcheck disable=SC2094 # the name is only a heading; nothing writes $f
         [ -f "$f" ] && section "$(basename "$f")" <"$f"
       done < <(grep -oE '(--body-file|-F)[[:space:]=]+[^[:space:];&|]+' <<<"$cmd" |

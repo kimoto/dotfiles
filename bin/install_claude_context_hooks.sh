@@ -8,12 +8,8 @@ set -eu
 # shellcheck source=bin/claude_settings_lib.sh
 . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
 
-# Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
-# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
-# shellcheck disable=SC2016
-GUARDED='[ ! -x "$HOME/bin/claude_context_check.sh" ] || "$HOME/bin/claude_context_check.sh"'
-# shellcheck disable=SC2016
-HANDOFF='[ ! -x "$HOME/bin/claude_handoff.sh" ] || "$HOME/bin/claude_handoff.sh"'
+GUARDED=$(guarded claude_context_check.sh)
+HANDOFF=$(guarded claude_handoff.sh)
 
 # ★Idle compaction summarizes a conversation left ~54 minutes, before its 1h
 # prompt cache expires; past that, the next prompt pays to cache it all again.

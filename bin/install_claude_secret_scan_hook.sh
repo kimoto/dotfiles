@@ -9,12 +9,8 @@ set -eu
 # shellcheck source=bin/claude_settings_lib.sh
 . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
 
-# Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
-# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
-# shellcheck disable=SC2016
-COMMIT_SCAN='[ ! -x "$HOME/bin/claude_commit_secret_scan.sh" ] || "$HOME/bin/claude_commit_secret_scan.sh"'
-# shellcheck disable=SC2016
-PRIVACY_CHECK='[ ! -x "$HOME/bin/claude_public_privacy_check.sh" ] || "$HOME/bin/claude_public_privacy_check.sh"'
+COMMIT_SCAN=$(guarded claude_commit_secret_scan.sh)
+PRIVACY_CHECK=$(guarded claude_public_privacy_check.sh)
 
 settings_open "$@"
 
@@ -31,10 +27,10 @@ else
     strip_security
     # gitleaks reads the whole diff; 30s covers a large one without letting a
     # hung scan hold the session.
-    | ensure("PreToolUse"; "Bash"; $commit; 30)
+    | ensure("PreToolUse"; "Bash|PowerShell"; $commit; 30)
     # A GitHub MCP write carries its PR or issue text in the call itself. 60s:
     # the review asks a model, which itself stops at 45.
-    | ensure("PreToolUse"; "Bash|mcp__.*github.*"; $privacy; 60)
+    | ensure("PreToolUse"; "Bash|PowerShell|mcp__.*github.*"; $privacy; 60)
   ' "$SETTINGS" >"$tmp"
 fi
 

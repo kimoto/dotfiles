@@ -16,6 +16,9 @@
      "PackageIdentifier": "Google.JapaneseIME"
     },
     {
+     "PackageIdentifier": "jqlang.jq"
+    },
+    {
      "PackageIdentifier": "Microsoft.PowerToys"
     },
     {

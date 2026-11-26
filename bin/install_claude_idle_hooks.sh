@@ -7,10 +7,7 @@ set -eu
 # shellcheck source=bin/claude_settings_lib.sh
 . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
 
-# Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
-# guard keeps the hook a no-op when ~/bin is gone instead of erroring.
-# shellcheck disable=SC2016
-GUARDED='[ ! -x "$HOME/bin/claude_idle_recap.sh" ] || "$HOME/bin/claude_idle_recap.sh"'
+GUARDED=$(guarded claude_idle_recap.sh)
 
 settings_open "$@"
 

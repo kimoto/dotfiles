@@ -45,7 +45,8 @@ hook() {
 
 # bash_hook <command>: the hook on a Bash call run in $REPO.
 bash_hook() {
-  hook "$(jq -nc --arg d "$REPO" --arg c "$1" '{tool_name: "Bash", cwd: $d, tool_input: {command: $c}}')"
+  hook "$(jq -nc --arg d "$REPO" --arg c "$1" --arg t "${TOOL:-Bash}" \
+    '{tool_name: $t, cwd: $d, tool_input: {command: $c}}')"
 }
 
 @test "commit: an untracked file the command adds is reviewed and blocks" {
@@ -56,6 +57,13 @@ bash_hook() {
   [ "$status" -eq 2 ]
   [[ "$output" == *'"secretword"'* ]]
   [[ "$output" == *"names a relative"* ]]
+}
+
+@test "commit: a commit typed through the PowerShell tool is reviewed the same way" {
+  mkrepo o/pub
+  visibility o pub public
+  TOOL=PowerShell bash_hook "git commit -m \"about the secretword\""
+  [ "$status" -eq 2 ]
 }
 
 @test "commit: a staged change is reviewed" {
@@ -134,13 +142,13 @@ bash_hook() {
   [ "$status" -eq 0 ]
 }
 
-@test "install and cloud settings register the hook for Bash and GitHub MCP calls" {
+@test "install and cloud settings register the hook for shell and GitHub MCP calls" {
   mkdir -p "$HOME/.claude"
   printf '{}\n' >"$HOME/.claude/settings.json"
   run "$REPO_ROOT/bin/install_claude_secret_scan_hook.sh"
   [ "$status" -eq 0 ]
   for f in "$HOME/.claude/settings.json" "$REPO_ROOT/claudecode/settings-cloud.json"; do
-    jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|mcp__.*github.*")
+    jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell|mcp__.*github.*")
       | .hooks[].command | contains("claude_public_privacy_check.sh")' "$f" >/dev/null
   done
   run "$REPO_ROOT/bin/install_claude_secret_scan_hook.sh" --uninstall

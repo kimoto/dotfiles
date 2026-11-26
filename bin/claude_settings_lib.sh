@@ -16,6 +16,26 @@ SETTINGS="$SETTINGS_DIR/settings.json"
 
 warn() { echo "$(basename "$0" .sh): $*" >&2; }
 
+# Where the hook commands find the bin/ scripts. Unexpanded by default, so
+# $HOME resolves per machine at hook runtime. Windows passes the checkout's
+# bin/ instead: its ~/bin is not ours (windows/install_claude_hooks.ps1).
+# shellcheck disable=SC2016
+HOOK_BIN=${CLAUDE_HOOK_BIN:-'$HOME/bin'}
+# It lands between double quotes in every command, unescaped. A failure, not
+# a skip: the Windows setup would otherwise end with no hook and no error.
+case "${CLAUDE_HOOK_BIN:-}" in
+  *'"'* | *'$'* | *'`'* | *\\*)
+    echo "$(basename "$0" .sh): CLAUDE_HOOK_BIN holds a quote, \$, \` or \\" >&2
+    exit 1 ;;
+esac
+
+# guarded <script>: the hook command that runs bin/<script>, behind an -x guard
+# that keeps the hook a no-op while the scripts cannot be reached, instead of
+# an error on every call.
+guarded() {
+  printf '[ ! -x "%s/%s" ] || "%s/%s"' "$HOOK_BIN" "$1" "$HOOK_BIN" "$1"
+}
+
 # settings_open [--uninstall]: check the mode and the file, and leave $tmp
 # ready for the new contents. Exits 0, not 1, whenever it backs off.
 settings_open() {
