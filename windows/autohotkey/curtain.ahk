@@ -25,7 +25,7 @@ class Curtain {
     static AUTO_BAR_SECONDS := 3600
     ; Within the last hour the corner counts down to the second; further out, the end time.
     static COUNTDOWN_SECONDS := 3600
-    ; How long after the lift a still-held Esc is eaten at most, in case its release never arrives.
+    ; How long after the lift the keys still held are eaten at most, in case a release never arrives.
     static DRAIN_MS := 10000
 
     static dir := EnvGet("LOCALAPPDATA") "\curtain"
@@ -178,13 +178,13 @@ class Curtain {
     static Show() {
         s := this.s
         ; Every key goes to the curtain while it is up, so nothing is typed or closed blind
-        ; underneath; Esc alone is watched. mac-keys' hotkeys sleep too, or one of them could
-        ; move the curtain's window aside.
+        ; underneath; every key is watched, for Esc, the answers and the way out. mac-keys' hotkeys
+        ; sleep too, or one of them could move the curtain's window aside.
         ; A lift's drain may still hold the last hook; two hooks would leave Esc eaten for good.
         this.StopDrain(true)
         ih := InputHook("L0 I")
         ih.KeyOpt("{All}", "SN")
-        ih.OnKeyDown := (ih, vk, sc) => Curtain.KeyDown(vk)
+        ih.OnKeyDown := (ih, vk, sc) => Curtain.KeyDown(vk, sc)
         ih.OnKeyUp := (ih, vk, sc) => Curtain.KeyUp(vk)
         this.keysDown := Map(), this.escSpent := false, this.typed := 0
         this.asking := 0, this.answers := Map()
@@ -284,7 +284,14 @@ class Curtain {
     }
 
     ; The number a key types, top row or keypad, or 0.
-    static Digit(vk) => (vk >= 0x31 && vk <= 0x39) ? vk - 0x30 : (vk >= 0x61 && vk <= 0x69) ? vk - 0x60 : 0
+    ; The keypad by its scan codes, so it answers with NumLock off too, when it sends End, Down and so
+    ; on; the arrow keys share those virtual keys but have extended scan codes, so they do not answer.
+    static PAD_DIGITS := Map(0x4F, 1, 0x50, 2, 0x51, 3, 0x4B, 4, 0x4C, 5, 0x4D, 6, 0x47, 7, 0x48, 8, 0x49, 9)
+    static Digit(vk, sc) => (vk >= 0x31 && vk <= 0x39) ? vk - 0x30 : this.PAD_DIGITS.Get(sc, 0)
+
+    ; Whether the key is down now: a release lost to the lock screen, or a key that sends no release
+    ; (半角/全角), must not leave it counted as held for good.
+    static IsDown(vk) => GetKeyState("vk" Format("{:X}", vk), "P")
 
     ; Starts asking question q, or lifts once every question has an answer.
     static Ask(q) {
@@ -296,11 +303,11 @@ class Curtain {
             this.SetHint(this.Hint())
     }
 
-    static KeyDown(vk) {
+    static KeyDown(vk, sc) {
         if this.draining || !this.s.shown
             return
         ; Auto-repeat sends a held key down again and again: only its first press counts.
-        isRepeat := this.keysDown.Has(vk)
+        isRepeat := this.keysDown.Has(vk) && this.IsDown(vk)
         this.keysDown[vk] := true
         if vk != 0x1B {
             if isRepeat
@@ -308,7 +315,7 @@ class Curtain {
             this.typed := CurtainLogic.EmergencyStep(this.typed, GetKeyName(Format("vk{:X}", vk)))
             if this.typed = StrLen(CurtainLogic.EMERGENCY_WORD)
                 return this.Lift(CurtainLogic.EMERGENCY)
-            n := this.Digit(vk)
+            n := this.Digit(vk, sc)
             if this.asking && n {
                 answer := CurtainLogic.AnswerOf(this.asking, n)
                 if answer != "" {
@@ -378,7 +385,10 @@ class Curtain {
     ; releases to the app in front, so they are eaten until released or DRAIN_MS.
     static Lift(detail := "") {
         this.Log("lift", detail != "" ? detail : CurtainLogic.AnswersDetail(this.answers))
-        this.drainKeys := this.keysDown.Clone()
+        this.drainKeys := Map()
+        for vk in this.keysDown
+            if this.IsDown(vk)
+                this.drainKeys[vk] := true
         if this.drainKeys.Count {
             this.draining := true
             this.ih.KeyOpt("{All}", "-S +V")
