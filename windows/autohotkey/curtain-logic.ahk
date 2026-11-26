@@ -130,6 +130,15 @@ class CurtainLogic {
         return SubStr(w, 1, 1) == key ? 1 : 0
     }
 
+    ; Saying the work is done (Enter) takes the curtain down at once and removes the end, logged as
+    ; done. Only for an end the owner chose: an automatic end was not set for a task.
+    static DONE := "終わった"
+    static CanFinish(from) => from = ""
+    ; Enter counts only this long after the curtain came up, so the Enter that sends a message being
+    ; typed as it appears does not remove the end by accident.
+    static DONE_GRACE_SECONDS := 3
+    static FinishReady(shownFor) => shownFor >= this.DONE_GRACE_SECONDS
+
     ; Question q's answer for number key n, or "" for a key that is not one of its choices.
     static AnswerOf(q, n) {
         c := this.QUESTIONS[q].choices

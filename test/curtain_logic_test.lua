@@ -9,6 +9,11 @@ local function eq(name, got, want)
    end
 end
 
+eq("finish: an end the owner chose", L.can_finish(nil), true)
+eq("finish: chosen, saved as empty", L.can_finish(""), true)
+eq("finish: not the daily end", L.can_finish("daily"), false)
+eq("finish: not straight after the curtain comes up", L.finish_ready(L.DONE_GRACE_SECONDS - 0.1), false)
+eq("finish: after the grace", L.finish_ready(L.DONE_GRACE_SECONDS), true)
 eq("reason 1", L.answer_of(1, 1), "区切りが悪い")
 eq("reason 5", L.answer_of(1, 5), "その他")
 eq("no reason 6", L.answer_of(1, 6), nil)

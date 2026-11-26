@@ -16,6 +16,10 @@ Eq(name, got, want) {
 }
 S(deadline := 0, snoozeUntil := 0, shown := false) => {deadline: deadline, snoozeUntil: snoozeUntil, shown: shown}
 
+Eq("finish: an end the owner chose", L.CanFinish(""), true)
+Eq("finish: not the daily end", L.CanFinish("daily"), false)
+Eq("finish: not straight after the curtain comes up", L.FinishReady(L.DONE_GRACE_SECONDS - 0.1), false)
+Eq("finish: after the grace", L.FinishReady(L.DONE_GRACE_SECONDS), true)
 Eq("reason 1", L.AnswerOf(1, 1), "区切りが悪い")
 Eq("reason 5", L.AnswerOf(1, 5), "その他")
 Eq("no reason 6", L.AnswerOf(1, 6), "")

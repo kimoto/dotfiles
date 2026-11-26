@@ -40,6 +40,16 @@ function M.emergency_step(typed, key)
    return w:sub(1, 1) == key and 1 or 0
 end
 
+-- Saying the work is done (Enter) takes the curtain down at once and removes the end, logged as
+-- done, so an end set for one task can be closed when the task is. Only for an end the owner chose:
+-- an automatic end was not set for a task, so Enter there would only be a way out with no hold.
+M.DONE = "終わった"
+function M.can_finish(from) return not M.auto_from(from) end
+-- Enter counts only this long after the curtain came up, so the Enter that sends a message being
+-- typed as it appears does not remove the end by accident.
+M.DONE_GRACE_SECONDS = 3
+function M.finish_ready(shown_for) return shown_for >= M.DONE_GRACE_SECONDS end
+
 -- Question q's answer for number key n, or nil for a key that is not one of its choices.
 function M.answer_of(q, n) return M.QUESTIONS[q].choices[n] end
 

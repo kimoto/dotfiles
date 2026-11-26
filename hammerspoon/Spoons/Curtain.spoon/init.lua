@@ -46,6 +46,9 @@ obj.polled = { daily = true }
 
 local JST_FALLBACK = 9 * 3600
 local ESC = hs.keycodes.map["escape"]
+-- Enter on the main keyboard and on the keypad says the work is done (L.DONE).
+local ENTER = { [hs.keycodes.map["return"]] = true }
+if hs.keycodes.map["padenter"] then ENTER[hs.keycodes.map["padenter"]] = true end
 -- Number keys, top row and keypad, to the number they type, for the questions after the hold.
 local DIGITS = {}
 for i = 1, 9 do
@@ -195,7 +198,8 @@ end
 function obj:hint()
    local secs = L.hold_seconds(self.s.lifts)
    if self.asking then return "数字キーで答える（答えずに上げるなら、Esc を一度離してもう" .. secs .. "秒）" end
-   return "続ける時だけ Esc を" .. secs .. "秒押し続ける"
+   return (L.can_finish(self.s.from) and (L.DONE .. "なら Enter　・　") or "")
+      .. "続ける時だけ Esc を" .. secs .. "秒押し続ける"
       .. ((self.s.lifts or 0) > 0 and ("（この終わりで " .. self.s.lifts + 1 .. "回目）") or "")
 end
 
@@ -264,17 +268,30 @@ end
 function obj:lift(detail)
    local answers = self.answers or {}
    self:log("lift", detail or L.answers_detail(answers))
-   -- Keys still down (Esc held, the number key that answered last) are eaten until released.
+   self:drainHeld()
+   self:hide()
+   self.s.snooze_until = os.time() + L.SNOOZE_SECONDS
+   self.s.lifts = (self.s.lifts or 0) + 1
+   self:saveDeadline()
+end
+
+-- The work is done: the curtain goes and the end with it, so it does not come back.
+function obj:finish()
+   local d = self.s.deadline
+   self:log("done", d and (self:clock(d) .. " " .. L.past(os.time(), d)) or "")
+   self:drainHeld()
+   self:hide()
+   self:clearDeadline("done")
+end
+
+-- Keys still down at a lift (Esc held, the number key that answered last, Enter) are eaten until released.
+function obj:drainHeld()
    self.draining = {}
    for code in pairs(self.keysDown or {}) do self.draining[code] = true end
    if self.drainTimer then self.drainTimer:stop(); self.drainTimer = nil end
    if next(self.draining) then
       self.drainTimer = hs.timer.doAfter(L.DRAIN_SECONDS, function() self:stopDrain() end)
    end
-   self:hide()
-   self.s.snooze_until = os.time() + L.SNOOZE_SECONDS
-   self.s.lifts = (self.s.lifts or 0) + 1
-   self:saveDeadline()
 end
 
 -- A curtain Esc cannot lift would lock the owner out, so it is not shown. It is tried again after
@@ -307,7 +324,10 @@ function obj:show(redraw)
       return self:cannotShow("tap off", "Hammerspoon にアクセシビリティの許可が要ります", L.SNOOZE_SECONDS)
    end
    s.shown = true
-   if not redraw then self.keysDown, self.escSpent, self.typed = {}, nil, 0 end
+   if not redraw then
+      self.keysDown, self.escSpent, self.typed = {}, nil, 0
+      self.shownAt = hs.timer.absoluteTime() / 1e9
+   end
    -- A half-built curtain (an error on the second screen, or no screen at all just after wake)
    -- would swallow keys over a screen that is not covered.
    local ok, err = pcall(function()
@@ -390,8 +410,13 @@ function obj:makeEscTap()
          if self.typed == #L.EMERGENCY_WORD then self:lift(L.EMERGENCY); return true end
       end
       if code ~= ESC then
-         -- A held number key repeats: only its first press answers, or it would answer the next question too.
          local isRepeat = e:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) ~= 0
+         -- Only a fresh press: Enter held from the app underneath when the curtain came up repeats.
+         if isDown and not isRepeat and ENTER[code] and L.can_finish(self.s.from)
+            and L.finish_ready(hs.timer.absoluteTime() / 1e9 - (self.shownAt or 0)) then
+            self:finish(); return true
+         end
+         -- A held number key repeats: only its first press answers, or it would answer the next question too.
          local answer = isDown and not isRepeat and self.asking and DIGITS[code]
             and L.answer_of(self.asking, DIGITS[code])
          if answer then
