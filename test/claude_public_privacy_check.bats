@@ -64,6 +64,8 @@ bash_hook() {
   visibility o pub public
   TOOL=PowerShell bash_hook "git commit -m \"about the secretword\""
   [ "$status" -eq 2 ]
+  TOOL=PowerShell bash_hook "& \"git.exe\" commit -m 'about the secretword'"
+  [ "$status" -eq 2 ]
 }
 
 @test "commit: a staged change is reviewed" {

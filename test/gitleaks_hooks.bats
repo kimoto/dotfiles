@@ -37,7 +37,8 @@ mkrepo() {
 # commit_scan <command> [cwd]: run the commit scan on one Bash call.
 commit_scan() {
   local payload
-  payload=$(jq -nc --arg c "$1" --arg d "${2:-$REPO}" '{tool_input: {command: $c}, cwd: $d}')
+  payload=$(jq -nc --arg c "$1" --arg d "${2:-$REPO}" --arg t "${TOOL:-Bash}" \
+    '{tool_name: $t, tool_input: {command: $c}, cwd: $d}')
   # From $TMP, outside this checkout: with HOME swapped, a mise shim for
   # gitleaks refuses the checkout's untrusted mise.toml, and that error exits
   # like a finding.
@@ -151,6 +152,29 @@ commit_scan() {
   mkrepo
   printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
   commit_scan "git -C $REPO commit -am add" "$TMP"
+  [ "$status" -eq 2 ]
+}
+
+@test "commit: git.exe through the PowerShell tool is scanned the same way" {
+  command -v gitleaks >/dev/null || skip "gitleaks not installed"
+  mkrepo
+  printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
+  TOOL=PowerShell commit_scan 'git.exe add creds.txt; & "git.exe" commit --no-verify -m add'
+  [ "$status" -eq 2 ]
+  TOOL=PowerShell commit_scan 'git add creds.txt; git com`mit --no-verify -m add'
+  [ "$status" -eq 2 ]
+  TOOL=PowerShell commit_scan 'GIT add creds.txt; GIT commit --no-verify -m add'
+  [ "$status" -eq 2 ]
+}
+
+@test "commit: a jq that ends its lines with CR LF, as jq.exe does, still reads the PowerShell tool" {
+  command -v gitleaks >/dev/null || skip "gitleaks not installed"
+  mkrepo
+  printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
+  mkdir "$TMP/shim"
+  printf '#!/bin/sh\n"%s" "$@" | awk '"'"'{ printf "%%s\\r\\n", $0 }'"'"'\n' "$(command -v jq)" >"$TMP/shim/jq"
+  chmod +x "$TMP/shim/jq"
+  PATH="$TMP/shim:$PATH" TOOL=PowerShell commit_scan '& "git.exe" add creds.txt; & "git.exe" commit -m add'
   [ "$status" -eq 2 ]
 }
 
@@ -270,12 +294,26 @@ fake_git_version() {
   CLAUDE_HOOK_BIN=//wsl.localhost/Ubuntu/home/u/dotfiles/bin run "$INSTALLER"
   [ "$status" -eq 0 ]
   jq -e '[.hooks.PreToolUse[].hooks[].command] | length == 2 and all(
-    contains("[ ! -x \"//wsl.localhost/Ubuntu/home/u/dotfiles/bin/claude_") and (contains("$HOME") | not))' \
+    contains("[ -x \"//wsl.localhost/Ubuntu/home/u/dotfiles/bin/claude_") and (contains("$HOME") | not))' \
     "$SETTINGS" >/dev/null
   # Back to the default, the old commands are replaced, not kept beside it.
   run "$INSTALLER"
   jq -e '[.hooks.PreToolUse[].hooks[].command] | length == 2 and all(contains("\"$HOME/bin/claude_"))' \
     "$SETTINGS" >/dev/null
+}
+
+@test "with CLAUDE_HOOK_BIN, a script out of reach is a hook error, not a quiet pass" {
+  CLAUDE_HOOK_BIN="$TMP/gone/bin" "$INSTALLER"
+  cmd=$(jq -r '[.hooks.PreToolUse[].hooks[].command | select(contains("claude_commit_secret_scan.sh"))][0]' "$SETTINGS")
+  run sh -c "$cmd" </dev/null
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"out of reach"* ]]
+  # Reachable, the script runs and its own exit code comes back.
+  mkdir -p "$TMP/gone/bin"
+  printf '#!/bin/sh\nexit 2\n' >"$TMP/gone/bin/claude_commit_secret_scan.sh"
+  chmod +x "$TMP/gone/bin/claude_commit_secret_scan.sh"
+  run sh -c "$cmd" </dev/null
+  [ "$status" -eq 2 ]
 }
 
 @test "a CLAUDE_HOOK_BIN the command could not quote registers nothing, and fails" {
