@@ -116,6 +116,31 @@ bash_hook() {
   [ ! -e "$ASKED" ]
 }
 
+@test "GitHub MCP: a merge without a message never asks the reviewer" {
+  visibility o pub public
+  hook '{"tool_name":"mcp__github__merge_pull_request","tool_input":{"owner":"o","repo":"pub","pullNumber":7,
+    "expectedHeadSha":"8f88e0717f337153e9ce154722859aee05b88a5a","merge_method":"squash"}}'
+  [ "$status" -eq 0 ]
+  [ ! -e "$ASKED" ]
+  hook '{"tool_name":"mcp__github__merge_pull_request","tool_input":{"owner":"o","repo":"pub","pullNumber":7,
+    "commit_message":"secretword"}}'
+  [ "$status" -eq 2 ]
+}
+
+@test "GitHub MCP: a merge's message is judged without its number, SHA and method" {
+  visibility o pub public
+  hook '{"tool_name":"mcp__github__merge_pull_request","tool_input":{"owner":"o","repo":"pub","pullNumber":7,
+    "expectedHeadSha":"8f88e0717f337153e9ce154722859aee05b88a5a","merge_method":"squash","commit_title":"Merge it"}}'
+  [ "$status" -eq 0 ]
+  grep -q "Merge it" "$ASKED"
+  ! grep -q 8f88e07 "$ASKED"
+  rm -f "$ASKED"
+  hook '{"tool_name":"mcp__github__merge_pull_request","tool_input":{"owner":"o","repo":"pub","pullNumber":7,
+    "commit_message":" "}}'
+  [ "$status" -eq 0 ]
+  [ ! -e "$ASKED" ]
+}
+
 @test "a private repo never asks the reviewer" {
   mkrepo o/priv
   visibility o priv private
