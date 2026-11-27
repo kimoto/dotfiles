@@ -153,6 +153,24 @@ bash_hook() {
   [ ! -e "$ASKED" ]
 }
 
+@test "a repo whose visibility GitHub does not answer counts as not public" {
+  mkrepo o/unknown
+  printf 'secretword\n' >"$REPO/a.txt"
+  mkdir -p "$TMP/bin"
+  # Unreachable (curl's own failure), then reached with an empty reply.
+  for reply in 'exit 22' 'exit 0'; do
+    rm -f "$TMP/curl-ran"
+    printf '#!/bin/sh\n: >"%s"\n%s\n' "$TMP/curl-ran" "$reply" >"$TMP/bin/curl"
+    chmod +x "$TMP/bin/curl"
+    PATH="$TMP/bin:$PATH" bash_hook "git add a.txt && git commit -m x"
+    [ "$status" -eq 0 ]
+    [ -e "$TMP/curl-ran" ]  # the lookup was tried, not skipped
+    [ ! -e "$ASKED" ]
+    # Not cached, so the next call asks GitHub again.
+    [ ! -e "$XDG_STATE_HOME/public-privacy-check/o%unknown" ]
+  done
+}
+
 @test "an unrelated command never asks the reviewer" {
   mkrepo o/pub
   visibility o pub public
