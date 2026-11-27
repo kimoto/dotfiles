@@ -4,6 +4,7 @@
 # structured config files. The script routes by extension:
 #   .json/.toml/.yaml/.yml -> yq -p <parser>
 #   .jsonc                  -> biome lint (yq has no JSONC mode)
+#   mise.toml               -> also `mise lock --check`, so mise must be on PATH
 # Fixtures are passed as explicit arguments, so the git-ls-files default path is
 # not exercised here (the no-args case proves the repo's own files are valid).
 
@@ -90,36 +91,47 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-# mise.lock next to a linted mise.toml: every pipx uv project it points at must
-# be there, or `mise install` stops with no hint that `mise lock` was skipped.
+# mise.lock next to a linted mise.toml must match it, or `mise install --locked`
+# stops (for a missing uv project directory, with no hint that `mise lock` was
+# skipped). The fixture is the repo's own lockfile, so it starts out valid.
 mise_lock_fixture() {
-  printf '[tools]\n"pipx:demo" = "1.0"\n' >"$TMP/mise.toml"
-  cat >"$TMP/mise.lock" <<'LOCK'
-[[tools."pipx:demo"]]
-version = "1.0"
-backend = "pipx:demo"
-uv = { path = ".mise/locks/pipx-demo/1.0~abc", digest = "sha256:00" }
-LOCK
+  cp "$REPO_ROOT/mise.toml" "$REPO_ROOT/mise.lock" "$TMP/"
+  cp -R "$REPO_ROOT/.mise" "$TMP/.mise"
 }
 
-@test "accepts a mise.lock whose uv project directories exist" {
+@test "accepts a mise.lock that matches its mise.toml" {
   mise_lock_fixture
-  mkdir -p "$TMP/.mise/locks/pipx-demo/1.0~abc"
   run "$SCRIPT" "$TMP/mise.toml"
   [ "$status" -eq 0 ]
 }
 
-@test "rejects a mise.lock that names a missing uv project directory" {
+@test "rejects a mise.lock whose uv project directory is missing" {
   mise_lock_fixture
+  rm -rf "$TMP/.mise/locks"
   run "$SCRIPT" "$TMP/mise.toml"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"names .mise/locks/pipx-demo/1.0~abc, which does not exist; run 'mise lock'"* ]]
+  [[ "$output" == *"mise lock --check rejected $TMP/mise.lock"* ]]
 }
 
-@test "rejects a mise.lock it cannot read, instead of finding no uv paths" {
+@test "rejects a version bumped in mise.toml without mise lock" {
   mise_lock_fixture
-  printf '[[tools."pipx:demo"]\nversion = = "1.0"\n' >"$TMP/mise.lock"
+  # The first inline-table pin (`version = "..."`), whatever it is today,
+  # moved to a version never locked.
+  awk '!done && sub(/version = "[^"]+"/, "version = \"0.0.1\"") { done = 1 } { print }' \
+    "$REPO_ROOT/mise.toml" >"$TMP/mise.toml"
+  run cmp -s "$REPO_ROOT/mise.toml" "$TMP/mise.toml"
+  [ "$status" -ne 0 ]  # the awk found a pin to bump
   run "$SCRIPT" "$TMP/mise.toml"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"cannot read the uv lock paths in $TMP/mise.lock"* ]]
+  [[ "$output" == *"mise lock --check rejected $TMP/mise.lock"* ]]
+}
+
+@test "an untrusted mise.toml above the checkout is not read" {
+  mkdir "$TMP/inner"
+  cp "$REPO_ROOT/mise.toml" "$REPO_ROOT/mise.lock" "$TMP/inner/"
+  cp -R "$REPO_ROOT/.mise" "$TMP/inner/.mise"
+  # An [env] table is what makes mise demand trust before reading a file.
+  printf '[env]\nFOO = "bar"\n' >"$TMP/mise.toml"
+  run "$SCRIPT" "$TMP/inner/mise.toml"
+  [ "$status" -eq 0 ]
 }
