@@ -564,10 +564,15 @@ compare_keys ".zshrc's bindkey" "$(zsh_configured_keys)" \
   "KEYBINDINGS.md's zsh table" "$(zsh_documented_keys)" \
   "$(printf '%s\n' "${ZSH_BOUND_ELSEWHERE[@]}")" || rc=1
 
-compare_keys "abbr.zsh's ABBR_MAP" "$(abbr_configured_words)" \
+# These two readers exit non-zero, with their own message, on a config they
+# cannot read; a status inside a "$(...)" argument is dropped, so take it from
+# an assignment.
+abbr_words="$(abbr_configured_words)" || rc=1
+compare_keys "abbr.zsh's ABBR_MAP" "$abbr_words" \
   "KEYBINDINGS.md's Abbreviations table" "$(abbr_documented_words)" || rc=1
 
-compare_keys "config/nvim's keymaps" "$(nvim_configured_leader_keys)" \
+nvim_keys="$(nvim_configured_leader_keys)" || rc=1
+compare_keys "config/nvim's keymaps" "$nvim_keys" \
   "KEYBINDINGS.md's Neovim section" "$(nvim_documented_leader_keys)" \
   "$(printf '%s\n' "${NVIM_LEADER_BOUND_ELSEWHERE[@]}")" || rc=1
 

@@ -527,3 +527,18 @@ EOF
   run "$SCRIPT"
   [ "$status" -eq 0 ]
 }
+
+@test "fails when ABBR_MAP is lost and the doc's Abbreviations rows go with it" {
+  sed -i.bak 's/^typeset -gA ABBR_MAP=(/typeset -A ABBR_MAP=(/' "$CHECK_KEYBINDINGS_ABBR_CONFIG"
+  sed -i.bak '/^| `ci` |/d; /^| `glg` |/d' "$CHECK_KEYBINDINGS_DOC"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no ABBR_MAP entries found"* ]]
+}
+
+@test "fails when a leader map's lhs cannot be expanded, though every other key agrees" {
+  echo "vim.keymap.set('n', '<leader>' .. key, ':q<CR>')" >>"$CHECK_KEYBINDINGS_NVIM_DIR/keymaps.lua"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot expand <leader> .. key"* ]]
+}
