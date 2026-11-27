@@ -5,6 +5,9 @@
 # the warning runs twice.
 
 setup() {
+  # The opt-out a caller's shell may export would short-circuit every test
+  # below into silence; the test that wants it sets it itself.
+  unset DOTFILES_NO_MISE_CHECK
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   SCRIPT="$REPO_ROOT/bin/mise_missing_check.sh"
   TMP="$(mktemp -d)"
