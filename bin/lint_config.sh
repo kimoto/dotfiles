@@ -28,26 +28,29 @@ for f in "${files[@]}"; do
     fi
 done
 
-# A pipx: tool is locked through a uv project directory that mise.lock only
-# points at. A version bump that rewrites the pointer without writing the
-# directory (`mise lock` not run) stops every `mise install` with an error that
-# never names the file, so check the pointers wherever a mise.toml is linted.
+# A mise.toml edited without `mise lock` (a bumped version, a pipx tool whose
+# uv project directory was never written) stops every `mise install --locked`,
+# and for a missing uv directory the error never names the file. `mise lock
+# --check` runs offline and lists each such problem, so run it wherever a
+# mise.toml is linted. It refuses an untrusted config instead of prompting, and
+# a fresh clone or CI step has never trusted this checkout (a mise.local.toml
+# beside it included); the ceiling keeps it from reading a mise.toml above the
+# checkout, which nothing here trusts either.
 for f in "${files[@]}"; do
     [ "${f##*/}" = mise.toml ] || continue
     lock="$(dirname "$f")/mise.lock"
     [ -f "$lock" ] || continue
-    if ! uv_paths="$(yq -p toml -o tsv '.tools[][] | select(.uv.path) | .uv.path' "$lock" 2>&1)"; then
-        echo "x cannot read the uv lock paths in $lock: $uv_paths"
+    dir="$(cd "$(dirname "$f")" && pwd -P)"
+    if ! command -v mise >/dev/null 2>&1; then
+        echo "x mise not found; it is needed to check $lock" >&2
         rc=1
-        continue
+    elif ! MISE_TRUSTED_CONFIG_PATHS="${MISE_TRUSTED_CONFIG_PATHS:+$MISE_TRUSTED_CONFIG_PATHS:}$dir" \
+        MISE_CEILING_PATHS="$(dirname "$dir")" \
+        mise lock --check -C "$dir" >/dev/null; then
+        # mise prints why on stderr; a stale entry ends with a `mise lock` hint.
+        echo "x mise lock --check rejected $lock; see mise's reason above"
+        rc=1
     fi
-    while IFS= read -r uv_path; do
-        [ -n "$uv_path" ] || continue
-        if [ ! -e "$(dirname "$lock")/$uv_path" ]; then
-            echo "x $lock names $uv_path, which does not exist; run 'mise lock'"
-            rc=1
-        fi
-    done <<<"$uv_paths"
 done
 
 if [ "${#jsonc[@]}" -gt 0 ]; then

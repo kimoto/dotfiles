@@ -5,16 +5,11 @@
 # here: mkworld.sh looks for brew at fixed prefixes, so a stub on PATH cannot
 # stand in for it on a machine that has the real one.
 
-setup() {
-  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  # shellcheck source=/dev/null
-  . "$REPO_ROOT/bin/git_fixture_helpers.sh"
-  isolate_git_env
-  TMP="$(mktemp -d)"
-  export HOME="$TMP/home"
-  mkdir "$HOME"
-  # The real PATH minus zsh and brew, so the climb ends where the test says.
-  BIN="$TMP/bin"
+# The real PATH minus zsh and brew, so the climb ends where the test says.
+# Built once per file: linking every command on PATH takes seconds, and no
+# test writes to it.
+setup_file() {
+  export BIN="$BATS_FILE_TMPDIR/bin"
   mkdir "$BIN"
   local dir f b
   local IFS=:
@@ -26,6 +21,16 @@ setup() {
       [ -e "$BIN/$b" ] || ln -s "$f" "$BIN/$b"
     done
   done
+}
+
+setup() {
+  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  # shellcheck source=/dev/null
+  . "$REPO_ROOT/bin/git_fixture_helpers.sh"
+  isolate_git_env
+  TMP="$(mktemp -d)"
+  export HOME="$TMP/home"
+  mkdir "$HOME"
 }
 
 teardown() {
