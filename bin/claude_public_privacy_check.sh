@@ -75,9 +75,9 @@ section() {
 # collect: print the text this call would publish; exit 0 when it publishes
 # nothing to a public repo.
 collect() {
-  local payload=$1 tool cmd cwd bare dir root target owner repo f kind=""
-  tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null)
-  cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null)
+  local payload=$1 tool ran cmd cwd bare dir root target owner repo f kind=""
+  tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
+  cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
 
   # PowerShell: Claude Code's other shell tool on Windows, where git and gh
   # are typed the same way.
@@ -88,14 +88,16 @@ collect() {
       mcp__*github*) ;;
       *) exit 0 ;;
     esac
-    owner=$(jq -r '.tool_input.owner // empty' <<<"$payload")
-    repo=$(jq -r '.tool_input.repo // empty' <<<"$payload")
+    owner=$(jq -r '.tool_input.owner // empty' <<<"$payload" | tr -d '\r')
+    repo=$(jq -r '.tool_input.repo // empty' <<<"$payload" | tr -d '\r')
     [ -n "$owner" ] && [ -n "$repo" ] && is_public "$owner" "$repo" || exit 0
     jq -r '.tool_input | del(.owner, .repo) | tostring' <<<"$payload" | section "$tool"
     return
   fi
 
-  cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null)
+  ran=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null)
+  # cmd is for matching; the reviewer reads what runs.
+  cmd=$(shell_cmd_plain "$tool" "$ran")
   # Quoted text dropped, so a command that only mentions git push is not one.
   bare=$(sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g" <<<"$cmd")
   local starts='(^|[;&|(]|&&|\|\|)[[:space:]]*'
@@ -120,7 +122,7 @@ collect() {
   # shellcheck disable=SC2086 # "owner repo", split on purpose
   is_public $target || exit 0
 
-  printf '%s\n' "$cmd" | section "command"
+  printf '%s\n' "$ran" | section "command"
   case "$kind" in
     commit)
       # Against HEAD, not only the index: `git add x && git commit` arrives as
@@ -147,7 +149,11 @@ collect() {
 
 payload=$(cat) || exit 0
 # Every Bash call reaches this; leave before forking jq when it cannot matter.
-case "$payload" in *git*commit* | *git*push* | *gh\ * | *mcp__*github*) ;; *) exit 0 ;; esac
+# shellcheck source=bin/claude_shell_cmd.sh
+. "${0%/*}/claude_shell_cmd.sh" || exit 1
+shopt -s nocasematch
+case "${payload//\`/}" in *git*commit* | *git*push* | *gh\ * | *gh.exe* | *mcp__*github*) ;; *) exit 0 ;; esac
+shopt -u nocasematch
 text=$(collect "$payload" | head -c "$MAX_BYTES") || exit 0
 [ -n "$text" ] || exit 0
 

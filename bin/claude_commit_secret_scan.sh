@@ -33,10 +33,16 @@ command -v gitleaks >/dev/null 2>&1 || exit 0
 payload=$(cat 2>/dev/null) || exit 0
 # Runs before every Bash call, so leave without starting jq when the command
 # cannot be a commit.
-[[ "$payload" == *commit* ]] || exit 0
+# shellcheck source=bin/claude_shell_cmd.sh
+. "$HERE/claude_shell_cmd.sh" || exit 1
+shopt -s nocasematch
+[[ "${payload//\`/}" == *commit* ]] || exit 0
+shopt -u nocasematch
 cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null)
-cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null)
+cwd=$(jq -r '.cwd // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
+tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
 [ -n "$cmd" ] || exit 0
+cmd=$(shell_cmd_plain "$tool" "$cmd")
 
 # Same shape as bin/claude_pr_description_reminder.sh: drop quoted text, then
 # look for git (with options such as -C <dir>) followed by commit, at the start

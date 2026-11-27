@@ -148,9 +148,37 @@ with_remote() {
   done
 }
 
-@test "a push typed through the PowerShell tool is stopped the same way" {
-  TOOL=PowerShell pre_bash "git push -u origin feat/x"
-  [ "$status" -eq 0 ]
+@test "a push typed through the PowerShell tool is stopped, in each spelling PowerShell runs" {
+  for c in "git push -u origin feat/x" "git.exe push -u origin feat/x" '& "git" push -u origin feat/x' \
+    "& 'C:\\Program Files\\Git\\cmd\\git.exe' push -u origin feat/x" 'g`it push -u origin feat/x' \
+    "GIT.EXE push -u origin feat/x" 'git pu`sh -u origin feat/x' "Git push -u origin feat/x" \
+    '& C:\Progra~1\Git\cmd\git.exe push -u origin feat/x'; do
+    XDG_STATE_HOME="$TMP/state-$RANDOM" TOOL=PowerShell pre_bash "$c"
+    [ "$status" -eq 0 ]
+    [ "$(decision)" = deny ] || { echo "passed: $c"; false; }
+  done
+}
+
+@test "git.exe typed in Bash is git too" {
+  pre_bash "git.exe push -u origin feat/x"
+  [ "$(decision)" = deny ]
+}
+
+@test "Set-Location before a PowerShell push moves the gate as cd does" {
+  mkdir "$TMP/elsewhere"
+  for c in "Set-Location $REPO" "Set-Location -Path $REPO" "sl -LiteralPath:$REPO" "Set-Location -L $REPO" \
+    "cd -Path $REPO" "Push-Location $REPO" "pushd $REPO"; do
+    XDG_STATE_HOME="$TMP/state-$RANDOM" TOOL=PowerShell \
+      pre_bash "$c; git push -u origin feat/x" "$TMP/elsewhere"
+    [ "$(decision)" = deny ] || { echo "passed: $c"; false; }
+  done
+}
+
+@test "a PowerShell push continued with a backtick names its branch, not the next line" {
+  git -C "$REPO" switch -q main
+  "$GATE" mark "$REPO" s1
+  TOOL=PowerShell pre_bash "git push origin \`
+feat/x"
   [ "$(decision)" = deny ]
 }
 

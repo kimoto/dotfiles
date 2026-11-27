@@ -65,10 +65,14 @@ payload=$(cat)
 
 # Every Bash call passes through here; leave fast unless it can be a push or a
 # PR create.
-case "$payload" in
+# shellcheck source=bin/claude_shell_cmd.sh
+. "${0%/*}/claude_shell_cmd.sh" || exit 1
+shopt -s nocasematch
+case "${payload//\`/}" in
   *create_pull_request* | *push* | *pr*create*) ;;
   *) exit 0 ;;
 esac
+shopt -u nocasematch
 
 # tr: a native jq.exe under Git Bash ends each line with CR LF, and the CR
 # would stay on every field.
@@ -101,6 +105,7 @@ skill_ref() {
   printf 'the review-branch skill (%s)' "$f"
 }
 
+cmd=$(shell_cmd_plain "$tool" "$cmd")
 bare=$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
 starts='(^|[;&|(]|&&|\|\|)[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*'
 unquote() { sed -E "s/^['\"]//; s/['\"]\$//"; }

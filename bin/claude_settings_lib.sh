@@ -29,11 +29,19 @@ case "${CLAUDE_HOOK_BIN:-}" in
     exit 1 ;;
 esac
 
-# guarded <script>: the hook command that runs bin/<script>, behind an -x guard
-# that keeps the hook a no-op while the scripts cannot be reached, instead of
-# an error on every call.
+# guarded <script>: the hook command that runs bin/<script>, behind an -x guard.
+# With ~/bin the guard keeps the hook a quiet no-op on a machine without it.
+# A CLAUDE_HOOK_BIN names a checkout that should be there, often over
+# \\wsl.localhost, so the guard says so and exits 1 instead: Claude Code
+# shows that as a hook error, where a quiet no-op would drop the review gate
+# and the scans unseen. Arguments appended to the command reach the script.
 guarded() {
-  printf '[ ! -x "%s/%s" ] || "%s/%s"' "$HOOK_BIN" "$1" "$HOOK_BIN" "$1"
+  if [ -n "${CLAUDE_HOOK_BIN:-}" ]; then
+    printf '{ [ -x "%s/%s" ] || { echo "%s/%s is out of reach; hook not run" >&2; exit 1; }; } && "%s/%s"' \
+      "$HOOK_BIN" "$1" "$HOOK_BIN" "$1" "$HOOK_BIN" "$1"
+  else
+    printf '[ ! -x "%s/%s" ] || "%s/%s"' "$HOOK_BIN" "$1" "$HOOK_BIN" "$1"
+  fi
 }
 
 # settings_open [--uninstall]: check the mode and the file, and leave $tmp
