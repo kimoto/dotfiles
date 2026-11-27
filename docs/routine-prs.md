@@ -12,7 +12,7 @@ looks the same wherever it is opened.
 
 ## Status
 
-Every PR merges itself once the required checks pass, except class C. Open
+Every PR merges itself once the required checks pass, except `review: required`. Open
 it ready for review, not as a draft, and turn on squash auto-merge in the
 same step: the required checks are the gate, and the owner does not read it.
 Cloud sessions block GitHub GraphQL, so `gh pr merge --auto` fails there; use
@@ -23,7 +23,7 @@ the GitHub MCP `enable_pr_auto_merge` or the REST route
 skipped while the PR was a draft counts as passed, so the PR can merge before
 the new run starts. Arm it only once that run shows up.
 
-Never arm auto-merge, in any class, on a PR that publishes material from a
+Never arm auto-merge, at any review level, on a PR that publishes material from a
 private source to a public site. Publishing cannot be undone.
 
 Other repos set their own bar: where a repo's own instructions say how its
@@ -32,9 +32,11 @@ PRs merge, or forbid auto-merge for some of them, those win over this note.
 The owner chose this on 2026-11-16, after the comment-only trial from
 2026-10-31.
 
-## Classes
+## Review levels
 
-**A — merges itself once checks pass**
+Each level names whether the owner has to read the PR before it merges.
+
+**`review: not needed` — merges itself once checks pass**
 
 - Comment- and blank-line-only changes: the diff with comments and blank lines
   stripped is empty.
@@ -42,20 +44,20 @@ The owner chose this on 2026-11-16, after the comment-only trial from
 - Refactors whose behaviour snapshot (`bin/behavior_snapshot.sh`) diff is empty
   and whose touched area's e2e checks are green.
 
-Never class A, even when the above holds: changes to `.github/workflows/`,
+Never `review: not needed`, even when the above holds: changes to `.github/workflows/`,
 authentication or permissions, hook registration, and security fixes. Those
-go to B or C by direction (below).
+go to `optional` or `required` by direction (below).
 
-**B — merges itself once checks pass; the owner may skim the title afterwards**
+**`review: optional` — merges itself once checks pass; the owner may glance at the title afterwards**
 
 - Adding a test or a check, wording fixes, removing something unused.
 - New features (a new tool, binding, or default).
 - Security or workflow changes that *tighten*: add a pin, a signature or
   checksum check, a timeout, or remove a permission.
 
-**C — the owner reads the diff before it merges**
+**`review: required` — the owner reads the diff before it merges**
 
-A class C PR carries one unticked box, `- [ ] Owner read the diff`. In this
+A `review: required` PR carries one unticked box, `- [ ] Owner read the diff`. In this
 repo the required `require-checklist` job then holds the merge until the
 owner ticks it; elsewhere, leave auto-merge off.
 
@@ -71,8 +73,12 @@ states it, and writes `loosens` whenever it is unsure.
 One short line in plain English, before the template:
 
 ```
-What changes for you: <one sentence> · class <A|B|C> · <feel|speed|safety|plumbing|cleanup>[ · tightens|loosens]
+What changes for you: <one sentence> · [review: <not needed|optional|required>](https://github.com/kimoto/dotfiles/blob/main/docs/routine-prs.md#review-levels) · <feel|speed|safety|plumbing|cleanup>[ · tightens|loosens]
 ```
+
+- The review level is a link to its definition, so a reader who does not
+  know the words is one click from them. Link this file on `main` from any
+  repo: the levels are defined here only.
 
 - `feel` — something the owner notices in daily use; `speed` — a measured
   time goes down (give before/after); `safety` — pins and checks; `plumbing` —
@@ -82,7 +88,7 @@ What changes for you: <one sentence> · class <A|B|C> · <feel|speed|safety|plum
 ## Limits
 
 - Assign every routine PR to `kimoto`.
-- At most 5 open class C routine PRs across all repos; PRs that merge
+- At most 5 open `review: required` routine PRs across all repos; PRs that merge
   themselves do not count. A routine that would go over opens nothing and says so in its
   report. More open PRs means less careful review.
 - When the owner closes a routine PR unmerged, they leave a one-line reason as
@@ -98,7 +104,7 @@ undo it.
 - Before picking a change, a routine reads the ledger and the reasons on every
   closed-unmerged routine PR here, not only its own, and proposes nothing
   either one rules out.
-- A reason not yet in the ledger becomes that run's one PR: the entry, class B,
+- A reason not yet in the ledger becomes that run's one PR: the entry, `review: optional`,
   `cleanup`.
 - A call the owner makes in a session goes into the ledger in the same PR as
   the change it decides.
