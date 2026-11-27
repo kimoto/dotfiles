@@ -233,3 +233,20 @@ answer() {
   run "$SCRIPT" 7
   [ "$status" -eq 0 ]
 }
+
+@test "a require-checklist status pending on the owner's box is not a running check" {
+  answer 1 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"context":"require-checklist","state":"PENDING"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 5 ]
+  [ "$output" = "checks passed, waiting for the owner to tick a box in the PR body: https://github.com/o/r/pull/7" ]
+  [ "$(waits)" = "30 60" ]
+}
+
+@test "another pending commit status still counts as running" {
+  answer 1 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"context":"deploy","state":"PENDING"}'
+  answer 2 OPEN '{"name":"ci","conclusion":"SUCCESS"}' '{"context":"deploy","state":"PENDING"}'
+  answer 3 MERGED '{"name":"ci","conclusion":"SUCCESS"}' '{"context":"deploy","state":"SUCCESS"}'
+  run "$SCRIPT" 7
+  [ "$status" -eq 0 ]
+  [ "$(waits)" = "10 10" ]
+}
