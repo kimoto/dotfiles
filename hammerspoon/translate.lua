@@ -246,7 +246,10 @@ function placeholders() {
   field('model').placeholder = openai ? '必須' : '空欄で標準（' + current.default_model + '）';
   // translate.py refuses a moved endpoint without the key typed again.
   const moved = provider !== (current.provider || 'anthropic') || field('base').value.trim() !== current.base_url;
-  field('key').placeholder = moved ? '必須（API か endpoint を変えたため）'
+  // The ant sign-in stands in for the key at Anthropic's own address only, as translate.py's can_sign_in().
+  const signedIn = current.signed_in && !openai && !field('base').value.trim() && !envUrl;
+  field('key').placeholder = signedIn ? '空欄で可（ant でサインイン済み）'
+    : moved ? '必須（API か endpoint を変えたため）'
     : current.keys[provider] ? '保存済み（変えるときだけ入力）' : '必須';
   fit();
 }

@@ -47,12 +47,30 @@ class _Messages:
         _raise_stub_error()
         return _Stream()
 class Anthropic:
-    def __init__(self, api_key, base_url=None):
+    # The key file says which credential came: the key, the sign-in's profile,
+    # or, given neither, the environment's key, as the real SDK would take it.
+    def __init__(self, api_key=None, base_url=None, profile=None):
+        if profile and os.environ.get("STUB_CREDENTIALS_ERROR"):
+            raise CredentialsError()
+        used = api_key or (profile and "profile:" + profile) or "env:" + os.environ.get("ANTHROPIC_API_KEY", "")
         with open(os.environ["REQUEST"] + ".key", "w") as f:
-            f.write(api_key)
+            f.write(used)
         with open(os.environ["REQUEST"] + ".base", "w") as f:
             f.write(str(base_url))
         self.beta = _Obj(messages=_Messages())
+# `ant auth login`'s profile: STUB_SIGNED_IN names it, unset is signed out.
+import pathlib, sys, types
+class AnthropicError(Exception): pass
+class CredentialsError(AnthropicError): pass
+class CredentialsFile:
+    def __init__(self, profile=None):
+        self.profile = profile or os.environ.get("STUB_SIGNED_IN") or "default"
+        self.config_path = pathlib.Path(os.environ["ANT_DIR"], "configs", self.profile + ".json")
+        self.resolved_base_url = os.environ.get("STUB_PROFILE_BASE")
+lib = types.ModuleType("anthropic.lib")
+lib.credentials = types.ModuleType("anthropic.lib.credentials")
+lib.credentials.CredentialsFile = CredentialsFile
+sys.modules["anthropic.lib"], sys.modules["anthropic.lib.credentials"] = lib, lib.credentials
 EOF
 
   # The OpenAI SDK the same way: the Responses API's streamed events.
@@ -125,6 +143,9 @@ EOF
   EDITS="$TMP/home/.local/share/desktop-translate/rewrite-edits.jsonl"
   export CLIPBOARD="$TMP/clipboard"
   export PATH="$TMP/bin:$PATH" PYTHONPATH="$TMP/py" STUB_KEYCHAIN=sk-from-keychain HOME="$TMP/home"
+  export ANT_DIR="$TMP/ant"
+  # The machine's endpoint would decide where the ant sign-in may go.
+  unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
 }
 
 teardown() {
@@ -200,7 +221,85 @@ request_text() {
   run python3 "$SCRIPT" --quiet "hello"
   [ "$status" -eq 1 ]
   [ ! -e "$REQUEST.key" ]
-  [[ "$output" == *"security add-generic-password -s desktop-translate -a anthropic -w" ]]
+  [[ "$output" == *"security add-generic-password -s desktop-translate -a anthropic -w"* ]]
+  [[ "$output" == *"ant auth login" ]]
+}
+
+signed_in() {
+  export STUB_SIGNED_IN=work
+  mkdir -p "$ANT_DIR/configs"
+  printf '{"authentication": {"type": "%s"}}' "${1:-user_oauth}" >"$ANT_DIR/configs/work.json"
+}
+
+@test "no key in the Keychain uses the ant sign-in, and nothing from the environment" {
+  STUB_KEYCHAIN=""
+  signed_in
+  export ANTHROPIC_API_KEY=x
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$REQUEST.key")" = "profile:work" ]
+  [ "$(cat "$REQUEST.base")" = "https://api.anthropic.com" ]
+}
+
+@test "a federation profile, or one pinned to another host, does not count as a sign-in" {
+  STUB_KEYCHAIN=""
+  signed_in oidc_federation
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [ ! -e "$REQUEST.key" ]
+  signed_in
+  export STUB_PROFILE_BASE=https://proxy.example
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [ ! -e "$REQUEST.key" ]
+}
+
+@test "a sign-in the SDK cannot use says to sign in again" {
+  STUB_KEYCHAIN=""
+  signed_in
+  export STUB_CREDENTIALS_ERROR=1
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ant のサインインを使えません"* ]]
+}
+
+@test "a refused Keychain key says to remove it when the ant sign-in would work" {
+  signed_in
+  export STUB_ERROR=AuthenticationError
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"security delete-generic-password -s desktop-translate -a anthropic" ]]
+  rm "$ANT_DIR/configs/work.json"
+  run python3 "$SCRIPT" --quiet "hello"
+  [[ "$output" != *"delete-generic-password"* ]]
+}
+
+@test "the sign-in is not suggested where it would not be used" {
+  STUB_KEYCHAIN=""
+  printf 'base_url = "https://llm.example/v1"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"ant auth login"* ]]
+}
+
+@test "a key in the Keychain wins over the ant sign-in" {
+  signed_in
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$REQUEST.key")" = "sk-from-keychain:anthropic" ]
+}
+
+@test "the ant sign-in never goes to a custom endpoint, from the config or the environment" {
+  STUB_KEYCHAIN=""
+  signed_in
+  printf 'base_url = "https://llm.example/v1"\n' >"$CONFIG"
+  run python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [ ! -e "$REQUEST.key" ]
+  : >"$CONFIG"
+  run env ANTHROPIC_BASE_URL=https://env.example python3 "$SCRIPT" --quiet "hello"
+  [ "$status" -eq 1 ]
+  [ ! -e "$REQUEST.key" ]
 }
 
 @test "--screen and --image together are refused, and the image is left alone" {
@@ -627,6 +726,47 @@ save_settings() {
   shown=$(printf '%s' "$output" | python3 -c 'import json, sys; d = json.load(sys.stdin)
 print(d["provider"], d["base_url"], d["model"], d["keys"]["openai"], d["keys"]["anthropic"])')
   [ "$shown" = "openai https://llm.example/v1 m1 True False" ]
+}
+
+@test "--settings says whether the ant sign-in stands in for a missing key" {
+  stateful_keychain
+  run python3 "$SCRIPT" --settings
+  [ "$(printf '%s' "$output" | python3 -c 'import json, sys; print(json.load(sys.stdin)["signed_in"])')" = False ]
+  signed_in
+  run python3 "$SCRIPT" --settings
+  [ "$(printf '%s' "$output" | python3 -c 'import json, sys; print(json.load(sys.stdin)["signed_in"])')" = True ]
+}
+
+@test "--save-settings without a key is fine when signed in with ant, but not for a custom endpoint" {
+  stateful_keychain
+  run save_settings '{"provider":"anthropic","base_url":"","model":"m1","key":""}'
+  [ "$status" -eq 1 ]
+  signed_in
+  run save_settings '{"provider":"anthropic","base_url":"","model":"m1","key":""}'
+  [ "$status" -eq 0 ]
+  grep -q '^model = "m1"' "$CONFIG"
+  : >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"https://llm.example/v1","model":"","key":""}'
+  [ "$status" -eq 1 ]
+}
+
+@test "--save-settings back to the default endpoint needs no key when signed in with ant" {
+  stateful_keychain
+  signed_in
+  printf 'base_url = "https://llm.example/v1"\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 0 ]
+  ! grep -q base_url "$CONFIG"
+}
+
+@test "--save-settings never moves a stored key to the default endpoint on the strength of an ant sign-in" {
+  stateful_keychain
+  touch "$TMP/stored-anthropic"
+  signed_in
+  printf 'base_url = "https://llm.example/v1"\n' >"$CONFIG"
+  run save_settings '{"provider":"anthropic","base_url":"","model":"","key":""}'
+  [ "$status" -eq 1 ]
+  grep -q base_url "$CONFIG"
 }
 
 @test "--settings names the environment variables that decide the model or the endpoint, and only those set" {
