@@ -91,7 +91,14 @@ collect() {
     owner=$(jq -r '.tool_input.owner // empty' <<<"$payload" | tr -d '\r')
     repo=$(jq -r '.tool_input.repo // empty' <<<"$payload" | tr -d '\r')
     [ -n "$owner" ] && [ -n "$repo" ] && is_public "$owner" "$repo" || exit 0
-    jq -r '.tool_input | del(.owner, .repo) | tostring' <<<"$payload" | section "$tool"
+    # The reviewer reads only what can be prose: the merge fields are a number,
+    # a SHA and a method, and judged alone they were flagged. A call left with
+    # no text publishes nothing to judge.
+    local prose
+    prose=$(jq -c '.tool_input | del(.owner, .repo, .pullNumber, .expectedHeadSha, .merge_method)
+      | select([.. | strings | select(test("\\S"))] | length > 0)' <<<"$payload" 2>/dev/null | tr -d '\r')
+    [ -n "$prose" ] || exit 0
+    printf '%s\n' "$prose" | section "$tool"
     return
   fi
 
