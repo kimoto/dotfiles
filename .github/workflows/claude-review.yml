@@ -4,8 +4,8 @@ name: claude-review
 # something and wait for the owner. It comments only; it is not a required
 # check, and stays that way until its comments prove useful.
 on:
-  # pull_request, never pull_request_target: a fork PR then gets no secrets,
-  # and the review job skips forks before that matters.
+  # pull_request, never pull_request_target: a fork PR then gets no OIDC
+  # token, and the review job skips forks before that matters.
   # edited: a PR becomes class C when the box is added to its body after
   # opening, and a new base changes the diff. The review job's `if:` keeps
   # every other edit from paying for a rerun.
@@ -43,23 +43,30 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15  # a review takes a few minutes; only a hang reaches this
     # Read-only: the job that runs the model can write nowhere. The post job
-    # below holds the write permission and never sees the API key.
+    # below holds the write permission and never sees an Anthropic token.
+    # id-token: the action trades the job's OIDC token for a short-lived
+    # Anthropic one (workload identity federation), so no API key is stored.
     permissions:
       contents: read
+      id-token: write
     outputs:
-      # ok, no-key, no-diff or no-result; empty when the job broke first.
+      # ok, no-federation, no-diff or no-result; empty when the job broke first.
       status: ${{ steps.status.outputs.status }}
       # The public part only; see the step that writes it.
       result: ${{ steps.public.outputs.result }}
     steps:
-      # The key is the owner's to add; until then the job says so and passes.
-      - name: Check for the API key
+      # The federation ids are the owner's to set (repository variables:
+      # they are identifiers, not credentials); until then the job says so
+      # and passes.
+      - name: Check for the federation settings
         id: key
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RULE: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ORG: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ACCOUNT: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::notice::ANTHROPIC_API_KEY is not set; skipping the review."
+          if [ -z "$RULE" ] || [ -z "$ORG" ] || [ -z "$ACCOUNT" ]; then
+            echo "::notice::The ANTHROPIC_*_ID federation variables are not all set; skipping the review."
             echo "run=false" >>"$GITHUB_OUTPUT"
           else
             echo "run=true" >>"$GITHUB_OUTPUT"
@@ -70,7 +77,7 @@ jobs:
       # PR's own .claude/settings.json, hooks included; the action also
       # writes the job token into a checkout's git config.
 
-      # Built by a step that holds no Anthropic key. The viewpoints come from
+      # Built by a step that holds no Anthropic token. The viewpoints come from
       # the reviewer prompts on the default branch, so a PR that rewrites
       # them is still reviewed by the version already merged.
       - name: Build the prompt
@@ -175,7 +182,13 @@ jobs:
         id: claude
         if: steps.prompt.outputs.text != ''
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # No anthropic_api_key: a static key would take precedence over
+          # federation. The workspace id may stay unset when the rule
+          # targets a single workspace.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: false
           prompt: ${{ steps.prompt.outputs.text }}
@@ -220,7 +233,7 @@ jobs:
           HAS_PROMPT: ${{ steps.prompt.outputs.text != '' }}
           HAS_RESULT: ${{ steps.public.outputs.result != '' }}
         run: |
-          if [ "$RUN" != true ]; then status=no-key
+          if [ "$RUN" != true ]; then status=no-federation
           elif [ "$PROMPT_OUTCOME" = success ] && [ "$HAS_PROMPT" != true ]; then status=no-diff
           elif [ "$HAS_RESULT" = true ]; then status=ok
           else
@@ -304,7 +317,7 @@ jobs:
           if [ -n "$id" ]; then
             gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" >/dev/null
           # Without a review there is nothing to say on a PR that has no
-          # comment yet, so a missing key never adds one.
+          # comment yet, so missing federation settings never add one.
           elif [ "$STATUS" = ok ]; then
             gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body" >/dev/null
           fi
