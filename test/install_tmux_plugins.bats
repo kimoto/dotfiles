@@ -18,6 +18,9 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$REPO_ROOT/test/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   cd "$REPO_ROOT"
 }
 
@@ -79,15 +82,12 @@ setup() {
   [[ "$output" == *"CI error: cannot fetch tmux-plugins/tpm at "* ]]
 }
 
-# A throwaway home holding the plugins, and a short socket directory: macOS
-# caps a socket path at 104 bytes and bats' own tmpdir already uses most of it.
-# Copies this machine's installed plugins when there are any, so the usual run
-# clones nothing.
+# A throwaway home holding the plugins. Copies this machine's installed
+# plugins when there are any, so the usual run clones nothing.
 plugin_home() {
   command -v tmux >/dev/null 2>&1 || skip "tmux not installed"
   command -v git >/dev/null 2>&1 || skip "git not installed"
   home="$BATS_TEST_TMPDIR/home"
-  SOCKET_DIR=$(mktemp -d /tmp/tpm_test.XXXXXX)
   mkdir -p "$home/.tmux"
   ln -s "$REPO_ROOT/.tmux.conf" "$home/.tmux.conf"
   ln -s "$REPO_ROOT/bin" "$home/bin"
@@ -99,11 +99,17 @@ plugin_home() {
 }
 
 install_in_plugin_home() {
-  env -u TMUX HOME="$home" TMUX_TMPDIR="$SOCKET_DIR" "$@" ./bin/install_tmux_plugins.sh
+  env -u TMUX HOME="$home" "$@" ./bin/install_tmux_plugins.sh
 }
 
 teardown() {
-  [ -z "${SOCKET_DIR:-}" ] || rm -rf "$SOCKET_DIR"
+  # The older build's server takes a kill only from its own client: left to
+  # the sweep, a test that failed before its own kill would read as "will
+  # not die" and hide what failed.
+  if [ -n "${old:-}" ] && [ -n "${HOST_SOCK:-}" ]; then
+    "$old" -L "$HOST_SOCK" kill-server 2>/dev/null || true
+  fi
+  sweep_private_tmux_tmpdir
 }
 
 @test "pins every plugin even when the throwaway server is gone after tpm ran" {

@@ -24,6 +24,8 @@ die() { echo "CI error: $*" >&2; exit 1; }
 # shellcheck source=bin/brew_lib.sh
 . "$(dirname "$(readlink -f "$0")")/../../bin/brew_lib.sh"
 load_brew
+# shellcheck source=test/tmux_private_tmpdir.sh
+. "$(dirname "$(readlink -f "$0")")/../tmux_private_tmpdir.sh"
 
 command -v nvim >/dev/null 2>&1 || die "nvim not installed"
 command -v git  >/dev/null 2>&1 || die "git not installed"
@@ -35,9 +37,14 @@ echo "== $(nvim --version | head -1) =="
 
 HOME_DIR="$(mktemp -d)"
 SOCK="ci_nvim_e2e_$$"
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$HOME_DIR" 2>/dev/null || true
+  return "$swept"
 }
 trap cleanup EXIT
 

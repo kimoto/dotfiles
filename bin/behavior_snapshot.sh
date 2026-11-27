@@ -110,14 +110,18 @@ snapshot_zsh() {
 }
 
 snapshot_tmux() {
-    local checkout="$1" home sock rc=0
+    local checkout="$1" home sock rc=0 sockdir=()
     home=$(make_home "$checkout")
     sock="behavior_snapshot_$$_${RANDOM}"
+    # The calls below without env -i look for the server under $TMUX_TMPDIR,
+    # so the ones with it must start and reach it there too.
+    [ -n "${TMUX_TMPDIR:-}" ] && sockdir=(TMUX_TMPDIR="$TMUX_TMPDIR")
     {
-        env -i HOME="$home" PATH="$PATH" TERM=xterm-256color \
+        env -i HOME="$home" PATH="$PATH" TERM=xterm-256color ${sockdir[@]+"${sockdir[@]}"} \
             tmux -L "$sock" -f /dev/null new-session -d -x 200 -y 50 -c "$home"
         echo "== source-file"
-        env -i HOME="$home" PATH="$PATH" tmux -L "$sock" source-file "$checkout/.tmux.conf" 2>&1 || true
+        env -i HOME="$home" PATH="$PATH" ${sockdir[@]+"${sockdir[@]}"} \
+            tmux -L "$sock" source-file "$checkout/.tmux.conf" 2>&1 || true
         echo "== server"; tmux -L "$sock" show -s
         echo "== session"; tmux -L "$sock" show -g
         echo "== window"; tmux -L "$sock" show -gw

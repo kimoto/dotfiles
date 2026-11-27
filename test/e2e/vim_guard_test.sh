@@ -5,6 +5,8 @@
 set -euo pipefail
 
 die() { echo "CI error: $*" >&2; exit 1; }
+# shellcheck source=test/tmux_private_tmpdir.sh
+. "$(dirname "$(readlink -f "$0")")/../tmux_private_tmpdir.sh"
 
 command -v vim  >/dev/null 2>&1 || die "vim not installed"
 command -v tmux >/dev/null 2>&1 || die "tmux not installed"
@@ -17,9 +19,14 @@ echo "== $(vim --version | head -1) =="
 
 HOME_DIR="$(mktemp -d)"
 SOCK="ci_vim_guard_$$"
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$HOME_DIR" 2>/dev/null || true
+  return "$swept"
 }
 trap cleanup EXIT
 

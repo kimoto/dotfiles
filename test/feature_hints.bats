@@ -10,6 +10,9 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$REPO_ROOT/test/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   SOCK="feature_hints_$$"
   tmux -L "$SOCK" -f "$REPO_ROOT/.tmux.conf" new-session -d -s HINTS
   TMUX_VALUE="$(tmux -L "$SOCK" display-message -p '#{socket_path}'),0,0"
@@ -17,6 +20,7 @@ setup() {
 
 teardown() {
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  sweep_private_tmux_tmpdir
 }
 
 # Run each argument as a command line through the hooks, the way zsh would:

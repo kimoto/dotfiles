@@ -19,15 +19,18 @@ CONF="$(tmux_conf_path)"
   die "tmux-resurrect not installed (run bin/install_tmux_plugins.sh)"
 
 WORK="$(mktemp -d)"
-export TMUX_TMPDIR="$WORK/sock"
-mkdir -p "$TMUX_TMPDIR"
+private_tmux_tmpdir
 SAVES="$WORK/resurrect"
 SOCK=default
 OTHER="other_$$"
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$OTHER" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$WORK"
+  return "$swept"
 }
 trap cleanup EXIT
 

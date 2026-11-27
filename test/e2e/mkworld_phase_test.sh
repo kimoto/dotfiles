@@ -9,6 +9,8 @@
 set -euo pipefail
 
 die() { echo "CI error: $*" >&2; exit 1; }
+# shellcheck source=test/tmux_private_tmpdir.sh
+. "$(dirname "$0")/../tmux_private_tmpdir.sh"
 
 want="${1:-}"
 case "$want" in
@@ -27,7 +29,17 @@ fi
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+# After the climb, mkworld.sh runs install_tmux_plugins.sh where tmux is on
+# PATH, and that starts a server on the real config.
+private_tmux_tmpdir
+cleanup() {
+  local swept=0
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
+  rm -rf "$WORK"
+  return "$swept"
+}
+trap cleanup EXIT
 mkdir "$WORK/home"
 
 # Without the caller's mise shims: the fresh $HOME has none of the tools they
@@ -51,7 +63,7 @@ if [ "$want" = minimal ]; then
 fi
 
 # The proxy and CA settings pass through so this also runs behind a proxy.
-keep=(HOME="$WORK/home" PATH="$search_path" LANG=C.UTF-8 MKWORLD_EXPECT="$want")
+keep=(HOME="$WORK/home" PATH="$search_path" LANG=C.UTF-8 MKWORLD_EXPECT="$want" TMUX_TMPDIR="${TMUX_TMPDIR:-}")
 for v in HTTPS_PROXY https_proxy SSL_CERT_FILE CURL_CA_BUNDLE GIT_SSL_CAINFO; do
   [ -n "${!v:-}" ] && keep+=("$v=${!v}")
 done
