@@ -28,7 +28,8 @@ YELLOW="#b58900"
 
 SOCK="ci_agent_status_$$"
 SESS="INDCHECK"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
+private_tmux_tmpdir
+cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; sweep_private_tmux_tmpdir; }
 trap cleanup EXIT
 
 tmux -L "$SOCK" -f "$CONF" new-session -d -s "$SESS" -x 200 -y 50 || die "failed to start tmux"

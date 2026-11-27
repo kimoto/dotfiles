@@ -40,7 +40,8 @@ One-time setup on a Mac (nothing in bin/mklink.sh does this):
   ~/.local/share/desktop-translate/bin/pip install --require-hashes -r ~/.hammerspoon/requirements.txt
   the key: the popup's gear (any job's popup, even one that failed for want
     of a key), or security add-generic-password -s desktop-translate -a anthropic -w
-    (prompts for the key, so it never lands in shell history)
+    (prompts for the key, so it never lands in shell history);
+    or no key at all: brew install anthropics/tap/ant, then ant auth login
   then grant Hammerspoon Accessibility and Screen Recording.
 
 Optional: a custom endpoint in ~/.local/share/desktop-translate/config.toml
@@ -59,6 +60,9 @@ its own account: security add-generic-password -s desktop-translate -a openai -w
 The key is read from the Keychain only, inside this process. Never from the
 environment: every child this script starts would see it there, and an
 exported ANTHROPIC_API_KEY also switches Claude Code to API billing.
+With no key in the Keychain, the sign-in `ant auth login` left on disk is used
+instead, for Anthropic's own API only: the sign-in's token never goes to a
+custom endpoint.
 
 Optional: extra instructions (a glossary, a register) in
 ~/.local/share/desktop-translate/instructions.txt are appended to the system
@@ -99,6 +103,9 @@ KEYCHAIN_SERVICE = "desktop-translate"
 DATA_DIR = Path.home() / ".local/share/desktop-translate"
 CONFIG = DATA_DIR / "config.toml"
 PROVIDERS = ("anthropic", "openai")
+ANTHROPIC_API = "https://api.anthropic.com"
+# Whether this run's client came from the ant sign-in, for the message when it is refused.
+SIGNED_IN = threading.Event()
 ANTHROPIC_MODEL = "claude-opus-5-5"
 # Measured on the Mac on a 469-character text: Haiku's summary started in 1.5 s
 # against Opus's 2.0-6.5 s and read as well. A summary is read, not sent, so a
@@ -245,14 +252,45 @@ def load_config() -> dict:
     return config
 
 
-def api_key(provider: str) -> str:
+def api_key(provider: str, sign_in_hint: bool = False) -> str:
     key = stored_key(provider)
     if key:
         return key
     # The command, not just the place: -w with no value asks for the key, so
     # it never lands in argv or the shell history.
     fail(f"API キーが未設定です。右上の歯車から入れるか、ターミナルで次を実行してキーを貼ってください。\n\n"
-         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w")
+         f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {provider} -w"
+         + ("\n\nキーを使わないなら: ant auth login" if sign_in_hint else ""))
+
+
+def signed_in() -> str | None:
+    """The profile `ant auth login` left, or None. Asked of the SDK, which
+    knows where the profile lives; importing it takes a few tenths of a
+    second, so this is asked only when the Keychain has no key."""
+    try:
+        import anthropic
+        from anthropic.lib.credentials import CredentialsFile
+    except ImportError:
+        return None
+    try:
+        found = CredentialsFile()
+        profile = json.loads(found.config_path.read_text(encoding="utf-8"))
+        # Only a person's sign-in: a federation profile reads its token from
+        # files the environment names. A profile pinned to another host would
+        # take the token there.
+        if (profile.get("authentication") or {}).get("type") != "user_oauth":
+            return None
+        if (found.resolved_base_url or ANTHROPIC_API) != ANTHROPIC_API:
+            return None
+        return found.profile
+    except (anthropic.AnthropicError, OSError, ValueError, AttributeError):  # no profile, or a broken one
+        return None
+
+
+def can_sign_in(config: dict) -> bool:
+    """The sign-in may stand in for the key: Anthropic's API, at its own address."""
+    return config.get("provider", "anthropic") in ("", "anthropic") and not config.get("base_url") \
+        and not os.environ.get("ANTHROPIC_BASE_URL")
 
 
 def find_key(provider: str, *flags: str) -> subprocess.CompletedProcess | None:
@@ -307,6 +345,8 @@ def current_settings() -> dict:
         config = {}  # the form can still write a fresh one; a run says what is wrong
     settings = {k: str(config.get(k, "")) for k in SETTINGS_KEYS}
     settings["keys"] = {p: has_key(p) for p in PROVIDERS}
+    # The SDK import this takes (a few tenths of a second) is paid only by a form with no key stored.
+    settings["signed_in"] = not settings["keys"]["anthropic"] and signed_in() is not None
     settings["default_model"] = ANTHROPIC_MODEL
     # [code, label, the counterpart's label], so the form's hint says what instruction() does.
     settings["languages"] = [[code, label, LANGUAGES[counterpart(code)][1]] for code, (_, label) in LANGUAGES.items()]
@@ -388,9 +428,11 @@ def save_settings(form: dict) -> None:
     # takes the key typed again: a form filled in by anything but the user
     # cannot send the key somewhere new.
     moved = (provider, values["base_url"]) != (saved["provider"] or "anthropic", saved["base_url"])
-    if not key and moved:
+    # Only with no key stored: a stored key would be what goes to the new address.
+    sign_in = not key and not has_key(provider) and can_sign_in(values) and signed_in() is not None
+    if not key and moved and not sign_in:
         fail("API か endpoint を変えるときは、PAT も入れ直してください。")
-    if not key and not has_key(provider):
+    if not key and not has_key(provider) and not sign_in:
         fail("PAT を入れてください。")
     old = CONFIG.read_text(encoding="utf-8") if CONFIG.exists() else ""
     new = with_top_level(old, values)
@@ -528,7 +570,18 @@ def connect(config: dict):
         import openai
         return openai.OpenAI(api_key=api_key("openai"), base_url=config.get("base_url"))
     import anthropic
-    return anthropic.Anthropic(api_key=api_key("anthropic"), base_url=config.get("base_url"))
+    key = stored_key("anthropic")
+    sign_in = not key and can_sign_in(config)
+    profile = signed_in() if sign_in else None
+    if profile:
+        # An explicit profile: the SDK then takes no key or token from the
+        # environment. Its endpoint it still would, which can_sign_in ruled out.
+        SIGNED_IN.set()
+        try:
+            return anthropic.Anthropic(profile=profile, base_url=ANTHROPIC_API)
+        except anthropic.AnthropicError as e:
+            fail(f"ant のサインインを使えません: {e}")
+    return anthropic.Anthropic(api_key=key or api_key("anthropic", sign_in), base_url=config.get("base_url"))
 
 
 class Prepared(threading.Thread):
@@ -567,19 +620,33 @@ def emit(chunk: str) -> None:
     sys.stdout.flush()
 
 
+SIGN_IN_AGAIN = "ant のサインインが切れています。ターミナルで ant auth login をもう一度実行してください。"
+
+
+def drop_key_hint(sdk) -> str:
+    """The Keychain's key wins over the ant sign-in, so a refused key that the
+    sign-in could replace has to be taken out of the way."""
+    if sdk.__name__ != "anthropic" or not can_sign_in(load_config()) or not signed_in():
+        return ""
+    return ("\n\nant のサインインを使うなら、Keychain のキーを消してください:\n"
+            f"security delete-generic-password -s {KEYCHAIN_SERVICE} -a anthropic")
+
+
 @contextlib.contextmanager
 def api_errors(sdk):
     """Turn the SDK's errors into a message; both SDKs name them alike."""
     try:
         yield
     except sdk.AuthenticationError:
-        fail("API キーが無効です。")
+        fail(SIGN_IN_AGAIN if SIGNED_IN.is_set() else "API キーが無効です。" + drop_key_hint(sdk))
     except sdk.RateLimitError:
         fail("レート制限に当たりました。少し待ってから再実行してください。")
     except sdk.APIStatusError as e:
         fail(f"API エラー {e.status_code}: {e.message}")
     except sdk.APIConnectionError:
         fail("API に接続できません。")
+    except getattr(sdk, "AnthropicError", ()) as e:  # the sign-in's token could not be read or refreshed
+        fail(f"ant のサインインを使えません: {e}")
 
 
 def translate_anthropic(client, model: str, content: list, system: str) -> tuple[str, bool]:

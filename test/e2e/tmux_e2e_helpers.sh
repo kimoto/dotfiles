@@ -12,6 +12,8 @@
 # shellcheck source=bin/brew_lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../../bin/brew_lib.sh"
 load_brew
+# shellcheck source=test/tmux_private_tmpdir.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../tmux_private_tmpdir.sh"
 
 die() { echo "CI error: $*" >&2; exit 1; }
 

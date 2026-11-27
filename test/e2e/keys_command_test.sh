@@ -46,11 +46,16 @@ TMP="$(mktemp -d)"
 SOCK="ci_keys_e2e_$$"
 OUTER="ci_keys_out_$$"
 INNER="ci_keys_in_$$"
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$INNER" kill-server 2>/dev/null || true
   tmux -L "$OUTER" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$TMP" 2>/dev/null || true
+  return "$swept"
 }
 trap cleanup EXIT
 

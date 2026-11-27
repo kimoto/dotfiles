@@ -18,10 +18,15 @@ echo "== loading: $CONF =="
 SOCK="ci_tmux_$$"
 BARE_SOCK="${SOCK}_bare"
 err_log="$(mktemp)"
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$BARE_SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -f "$err_log" 2>/dev/null || true
+  return "$swept"
 }
 trap cleanup EXIT
 
@@ -75,8 +80,9 @@ fi
 # on the server's PATH. prefix + a is bound only behind the 3.7 guard.
 TMUX_BIN="$(command -v tmux)"
 # Loaded at startup with -f, as Ghostty's server is: a later source-file runs
-# the guards with the sending client's PATH and passes regardless.
-env -i HOME="$HOME" TERM=xterm-256color PATH=/usr/bin:/bin \
+# the guards with the sending client's PATH and passes regardless. TMUX_TMPDIR
+# survives env -i, or the server lands outside the private directory.
+env -i HOME="$HOME" TERM=xterm-256color PATH=/usr/bin:/bin TMUX_TMPDIR="${TMUX_TMPDIR:-}" \
   "$TMUX_BIN" -L "$BARE_SOCK" -f "$CONF" new-session -d -x 200 -y 50 2>/dev/null \
   || die "failed to start bare-PATH tmux server"
 disable_continuum_restore "$BARE_SOCK"

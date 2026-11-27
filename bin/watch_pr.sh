@@ -49,14 +49,19 @@ failing='[.statusCheckRollup // [] | group_by(.name // .context)[] | max_by(.sta
   | select((.conclusion // .state // "")
       | IN("FAILURE", "ERROR", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED"))
   | (.name // .context)] | join(", ")'
-running='any(.statusCheckRollup[]?;
-  (.status // "") != "" and .status != "COMPLETED" or (.state // "") == "PENDING")'
+# The require-checklist status stays pending until the owner ticks a box in
+# the PR body (.github/workflows/pr-checklist.yml): that is waiting on a
+# person, not a check still running, so it neither keeps the watch polling
+# fast nor stops "checks passed".
+owner='((.context // "") == "require-checklist" and (.state // "") == "PENDING")'
+running="any(.statusCheckRollup[]?; ((.status // \"\") != \"\" and .status != \"COMPLETED\"
+  or (.state // \"\") == \"PENDING\") and ($owner | not))"
 # Passed means at least one check, and the newest run of every check concluded
 # with something other than a failure or a cancel. A cancelled newest run is
 # waiting for its replacement, so it is not a pass yet.
-passed='(.statusCheckRollup // []) | length > 0 and all(group_by(.name // .context)[]
-  | max_by(.startedAt // ""); (.conclusion // .state // "")
-      | IN("SUCCESS", "SKIPPED", "NEUTRAL"))'
+passed="(.statusCheckRollup // []) | length > 0 and all(group_by(.name // .context)[]
+  | max_by(.startedAt // \"\"); $owner or ((.conclusion // .state // \"\")
+      | IN(\"SUCCESS\", \"SKIPPED\", \"NEUTRAL\")))"
 
 wait_and_back_off() {
   sleep "$interval"
@@ -103,7 +108,11 @@ while true; do
   # passed.
   if ! $until_merged && [ "$same" -ge 2 ] && ! jq -e "$running" <<<"$json" >/dev/null \
     && jq -e "$passed" <<<"$json" >/dev/null; then
-    echo "checks passed: $url"
+    if jq -e "any(.statusCheckRollup[]?; $owner)" <<<"$json" >/dev/null; then
+      echo "checks passed, waiting for the owner to tick a box in the PR body: $url"
+    else
+      echo "checks passed: $url"
+    fi
     exit 5
   fi
   if jq -e "$running" <<<"$json" >/dev/null; then

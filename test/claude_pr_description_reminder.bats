@@ -47,6 +47,14 @@ PR_URL="https://github.com/kimoto/dotfiles/pull/541"
   [[ "$ctx" == *"run_in_background"* ]]
 }
 
+@test "a PR created through the PowerShell tool gets the same reminder" {
+  run bash -c "printf '%s' \"\$1\" | '$HOOK'" _ \
+    "$(jq -cn --arg c '& "gh.exe" pr create --fill' --arg o "$PR_URL" \
+      '{tool_name: "PowerShell", tool_input: {command: $c}, tool_response: {stdout: $o}}')"
+  ctx="$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")"
+  [[ "$ctx" == *"watch_pr.sh $PR_URL"* ]]
+}
+
 @test "a cloud session, which has its own PR subscription, gets no watcher" {
   CLAUDE_CODE_REMOTE=true run_hook_with_stdout "gh pr create --fill" "$PR_URL"
   [ "$status" -eq 0 ]

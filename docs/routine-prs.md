@@ -56,7 +56,7 @@ go to B or C by direction (below).
 **C — the owner reads the diff before it merges**
 
 A class C PR carries one unticked box, `- [ ] Owner read the diff`. In this
-repo the required `require-checklist` job then holds the merge until the
+repo the required `require-checklist` status then stays pending, holding the merge, until the
 owner ticks it; elsewhere, leave auto-merge off. While the box is unticked, `claude-review.yml` keeps one
 review comment on the PR, once the owner has set the workload identity
 federation variables (`ANTHROPIC_FEDERATION_RULE_ID`, `_ORGANIZATION_ID`,

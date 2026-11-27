@@ -15,8 +15,17 @@ set -uo pipefail
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload=$(cat)
+# shellcheck source=bin/claude_shell_cmd.sh
+. "${0%/*}/claude_shell_cmd.sh" || exit 1
+# Runs after every shell call; leave before jq unless it can be a push or a
+# PR create.
+shopt -s nocasematch
+case "${payload//\`/}" in *push* | *pr*create*) ;; *) exit 0 ;; esac
+shopt -u nocasematch
 cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null) || exit 0
 [ -n "$cmd" ] || exit 0
+tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
+cmd=$(shell_cmd_plain "$tool" "$cmd")
 
 # Drop quoted strings, so only commands that actually ran are matched, at the
 # start of a command in the line.

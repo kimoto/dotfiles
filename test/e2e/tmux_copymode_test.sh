@@ -22,7 +22,8 @@ CONF="$(tmux_conf_path)"
 echo "== copy-mode bindings from: $CONF =="
 
 SOCK="ci_tmux_copy_$$"
-cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
+private_tmux_tmpdir
+cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; sweep_private_tmux_tmpdir; }
 trap cleanup EXIT
 
 tmux -L "$SOCK" -f "$CONF" new-session -d -x 120 -y 30 || die "failed to start tmux"

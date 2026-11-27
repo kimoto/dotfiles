@@ -38,9 +38,14 @@ SOCK="ci_starship_e2e_$$"
 # leading components, never the tail).
 WORK="$(mktemp -d)/starship_e2e_zone"
 mkdir -p "$WORK"
+private_tmux_tmpdir
 cleanup() {
+  local swept=0
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
   rm -rf "$(dirname "$WORK")" 2>/dev/null || true
+  return "$swept"
 }
 trap cleanup EXIT
 
