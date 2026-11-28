@@ -14,6 +14,8 @@ M.SECONDS = {
    -- Short by default: a screen dimmed for long reads as a broken display.
    focus = { 30, 300 },
    steps = { 120, 600 },
+   -- A copy of the screen goes stale as the app redraws: short by default.
+   loupe = { 15, 120 },
 }
 -- Enough for one step of a walkthrough; more on the screen at once stops guiding the eye.
 M.MAX_OVERLAYS = 12
@@ -25,6 +27,19 @@ M.STYLES = { box = true, underline = true, bracket = true, ripple = true, click 
 -- screen; halo, a glow round the edge of the target's screen ("this monitor"); comet, a spark that
 -- flies from the pointer to the target. auto picks from where the pointer is (M.intro_for).
 M.INTROS = { none = true, auto = true, iris = true, sunburst = true, halo = true, comet = true }
+
+-- How much a loupe enlarges: { least, default, most }. Under 2 it is not worth the card; over 4 a
+-- screenful of pixels shows, not a clearer target.
+M.ZOOM = { 2, 3, 4 }
+-- The loupe's card never grows past this, whatever the zoom: it must not hide what is round the target.
+M.LOUPE_MAX = { w = 640, h = 420 }
+-- Room round the target that goes into the copy, so it is seen in its place.
+M.LOUPE_PAD = 16
+-- The strip across the top of the card that says it is the AI's, above the copy.
+M.LOUPE_HEADER = 34
+-- Narrower than this, the header's words do not fit; the copy then sits centred in the card.
+M.LOUPE_MIN_W = 200
+M.LOUPE_GAP = 24
 
 -- More numbered steps on screen than this stop reading as one sequence.
 M.MAX_STEPS = 5
@@ -136,6 +151,19 @@ function M.validate(cmd, a)
       if not M.INTROS[out.intro] then
          return nil, "intro must be none, auto, iris, sunburst, halo or comet"
       end
+      out.seconds, err = M.seconds(cmd, a.seconds)
+      if not out.seconds then return nil, err end
+      return out
+   elseif cmd == "loupe" then
+      out.target, err = M.target(a.target)
+      if not out.target then return nil, err end
+      if a.label ~= nil then
+         out.label, err = text(a.label, M.MAX_LABEL, "label")
+         if not out.label then return nil, err end
+      end
+      if a.zoom == nil then out.zoom = M.ZOOM[2]
+      elseif finite(a.zoom) then out.zoom = math.max(M.ZOOM[1], math.min(M.ZOOM[3], a.zoom))
+      else return nil, "zoom must be a number" end
       out.seconds, err = M.seconds(cmd, a.seconds)
       if not out.seconds then return nil, err end
       return out
@@ -446,6 +474,57 @@ function M.rays(c, n, angle, len, far)
                         { x = ex + uy * far, y = ey - ux * far } }
    end
    return out
+end
+
+-- A loupe: src, the part of screen f copied (r with LOUPE_PAD round it, kept on f), and dst, the card
+-- (a LOUPE_HEADER strip over the enlarged copy). The zoom shrinks to fit LOUPE_MAX and the room there
+-- is; dst sits below the target, else above, else beside it on the roomier side, never over it, and
+-- inside f. nil when the target is off f, or when there is no room to show it at least LOUPE_MIN times.
+M.LOUPE_MIN = 1.5
+function M.lens(r, f, zoom)
+   local src = M.clip({ x = r.x - M.LOUPE_PAD, y = r.y - M.LOUPE_PAD, w = r.w + 2 * M.LOUPE_PAD,
+                        h = r.h + 2 * M.LOUPE_PAD }, f)
+   if not src then return nil end
+   local gap, edge, head = M.LOUPE_GAP, 8, M.LOUPE_HEADER
+   local k = math.min(zoom, M.LOUPE_MAX.w / src.w, (M.LOUPE_MAX.h - head) / src.h)
+   local below = f.y + f.h - edge - (src.y + src.h + gap)
+   local above = src.y - gap - (f.y + edge)
+   local x, y
+   local function fits(room) return src.h * k + head <= room end
+   if fits(below) or fits(above) then
+      k = math.min(k, (f.w - 2 * edge) / src.w)
+      local w, h = math.max(src.w * k, M.LOUPE_MIN_W), src.h * k + head
+      x = math.max(f.x + edge, math.min(f.x + f.w - w - edge, src.x + src.w / 2 - w / 2))
+      y = fits(below) and src.y + src.h + gap or src.y - gap - h
+   else
+      local right = f.x + f.w - edge - (src.x + src.w + gap)
+      local left = src.x - gap - (f.x + edge)
+      local room = math.max(right, left)
+      k = math.min(k, room / src.w, (f.h - 2 * edge - head) / src.h)
+      local w, h = math.max(src.w * k, M.LOUPE_MIN_W), src.h * k + head
+      x = right >= left and src.x + src.w + gap or src.x - gap - w
+      y = math.max(f.y + edge, math.min(f.y + f.h - h - edge, src.y + src.h / 2 - h / 2))
+   end
+   if k < M.LOUPE_MIN then return nil end
+   return { src = src, dst = { x = x, y = y, w = math.max(src.w * k, M.LOUPE_MIN_W), h = src.h * k + head },
+            zoom = k }
+end
+
+-- The two lines that join the copied area to its enlarged copy: from the src corners facing the card
+-- to the card's matching corners, so the pair reads as a funnel from the thing to its close-up.
+function M.funnel(src, dst)
+   if dst.y >= src.y + src.h then
+      return { { x = src.x, y = src.y + src.h }, { x = dst.x, y = dst.y } },
+             { { x = src.x + src.w, y = src.y + src.h }, { x = dst.x + dst.w, y = dst.y } }
+   elseif dst.y + dst.h <= src.y then
+      return { { x = src.x, y = src.y }, { x = dst.x, y = dst.y + dst.h } },
+             { { x = src.x + src.w, y = src.y }, { x = dst.x + dst.w, y = dst.y + dst.h } }
+   elseif dst.x >= src.x + src.w then
+      return { { x = src.x + src.w, y = src.y }, { x = dst.x, y = dst.y } },
+             { { x = src.x + src.w, y = src.y + src.h }, { x = dst.x, y = dst.y + dst.h } }
+   end
+   return { { x = src.x, y = src.y }, { x = dst.x + dst.w, y = dst.y } },
+          { { x = src.x, y = src.y + src.h }, { x = dst.x + dst.w, y = dst.y + dst.h } }
 end
 
 -- Where a step's numbered badge sits: on r's top-left corner, pulled inside the screen f so a target

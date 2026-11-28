@@ -2,10 +2,10 @@
 ---
 --- Lets an AI on this Mac guide where the owner looks: dim every app but one, dim all but the pointer
 --- and a target, point an arrow at a window or a button, mark something (box, underline, brackets,
---- ripple, click), number the steps of a sequence, show a message, or ask a question with buttons and
---- hear the answer. It can also bring the Curtain spoon's end sooner (never later). guide_mcp.py
---- beside this file is the MCP server an AI client starts; it reaches this spoon over 127.0.0.1 with
---- a token only this user can read. Rules: logic.lua.
+--- ripple, click), number the steps of a sequence, enlarge a small target beside it, show a message,
+--- or ask a question with buttons and hear the answer. It can also bring the Curtain spoon's end
+--- sooner (never later). guide_mcp.py beside this file is the MCP server an AI client starts; it
+--- reaches this spoon over 127.0.0.1 with a token only this user can read. Rules: logic.lua.
 ---
 --- What an AI can never do here: run code (a request is one of a fixed set of commands), lift or
 --- remove the curtain, push its end later, show anything while it is up, or take the keyboard.
@@ -904,6 +904,107 @@ function obj:steps(args)
    return { id = ov.id, current = args.current, of = #rects }
 end
 
+-- An enlarged copy of a small target in a card beside it, joined to it by two lines: the eye gets the
+-- thing itself, not only a mark round something too small to read. The copy is taken once, with the
+-- other overlays hidden for that moment so it shows the screen as it is, and kept only in memory.
+-- Without Screen Recording permission macOS hands back the wallpaper alone, so the loupe is refused
+-- rather than shown empty. The card always says it is the AI's, and a click on it closes it rather
+-- than reaching whatever is under it.
+local LOUPE_GROW = 0.25
+-- Under the 0.1 s a person notices, and enough for the window server to take hidden windows away: it
+-- does so only once Hammerspoon goes back to its run loop, so this is a timer, never a sleep.
+local LOUPE_HIDE_WAIT = 0.08
+local FUNNEL = { 2, 3 }
+function obj:loupe(args)
+   if hs.screenRecordingState and not hs.screenRecordingState(false) then
+      return nil, "Hammerspoon has no Screen Recording permission (System Settings > Privacy & Security > "
+         .. "Screen & System Audio Recording), so a loupe would show only the wallpaper; use highlight instead"
+   end
+   local r, err = self:resolve(args.target)
+   if not r then return nil, err end
+   local frames = screenFrames()
+   local f = L.screen_of(frames, L.center(r))
+   if not L.clip(r, f) then return nil, "the target is not on any screen" end
+   local lens = L.lens(r, f, args.zoom)
+   if not lens then return nil, "no room to show the target larger than it is; use highlight" end
+   local screen
+   for i, fr in ipairs(frames) do if fr == f then screen = hs.screen.allScreens()[i] end end
+   local so = toLocal(lens.src, f)
+   local shown = {}
+   for _, o in pairs(self.overlays) do
+      for _, c in ipairs(o.canvases) do if c:isShowing() then c:hide(); shown[#shown + 1] = c end end
+   end
+   local ov = self:add("loupe", args.seconds, {})
+   local function draw()
+      -- An overlay may have been cleared while waiting: its canvas is gone, and that is fine.
+      local function unhide() for _, c in ipairs(shown) do pcall(c.show, c) end end
+      local img = screen:snapshot({ x = so.x, y = so.y, w = lens.src.w, h = lens.src.h })
+      unhide()
+      if not img then error("could not copy the screen") end
+      -- Under the card: the outline round the copied area and the funnel to the card.
+      local back = fullCanvas(f)
+      ov.canvases = { back }
+      back[1] = { type = "rectangle", action = "stroke", strokeWidth = 3, strokeColor = ACCENT, withShadow = true,
+                  roundedRectRadii = { xRadius = 6, yRadius = 6 },
+                  frame = { x = so.x, y = so.y, w = lens.src.w, h = lens.src.h } }
+      local a, b = L.funnel(lens.src, lens.dst)
+      back[FUNNEL[1]] = stroke(2, { toLocal(a[1], f), toLocal(a[2], f) })
+      back[FUNNEL[2]] = stroke(2, { toLocal(b[1], f), toLocal(b[2], f) })
+      -- The funnel shows once the card has arrived; drawn during the grow it would point at nothing.
+      for _, i in ipairs(FUNNEL) do back[i].strokeColor = { white = 0, alpha = 0 } end
+      back:show()
+      local card = hs.canvas.new({ x = lens.src.x, y = lens.src.y, w = lens.src.w, h = lens.src.h })
+      ov.canvases[2] = card
+      card:level(LEVEL)
+      card:behavior({ "canJoinAllSpaces", "stationary" })
+      card:clickActivating(false)
+      local head = L.LOUPE_HEADER
+      card[1] = { type = "rectangle", action = "fill", fillColor = CARD, withShadow = true, trackMouseUp = true,
+                  roundedRectRadii = { xRadius = 12, yRadius = 12 } }
+      card[2] = { type = "text", text = "AI・" .. (args.label or "拡大") .. "・押すと閉じる", textSize = 14,
+                  textColor = { white = 1 }, textAlignment = "center", textLineBreak = "truncateTail",
+                  frame = { x = 8, y = 8, w = "100%", h = head - 8 } }
+      card[3] = { type = "image", image = img, imageScaling = "scaleProportionally", trackMouseUp = true,
+                  frame = { x = 6, y = head, w = lens.dst.w - 12, h = lens.dst.h - head - 6 } }
+      card[4] = { type = "rectangle", action = "stroke", strokeWidth = 4, strokeColor = ACCENT,
+                  roundedRectRadii = { xRadius = 12, yRadius = 12 } }
+      card:mouseCallback(function(_, msg)
+         if msg == "mouseUp" then self:event(ov.id, "dismissed", "clicked"); self:remove(ov.id, "clicked") end
+      end)
+      card:show()
+      -- The card grows out of the copied area to its place, so the eye follows it from the thing itself.
+      -- Until it has arrived the header and copy are left out: squeezed small they read as noise.
+      card[2].textColor = { white = 1, alpha = 0 }
+      local t0 = hs.timer.secondsSinceEpoch()
+      local grow
+      grow = hs.timer.doEvery(1 / 60, function()
+         local k = L.ease((hs.timer.secondsSinceEpoch() - t0) / LOUPE_GROW)
+         local s0, d = lens.src, lens.dst
+         card:frame({ x = s0.x + (d.x - s0.x) * k, y = s0.y + (d.y - s0.y) * k,
+                      w = s0.w + (d.w - s0.w) * k, h = s0.h + (d.h - s0.h) * k })
+         if k >= 1 then
+            for _, i in ipairs(FUNNEL) do back[i].strokeColor = ACCENT end
+            card[2].textColor = { white = 1 }
+            grow:stop()
+         end
+      end)
+      table.insert(ov.timers, grow)
+   end
+   -- The copy waits for the other overlays to leave the screen; a failure then is logged and shown
+   -- to the AI as a "gone" event, since the reply has already gone out.
+   table.insert(ov.timers, hs.timer.doAfter(#shown > 0 and LOUPE_HIDE_WAIT or 0, function()
+      local ok, why = pcall(draw)
+      if not ok then
+         for _, c in ipairs(shown) do pcall(c.show, c) end
+         self:log("error", ov.id .. " loupe: " .. tostring(why))
+         self:event(ov.id, "gone", "could not draw")
+         self:remove(ov.id, "error")
+      end
+   end))
+   self:log("loupe", ov.id .. " " .. (args.label or ""))
+   return { id = ov.id, at = r, zoom = lens.zoom }
+end
+
 function obj:setCurtain(args)
    local c, now = self.curtain, os.time()
    local no = L.curtain_refusal(c and c:state(), now) or L.owner_deciding(c:lastChange(), now)
@@ -977,6 +1078,7 @@ function obj:run(cmd, a)
    if cmd == "spotlight" then return self:spotlight(a) end
    if cmd == "focus" then return self:focus(a) end
    if cmd == "steps" then return self:steps(a) end
+   if cmd == "loupe" then return self:loupe(a) end
    if cmd == "arrow" or cmd == "highlight" then return self:pointAt(cmd, a) end
    return self:card(cmd, a)
 end

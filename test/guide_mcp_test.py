@@ -93,7 +93,7 @@ class GuideMcpTest(unittest.TestCase):
         names = {t["name"] for t in tools}
         self.assertEqual(names, {"guide_status", "guide_spotlight", "guide_arrow", "guide_highlight",
                                  "guide_message", "guide_ask", "guide_clear", "guide_curtain", "guide_focus",
-                                 "guide_steps"})
+                                 "guide_steps", "guide_loupe"})
         for t in tools:
             self.assertNotIn("cmd", t)
             self.assertEqual(t["inputSchema"]["type"], "object")
@@ -103,11 +103,12 @@ class GuideMcpTest(unittest.TestCase):
         self.assertNotIn("isError", r)
         self.assertEqual(Spoon.seen, [(TOKEN, "arrow", {"target": {"app": "Mail", "text": "送信"}, "label": "ここ"})])
 
-    def test_focus_and_steps_reach_their_own_commands(self):
+    def test_new_tools_reach_their_own_commands(self):
         steps = {"steps": [{"target": {"x": 1, "y": 2}, "label": "a"}], "current": 1}
         self.tool("guide_focus", {"target": {"x": 1, "y": 2}})
         self.tool("guide_steps", steps)
-        self.assertEqual([c for _, c, _ in Spoon.seen], ["focus", "steps"])
+        self.tool("guide_loupe", {"target": {"x": 1, "y": 2, "w": 10, "h": 10}})
+        self.assertEqual([c for _, c, _ in Spoon.seen], ["focus", "steps", "loupe"])
         self.assertEqual(Spoon.seen[1][2], steps)
 
     def test_the_choices_offered_are_the_ones_the_spoon_takes(self):
