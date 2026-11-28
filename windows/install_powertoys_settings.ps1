@@ -23,11 +23,15 @@ if ($drift.Count -eq 0 -and (Test-PowerToysAutostart)) {
 # while starting. Started again even when a setting could not be written, so a
 # failure does not leave the machine without it.
 $running = @(Get-Process -Name 'PowerToys*' -ErrorAction SilentlyContinue)
-if ($running.Count -gt 0) {
-    $running | Stop-Process -Force
-    $running | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
-}
 try {
+    if ($running.Count -gt 0) {
+        $running | Stop-Process -Force -ErrorAction SilentlyContinue
+        $running | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
+        $alive = @($running | Where-Object { -not $_.HasExited } | ForEach-Object { $_.Name })
+        if ($alive.Count -gt 0) {
+            throw "PowerToys did not stop ($($alive -join ', ')); close it and run this again."
+        }
+    }
     foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
         & $dsc set --resource 'settings' --module $entry.Module --input $entry.Argument | Out-Null
         if ($LASTEXITCODE -ne 0) {
@@ -36,7 +40,12 @@ try {
         Write-Output "PowerToys: set $($entry.Module)."
     }
 } finally {
-    Start-Process -FilePath (Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe')
+    # A warning, so that it does not replace the error that got here.
+    try {
+        Start-Process -FilePath (Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe')
+    } catch {
+        Write-Warning "PowerToys could not be started again: $_"
+    }
 }
 
 # PowerToys registers its startup task a few seconds into starting, so this
