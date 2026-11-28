@@ -49,7 +49,8 @@ zsh_pane_cmd() {
     die "zsh_pane_cmd needs REPO and ZSH_BIN"
   fi
   local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1"
-  cmd="$cmd DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 TERM=xterm-256color"
+  # DOTFILES_NO_USAGE_LOG: what a test types must not count as the owner's use.
+  cmd="$cmd DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 DOTFILES_NO_USAGE_LOG=1 TERM=xterm-256color"
   local a name value
   for a in "$@"; do
     name="${a%%=*}"

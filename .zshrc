@@ -633,25 +633,36 @@ _usage_log_record() {
   # often travels in one.
   local -a words names
   words=(${(z)${1%%$'\n'*}})
-  local word at_command=1
+  # at_command: the next word may be the command. skip_unknown: a word that
+  # is not a command (sudo's user, repeat's count) is passed over, not taken
+  # as the end of the search.
+  local word at_command=1 skip_unknown=0
   for word in $words; do
     case $word in
-      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1; continue ;;
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1 skip_unknown=0; continue ;;
     esac
     (( at_command )) || continue
     case $word in
-      # Precommand modifiers, their options, grouping and assignments: the
-      # command is a later word.
-      ('('|'{'|'!'|sudo|command|builtin|exec|noglob|nocorrect|time|nohup|-*|*=*) continue ;;
+      ('('|'{'|'!'|-*|*=*) continue ;;
+      (sudo|command|builtin|exec|noglob|nocorrect|time|nohup) skip_unknown=1; continue ;;
     esac
+    if (( ${reswords[(Ie)$word]} )); then
+      skip_unknown=1
+      continue
+    fi
     # Only a word zsh would run is logged. A password typed at the prompt by
-    # mistake, or a typo, is not a command, so it never reaches the file. Until
-    # one is found the search goes on, past e.g. the user of `sudo -u <user>`.
+    # mistake, or a typo, is not a command, so it never reaches the file, and
+    # neither does anything after it.
+    [[ $word == '~/'* ]] && word=$HOME/${word#'~/'}
     if [[ $word == */* ]]; then
-      [[ -f $word && -x $word ]] || continue
-      word=${word:t}
-    elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] ||
-              $+builtins[$word] || ${reswords[(Ie)$word]} )); then
+      if [[ -f $word && -x $word ]]; then
+        word=${word:t}
+      else
+        (( skip_unknown )) || at_command=0
+        continue
+      fi
+    elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] || $+builtins[$word] )); then
+      (( skip_unknown )) || at_command=0
       continue
     fi
     at_command=0

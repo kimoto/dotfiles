@@ -34,6 +34,14 @@ case "${1:-}" in
     "") ;;
     *) echo "usage: usage_counts.sh [--days N | --all]" >&2; exit 2 ;;
 esac
+case "${1:-}" in
+    --days) max=2 ;;
+    *) max=1 ;;
+esac
+if [ "$#" -gt "$max" ]; then
+    echo "usage: usage_counts.sh [--days N | --all]" >&2
+    exit 2
+fi
 
 if [ ! -d "$LOG_DIR" ]; then
     echo "usage_counts: no usage log yet: $LOG_DIR" >&2

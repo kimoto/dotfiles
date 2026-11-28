@@ -42,7 +42,8 @@ logged() {
   mkdir -p "$WORK/bin"
   printf '#!/bin/sh\n' >"$WORK/bin/x.sh"
   chmod +x "$WORK/bin/x.sh"
-  type_commands "FOO=secret sudo -u admin git commit -m \"token abc\" | grep needle && $WORK/bin/x.sh /private/path; echo hi"
+  type_commands \
+    "FOO=secret sudo -u admin git commit -m \"token abc\" | grep needle && $WORK/bin/x.sh /private/path; echo hi"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
   [ "$(logged)" = "$(printf 'git\ngrep\nx.sh\necho')" ]
@@ -56,6 +57,22 @@ logged() {
   [ "$(logged)" = "ls" ]
 }
 
+@test "the command inside a loop is logged, not its keywords, and nothing after a typo" {
+  type_commands 'for f in a b; do grep x; done' 'repeat 3 ls' 'gti -u git' 'mytypo cat file'
+  [ "$status" -eq 0 ]
+  [ "$(logged)" = "$(printf 'grep\nls')" ]
+}
+
+@test "a command given as ~/path is found" {
+  export HOME="$WORK"
+  mkdir -p "$WORK/bin"
+  printf '#!/bin/sh\n' >"$WORK/bin/tool.sh"
+  chmod +x "$WORK/bin/tool.sh"
+  type_commands '~/bin/tool.sh arg'
+  [ "$status" -eq 0 ]
+  [ "$(logged)" = "tool.sh" ]
+}
+
 @test "a heredoc body is never read" {
   type_commands $'cat <<EOF >conf\ns3cr3tPassw0rd\nls\nEOF'
   [ "$status" -eq 0 ]
@@ -65,7 +82,9 @@ logged() {
 @test "the first command of a day creates its file and the directory is private" {
   type_commands 'ls' 'ls'
   [ "$status" -eq 0 ]
-  [ "$(ls "$LOG_DIR")" = "$(date +%Y-%m-%d).log" ]
+  # The day itself is not compared: the hook and this test could read the
+  # clock on either side of midnight.
+  [[ "$(ls "$LOG_DIR")" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\.log$ ]]
   [ "$(logged)" = "$(printf 'ls\nls')" ]
   [ "$(stat -c %a "$LOG_DIR" 2>/dev/null || stat -f %Lp "$LOG_DIR")" = 700 ]
 }
@@ -116,6 +135,10 @@ write_day() {
   counts --days x
   [ "$status" -eq 2 ]
   counts --bogus
+  [ "$status" -eq 2 ]
+  counts --all --days 3
+  [ "$status" -eq 2 ]
+  counts --days 3 --all
   [ "$status" -eq 2 ]
   counts
   [ "$status" -eq 1 ]
