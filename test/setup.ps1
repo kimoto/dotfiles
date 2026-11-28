@@ -42,6 +42,12 @@ if (-not (Test-Path -LiteralPath $shortcutPath)) {
     }
 }
 
+$explorerPolicy = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+$noWinKeys = (Get-ItemProperty -LiteralPath $explorerPolicy -Name NoWinKeys -ErrorAction SilentlyContinue).NoWinKeys
+if ($noWinKeys -ne 1) {
+    $failures.Add("NoWinKeys is not 1 under $explorerPolicy; the shell still takes Win+<key>.")
+}
+
 # A staged secret must stop a commit: the config alone would also pass with a
 # hook that never runs. PATH is read again as a new terminal would have it,
 # since winget put gitleaks on it after this process started.
