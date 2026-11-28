@@ -60,6 +60,9 @@ jobs:
       - name: Setup
         run: ./windows/setup.ps1
 
+      - name: PROBE PowerToys
+        run: ./test/powertoys_probe.ps1
+
       - name: Setup again changes nothing that breaks
         run: ./windows/setup.ps1
 
