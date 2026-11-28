@@ -303,7 +303,10 @@ function obj:pointAt(kind, args)
    if args.target.kind == "app" and not args.target.text then
       table.insert(ov.timers, hs.timer.doEvery(0.5, function()
          local nr = self:resolve(args.target)
-         if nr and (nr.x ~= ov.rect.x or nr.y ~= ov.rect.y or nr.w ~= ov.rect.w or nr.h ~= ov.rect.h) then draw(nr) end
+         if nr and (nr.x ~= ov.rect.x or nr.y ~= ov.rect.y or nr.w ~= ov.rect.w or nr.h ~= ov.rect.h)
+            and not pcall(draw, nr) then
+            self:remove(ov.id, "error")
+         end
       end))
    end
    self:log(kind, ov.id .. " " .. (args.label or ""))
@@ -378,7 +381,8 @@ function obj:card(kind, args)
          self:event(ov.id, "answered", args.choices[i])
          self:remove(ov.id, "answered")
       elseif el == "close" or kind == "message" then
-         self:event(ov.id, "dismissed", "clicked")
+         -- A question records its own "dismissed" as it ends (onEnd); a message has no onEnd.
+         if kind == "message" then self:event(ov.id, "dismissed", "clicked") end
          self:remove(ov.id, "dismissed")
       end
    end)
@@ -444,9 +448,13 @@ function obj:spotlight(args)
    table.insert(ov.timers, hs.timer.doEvery(0.3, function()
       if not pcall(draw) then self:event(ov.id, "left", "app gone"); self:remove(ov.id, "app gone") end
    end))
+   local front = hs.application.frontmostApplication()
+   local settled = front ~= nil and front:pid() == app:pid()
    local watcher = hs.application.watcher.new(function(name, ev, a)
       if ev ~= hs.application.watcher.activated then return end
-      if a and a:pid() == app:pid() then return end
+      -- Until the app has come forward, other activations are activate() settling, not the owner.
+      if a and a:pid() == app:pid() then settled = true; return end
+      if not settled then return end
       self:event(ov.id, "left", name)
       self:remove(ov.id, "left")
    end)
@@ -608,14 +616,19 @@ function obj:start()
    self:stop()
    self.overlays, self.answers, self.events, self.seq = {}, {}, {}, 0
    self.token = (hs.host.uuid() .. hs.host.uuid()):gsub("-", "")
-   self.server = hs.httpserver.new(false, false)
-   self.server:setInterface("localhost")
    math.randomseed(os.time() + hs.timer.absoluteTime() % 1000000)
-   self.server:setPort(self.port or math.random(20000, 60999))
-   self.server:setCallback(function(...) return self:handle(...) end)
-   self.server:start()
-   -- The port it really got; the endpoint is written only once something of ours listens there.
-   self.boundPort = self.server:getPort()
+   -- A random port can be taken by another service: a few tries, then give up with an alert.
+   for _ = 1, self.port and 1 or 5 do
+      self.server = hs.httpserver.new(false, false)
+      self.server:setInterface("localhost")
+      self.server:setPort(self.port or math.random(20000, 60999))
+      self.server:setCallback(function(...) return self:handle(...) end)
+      self.server:start()
+      -- The port it really got; the endpoint is written only once something of ours listens there.
+      self.boundPort = self.server:getPort()
+      if self.boundPort and self.boundPort ~= 0 then break end
+      self.server:stop()
+   end
    if not self.boundPort or self.boundPort == 0 or not self:writeEndpoint() then
       hs.alert.show("Guide: 起動できませんでした", 5)
       self.server:stop(); self.server = nil

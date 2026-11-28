@@ -103,6 +103,7 @@ Source: `hammerspoon/Spoons/Guide.spoon` — arrows, outlines, dimming and messa
 |-----|--------|
 | ⌃⌥⌘Esc | Clear every AI overlay and refuse new ones for 30 minutes (🔕 in the menu bar; its menu lifts the mute) |
 | Switch app | Ends a spotlight that dims everything but one app |
+| — | An AI may only bring the curtain sooner; such an end has no Enter (done) and no ⏸ pause, only the Esc hold and `exit` |
 | Click | Closes a message; on a question, a button answers it and × closes it unanswered |
 
 ---
