@@ -77,10 +77,11 @@ change the machine, so only their tests are timed.
 
 How often a typed helper is used lives only on the owner's machines.
 `bin/usage_report.sh` reads the zsh history, which keeps one entry per command,
-so it gives the last use, not a count. `bin/usage_counts.sh` reads the usage
-log the `.zshrc` preexec hook keeps (command names, and for some tools the subcommand and option names, no values; and
-only on machines that set `DOTFILES_USAGE_LOG=1`) and gives counts. Neither output belongs in this public repo: it shows every tool a
-machine uses.
+so it gives the last use, not a count. `bin/usage_counts.sh` gives counts
+from the usage log the `.zshrc` preexec hook keeps on machines that set
+`DOTFILES_USAGE_LOG=1`. The log holds command names, and for a few tools the
+subcommand and option names, never a value. Neither output belongs in this
+public repo: it shows every tool a machine uses.
 
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Trends

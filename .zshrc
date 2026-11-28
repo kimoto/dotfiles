@@ -622,17 +622,34 @@ add-zsh-hook precmd _long_command_bell
 
 # Usage log: which commands get typed, and how often, so tools can be judged by
 # use (bin/usage_counts.sh reads it). Kept is the name in each command position
-# and, for the tools below whose first argument is a subcommand, that
-# subcommand and the names of the options — never a value, a path or a time of
-# day. One command per line, in a file per local day, on this machine only.
+# and, for the tools below whose first argument is a subcommand, the first
+# listed subcommand and the names of the options — never a value, a path or a
+# time of day. One command per line, in a file per local day, on this machine only.
 # The directory is 0700: every command typed passes through it. Off unless
 # DOTFILES_USAGE_LOG=1 (in ~/.zshrc.local): a machine that has not been asked
 # keeps nothing. DOTFILES_NO_USAGE_LOG=1 wins over it, for test shells.
 zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
 _usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
-# Only tools whose first argument is always a subcommand: for any other, the
-# first argument is a file or a host, which must not be kept.
-_usage_log_subcommand_tools=(brew cargo docker gh git go kubectl launchctl mise npm pnpm systemctl tmux uv)
+# Only tools whose first argument is always a subcommand, and only the
+# subcommands listed: any other word (a git alias, a pasted secret) is not
+# kept. Add a subcommand here to have it counted.
+typeset -gA _usage_log_subcommands=(
+  brew 'bundle cleanup doctor info install list outdated search services tap uninstall update upgrade'
+  cargo 'add build check clippy fmt install run test update'
+  docker 'build compose exec images inspect logs ps pull push rm rmi run start stop system volume'
+  gh 'api auth browse issue pr release repo run search secret workflow'
+  git 'add bisect blame branch checkout cherry-pick clean clone commit config diff fetch grep init log merge mv
+    pull push rebase reflog remote reset restore revert rm show stash status switch tag worktree'
+  go 'build get install mod run test vet'
+  kubectl 'apply config delete describe edit exec get logs port-forward rollout scale'
+  launchctl 'bootout bootstrap kickstart list load print unload'
+  mise 'exec install ls outdated run upgrade use'
+  npm 'ci exec install run test update'
+  pnpm 'add exec install run test update'
+  systemctl 'daemon-reload disable enable restart start status stop'
+  tmux 'attach kill-server kill-session ls new new-session source-file'
+  uv 'add lock pip run sync tool venv'
+)
 _usage_log_record() {
   [[ "${DOTFILES_USAGE_LOG:-}" == 1 && -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
   # First line only: preexec gets a heredoc's body too, and a pasted secret
@@ -640,9 +657,9 @@ _usage_log_record() {
   local -a words names
   words=(${(z)${1%%$'\n'*}})
   # at_command: the next word is the command. skip_next: the next word is the
-  # file of a redirection. detail: after a subcommand tool, 1 while its
-  # subcommand may come next, 2 once only option names are taken.
-  local word at_command=1 skip_next=0 detail=0
+  # file of a redirection. detail: set after a subcommand tool, whose entry is
+  # rebuilt from tool, sub (its listed subcommand) and opts (option names).
+  local word at_command=1 skip_next=0 detail=0 tool sub opts
   for word in $words; do
     case $word in
       # `)` and `;;` end a case pattern and a case branch.
@@ -652,34 +669,35 @@ _usage_log_record() {
       skip_next=0
       continue
     fi
+    # A redirection operator, with an fd before it; not `<(...)`, and not a
+    # quoted word that holds a `>`, since (z) keeps the quotes.
+    local op=${${word#[0-9]}#'&'}
+    if [[ $op == ['<>']* && $op != ['<>']'('* ]]; then
+      skip_next=1
+      continue
+    fi
     if (( ! at_command )); then
       (( detail )) || continue
       case $word in
-        (*'<'*|*'>'*) skip_next=1 ;;
         # After `--` every word is an argument, whatever it looks like.
-        (--) detail=0 ;;
-        # A long option up to `=`; a short one by its first letter alone, as
+        (--) detail=0; continue ;;
+        # A long option up to `=`, lowercase and hyphens only, as option names
+        # are and secrets rarely are; a short one by its first letter alone, as
         # `-pVALUE` glues a value on.
         (--*) word=${word%%=*}
-              [[ $word == --[A-Za-z]* && $word != *[^A-Za-z0-9-]* && ${#word} -le 32 ]] &&
-                names[-1]+=" $word"
-              detail=2 ;;
-        (-*) [[ ${word[2]} == [A-Za-z] ]] && names[-1]+=" -${word[2]}"
-             detail=2 ;;
-        # The subcommand only when it comes first: in `git -C <dir> log` the
-        # first plain word is a directory.
-        (*) if (( detail == 1 )) && [[ $word == [a-z]* && $word != *[^a-z0-9-]* && ${#word} -le 32 ]]; then
-              names[-1]+=" $word"
-            fi
-            detail=2 ;;
+              [[ $word == --[a-z]* && $word != *[^a-z-]* && ${#word} -le 32 ]] && opts+=" $word" ;;
+        (-*) [[ ${word[2]} == [A-Za-z] ]] && opts+=" -${word[2]}" ;;
+        # Only a listed subcommand is kept, so a directory (`git -C <dir>`),
+        # an option value or a pasted secret is passed over.
+        (*) [[ -z $sub ]] && (( ${${=_usage_log_subcommands[$tool]}[(Ie)$word]} )) && sub=$word ;;
       esac
+      names[-1]="$tool${sub:+ $sub}$opts"
       continue
     fi
     case $word in
       # Words that put a command next.
       ('('|'{'|'!'|do|then|else|elif|if|while|until|time|coproc|nocorrect|noglob|-*|*=*) continue ;;
       (sudo|command|builtin|exec|nohup) continue ;;
-      (*'<'*|*'>'*) skip_next=1; continue ;;
       # Words followed by a list, a pattern or a test, not by a command.
       (for|foreach|select|case|repeat|'[['|'((') at_command=0; continue ;;
     esac
@@ -696,7 +714,10 @@ _usage_log_record() {
     fi
     [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] || continue
     names+=($word)
-    (( ${_usage_log_subcommand_tools[(Ie)$word]} )) && detail=1
+    # An alias or function of the same name may take anything first.
+    if (( $+_usage_log_subcommands[$word] && ! $+aliases[$word] && ! $+functions[$word] )); then
+      detail=1 tool=$word sub= opts=
+    fi
   done
   (( $#names )) || return 0
   [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0

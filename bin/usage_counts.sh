@@ -28,7 +28,14 @@ LOG_DIR="${USAGE_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage}"
 USAGE="usage: usage_counts.sh [--days N | --all] [--names]"
 days=7
 names_only=0
+window=""
 while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --all | --days)
+            [ -z "$window" ] || { echo "$USAGE" >&2; exit 2; }
+            window=$1
+            ;;
+    esac
     case "$1" in
         --all) days=0 ;;
         --days)
