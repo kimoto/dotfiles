@@ -283,5 +283,66 @@ eq("rays: the first points right", rays[1][2].x, 100)
 eq("rays: as wide as asked at the end", math.abs(rays[1][2].y - rays[1][3].y), 20)
 eq("rays: spread round the circle", math.floor(rays[2][2].y + 0.5), 100)
 
+-- loupe: an enlarged copy of a small target beside it.
+local lo = L.validate("loupe", { target = { x = 5, y = 6, w = 20, h = 20 } })
+eq("loupe: default zoom", lo.zoom, 3)
+eq("loupe: short by default", lo.seconds, 15)
+eq("loupe: zoom capped", L.validate("loupe", { target = { x = 5, y = 6 }, zoom = 10 }).zoom, 4)
+eq("loupe: zoom at least 2", L.validate("loupe", { target = { x = 5, y = 6 }, zoom = 1 }).zoom, 2)
+refused("loupe: zoom as text", "loupe", { target = { x = 5, y = 6 }, zoom = "big" })
+refused("loupe: no target", "loupe", {})
+
+local S = { x = 0, y = 0, w = 1600, h = 1000 }
+local HD, GAP = L.LOUPE_HEADER, L.LOUPE_GAP
+local le = L.lens({ x = 400, y = 100, w = 40, h = 20 }, S, 3)
+eq("lens: padded copy", le.src.w, 40 + 2 * L.LOUPE_PAD)
+eq("lens: three times as big", le.dst.w, le.src.w * 3)
+eq("lens: the header on top", le.dst.h, le.src.h * 3 + HD)
+eq("lens: below the target", le.dst.y, le.src.y + le.src.h + GAP)
+eq("lens: centred under it", le.dst.x + le.dst.w / 2, le.src.x + le.src.w / 2)
+le = L.lens({ x = 400, y = 900, w = 40, h = 20 }, S, 3)
+eq("lens: above a target at the bottom", le.dst.y + le.dst.h, le.src.y - GAP)
+le = L.lens({ x = 400, y = 100, w = 250, h = 60 }, S, 3)
+eq("lens: zoom shrinks to fit the card", le.dst.w <= L.LOUPE_MAX.w, true)
+eq("lens: still enlarged when shrunk", le.dst.w > le.src.w * 2, true)
+eq("lens: as big as the card already, none", L.lens({ x = 0, y = 0, w = 900, h = 600 }, S, 3), nil)
+eq("lens: off the screen, none", L.lens({ x = -500, y = -500, w = 20, h = 20 }, S, 3), nil)
+eq("lens: kept on screen at the right", (function()
+   local x = L.lens({ x = 1580, y = 100, w = 20, h = 20 }, S, 3).dst
+   return x.x + x.w <= S.w - 8 end)(), true)
+eq("lens: never narrower than its header", L.lens({ x = 400, y = 100, w = 8, h = 8 }, S, 2).dst.w, L.LOUPE_MIN_W)
+eq("lens: kept on screen at the left", L.lens({ x = 0, y = 100, w = 20, h = 20 }, S, 3).dst.x >= 8, true)
+
+-- No room above or below: beside it, on the roomier side, and never off the screen.
+le = L.lens({ x = 100, y = 380, w = 60, h = 200 }, S, 4)
+eq("lens: beside it, to the right when that is roomier", le.dst.x, le.src.x + le.src.w + GAP)
+le = L.lens({ x = 1440, y = 380, w = 60, h = 200 }, S, 4)
+eq("lens: beside it, to the left when that is roomier", le.dst.x + le.dst.w, le.src.x - GAP)
+local NARROW = { x = 0, y = 0, w = 1280, h = 800 }
+le = L.lens({ x = 440, y = 260, w = 360, h = 240 }, NARROW, 3)
+eq("lens: beside, shrunk to stay on screen, or none", le == nil or le.dst.x + le.dst.w <= NARROW.w - 8, true)
+le = L.lens({ x = 200, y = 300, w = 120, h = 200 }, NARROW, 4)
+eq("lens: beside, inside the screen", le.dst.x + le.dst.w <= NARROW.w - 8 and le.dst.x >= 8, true)
+eq("lens: beside, never over the target", le.dst.x >= le.src.x + le.src.w, true)
+
+local fa, fb = L.funnel({ x = 10, y = 10, w = 20, h = 20 }, { x = 0, y = 60, w = 60, h = 60 })
+eq("funnel: below, from the bottom corners", fa[1].x == 10 and fa[1].y == 30 and fb[1].x == 30, true)
+eq("funnel: below, to the card's top corners", fa[2].x == 0 and fb[2].x == 60 and fb[2].y == 60, true)
+fa, fb = L.funnel({ x = 10, y = 100, w = 20, h = 20 }, { x = 0, y = 0, w = 60, h = 60 })
+eq("funnel: above, from the top corners", fa[1].y == 100 and fb[1].x == 30 and fb[1].y == 100, true)
+eq("funnel: above, to the card's bottom corners", fa[2].y == 60 and fb[2].x == 60 and fb[2].y == 60, true)
+fa, fb = L.funnel({ x = 10, y = 100, w = 20, h = 20 }, { x = 60, y = 80, w = 60, h = 60 })
+eq("funnel: right, from the right side", fa[1].x == 30 and fb[1].x == 30 and fb[1].y == 120, true)
+eq("funnel: right, to the card's left side", fa[2].x == 60 and fb[2].x == 60 and fb[2].y == 140, true)
+fa, fb = L.funnel({ x = 200, y = 100, w = 20, h = 20 }, { x = 60, y = 80, w = 60, h = 60 })
+eq("funnel: left, from the left side", fa[1].x == 200 and fb[1].x == 200 and fb[1].y == 120, true)
+eq("funnel: left, to the card's right side", fa[2].x == 120 and fb[2].x == 120 and fb[2].y == 140, true)
+
+local lv = L.validate("loupe", { target = { x = 5, y = 6 }, label = string.rep("a", 200), seconds = 999 })
+eq("loupe: long label cut", #lv.label, L.MAX_LABEL + #"…")
+eq("loupe: capped", lv.seconds, 120)
+refused("loupe: zoom NaN", "loupe", { target = { x = 5, y = 6 }, zoom = 0 / 0 })
+refused("loupe: label not text", "loupe", { target = { x = 5, y = 6 }, label = 5 })
+
 if fails > 0 then os.exit(1) end
 print("ok")

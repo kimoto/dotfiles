@@ -183,6 +183,26 @@ TOOLS = [
         "cmd": "steps",
     },
     {
+        "name": "guide_loupe",
+        "description": (
+            "Show an enlarged copy (2 to 4 times, default 3) of a small target in a card beside it, joined to it "
+            "by two lines: for a tiny icon, a checkbox, or one word in a dense table. The copy is taken once and "
+            "goes stale if the app redraws, so keep it short. Refused without Screen Recording permission for "
+            "Hammerspoon, or when the target is already large; use guide_highlight then."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": TARGET,
+                "label": {"type": "string"},
+                "zoom": {"type": "number", "description": "2 to 4; default 3"},
+                "seconds": dict(SECONDS, description="Default 15, at most 120"),
+            },
+            "required": ["target"],
+        },
+        "cmd": "loupe",
+    },
+    {
         "name": "guide_message",
         "description": "Show a message card; a click closes it. position: center, top, bottom, or near a target.",
         "inputSchema": {
