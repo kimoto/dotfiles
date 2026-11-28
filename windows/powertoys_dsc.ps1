@@ -82,7 +82,7 @@ function Set-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
     # The first match is the top-level one: Command Palette writes it first,
     # and Test-CommandPaletteHotkey below refuses the result if it was not.
     $pattern = [regex]'"Hotkey"\s*:\s*\{[^{}]*\}'
-    $updated = $pattern.Replace($text, $block)
+    $updated = $pattern.Replace($text, $block, 1)
     [System.IO.File]::WriteAllText($SettingsPath, $updated)
     if (-not (Test-CommandPaletteHotkey $SettingsPath $Wanted)) {
         [System.IO.File]::WriteAllText($SettingsPath, $text)
