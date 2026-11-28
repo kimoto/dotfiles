@@ -75,7 +75,14 @@ jobs:
       # No checkout. The model's session loads project settings from its
       # working directory, and a checkout of the PR head would hand it the
       # PR's own .claude/settings.json, hooks included; the action also
-      # writes the job token into a checkout's git config.
+      # writes the job token into a checkout's git config. The action still
+      # runs `git diff HEAD` there and fails outside a repository, so the
+      # workspace gets an empty one: one commit, no files, no remote.
+      - name: Give the action an empty repository
+        if: steps.key.outputs.run == 'true'
+        run: |
+          git init -q .
+          git -c user.name=ci -c user.email=ci@invalid commit -q --allow-empty -m empty
 
       # Built by a step that holds no Anthropic token. The viewpoints come from
       # the reviewer prompts on the default branch, so a PR that rewrites
