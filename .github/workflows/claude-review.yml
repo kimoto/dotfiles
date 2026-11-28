@@ -223,10 +223,11 @@ jobs:
       # and anything handed to a later step through env or with is printed in
       # its public log. So the answer is read from the execution file, the
       # SDK's messages with the final `result` one last, and only the fields
-      # that get posted leave this step.
+      # that get posted leave this step. always(): the action fails the step
+      # when no JSON came back, and that is when its error text is needed.
       - name: Keep the public part of the answer
         id: public
-        if: steps.claude.outputs.execution_file != ''
+        if: always() && steps.claude.outputs.execution_file != ''
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
@@ -234,6 +235,14 @@ jobs:
             | {correctness, looked_at}' "$EXECUTION_FILE")"
           if [ -n "$result" ]; then
             echo "result=$result" >>"$GITHUB_OUTPUT"
+          fi
+          # An error result from before the model's first answer is the API's
+          # own message, not review text, so it is safe in the public log.
+          error="$(jq -r '[.[] | select(.type == "result")] | last
+            | select(.is_error == true and (.modelUsage // {} | length) == 0)
+            | .result // "no message" | tostring | gsub("[\\r\\n]+"; " ") | .[0:300]' "$EXECUTION_FILE")"
+          if [ -n "$error" ]; then
+            echo "::warning::The API refused the reviewer: $error"
           fi
 
       - name: Record the outcome
