@@ -205,13 +205,23 @@ jobs:
                   detail = err.read(2000).decode("utf-8", "replace").replace("\n", " ")
                   print(f"::warning::The API refused the reviewer: {err.code} {detail[:400]}")
                   raise SystemExit(0)
+              except (OSError, ValueError) as err:
+                  # A timeout, a dropped connection or a body that is not JSON
+                  # ends like a refusal: no review, a warning, a green job.
+                  print(f"::warning::The reviewer could not be reached: {type(err).__name__}")
+                  raise SystemExit(0)
 
           # The job's OIDC token, traded for a short-lived Anthropic one.
-          oidc = urllib.request.Request(
-              os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=" + API,
-              headers={"Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
-          with urllib.request.urlopen(oidc, timeout=30) as resp:
-              jwt = json.load(resp)["value"]
+          def get(url, headers):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as resp:
+                      return json.load(resp)
+              except (OSError, ValueError) as err:
+                  print(f"::warning::The job's OIDC token could not be fetched: {type(err).__name__}")
+                  raise SystemExit(0)
+
+          jwt = get(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=" + API,
+                    {"Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})["value"]
           exchange = {"grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer", "assertion": jwt,
                       "federation_rule_id": os.environ["RULE"], "organization_id": os.environ["ORG"],
                       "service_account_id": os.environ["ACCOUNT"]}
@@ -219,7 +229,10 @@ jobs:
               exchange["workspace_id"] = os.environ["WORKSPACE"]
           token = call(API + "/v1/oauth/token", exchange, {
               "content-type": "application/json",
-              "anthropic-beta": OAUTH_BETA + "," + FEDERATION_BETA})["access_token"]
+              "anthropic-beta": OAUTH_BETA + "," + FEDERATION_BETA}).get("access_token")
+          if not token:
+              print("::warning::The token exchange returned no access token.")
+              raise SystemExit(0)
 
           # Opus: the review is read by the owner before merging, and one call
           # a push is cheap next to a missed bug.
@@ -343,3 +356,91 @@ jobs:
           elif [ "$STATUS" = ok ]; then
             gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body" >/dev/null
           fi
+
+      # Each finding that lands on a line of the diff also goes on that line,
+      # in one review per commit, as most review bots do. A finding on a line
+      # the diff does not show stays in the summary comment only, as GitHub
+      # refuses a review comment there. Same cleaning and credential backstop
+      # as the summary: the text is model output from an untrusted diff.
+      - name: Comment on the lines
+        if: needs.review.outputs.status == 'ok'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RESULT: ${{ needs.review.outputs.result }}
+        shell: python3 -I {0}
+        run: |
+          import json, os, re, urllib.request
+
+          API = "https://api.github.com/repos/" + os.environ["REPO"]
+          PR, SHA = os.environ["PR"], os.environ["HEAD_SHA"]
+          MARKER = "<!-- claude-review-lines -->"
+          HEADERS = {"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                     "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+
+          def gh(path, body=None):
+              data = None if body is None else json.dumps(body).encode()
+              req = urllib.request.Request(API + path, data, HEADERS, method="GET" if body is None else "POST")
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  return json.load(resp)
+
+          def pages(path):
+              out, page = [], 1
+              while True:
+                  batch = gh(f"{path}?per_page=100&page={page}")
+                  out += batch
+                  if len(batch) < 100:
+                      return out
+                  page += 1
+
+          # Mirrors clean() in the summary step.
+          def clean(text, n):
+              text = re.sub(r"[\r\n]+", " ", str(text)[:n])
+              text = re.sub(r"[<>`\[\]]", "", text)
+              for ch in "&@#":
+                  text = text.replace(ch, ch + "\u200b")
+              text = re.sub(r"([Gg][Hh])-", "\\1-\u200b", text)
+              text = re.sub(r"([a-zA-Z]+)://", "\\1:\u200b//", text)
+              return text.replace("www.", "www\u200b.")
+
+          # Lines a review comment can sit on: added and context lines of the
+          # new side of each hunk.
+          commentable = set()
+          for f in pages(f"/pulls/{PR}/files"):
+              line = 0
+              for row in f.get("patch", "").split("\n"):
+                  hunk = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)", row)
+                  if hunk:
+                      line = int(hunk.group(1))
+                  elif row.startswith(("+", " ")):
+                      commentable.add((f["filename"], line))
+                      line += 1
+
+          if any(r.get("commit_id") == SHA and r.get("body", "").startswith(MARKER)
+                 for r in pages(f"/pulls/{PR}/reviews")):
+              raise SystemExit(0)  # this commit already has its line comments
+
+          comments = []
+          for item in json.loads(os.environ["RESULT"])["correctness"][:20]:
+              try:
+                  spot = (str(item["file"]), int(item["line"]))
+              except (KeyError, TypeError, ValueError):
+                  continue
+              if spot in commentable:
+                  comments.append({"path": spot[0], "line": spot[1], "side": "RIGHT",
+                                   "body": "**Claude:** " + clean(item.get("how", ""), 400)})
+          if not comments:
+              raise SystemExit(0)
+
+          shapes = (r"gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{40,}"
+                    r"|sk-ant-[A-Za-z0-9_-]{40,}|x-access-token:[^@\s]+@")
+          if any(re.search(shapes, c["body"]) for c in comments):
+              print("::error::A line comment looks like it holds a credential; not posting it.")
+              raise SystemExit(1)
+
+          gh(f"/pulls/{PR}/reviews", {
+              "commit_id": SHA, "event": "COMMENT", "comments": comments,
+              "body": f"{MARKER}\nClaude review of {SHA[:7]}: {len(comments)} finding(s) on the lines below. "
+                      "The summary comment lists them all."})
