@@ -1,7 +1,7 @@
 # Sets PowerToys to powertoys-settings.json: run at startup, and the hotkeys
-# that keep clear of the Mac-keyboard remaps (README.md, step 2). Command
-# Palette keeps its settings elsewhere and is not covered. Leaves a PowerToys
-# that already matches alone, since applying a change restarts it.
+# that keep clear of the Mac-keyboard remaps (README.md, step 2), Command
+# Palette's among them. Leaves a PowerToys that already matches alone, since
+# applying a change restarts it.
 [CmdletBinding()]
 param()
 
@@ -12,17 +12,36 @@ $dsc = Find-PowerToysDsc
 if (-not $dsc) {
     throw 'PowerToys.DSC.exe not found; PowerToys 0.95 or later is needed.'
 }
+$powerToys = Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe'
+$paletteSettings = Get-CommandPaletteSettingsPath
+$paletteHotkey = Get-CommandPaletteWantedHotkey
 $drift = @(Get-PowerToysDrift $dsc)
-if ($drift.Count -eq 0 -and (Test-PowerToysAutostart)) {
+$paletteMatches = Test-CommandPaletteHotkey $paletteSettings $paletteHotkey
+if ($drift.Count -eq 0 -and $paletteMatches -and (Test-PowerToysAutostart)) {
     Write-Output 'PowerToys already matches powertoys-settings.json.'
     return
 }
 
-# A running PowerToys, its Settings window included, would write its own copy
-# of the settings back over these, and it registers "run at startup" only
-# while starting. Started again even when a setting could not be written, so a
-# failure does not leave the machine without it.
-$running = @(Get-Process -Name 'PowerToys*' -ErrorAction SilentlyContinue)
+# Command Palette writes its settings file the first time it runs, and
+# PowerToys is what runs it; there is nothing to edit before that.
+if (-not (Test-Path -LiteralPath $paletteSettings -PathType Leaf)) {
+    if (-not (Get-Process -Name PowerToys -ErrorAction SilentlyContinue)) {
+        Start-Process -FilePath $powerToys
+    }
+    $deadline = (Get-Date).AddSeconds(60)
+    while (-not (Test-Path -LiteralPath $paletteSettings -PathType Leaf)) {
+        if ((Get-Date) -gt $deadline) {
+            throw "Command Palette did not write $paletteSettings within 60 seconds of PowerToys starting."
+        }
+        Start-Sleep -Seconds 1
+    }
+}
+
+# A running PowerToys, its Settings window and Command Palette included, would
+# write its own copy of the settings back over these, and it registers "run at
+# startup" only while starting. Started again even when a setting could not be
+# written, so a failure does not leave the machine without it.
+$running = @(Get-Process -Name 'PowerToys*', 'Microsoft.CmdPal*' -ErrorAction SilentlyContinue)
 try {
     if ($running.Count -gt 0) {
         $running | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -39,10 +58,14 @@ try {
         }
         Write-Output "PowerToys: set $($entry.Module)."
     }
+    if (-not $paletteMatches) {
+        Set-CommandPaletteHotkey $paletteSettings $paletteHotkey
+        Write-Output 'PowerToys: set the Command Palette hotkey.'
+    }
 } finally {
     # A warning, so that it does not replace the error that got here.
     try {
-        Start-Process -FilePath (Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe')
+        Start-Process -FilePath $powerToys
     } catch {
         Write-Warning "PowerToys could not be started again: $_"
     }

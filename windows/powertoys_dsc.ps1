@@ -1,6 +1,8 @@
 # What PowerToys should be set to (powertoys-settings.json) and how far the
 # machine is from it, dot-sourced by the script that applies it and the check
-# that reads it back. PowerToys.DSC.exe is PowerToys' own settings tool.
+# that reads it back. PowerToys.DSC.exe is PowerToys' own settings tool; it
+# does not reach Command Palette, a separate package whose settings file is
+# read and written here directly.
 
 function Find-PowerToysDsc {
     # Per-user is what winget installs by default; Program Files is the machine-scope install.
@@ -12,7 +14,7 @@ function Find-PowerToysDsc {
 # Each module's wanted settings, as the --input argument PowerToys.DSC.exe takes.
 function Get-PowerToysWanted([string]$Path = (Join-Path $PSScriptRoot 'powertoys-settings.json')) {
     $wanted = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
-    foreach ($module in $wanted.psobject.Properties) {
+    foreach ($module in $wanted.modules.psobject.Properties) {
         $argument = $module.Value | ConvertTo-Json -Depth 10 -Compress
         # Windows PowerShell 5.1 drops the quotes inside an argument it hands a
         # native program unless they are escaped; PowerShell 7 passes them as is.
@@ -45,4 +47,45 @@ function Get-PowerToysDrift([string]$Dsc, [string]$Path = (Join-Path $PSScriptRo
 function Test-PowerToysAutostart {
     [bool](Get-ScheduledTask -TaskPath '\PowerToys\' -ErrorAction SilentlyContinue |
         Where-Object { $_.TaskName -like 'Autorun for *' -and $_.State -ne 'Disabled' })
+}
+
+function Get-CommandPaletteSettingsPath {
+    Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.CommandPalette_8wekyb3d8bbwe\LocalState\settings.json'
+}
+
+function Get-CommandPaletteWantedHotkey([string]$Path = (Join-Path $PSScriptRoot 'powertoys-settings.json')) {
+    (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json).commandPaletteHotkey
+}
+
+# Whether Command Palette's settings file asks for the wanted hotkey. The key's
+# name is left out: Command Palette writes the same key with or without it.
+function Test-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
+    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) { return $false }
+    try {
+        $hotkey = (Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json).Hotkey
+    } catch {
+        return $false
+    }
+    if ($null -eq $hotkey) { return $false }
+    foreach ($part in 'win', 'ctrl', 'alt', 'shift', 'code') {
+        if ($hotkey.$part -ne $Wanted.$part) { return $false }
+    }
+    $true
+}
+
+# Rewrites the top-level "Hotkey" object and nothing else: the rest of the
+# file is Command Palette's own, in whatever shape its version writes, and a
+# round trip through ConvertTo-Json would rewrite all of it.
+function Set-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
+    $text = [System.IO.File]::ReadAllText($SettingsPath)
+    $block = '"Hotkey": ' + ($Wanted | ConvertTo-Json -Compress)
+    # The first match is the top-level one: Command Palette writes it first,
+    # and Test-CommandPaletteHotkey below refuses the result if it was not.
+    $pattern = [regex]'"Hotkey"\s*:\s*\{[^{}]*\}'
+    $updated = $pattern.Replace($text, $block)
+    [System.IO.File]::WriteAllText($SettingsPath, $updated)
+    if (-not (Test-CommandPaletteHotkey $SettingsPath $Wanted)) {
+        [System.IO.File]::WriteAllText($SettingsPath, $text)
+        throw "Could not set Command Palette's hotkey in $SettingsPath; the file is left as it was."
+    }
 }

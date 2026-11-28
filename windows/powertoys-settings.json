@@ -1,26 +1,31 @@
 {
-  "App": {
-    "settings": {
-      "startup": true,
-      "enabled": { "AdvancedPaste": true, "Peek": true }
-    }
-  },
-  "Peek": {
-    "settings": {
-      "name": "Peek",
-      "version": "1.0",
-      "properties": {
-        "ActivationShortcut": { "win": true, "ctrl": false, "alt": false, "shift": true, "code": 80, "key": "P" }
+  "modules": {
+    "App": {
+      "settings": {
+        "startup": true,
+        "enabled": { "AdvancedPaste": true, "CmdPal": true, "Peek": true }
+      }
+    },
+    "Peek": {
+      "settings": {
+        "name": "Peek",
+        "version": "1.0",
+        "properties": {
+          "ActivationShortcut": { "win": true, "ctrl": false, "alt": false, "shift": true, "code": 80, "key": "P" }
+        }
+      }
+    },
+    "AdvancedPaste": {
+      "settings": {
+        "name": "AdvancedPaste",
+        "version": "1",
+        "properties": {
+          "advanced-paste-ui-hotkey": {
+            "win": true, "ctrl": true, "alt": false, "shift": false, "code": 86, "key": "V"
+          }
+        }
       }
     }
   },
-  "AdvancedPaste": {
-    "settings": {
-      "name": "AdvancedPaste",
-      "version": "1",
-      "properties": {
-        "advanced-paste-ui-hotkey": { "win": true, "ctrl": true, "alt": false, "shift": false, "code": 86, "key": "V" }
-      }
-    }
-  }
+  "commandPaletteHotkey": { "win": false, "ctrl": true, "alt": false, "shift": false, "code": 32, "key": "Space" }
 }
