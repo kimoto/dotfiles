@@ -91,6 +91,8 @@ Where Claude itself gets stopped (a permission refused, a hook that blocked a
 call, a failed tool) is counted by `bin/claude_stumbles.sh`, from the local
 transcripts or a cloud session's events. Its output quotes the start of each
 message, so it goes to private places only.
+`ai-usage-loop` reads it for a real example before acting on a weekly number,
+since anyone holding the intake token can move those numbers.
 
 ## Trends
 
