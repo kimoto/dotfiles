@@ -330,3 +330,18 @@ fake_git_version() {
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash|PowerShell")
     | .hooks[].command | contains("claude_commit_secret_scan.sh")' "$cloud" >/dev/null
 }
+
+@test "commit: the scan still finds its helpers when readlink -f resolves nothing" {
+  command -v gitleaks >/dev/null || skip "gitleaks not installed"
+  mkrepo
+  printf 'token = "%s"\n' "$TOKEN" >"$REPO/creds.txt"
+  printf '#!/bin/sh\ngitleaks git --staged\n' >"$REPO/.git/hooks/pre-commit"
+  chmod +x "$REPO/.git/hooks/pre-commit"
+  # Git Bash's readlink -f, given a script on a \\wsl.localhost path.
+  mkdir -p "$TMP/shim"
+  printf '#!/bin/sh\nexit 1\n' >"$TMP/shim/readlink"
+  chmod +x "$TMP/shim/readlink"
+  # The repo's own hook is found through a helper beside the script.
+  PATH="$TMP/shim:$PATH" commit_scan 'git add creds.txt && git commit -m add'
+  [ "$status" -eq 0 ]
+}

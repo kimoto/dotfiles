@@ -174,3 +174,14 @@ JSON
   [ "$(cat "$SETTINGS")" = '{"hooks": {"Stop": "not-an-array"}}' ]
   [[ "$output" == *"unexpected"* ]]
 }
+
+@test "install still finds its library when readlink -f resolves nothing" {
+  # Git Bash's readlink -f, given a script on a \\wsl.localhost path.
+  mkdir -p "$TMP/shim"
+  printf '#!/bin/sh\nexit 1\n' >"$TMP/shim/readlink"
+  chmod +x "$TMP/shim/readlink"
+  cd "$TMP"
+  PATH="$TMP/shim:$PATH" run "$INSTALLER"
+  [ "$status" -eq 0 ]
+  jq -e '.hooks.Stop[].hooks[].command | select(contains("claude_idle_recap.sh"))' "$SETTINGS" >/dev/null
+}

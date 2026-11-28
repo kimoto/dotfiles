@@ -21,7 +21,8 @@
 #    gets removed.
 set -uo pipefail
 
-HERE=$(dirname "$(readlink -f "$0")")
+# $0 when readlink -f fails: Git Bash on a \\wsl.localhost path exits 1.
+HERE=$(dirname "$(readlink -f "$0" || echo "$0")")
 
 # Untracked files larger than this are skipped: a secret is rarely in one, and
 # reading a build artefact would make every commit slow.
