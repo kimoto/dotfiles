@@ -22,8 +22,7 @@ if [ "$MODE" = "--uninstall" ]; then
 else
   jq --arg commit "$COMMIT_SCAN" --arg privacy "$PRIVACY_CHECK" "$STRIP"'
     def ensure($event; $matcher; $c; $timeout):
-      .hooks[$event] = ((.hooks[$event] // [])
-        + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: $timeout}]}]);
+      add_hook($event; $matcher; {type: "command", command: $c, timeout: $timeout});
     strip_security
     # gitleaks reads the whole diff; 30s covers a large one without letting a
     # hung scan hold the session.

@@ -83,23 +83,42 @@ settings_open() {
 }
 
 # strip_def <name> <jq test on a command string>: a jq def <name> that drops
-# every entry whose command passes the test, whatever version of the command
-# string an older install wrote. Install strips before it adds, so a rerun or
-# an upgrade never leaves two copies.
+# every hook whose command passes the test, whatever version of the command
+# string an older install wrote (settings_commit drops the groups that leaves
+# empty); and add_hook($event; $matcher; $hook), which puts a hook in the event's group
+# for that matcher ("" for none) so installers that share an event share one
+# group. Install strips before it adds, so a rerun never leaves two copies,
+# though rerunning one installer alone moves its hooks to the end of a group.
 strip_def() {
   printf '%s\n' "
   def $1:
     if .hooks == null then .
-    else .hooks |= (with_entries(
-        .value |= map(select(
-          ([.hooks[]? | .command? // empty | strings]
-           | any($2)) | not))
-      ) | with_entries(select(.value != [])))
-    end;"
+    else .hooks |= (map_values(map(
+        if (.hooks | type) == \"array\" then
+          (.hooks | length) as \$n
+          | .hooks |= map(select(
+              (.command? // null) as \$c
+              | (\$c | type) == \"string\" and (\$c | $2) | not))
+          | if .hooks == [] and \$n > 0 then .stripped = true else . end
+        else . end)))
+    end;
+  def add_hook(\$event; \$matcher; \$hook):
+    (.hooks[\$event] // []) as \$groups
+    | (\$groups | map((.matcher // \"\") == \$matcher) | index(true)) as \$i
+    | if \$i == null then
+        .hooks[\$event] = \$groups
+          + [(if \$matcher == \"\" then {} else {matcher: \$matcher} end)
+             + {hooks: [\$hook]}]
+      else .hooks[\$event][\$i].hooks += [\$hook] | del(.hooks[\$event][\$i].stripped) end;"
 }
 
 # settings_commit <what>: write $tmp over the settings when it differs.
 settings_commit() {
+  # Drop the groups strip emptied and add_hook did not refill, then their events.
+  pruned="$(jq 'if .hooks == null then . else .hooks |= (
+      map_values(map(select(.stripped != true))) | with_entries(select(.value != [])))
+    end' "$tmp")"
+  printf '%s\n' "$pruned" >"$tmp"
   if cmp -s "$tmp" "$SETTINGS"; then
     exit 0
   fi

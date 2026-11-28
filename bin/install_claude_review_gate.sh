@@ -19,8 +19,7 @@ if [ "$MODE" = "--uninstall" ]; then
 else
   jq --arg gate "$GATE" "$STRIP"'
     def ensure($event; $matcher; $c):
-      .hooks[$event] = ((.hooks[$event] // [])
-        + [{matcher: $matcher, hooks: [{type: "command", command: $c, timeout: 10}]}]);
+      add_hook($event; $matcher; {type: "command", command: $c, timeout: 10});
     strip_gate
     | ensure("PreToolUse"; "Bash|PowerShell|mcp__.*__create_pull_request"; $gate)
   ' "$SETTINGS" >"$tmp"

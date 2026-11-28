@@ -18,8 +18,7 @@ if [ "$MODE" = "--uninstall" ]; then
 else
   jq --arg cmd "$GUARDED" "$STRIP"'
     strip_pr
-    | .hooks.PostToolUse = ((.hooks.PostToolUse // [])
-        + [{matcher: "Bash|PowerShell", hooks: [{type: "command", command: $cmd}]}])
+    | add_hook("PostToolUse"; "Bash|PowerShell"; {type: "command", command: $cmd})
   ' "$SETTINGS" >"$tmp"
 fi
 
