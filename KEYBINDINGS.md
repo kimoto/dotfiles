@@ -99,7 +99,7 @@ Source:
 
 An AI may only bring the curtain sooner; an end it set has no Enter (done) and no ⏸ pause, only the Esc hold and `exit`.
 
-Source: `hammerspoon/Spoons/Guide.spoon` — arrows, marks, numbered steps, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
+Source: `hammerspoon/Spoons/Guide.spoon` — arrows, marks (each with an optional one-shot movement to catch the eye), numbered steps, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
 
 | Key | Action |
 |-----|--------|

@@ -248,5 +248,40 @@ eq("reached: started inside a big target, then moved", L.reached({ x = 0, y = 0 
 eq("reached: moved, but not far enough", L.reached({ x = 0, y = 0 }, { x = L.REACH_MOVE - 1, y = 0 },
    { x = -100, y = -100, w = 1000, h = 1000 }), false)
 
+-- Intros: a fixed list, none by default; auto chooses from where the pointer is.
+eq("intro: none by default", L.validate("arrow", { target = { x = 5, y = 6 } }).intro, "none")
+eq("intro: named", L.validate("highlight", { target = { x = 5, y = 6 }, intro = "sunburst" }).intro, "sunburst")
+refused("intro: unknown", "arrow", { target = { x = 5, y = 6 }, intro = "fireworks" })
+local TWO = { F, { x = 1000, y = 0, w = 500, h = 500 } }
+local function names(list) return table.concat(list, "+") end
+eq("auto: other monitor, which one then where", names(L.intro_for({ x = 100, y = 100 },
+   { x = 1200, y = 100, w = 20, h = 20 }, TWO)), "halo+comet")
+eq("auto: far on this monitor", names(L.intro_for({ x = 0, y = 0 }, { x = 900, y = 700, w = 20, h = 20 }, TWO)),
+   "comet+iris")
+eq("auto: nearby", names(L.intro_for({ x = 100, y = 100 }, { x = 500, y = 100, w = 20, h = 20 }, TWO)), "iris")
+eq("auto: right there, nothing", names(L.intro_for({ x = 100, y = 100 }, { x = 100 + L.NEAR, y = 100, w = 20, h = 20 },
+   TWO)), "")
+eq("auto: just past near", names(L.intro_for({ x = 100, y = 100 }, { x = 101 + L.NEAR, y = 100, w = 20, h = 20 },
+   TWO)), "iris")
+
+local BIG = { x = 0, y = 0, w = 3000, h = 3000 }
+eq("auto: exactly FAR is not far", names(L.intro_for({ x = 0, y = 10 }, { x = L.FAR - 10, y = 0, w = 20, h = 20 },
+   { BIG })), "iris")
+eq("auto: just past FAR is far", names(L.intro_for({ x = 0, y = 10 }, { x = L.FAR - 9, y = 0, w = 20, h = 20 },
+   { BIG })), "comet+iris")
+
+eq("ease: starts at 0", L.ease(0), 0)
+eq("ease: ends at 1", L.ease(1), 1)
+eq("ease: fast at first", L.ease(0.5) > 0.5, true)
+eq("ease: held before the start", L.ease(-1), 0)
+eq("ease: held after the end", L.ease(2), 1)
+
+local rays = L.rays({ x = 0, y = 0 }, 4, 0, 100, 10)
+eq("rays: as many as asked", #rays, 4)
+eq("rays: each starts at the centre", rays[3][1].x == 0 and rays[3][1].y == 0, true)
+eq("rays: the first points right", rays[1][2].x, 100)
+eq("rays: as wide as asked at the end", math.abs(rays[1][2].y - rays[1][3].y), 20)
+eq("rays: spread round the circle", math.floor(rays[2][2].y + 0.5), 100)
+
 if fails > 0 then os.exit(1) end
 print("ok")

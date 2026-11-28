@@ -214,6 +214,8 @@ function obj:remove(id, why)
    self.overlays[id] = nil
    for _, t in ipairs(ov.timers) do t:stop() end
    for _, c in ipairs(ov.canvases) do c:delete() end
+   -- An intro still playing: its own canvases, outside the ones a redraw replaces.
+   for _, c in ipairs(ov.extra or {}) do c:delete() end
    if ov.onEnd then ov.onEnd(why) end
    self:log("end", id .. " " .. (why or ""))
    self:refreshMenu()
@@ -333,6 +335,162 @@ function obj:ripple(ov)
    table.insert(ov.timers, timer)
 end
 
+-- ===== Intros: one movement, under a second, that brings the eye before the mark settles =====
+
+local function accent(alpha)
+   return { red = ACCENT.red, green = ACCENT.green, blue = ACCENT.blue, alpha = alpha }
+end
+
+-- Runs step(t) with t going 0 → 1 over seconds, then deletes the canvases it drew on. They are kept in
+-- ov.extra so clearing the overlay mid-flight takes them too.
+local INTRO_HZ = 60
+function obj:animate(ov, canvases, seconds, step)
+   ov.extra = ov.extra or {}
+   for _, c in ipairs(canvases) do ov.extra[#ov.extra + 1] = c; c:show() end
+   -- Under the mark: a glow at the screen's edge must not cover a target in the menu bar or Dock.
+   for _, m in ipairs(ov.canvases) do m:orderAbove() end
+   local t0 = hs.timer.secondsSinceEpoch()
+   local timer
+   timer = hs.timer.doEvery(1 / INTRO_HZ, function()
+      local t = math.min(1, (hs.timer.secondsSinceEpoch() - t0) / seconds)
+      local ok, why = pcall(step, t)
+      if not ok then self:log("error", ov.id .. " intro: " .. tostring(why)) end
+      if t >= 1 or not ok then
+         timer:stop()
+         for _, c in ipairs(canvases) do
+            c:delete()
+            for i, e in ipairs(ov.extra) do if e == c then table.remove(ov.extra, i); break end end
+         end
+      end
+   end)
+   table.insert(ov.timers, timer)
+end
+
+-- A ring the size of the screen closes onto the target, a second one just behind it.
+local IRIS_SECONDS, IRIS_LAG, IRIS_TRAVEL = 0.45, 0.12, 400
+-- The last part of the run fades the rings, so they settle into the mark rather than blink out.
+local IRIS_FADE = 0.2
+function obj:iris(ov, r, frames)
+   local f = L.screen_of(frames, L.center(r))
+   local c = fullCanvas(f)
+   local mid = toLocal(L.center(r), f)
+   local to = math.max(r.w, r.h) / 2 + 10
+   -- Always from well outside the target, so a whole-window target still sees the ring close in.
+   local from = math.max(math.max(f.w, f.h) * 0.6, to + IRIS_TRAVEL)
+   for i = 1, 2 do
+      c[i] = { type = "circle", action = "stroke", center = mid, radius = from, strokeColor = accent(0) }
+   end
+   local total = IRIS_SECONDS + IRIS_LAG
+   self:animate(ov, { c }, total, function(t)
+      for i = 1, 2 do
+         local k = L.ease((t * total - (i - 1) * IRIS_LAG) / IRIS_SECONDS)
+         c[i].radius = from + (to - from) * k
+         c[i].strokeWidth = 28 - 24 * k
+         local fade = t > 1 - IRIS_FADE and (1 - t) / IRIS_FADE or 1
+         c[i].strokeColor = accent(k <= 0 and 0 or (0.55 + 0.4 * k) * (i == 1 and 1 or 0.6) * fade)
+      end
+   end)
+end
+
+-- Eight thin rays from the target across every screen turn a sixteenth of a turn, then fade.
+local SUN_SECONDS, SUN_RAYS, SUN_ALPHA = 0.7, 8, 0.3
+function obj:sunburst(ov, r, frames)
+   local mid = L.center(r)
+   local reach = 0
+   for _, f in ipairs(frames) do
+      for _, x in ipairs({ f.x, f.x + f.w }) do
+         for _, y in ipairs({ f.y, f.y + f.h }) do
+            reach = math.max(reach, math.sqrt((x - mid.x) ^ 2 + (y - mid.y) ^ 2))
+         end
+      end
+   end
+   local canvases, list = {}, {}
+   for _, f in ipairs(frames) do
+      local c = fullCanvas(f)
+      list[#list + 1] = c
+      for i = 1, SUN_RAYS do
+         c[i] = { type = "segments", action = "fill", closed = true, fillColor = accent(SUN_ALPHA),
+                  coordinates = { { x = 0, y = 0 }, { x = 0, y = 0 }, { x = 0, y = 0 } } }
+      end
+      canvases[#canvases + 1] = { c = c, f = f }
+   end
+   self:animate(ov, list, SUN_SECONDS, function(t)
+      local rays = L.rays(mid, SUN_RAYS, math.pi / 8 * L.ease(t), reach, 70)
+      local alpha = SUN_ALPHA * (t < 0.7 and 1 or (1 - t) / 0.3)
+      for _, e in ipairs(canvases) do
+         for i, ray in ipairs(rays) do
+            e.c[i].coordinates = { toLocal(ray[1], e.f), toLocal(ray[2], e.f), toLocal(ray[3], e.f) }
+            e.c[i].fillColor = accent(alpha)
+         end
+      end
+   end)
+end
+
+-- A wide glow round the inside edge of the target's screen, once: "this monitor". It holds for a
+-- moment before fading: the eye that catches it at the edge of vision needs that moment to turn.
+local HALO_SECONDS, HALO_HOLD, HALO_ALPHA, HALO_WIDTH = 0.8, 0.3, 0.9, 80
+function obj:halo(ov, r, frames)
+   local f = L.screen_of(frames, L.center(r))
+   local c = fullCanvas(f)
+   -- A stroke is centred on its frame's edge: inset by half its width, or half of it falls off screen.
+   local half = HALO_WIDTH / 2
+   c[1] = { type = "rectangle", action = "stroke", strokeWidth = HALO_WIDTH, strokeColor = accent(HALO_ALPHA),
+            frame = { x = half, y = half, w = f.w - HALO_WIDTH, h = f.h - HALO_WIDTH } }
+   self:animate(ov, { c }, HALO_SECONDS, function(t)
+      c[1].strokeColor = accent(HALO_ALPHA * (1 - L.ease((t - HALO_HOLD) / (1 - HALO_HOLD))))
+   end)
+end
+
+-- A spark with a fading tail flies once from the pointer to the target. Its own small canvas moves,
+-- so nothing full-screen redraws and it crosses from one monitor to the other as it goes.
+local COMET_SECONDS, COMET_SIZE = 0.5, 320
+local COMET_HEAD, COMET_CORE, COMET_TAIL, COMET_TAIL_WIDTH, COMET_SLICES = 22, 9, 150, 20, 6
+function obj:comet(ov, r)
+   local from, to = hs.mouse.absolutePosition(), L.center(r)
+   local dx, dy = to.x - from.x, to.y - from.y
+   local d = math.sqrt(dx * dx + dy * dy)
+   if d < 1 then return false end
+   local ux, uy = dx / d, dy / d
+   local h = COMET_SIZE / 2
+   local c = hs.canvas.new({ x = from.x - h, y = from.y - h, w = COMET_SIZE, h = COMET_SIZE })
+   c:level(LEVEL)
+   c:behavior({ "canJoinAllSpaces", "stationary" })
+   -- The tail: a narrowing wedge behind the head, made of slices that fade towards its end.
+   local slices = COMET_SLICES
+   for i = 1, slices do
+      local a, b = (i - 1) / slices, i / slices
+      local w1, w2 = COMET_TAIL_WIDTH * (1 - a), COMET_TAIL_WIDTH * (1 - b)
+      local l1, l2 = COMET_TAIL * a, COMET_TAIL * b
+      c[i] = { type = "segments", action = "fill", closed = true, fillColor = accent(0.85 * (1 - a)),
+               coordinates = { { x = h - ux * l1 - uy * w1, y = h - uy * l1 + ux * w1 },
+                               { x = h - ux * l2 - uy * w2, y = h - uy * l2 + ux * w2 },
+                               { x = h - ux * l2 + uy * w2, y = h - uy * l2 - ux * w2 },
+                               { x = h - ux * l1 + uy * w1, y = h - uy * l1 - ux * w1 } } }
+   end
+   c[slices + 1] = { type = "circle", action = "fill", center = { x = h, y = h }, radius = COMET_HEAD,
+                     fillColor = ACCENT,
+                     withShadow = true }
+   c[slices + 2] = { type = "circle", action = "fill", center = { x = h, y = h }, radius = COMET_CORE,
+                     fillColor = { white = 1 } }
+   self:animate(ov, { c }, COMET_SECONDS, function(t)
+      local k = L.ease(t)
+      c:topLeft({ x = from.x + dx * k - h, y = from.y + dy * k - h })
+   end)
+end
+
+-- Plays the intro(s) and returns the names that did play, or nil for none: comet has nothing to fly
+-- when the pointer is already on the target.
+function obj:intro(ov, which, r)
+   if which == "none" then return nil end
+   local frames = screenFrames()
+   local list = which == "auto" and L.intro_for(hs.mouse.absolutePosition(), r, frames) or { which }
+   local played = {}
+   for _, name in ipairs(list) do
+      if self[name](self, ov, r, frames) ~= false then played[#played + 1] = name end
+   end
+   return #played > 0 and played or nil
+end
+
 -- Draws the mark (and for an arrow, the arrow) around rect r, and redraws when an app's window moves.
 function obj:pointAt(kind, args)
    local r, err = self:resolve(args.target)
@@ -375,6 +533,9 @@ function obj:pointAt(kind, args)
    if not drawn then self:remove(ov.id, "error"); return nil, "could not draw: " .. tostring(why) end
    self:pulse(ov, ov.marked.pulse)
    if ov.marked.rings then self:ripple(ov) end
+   -- The mark is up whatever happens here: an intro that fails is logged, and the reply still has the id.
+   local introOk, played = pcall(self.intro, self, ov, args.intro, r)
+   if not introOk then self:log("error", ov.id .. " intro: " .. tostring(played)); played = nil end
    if args.target.kind == "app" and not args.target.text then
       table.insert(ov.timers, hs.timer.doEvery(0.5, function()
          local nr = self:resolve(args.target)
@@ -387,7 +548,7 @@ function obj:pointAt(kind, args)
       end))
    end
    self:log(kind, ov.id .. " " .. (args.label or ""))
-   local out = { id = ov.id, at = r }
+   local out = { id = ov.id, at = r, intro = played }
    -- An app behind another window may be covered where the arrow points; say so, so the AI can
    -- bring it forward (a spotlight does) rather than point at whatever is on top.
    if args.target.kind == "app" then

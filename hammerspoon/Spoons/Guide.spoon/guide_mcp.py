@@ -44,6 +44,16 @@ TARGET = {
     },
 }
 SECONDS = {"type": "number", "description": "How long it stays up; it always ends on its own."}
+INTRO = {
+    "type": "string",
+    "enum": ["none", "auto", "iris", "sunburst", "halo", "comet"],
+    "description": (
+        "A one-shot movement under a second that brings the eye first: iris, a ring closing in from the "
+        "screen's size; sunburst, rays from the target across every screen; halo, a glow round the edge of "
+        "the target's monitor; comet, a spark from the mouse pointer to the target. auto picks from where the "
+        "pointer is (another monitor: halo and comet; far: comet and iris; near: iris; on it: none). Default none."
+    ),
+}
 STYLE = {
     "type": "string",
     "enum": ["box", "underline", "bracket", "ripple", "click"],
@@ -92,7 +102,13 @@ TOOLS = [
         ),
         "inputSchema": {
             "type": "object",
-            "properties": {"target": TARGET, "label": {"type": "string"}, "style": STYLE, "seconds": SECONDS},
+            "properties": {
+                "target": TARGET,
+                "label": {"type": "string"},
+                "style": STYLE,
+                "intro": INTRO,
+                "seconds": SECONDS,
+            },
             "required": ["target"],
         },
         "cmd": "arrow",
@@ -102,7 +118,13 @@ TOOLS = [
         "description": "Mark a target with a pulsing frame (or another style), with an optional label.",
         "inputSchema": {
             "type": "object",
-            "properties": {"target": TARGET, "label": {"type": "string"}, "style": STYLE, "seconds": SECONDS},
+            "properties": {
+                "target": TARGET,
+                "label": {"type": "string"},
+                "style": STYLE,
+                "intro": INTRO,
+                "seconds": SECONDS,
+            },
             "required": ["target"],
         },
         "cmd": "highlight",
