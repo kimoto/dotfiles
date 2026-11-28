@@ -49,8 +49,19 @@ logged() {
     "FOO=secret sudo -E git commit -m \"token abc\" | grep needle && $WORK/bin/x.sh /private/path; echo hi"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
-  [ "$(logged)" = "$(printf 'git\ngrep\nx.sh\necho')" ]
+  [ "$(logged)" = "$(printf 'git commit -m\ngrep\nx.sh\necho')" ]
   ! grep -rqE 'secret|token|needle|private|hi' "$LOG_DIR"
+}
+
+@test "a subcommand tool keeps its subcommand and option names, never a value" {
+  type_commands 'git log --oneline -n 5' 'git commit -mSECRET --message=SECRET2' \
+    'gh repo view org/private' 'git -C /private/dir log' 'git log -- -secret' \
+    'git push origin main' 'git' 'ls -la /private'
+  [ "$status" -eq 0 ]
+  local want='git log --oneline -n\ngit commit -m --message\ngh repo\ngit -C\ngit log\ngit push\ngit\nls'
+  # shellcheck disable=SC2059
+  [ "$(logged)" = "$(printf "$want")" ]
+  ! grep -rqE 'SECRET|private|origin|main|oneline -n 5' "$LOG_DIR"
 }
 
 @test "a word zsh would not run is dropped, so a mistyped password never lands" {
@@ -146,6 +157,15 @@ write_day() {
   [ "${#lines[@]}" -eq 4 ]
 }
 
+@test "--names counts a subcommand tool by its name alone" {
+  write_day 2026-11-28 'git log --oneline' 'git push' 'git log --oneline' ls
+  counts
+  [ "${lines[1]}" = "$(printf '2\tgit log --oneline')" ]
+  counts --names
+  [ "${lines[1]}" = "$(printf '3\tgit')" ]
+  [ "${lines[2]}" = "$(printf '1\tls')" ]
+}
+
 @test "--days and --all widen the window" {
   write_day 2026-11-01 old
   write_day 2026-11-28 git
@@ -164,9 +184,7 @@ write_day() {
   [ "$status" -eq 2 ]
   counts --bogus
   [ "$status" -eq 2 ]
-  counts --all --days 3
-  [ "$status" -eq 2 ]
-  counts --days 3 --all
+  counts --all extra
   [ "$status" -eq 2 ]
   counts
   [ "$status" -eq 1 ]

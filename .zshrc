@@ -621,13 +621,18 @@ add-zsh-hook preexec _long_command_mark
 add-zsh-hook precmd _long_command_bell
 
 # Usage log: which commands get typed, and how often, so tools can be judged by
-# use (bin/usage_counts.sh reads it). Only the name in each command position is
-# kept — never an argument, a path or a time of day — one per line, in a file
-# per local day, on this machine only. The directory is 0700: every command
-# typed passes through it. Off unless DOTFILES_USAGE_LOG=1 (in ~/.zshrc.local):
-# a machine that has not been asked keeps nothing. DOTFILES_NO_USAGE_LOG=1 wins over it, for test shells.
+# use (bin/usage_counts.sh reads it). Kept is the name in each command position
+# and, for the tools below whose first argument is a subcommand, that
+# subcommand and the names of the options — never a value, a path or a time of
+# day. One command per line, in a file per local day, on this machine only.
+# The directory is 0700: every command typed passes through it. Off unless
+# DOTFILES_USAGE_LOG=1 (in ~/.zshrc.local): a machine that has not been asked
+# keeps nothing. DOTFILES_NO_USAGE_LOG=1 wins over it, for test shells.
 zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
 _usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
+# Only tools whose first argument is always a subcommand: for any other, the
+# first argument is a file or a host, which must not be kept.
+_usage_log_subcommand_tools=(brew cargo docker gh git go kubectl launchctl mise npm pnpm systemctl tmux uv)
 _usage_log_record() {
   [[ "${DOTFILES_USAGE_LOG:-}" == 1 && -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
   # First line only: preexec gets a heredoc's body too, and a pasted secret
@@ -635,16 +640,39 @@ _usage_log_record() {
   local -a words names
   words=(${(z)${1%%$'\n'*}})
   # at_command: the next word is the command. skip_next: the next word is the
-  # file of a redirection.
-  local word at_command=1 skip_next=0
+  # file of a redirection. detail: after a subcommand tool, 1 while its
+  # subcommand may come next, 2 once only option names are taken.
+  local word at_command=1 skip_next=0 detail=0
   for word in $words; do
     case $word in
       # `)` and `;;` end a case pattern and a case branch.
-      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|')'|';;'|';&'|';|') at_command=1 skip_next=0; continue ;;
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|')'|';;'|';&'|';|') at_command=1 skip_next=0 detail=0; continue ;;
     esac
-    (( at_command )) || continue
     if (( skip_next )); then
       skip_next=0
+      continue
+    fi
+    if (( ! at_command )); then
+      (( detail )) || continue
+      case $word in
+        (*'<'*|*'>'*) skip_next=1 ;;
+        # After `--` every word is an argument, whatever it looks like.
+        (--) detail=0 ;;
+        # A long option up to `=`; a short one by its first letter alone, as
+        # `-pVALUE` glues a value on.
+        (--*) word=${word%%=*}
+              [[ $word == --[A-Za-z]* && $word != *[^A-Za-z0-9-]* && ${#word} -le 32 ]] &&
+                names[-1]+=" $word"
+              detail=2 ;;
+        (-*) [[ ${word[2]} == [A-Za-z] ]] && names[-1]+=" -${word[2]}"
+             detail=2 ;;
+        # The subcommand only when it comes first: in `git -C <dir> log` the
+        # first plain word is a directory.
+        (*) if (( detail == 1 )) && [[ $word == [a-z]* && $word != *[^a-z0-9-]* && ${#word} -le 32 ]]; then
+              names[-1]+=" $word"
+            fi
+            detail=2 ;;
+      esac
       continue
     fi
     case $word in
@@ -666,7 +694,9 @@ _usage_log_record() {
     elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] || $+builtins[$word] )); then
       continue
     fi
-    [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
+    [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] || continue
+    names+=($word)
+    (( ${_usage_log_subcommand_tools[(Ie)$word]} )) && detail=1
   done
   (( $#names )) || return 0
   [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0
