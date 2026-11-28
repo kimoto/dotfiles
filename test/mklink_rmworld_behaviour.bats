@@ -15,10 +15,16 @@ setup() {
   MKLINK="$REPO_ROOT/bin/mklink.sh"
   RMWORLD="$REPO_ROOT/bin/rmworld.sh"
   HOME_SANDBOX="$(mktemp -d)"
+  # ~/.claude/settings.json links into the repo, so a script that writes
+  # through the link changes a tracked file; teardown catches that.
+  SETTINGS_SUM="$(cksum <"$REPO_ROOT/claudecode/settings.json")"
+  CLOUD_SUM="$(cksum <"$REPO_ROOT/claudecode/settings-cloud.json")"
 }
 
 teardown() {
   rm -rf "$HOME_SANDBOX"
+  [ "$(cksum <"$REPO_ROOT/claudecode/settings.json")" = "$SETTINGS_SUM" ]
+  [ "$(cksum <"$REPO_ROOT/claudecode/settings-cloud.json")" = "$CLOUD_SUM" ]
 }
 
 @test "mklink.sh links dotfiles in HOME back to the repo" {
@@ -285,6 +291,44 @@ teardown() {
   HOME="$HOME_SANDBOX" run sh "$RMWORLD"
   [ "$status" -eq 0 ]
   [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+}
+
+@test "mklink.sh points a settings link left dangling by a moved checkout here again" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  ln -nsf "$HOME_SANDBOX/old-checkout/dotfiles/claudecode/settings.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ "$(readlink -f "$HOME_SANDBOX/.claude/settings.json")" = "$REPO_ROOT/claudecode/settings.json" ]
+}
+
+@test "rmworld.sh unlinks the cloud settings before unhooking, and a dangling link" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  ln -nsf "$REPO_ROOT/claudecode/settings-cloud.json" "$HOME_SANDBOX/.claude/settings.json"
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+
+  ln -nsf "$HOME_SANDBOX/moved/dotfiles/claudecode/settings.json" "$HOME_SANDBOX/.claude/settings.json"
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ ! -L "$HOME_SANDBOX/.claude/settings.json" ]
+}
+
+@test "mklink.sh leaves a dangling settings link into another project" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  ln -nsf "$HOME_SANDBOX/other-project/claudecode/settings.json" "$HOME_SANDBOX/.claude/settings.json"
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$(readlink "$HOME_SANDBOX/.claude/settings.json")" = "$HOME_SANDBOX/other-project/claudecode/settings.json" ]
+}
+
+@test "rmworld.sh leaves a settings.json that links somewhere else" {
+  mkdir -p "$HOME_SANDBOX/.claude"
+  echo '{"mine": true}' >"$HOME_SANDBOX/elsewhere.json"
+  ln -nsf "$HOME_SANDBOX/elsewhere.json" "$HOME_SANDBOX/.claude/settings.json"
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ -L "$HOME_SANDBOX/.claude/settings.json" ]
 }
 
 @test "mklink.sh leaves a settings.json that is not ours" {

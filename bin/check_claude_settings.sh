@@ -43,32 +43,51 @@ if [ "$#" -eq 0 ]; then
   while IFS= read -r f; do files+=("$f"); done < <(git ls-files 'claudecode/settings*.json')
 else
   for f in "$@"; do
-    case "$f" in claudecode/settings*.json) [ -f "$f" ] && files+=("$f") ;; esac
+    # A file deleted from the tree but still staged is still what gets committed.
+    case "$f" in claudecode/settings*.json)
+      if [ -f "$f" ] || git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then
+        files+=("$f")
+      fi ;;
+    esac
   done
 fi
 
 failed=0
 for f in ${files[@]+"${files[@]}"}; do
-  problems="$(jq -r --argjson allowed "$ALLOWED" --argjson env_allowed "$ENV_ALLOWED" '
+  # What is staged is what gets committed: read the index when the file is in
+  # it, so a clean working tree cannot vouch for a dirty staged copy.
+  # An intent-to-add entry stages nothing yet and an unresolved merge has no
+  # single staged copy: read the working tree for those.
+  content="$(git show ":$f" 2>/dev/null || true)"
+  if [ -z "$content" ] && [ -f "$f" ]; then
+    content="$(cat "$f")"
+  fi
+  problems="$(printf '%s\n' "$content" | jq -r --argjson allowed "$ALLOWED" --argjson env_allowed "$ENV_ALLOWED" '
+    if type != "object" then "not a JSON object" else
     [ (keys[] | select(. as $k | $allowed | index($k) | not)
         | "key \"\(.)\" is not on the allow-list"),
-      (.env // {} | keys[] | select(. as $k | $env_allowed | index($k) | not)
-        | "env \"\(.)\" is not on the env allow-list"),
+      (.env // {} | if type == "object" then
+          (keys[] | select(. as $k | $env_allowed | index($k) | not)
+            | "env \"\(.)\" is not on the env allow-list")
+        else "env is not an object" end),
       # A URL with user:password@ in it carries a credential.
       (.. | strings | select(test("://[^/@ ]+:[^/@ ]*@"))
         | "credential in a URL: \(.[0:40])"),
       # allow widens what a session may do and names paths and commands from
       # wherever it was granted; deny and ask only narrow.
-      (.permissions // {} | keys[] | select(IN("deny", "ask") | not)
-        | "permissions \"\(.)\" is not deny or ask"),
+      (.permissions // {} | if type == "object" then
+          (keys[] | select(IN("deny", "ask") | not) | "permissions \"\(.)\" is not deny or ask")
+        else "permissions is not an object" end),
       # A home directory in a value is this machine leaking; use $HOME.
-      (.. | strings | select(test("/(Users|home)/[^/$]"))
+      # /root/ only at the start of a value or a word, so a URL path is not one.
+      (.. | strings | select(test("/(Users|home)/[^/$]|(^|[ \"'\''=])/root/")
+          or test("[a-z]:\\\\(users|documents and settings)\\\\"; "i"))
         | "absolute home path: \(.[0:80])"),
       # A local marketplace is a path on this machine, not a source others can fetch.
       (.extraKnownMarketplaces // {} | to_entries[]
         | select(.value.source.source | IN("directory", "file"))
         | "marketplace \"\(.key)\" is a local \(.value.source.source)")
-    ] | .[]' "$f")"
+    ] | .[] end')"
   if [ -n "$problems" ]; then
     printf '%s\n' "$problems" | sed "s|^|x $f: |" >&2
     failed=1

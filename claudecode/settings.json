@@ -133,24 +133,6 @@
     ],
     "PreToolUse": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ ! -x \"$HOME/.config/tmux-agent-status/scripts/hook.sh\" ] || \"$HOME/.config/tmux-agent-status/scripts/hook.sh\" PreToolUse"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ ! -x \"$HOME/bin/claude_commit_secret_scan.sh\" ] || \"$HOME/bin/claude_commit_secret_scan.sh\"",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "Bash|mcp__.*github.*",
         "hooks": [
           {
@@ -161,7 +143,35 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__.*__create_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -x \"$HOME/.config/tmux-agent-status/scripts/hook.sh\" ] || \"$HOME/.config/tmux-agent-status/scripts/hook.sh\" PreToolUse"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -x \"$HOME/bin/claude_commit_secret_scan.sh\" ] || \"$HOME/bin/claude_commit_secret_scan.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|mcp__.*github.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -x \"$HOME/bin/claude_public_privacy_check.sh\" ] || \"$HOME/bin/claude_public_privacy_check.sh\"",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|mcp__.*__create_pull_request",
         "hooks": [
           {
             "type": "command",
@@ -190,7 +200,7 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",

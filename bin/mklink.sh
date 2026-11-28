@@ -75,6 +75,12 @@ fi
 # Claude Code's user settings. Whatever it writes lands in this public repo, so
 # bin/check_claude_settings.sh stands between that and a commit. A real file
 # here is this machine's until someone moves it in by hand.
+# A link left dangling by a moved checkout is ours too: point it here again.
+if [ -L ./.claude/settings.json ] && [ ! -e ./.claude/settings.json ]; then
+    case "$(readlink ./.claude/settings.json)" in
+        */dotfiles/claudecode/settings.json) rm -f ./.claude/settings.json ;;
+    esac
+fi
 if [ ! -e ./.claude/settings.json ] && [ ! -L ./.claude/settings.json ]; then
     ln -nsf "$BASE_DIR/claudecode/settings.json" ./.claude/settings.json
 elif [ "$(readlink -f ./.claude/settings.json)" != "$BASE_DIR/claudecode/settings.json" ]; then

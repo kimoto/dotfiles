@@ -119,3 +119,69 @@ check() {
   run "$SCRIPT"
   [ "$status" -eq 1 ]
 }
+
+@test "stops env or permissions that are not objects instead of crashing" {
+  check '{"env": "x"}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'env is not an object'* ]]
+  check '{"permissions": []}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'permissions is not an object'* ]]
+  check '[1]'
+  [ "$status" -eq 1 ]
+}
+
+@test "stops a root or Windows home path" {
+  check '{"statusLine": {"command": "/root/bin/x"}}'
+  [ "$status" -eq 1 ]
+  check '{"statusLine": {"command": "C:\\Users\\someone\\bin\\x"}}'
+  [ "$status" -eq 1 ]
+}
+
+@test "checks a staged file even when the working copy is gone" {
+  printf '%s\n' '{"apiKeyHelper": "x"}' >"$TMP/repo/$F"
+  git -C "$TMP/repo" add "$F"
+  rm "$TMP/repo/$F"
+  run "$SCRIPT" "$F"
+  [ "$status" -eq 1 ]
+}
+
+@test "checks an intent-to-add file by its working copy" {
+  printf '%s\n' '{"apiKeyHelper": "x"}' >"$TMP/repo/$F"
+  git -C "$TMP/repo" add -N "$F"
+  run "$SCRIPT" "$F"
+  [ "$status" -eq 1 ]
+}
+
+@test "lets a URL with /root/ in its path through, and stops a lowercase Windows home" {
+  check '{"extraKnownMarketplaces": {"m": {"source": {"source": "git",
+    "url": "https://git.example.com/root/plugins.git"}}}}'
+  [ "$status" -eq 0 ]
+  check '{"statusLine": {"command": "c:\\users\\someone\\bin\\x"}}'
+  [ "$status" -eq 1 ]
+}
+
+@test "checks what is staged, not the working tree" {
+  printf '%s\n' '{"apiKeyHelper": "x"}' >"$TMP/repo/$F"
+  git -C "$TMP/repo" add "$F"
+  printf '%s\n' '{"theme": "auto"}' >"$TMP/repo/$F"
+  run "$SCRIPT" "$F"
+  [ "$status" -eq 1 ]
+}
+
+# The file mkworld links in is rewritten by its installers on every run, so a
+# committed copy they would change shows up as a dirty tree after bootstrap.
+@test "claudecode/settings.json is what mkworld's installers leave" {
+  mkdir -p "$TMP/home/.claude"
+  cp "$REPO_ROOT/claudecode/settings.json" "$TMP/home/.claude/settings.json"
+  # Without jq every installer skips, and the comparison would prove nothing.
+  command -v jq >/dev/null || skip "jq not installed"
+  # The installers and their order come from mkworld.sh itself, so one added
+  # there is covered here too.
+  installers="$(grep -o 'bin/install_claude_[a-z_]*\.sh' "$REPO_ROOT/bin/mkworld.sh")"
+  [ -n "$installers" ]
+  for i in $installers; do
+    HOME="$TMP/home" CLAUDE_HOOK_BIN= "$REPO_ROOT/$i" 2>/dev/null
+  done
+  cmp "$REPO_ROOT/claudecode/settings.json" "$TMP/home/.claude/settings.json"
+}

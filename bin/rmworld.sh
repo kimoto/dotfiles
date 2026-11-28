@@ -14,6 +14,15 @@ BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
 cd "$HOME" || exit 1
 
+# Unlink a settings.json that links into a dotfiles checkout (this one, the
+# cloud variant, another clone, or one left dangling by a move) before the
+# uninstallers run: they write through the link and would strip the tracked file.
+case "$(readlink ./.claude/settings.json 2>/dev/null)" in
+    */dotfiles/claudecode/settings*.json|"$BASE_DIR"/claudecode/settings*.json)
+        rm ./.claude/settings.json
+        echo "removed symlink: ./.claude/settings.json" ;;
+esac
+
 # Claude Code のフック登録も外す (mkworld.sh の install と対)。
 # Unregister the Claude Code tmux-indicator hooks (pairs with mkworld.sh).
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" --uninstall || true
@@ -77,5 +86,4 @@ for link in ./.claude/agents/*; do
         "$BASE_DIR"/claudecode/agents/*) unlink_if_symlink "$link" ;;
     esac
 done
-unlink_if_symlink "./.claude/settings.json"
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"
