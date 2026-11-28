@@ -5,6 +5,7 @@ Run from the repo root: python3 -m unittest test/guide_mcp_test.py (test/guide.b
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -91,7 +92,8 @@ class GuideMcpTest(unittest.TestCase):
         tools = self.session({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})[0]["result"]["tools"]
         names = {t["name"] for t in tools}
         self.assertEqual(names, {"guide_status", "guide_spotlight", "guide_arrow", "guide_highlight",
-                                 "guide_message", "guide_ask", "guide_clear", "guide_curtain"})
+                                 "guide_message", "guide_ask", "guide_clear", "guide_curtain", "guide_focus",
+                                 "guide_steps"})
         for t in tools:
             self.assertNotIn("cmd", t)
             self.assertEqual(t["inputSchema"]["type"], "object")
@@ -100,6 +102,24 @@ class GuideMcpTest(unittest.TestCase):
         r = self.tool("guide_arrow", {"target": {"app": "Mail", "text": "送信"}, "label": "ここ"})
         self.assertNotIn("isError", r)
         self.assertEqual(Spoon.seen, [(TOKEN, "arrow", {"target": {"app": "Mail", "text": "送信"}, "label": "ここ"})])
+
+    def test_focus_and_steps_reach_their_own_commands(self):
+        steps = {"steps": [{"target": {"x": 1, "y": 2}, "label": "a"}], "current": 1}
+        self.tool("guide_focus", {"target": {"x": 1, "y": 2}})
+        self.tool("guide_steps", steps)
+        self.assertEqual([c for _, c, _ in Spoon.seen], ["focus", "steps"])
+        self.assertEqual(Spoon.seen[1][2], steps)
+
+    def test_the_styles_offered_are_the_ones_the_spoon_takes(self):
+        logic = os.path.join(os.path.dirname(SERVER), "logic.lua")
+        with open(logic, encoding="utf-8") as f:
+            line = next(x for x in f if x.startswith("M.STYLES"))
+        spoon = set(re.findall(r"(\w+) = true", line))
+        tools = self.session({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})[0]["result"]["tools"]
+        for t in tools:
+            style = t["inputSchema"]["properties"].get("style")
+            if style:
+                self.assertEqual(set(style["enum"]), spoon, t["name"])
 
     def test_ask_waits_for_the_click(self):
         r = self.tool("guide_ask", {"text": "どうする?", "choices": ["今やる", "あとで"]})
