@@ -95,6 +95,16 @@ Source:
 | Enter | The work is done: the curtain goes at once and the end is removed, so it does not come back; logged as done. Only for an end you chose, not the daily one |
 | type `exit` | Lift the curtain at once, a way out if it goes wrong, written small at the bottom of the curtain; logged as 非常口 and counted like any lift |
 
+## AI guide overlays (Mac only)
+
+Source: `hammerspoon/Spoons/Guide.spoon` — arrows, outlines, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
+
+| Key | Action |
+|-----|--------|
+| ⌃⌥⌘Esc | Clear every AI overlay and refuse new ones for 30 minutes (🔕 in the menu bar; its menu lifts the mute) |
+| Switch app | Ends a spotlight that dims everything but one app |
+| Click | Closes a message; on a question, a button answers it and × closes it unanswered |
+
 ---
 
 ## Terminal (intercepts before tmux)

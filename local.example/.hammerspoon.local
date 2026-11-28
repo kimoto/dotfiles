@@ -6,3 +6,9 @@
 -- e.g. a fixed end each weekday: curtain.dailyDefault = "weekday 18:00"
 -- local curtain = hs.loadSpoon("Curtain")
 -- curtain:start()
+
+-- Arrows, outlines, dimming and messages from an AI on this Mac (hammerspoon/Spoons/Guide.spoon).
+-- Give it the curtain to let the AI set the curtain's end time too; then register guide_mcp.py in the AI client.
+-- local guide = hs.loadSpoon("Guide")
+-- guide.curtain = curtain
+-- guide:start()
