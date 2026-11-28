@@ -112,6 +112,8 @@ jobs:
         run: ./bin/lint_yaml.sh
       - name: Lint workflows (ratchet pinning + actionlint)
         run: ./bin/lint_actions.sh
+      - name: Check lockfiles for known vulnerabilities (osv-scanner)
+        run: ./bin/lint_osv.sh
       - name: Check Brewfile sort
         run: ./bin/check_brewfile_sort.sh
       - name: Check tools catalog (TOOLS.md) is in sync with the Brewfiles
@@ -190,7 +192,7 @@ jobs:
           # mise resolves aqua/github tools through the GitHub API, which
           # rate-limits an unauthenticated runner.
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec, typos, ruff)
+      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec, typos, ruff, osv-scanner)
         run: |
           ./bin/lint_config.sh
           ./bin/lint_schema.sh
@@ -199,6 +201,7 @@ jobs:
           ./bin/lint_editorconfig.sh
           ./bin/lint_typos.sh
           ./bin/lint_python.sh
+          osv-scanner --version
           gitleaks version
           lefthook version
 
