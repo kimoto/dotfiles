@@ -6,7 +6,7 @@
 set -eu
 
 # shellcheck source=bin/claude_settings_lib.sh
-. "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
+. "$(dirname "$(readlink -f "$0" || echo "$0")")/claude_settings_lib.sh"
 
 # Unexpanded on purpose ($HOME resolves per machine at hook runtime); the -x
 # guard keeps the hook a no-op when ~/.config is gone instead of erroring.

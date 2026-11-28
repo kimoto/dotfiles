@@ -26,7 +26,9 @@ if (-not (Test-Path -LiteralPath $configPath) -or
 $rulesLink = Join-Path $env:USERPROFILE '.claude/rules/dotfiles'
 $rules = Get-Item -LiteralPath $rulesLink -Force -ErrorAction SilentlyContinue
 $rulesSource = Join-Path $repoDirectory 'claudecode\rules'
-if ($null -eq $rules -or $rules.LinkType -ne 'SymbolicLink' -or [string]@($rules.Target)[0] -ne $rulesSource) {
+# Windows PowerShell 5.1 reports a link to \\server\share as UNC\server\share.
+$rulesTarget = if ($rules) { [string]@($rules.Target)[0] -replace '^UNC\\', '\\' }
+if ($null -eq $rules -or $rules.LinkType -ne 'SymbolicLink' -or $rulesTarget -ne $rulesSource) {
     $failures.Add("~/.claude/rules/dotfiles is not a link to $rulesSource.")
 }
 

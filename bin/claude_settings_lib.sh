@@ -5,11 +5,14 @@
 # This file is *sourced*, not executed, by a POSIX sh script:
 #
 #   # shellcheck source=bin/claude_settings_lib.sh
-#   . "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
+#   . "$(dirname "$(readlink -f "$0" || echo "$0")")/claude_settings_lib.sh"
 #   settings_open "$@"      # sets MODE and tmp; may exit 0
 #   STRIP=$(strip_def strip_x 'contains("x.sh")')
 #   jq ... "$SETTINGS" >"$tmp"
 #   settings_commit "x hooks"
+#
+# The fallback to $0: Git Bash's readlink -f fails (exit 1, no output) for a
+# script on a \\wsl.localhost path, where Windows runs these from the WSL checkout.
 
 SETTINGS_DIR="$HOME/.claude"
 SETTINGS="$SETTINGS_DIR/settings.json"

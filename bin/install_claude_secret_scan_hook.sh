@@ -7,7 +7,7 @@
 set -eu
 
 # shellcheck source=bin/claude_settings_lib.sh
-. "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
+. "$(dirname "$(readlink -f "$0" || echo "$0")")/claude_settings_lib.sh"
 
 COMMIT_SCAN=$(guarded claude_commit_secret_scan.sh)
 PRIVACY_CHECK=$(guarded claude_public_privacy_check.sh)
