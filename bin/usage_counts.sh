@@ -2,18 +2,20 @@
 
 # How many times was each command typed lately, on this machine?
 #
-# Reads the usage log the .zshrc preexec hook keeps (one command name per
-# line, one file per local day) and counts it. The log holds names only, so
-# this output does too: it is safe to hand to a scout as it is, but it still
+# Reads the usage log the .zshrc preexec hook keeps (one command per line:
+# its name, and for some tools the subcommand and option names; one file per
+# local day) and counts it. The log holds no values, so this output does not
+# either: it is safe to hand to a scout as it is, but it still
 # shows every tool a machine uses, so it goes to private places only.
 # The log is kept only where DOTFILES_USAGE_LOG=1; elsewhere this says so, so
 # an empty count is not read as "nothing was used".
 #
-# Usage: usage_counts.sh [--days N | --all]
+# Usage: usage_counts.sh [--days N | --all] [--names]
 #   --days N  the last N days, today included (default 7)
 #   --all     everything logged
-# Output: a line saying which days were read, then <count>\t<name>, most used
-# first, ties by name.
+#   --names   count by command name alone (`git log` and `git push` as `git`)
+# Output: a line saying which days were read, then <count>\t<command>, most
+# used first, ties by command.
 #
 # Env: XDG_STATE_HOME (the log is $XDG_STATE_HOME/dotfiles/usage, as in
 # .zshrc); USAGE_LOG_DIR overrides the whole path (tests);
@@ -23,24 +25,32 @@ set -euo pipefail
 
 LOG_DIR="${USAGE_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage}"
 
+USAGE="usage: usage_counts.sh [--days N | --all] [--names]"
 days=7
-args=1
-case "${1:-}" in
-    --all) days=0 ;;
-    --days)
-        days="${2:-}" args=2
-        if ! [[ "$days" =~ ^[1-9][0-9]*$ ]]; then
-            echo "usage_counts: --days takes a whole number of days, 1 or more" >&2
-            exit 2
-        fi
-        ;;
-    "") ;;
-    *) args=0 ;;
-esac
-if [ "$#" -gt "$args" ]; then
-    echo "usage: usage_counts.sh [--days N | --all]" >&2
-    exit 2
-fi
+names_only=0
+window=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --all | --days)
+            [ -z "$window" ] || { echo "$USAGE" >&2; exit 2; }
+            window=$1
+            ;;
+    esac
+    case "$1" in
+        --all) days=0 ;;
+        --days)
+            days="${2:-}"
+            if ! [[ "$days" =~ ^[1-9][0-9]*$ ]]; then
+                echo "usage_counts: --days takes a whole number of days, 1 or more" >&2
+                exit 2
+            fi
+            shift
+            ;;
+        --names) names_only=1 ;;
+        *) echo "$USAGE" >&2; exit 2 ;;
+    esac
+    shift
+done
 
 if [ "${DOTFILES_USAGE_LOG:-}" != 1 ]; then
     echo "usage_counts: the usage log is off here (DOTFILES_USAGE_LOG is not 1)" >&2
@@ -76,4 +86,9 @@ fi
 
 echo "# $(basename "${files[0]}" .log) to $(basename "${files[${#files[@]} - 1]}" .log), ${#files[@]} days logged"
 export LC_ALL=C
-cat "${files[@]}" | sort | uniq -c | sort -k1,1nr -k2,2 | awk '{ printf "%d\t%s\n", $1, $2 }'
+if [ "$names_only" -eq 1 ]; then
+    cat "${files[@]}" | cut -d' ' -f1
+else
+    cat "${files[@]}"
+fi | sort | uniq -c | sort -k1,1nr -k2 |
+    awk '{ n = $1; sub(/^ *[0-9]+ /, ""); printf "%d\t%s\n", n, $0 }'
