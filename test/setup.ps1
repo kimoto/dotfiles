@@ -55,6 +55,9 @@ if (-not $powerToysDsc) {
     if (-not (Test-PowerToysAutostart)) {
         $failures.Add('PowerToys has no run-at-startup task.')
     }
+    if (-not (Test-CommandPaletteHotkey (Get-CommandPaletteSettingsPath) (Get-CommandPaletteWantedHotkey))) {
+        $failures.Add("Command Palette's hotkey differs from windows/powertoys-settings.json.")
+    }
 }
 
 $explorerPolicy = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'

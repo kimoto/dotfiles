@@ -5,7 +5,7 @@ wipe, and which macOS app each one stands in for.
 
 On a fresh machine, one command does the apps, Codex and Claude config, the secret scan before a commit, and
 the AutoHotkey Startup shortcut, the `NoWinKeys` policy and the PowerToys
-settings (Command Palette's hotkey below stays manual), from the main checkout:
+settings, from the main checkout:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1"
@@ -186,8 +186,8 @@ shell/editor bindings.
 ## Restoring this machine's arrangement
 
 `winget import` brings the apps back, but not how they are set up. These are
-the steps a wipe has to repeat, in order; `setup.ps1` does all of them but
-Command Palette's hotkey.
+the steps a wipe has to repeat, in order; `setup.ps1` does all of them, and
+what is left for a person is the sign-out in the first.
 
 ### 1. Turn off the shell's `Win+<key>` shortcuts (`NoWinKeys`)
 
@@ -210,9 +210,12 @@ contains `Win`:
 
 ### 2. PowerToys
 
-- `setup.ps1` sets what `powertoys-settings.json` lists, through PowerToys' own
-  `PowerToys.DSC.exe`, and restarts PowerToys when it had to change something:
-  "Run at startup", Advanced Paste turned on, and the hotkeys marked below.
+- `setup.ps1` sets what `powertoys-settings.json` lists, and restarts PowerToys
+  when it had to change something: "Run at startup", Advanced Paste and
+  Command Palette turned on, and the hotkeys marked below. All but one go
+  through PowerToys' own `PowerToys.DSC.exe`; Command Palette's hotkey is
+  written into that app's own settings file, so a change in how it writes the
+  file shows up as `setup.ps1` refusing to edit it.
   An uninstall and install (which winget needs to cross a large version gap)
   resets "Run at startup" to off, and every hotkey below then silently stops
   working after the next reboot, so run `setup.ps1` again after one.
@@ -220,7 +223,7 @@ contains `Win`:
 
   | Module | Hotkey | Set by | Why |
   |---|---|---|---|
-  | Command Palette | `Ctrl+Space` | hand, in its own settings | The launcher, same key as Raycast on the mac. `PowerToys.DSC.exe` does not cover it. |
+  | Command Palette | `Ctrl+Space` | `setup.ps1` | The launcher, same key as Raycast on the mac. `PowerToys.DSC.exe` does not cover it, so its own settings file is edited. |
   | Advanced Paste | `Ctrl+Win+V` | `setup.ps1` | ⌃⌘+V on a Mac keyboard, Raycast's clipboard history key. |
   | Peek | `Win+Shift+P` | `setup.ps1` | Ships on `Ctrl+Space`; moved so Command Palette can have it. |
   | PowerToys Run | `Alt+Space` (default) | nobody | Left as shipped. |

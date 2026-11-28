@@ -620,6 +620,43 @@ _long_command_bell() {
 add-zsh-hook preexec _long_command_mark
 add-zsh-hook precmd _long_command_bell
 
+# Usage log: which commands get typed, and how often, so tools can be judged by
+# use (bin/usage_counts.sh reads it). Only the name in each command position is
+# kept — never an argument, a path or a time of day — one per line, in a file
+# per local day, on this machine only. The directory is 0700: every command
+# typed passes through it. DOTFILES_NO_USAGE_LOG=1 (e.g. in ~/.zshrc.local) turns it off.
+zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
+_usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
+_usage_log_record() {
+  [[ -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
+  local -a words names
+  words=(${(z)1})
+  local word at_command=1
+  for word in $words; do
+    case $word in
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|$'\n') at_command=1; continue ;;
+    esac
+    (( at_command )) || continue
+    case $word in
+      # Precommand modifiers and grouping: the command is the next word.
+      ('('|'{'|'!'|sudo|command|builtin|exec|noglob|nocorrect|time|nohup) continue ;;
+      (*=*) continue ;;
+    esac
+    at_command=0
+    word=${word:t}
+    # Anything that is not a plain name (a quoted string, an expansion) is
+    # dropped rather than logged, so an argument can never leak in.
+    [[ -n $word && $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
+  done
+  (( $#names )) || return 0
+  [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0
+  local day
+  strftime -s day %Y-%m-%d $EPOCHSECONDS
+  print -rl -- $names >>| "$_usage_log_dir/$day.log" 2>/dev/null
+  return 0
+}
+add-zsh-hook preexec _usage_log_record
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
