@@ -43,7 +43,9 @@ ignore rule would apply in every repo on the machine.
   install), so a change made on any machine shows up here as a diff. ⚠️ This
   repo is public: `bin/check_claude_settings.sh` (pre-commit and CI) refuses
   keys outside its allow-list, home-directory paths, local marketplaces, env
-  variables other than `CLAUDE_CODE_*`, and permissions other than `deny` and `ask`.
+  env variables not on its allow-list, credentials in URLs, and permissions
+  other than `deny` and `ask`. It checks names and shapes; gitleaks and
+  `check_private_terms.sh` read the contents.
   Claude Code reads no per-machine user settings file beside this one, so a
   value it refuses cannot live anywhere else on a linked machine.
 - `settings-cloud.json` — `~/.claude/settings.json` for a cloud session,

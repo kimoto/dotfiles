@@ -13,10 +13,15 @@ cd "$BASE_DIR"
 
 # Top-level keys a public file may carry. Anything else stops the commit until
 # it is added here on purpose — notably apiKeyHelper (a credential). env and
-# permissions are allowed only in the narrow shapes checked below: Claude
-# Code's own CLAUDE_CODE_* tunables, and deny and ask rules. Claude Code has no
+# permissions are allowed only in the narrow shapes checked below: the env
+# variables named in ENV_ALLOWED, and deny and ask rules. Claude Code has no
 # per-machine user settings file, so whatever this file cannot carry is lost on
 # a linked machine — a Keychain deny among it.
+#
+# This gate checks names and shapes, not what a string says: a token written
+# into a hook command or a private name in a rule passes it. gitleaks and
+# check_private_terms.sh, which run beside it in pre-commit and CI, are what
+# read the contents.
 # shellcheck disable=SC2016 # "$schema" is a key name, not a shell variable
 ALLOWED='[
   "$schema", "advisorModel", "agentPushNotifEnabled", "attribution",
@@ -26,6 +31,11 @@ ALLOWED='[
   "remoteControlAtStartup", "skipWorkflowUsageWarning", "statusLine",
   "switchModelsOnFlag", "theme", "voice"
 ]'
+
+# By name, not by prefix: CLAUDE_CODE_OAUTH_TOKEN is a credential and
+# CLAUDE_CODE_SHELL_PREFIX runs before every command, so the prefix alone
+# says nothing about what is safe to publish.
+ENV_ALLOWED='["CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS"]'
 
 # No mapfile, and the empty-array guard below: macOS still ships bash 3.2.
 files=()
@@ -39,12 +49,14 @@ fi
 
 failed=0
 for f in ${files[@]+"${files[@]}"}; do
-  problems="$(jq -r --argjson allowed "$ALLOWED" '
+  problems="$(jq -r --argjson allowed "$ALLOWED" --argjson env_allowed "$ENV_ALLOWED" '
     [ (keys[] | select(. as $k | $allowed | index($k) | not)
         | "key \"\(.)\" is not on the allow-list"),
-      # Any other variable can be a token; the CLAUDE_CODE_ ones are tunables.
-      (.env // {} | keys[] | select(startswith("CLAUDE_CODE_") | not)
-        | "env \"\(.)\" is not a CLAUDE_CODE_ variable"),
+      (.env // {} | keys[] | select(. as $k | $env_allowed | index($k) | not)
+        | "env \"\(.)\" is not on the env allow-list"),
+      # A URL with user:password@ in it carries a credential.
+      (.. | strings | select(test("://[^/@ ]+:[^/@ ]*@"))
+        | "credential in a URL: \(.[0:40])"),
       # allow widens what a session may do and names paths and commands from
       # wherever it was granted; deny and ask only narrow.
       (.permissions // {} | keys[] | select(IN("deny", "ask") | not)

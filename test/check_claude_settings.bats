@@ -44,6 +44,17 @@ check() {
   [[ "$output" == *'"TOKEN"'* ]]
 }
 
+@test "stops a CLAUDE_CODE_ variable that is not on the allow-list, such as a token" {
+  check '{"env": {"CLAUDE_CODE_OAUTH_TOKEN": "x"}}'
+  [ "$status" -eq 1 ]
+}
+
+@test "stops a URL that carries a credential" {
+  check '{"extraKnownMarketplaces": {"m": {"source": {"source": "git", "url": "https://u:secret@example.com/m.git"}}}}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"credential in a URL"* ]]
+}
+
 @test "passes Claude Code's own env variables" {
   check '{"env": {"CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "400000"}}'
   [ "$status" -eq 0 ]
