@@ -4,8 +4,8 @@ The Windows-side counterpart to `Brewfile.macos`: the apps to reinstall after a
 wipe, and which macOS app each one stands in for.
 
 On a fresh machine, one command does the apps, Codex and Claude config, the secret scan before a commit, and
-the AutoHotkey Startup shortcut and the `NoWinKeys` policy (the PowerToys
-settings below stay manual), from the main checkout:
+the AutoHotkey Startup shortcut, the `NoWinKeys` policy and the PowerToys
+settings (Command Palette's hotkey below stays manual), from the main checkout:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1"
@@ -186,8 +186,8 @@ shell/editor bindings.
 ## Restoring this machine's arrangement
 
 `winget import` brings the apps back, but not how they are set up. These are
-the steps a wipe has to repeat, in order; `setup.ps1` does the first and the
-third.
+the steps a wipe has to repeat, in order; `setup.ps1` does all of them but
+Command Palette's hotkey.
 
 ### 1. Turn off the shell's `Win+<key>` shortcuts (`NoWinKeys`)
 
@@ -210,17 +210,20 @@ contains `Win`:
 
 ### 2. PowerToys
 
-- **Turn on "Run at startup" after every reinstall.** An uninstall and install
-  (which winget needs to cross a large version gap) resets it to off, and every
-  hotkey below then silently stops working after the next reboot.
-- Hotkeys, set in each module's settings:
+- `setup.ps1` sets what `powertoys-settings.json` lists, through PowerToys' own
+  `PowerToys.DSC.exe`, and restarts PowerToys when it had to change something:
+  "Run at startup", Advanced Paste turned on, and the hotkeys marked below.
+  An uninstall and install (which winget needs to cross a large version gap)
+  resets "Run at startup" to off, and every hotkey below then silently stops
+  working after the next reboot, so run `setup.ps1` again after one.
+- Hotkeys:
 
-  | Module | Hotkey | Why |
-  |---|---|---|
-  | Command Palette | `Ctrl+Space` | The launcher, same key as Raycast on the mac. |
-  | Advanced Paste | `Ctrl+Win+V` | ⌃⌘+V on a Mac keyboard, Raycast's clipboard history key. |
-  | Peek | `Win+Shift+P` | Ships on `Ctrl+Space`; moved so Command Palette can have it. |
-  | PowerToys Run | `Alt+Space` (default) | Left as shipped. |
+  | Module | Hotkey | Set by | Why |
+  |---|---|---|---|
+  | Command Palette | `Ctrl+Space` | hand, in its own settings | The launcher, same key as Raycast on the mac. `PowerToys.DSC.exe` does not cover it. |
+  | Advanced Paste | `Ctrl+Win+V` | `setup.ps1` | ⌃⌘+V on a Mac keyboard, Raycast's clipboard history key. |
+  | Peek | `Win+Shift+P` | `setup.ps1` | Ships on `Ctrl+Space`; moved so Command Palette can have it. |
+  | PowerToys Run | `Alt+Space` (default) | nobody | Left as shipped. |
 
 - **Collisions to expect.** PowerToys' defaults assume `Win+<key>` belongs to
   Windows. Here it does not, so its defaults compete with the AutoHotkey
