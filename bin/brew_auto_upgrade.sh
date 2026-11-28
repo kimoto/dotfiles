@@ -8,7 +8,7 @@
 # maintainers, who also hold back freshly published npm/PyPI/RubyGems releases
 # during builds, so a second delay here would only postpone security fixes.
 # Casks run the vendor's own installer and third-party taps have no such review,
-# so both stay with brew_bundle_install.sh, run by a human.
+# so both stay with a human, through mkworld.sh or brew_bundle_install.sh.
 #
 # On success it stamps $cache_dir/brew_auto_upgrade_ok, which is what
 # brew_bundle_check.sh reads to stop nagging about formulae — and to nag about
