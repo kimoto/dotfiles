@@ -59,7 +59,14 @@ go to `optional` or `required` by direction (below).
 
 A `review: required` PR carries one unticked box, `- [ ] Owner read the diff`. In this
 repo the required `require-checklist` status then stays pending, holding the merge, until the
-owner ticks it; elsewhere, leave auto-merge off.
+owner ticks it; elsewhere, leave auto-merge off. While the box is unticked, `claude-review.yml` keeps one
+review comment on the PR, once the owner has set the workload identity
+federation variables (`ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`,
+`ANTHROPIC_SERVICE_ACCOUNT_ID`, and `ANTHROPIC_WORKSPACE_ID` unless the rule
+targets one workspace; no API key is stored). Each run is one billed review: opening, each push, reopening, marking
+ready, a new base, and the edit that adds the box. It is not a required check
+and posts correctness findings only; run review-security locally before
+ticking the box.
 
 - Security or workflow changes that *loosen*: widen a permission, drop a check,
   unpin, add a network fetch.
