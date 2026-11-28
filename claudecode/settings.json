@@ -265,29 +265,17 @@
   "autoMode": {
     "environment": [
       "### Org-wide",
-      "**Organization**: None configured",
-      "**Cloud provider(s)**: None configured",
       "**Repository visibility**: PUBLIC — kimoto/dotfiles (github.com, via gh)",
       "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
-      "**Secrets management**: None configured",
       "**Default / protected branches**: `main` (default, protected via active ruleset) — kimoto/dotfiles",
-      "**CI/CD deploy targets**: None configured",
-      "**Network posture**: None configured",
       "**Source control**: The trusted repo (kimoto/dotfiles, github.com/kimoto/dotfiles) and its remote(s) only (no additional orgs configured)",
-      "**Trusted internal domains**: None configured",
-      "**Trusted cloud buckets**: None configured",
-      "**Key internal services**: None configured",
-      "**Internal package registry**: None configured",
-      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar; note repo contains bin/check_secret_files.sh and test/check_secret_files.bats suggesting active secret-scanning discipline",
-      "**Data retention / declassification**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
       "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited)",
       "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
       "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
       "### User-specific",
       "**Primary use of Claude Code**: personal dotfiles / hobby systems management (this repo is a public dotfiles configuration project)",
-      "**Trusted repo**: kimoto/dotfiles (git repository at ~/ghq/github.com/kimoto/dotfiles, remote ssh://github.com/kimoto/dotfiles.git) — PUBLIC: only this repo's own work belongs here; confidential material and secrets must never be committed or pushed regardless of visibility",
-      "**Org-specific CLIs**: None configured",
-      "**Note on curl aliasing**: user's global ~/.claude/CLAUDE.md documents that `curl` is aliased to `curlie` in the user's shell, which can alter request semantics (e.g. GET becoming POST) — informational only, not adopted as a trust/sensitivity fact"
+      "**Trusted repo**: kimoto/dotfiles (git repository at ~/ghq/github.com/kimoto/dotfiles, remote ssh://github.com/kimoto/dotfiles.git) — PUBLIC: only this repo's own work belongs here; confidential material and secrets must never be committed or pushed regardless of visibility"
     ]
   }
 }
