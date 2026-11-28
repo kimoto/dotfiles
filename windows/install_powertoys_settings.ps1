@@ -16,8 +16,9 @@ $powerToys = Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe'
 $paletteSettings = Get-CommandPaletteSettingsPath
 $paletteHotkey = Get-CommandPaletteWantedHotkey
 $drift = @(Get-PowerToysDrift $dsc)
+$settingsMatch = $drift.Count -eq 0 -and (Test-PowerToysAutostart)
 $paletteMatches = Test-CommandPaletteHotkey $paletteSettings $paletteHotkey
-if ($drift.Count -eq 0 -and $paletteMatches -and (Test-PowerToysAutostart)) {
+if ($settingsMatch -and $paletteMatches) {
     Write-Output 'PowerToys already matches powertoys-settings.json.'
     return
 }
@@ -48,7 +49,7 @@ function Invoke-WithPowerToysStopped([scriptblock]$Change) {
     }
 }
 
-if ($drift.Count -gt 0 -or -not (Test-PowerToysAutostart)) {
+if (-not $settingsMatch) {
     Invoke-WithPowerToysStopped {
         foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
             & $dsc set --resource 'settings' --module $entry.Module --input $entry.Argument | Out-Null

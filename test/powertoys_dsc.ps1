@@ -67,8 +67,7 @@ try {
         '}'
     ) -join "`r`n"
     [System.IO.File]::WriteAllText($palette, $before)
-    $hotkey = (Get-Content -Raw -LiteralPath (Join-Path $repoDirectory 'windows/powertoys-settings.json') |
-        ConvertFrom-Json).commandPaletteHotkey
+    $hotkey = Get-CommandPaletteWantedHotkey
     if (Test-CommandPaletteHotkey $palette $hotkey) {
         throw 'Test-CommandPaletteHotkey took the default hotkey for the wanted one.'
     }
@@ -84,19 +83,34 @@ try {
     if (-not (Test-CommandPaletteHotkey $palette $hotkey)) {
         throw 'Set-CommandPaletteHotkey did not leave the wanted hotkey.'
     }
+    # Everything after the top-level hotkey is Command Palette's and stays as it was.
     $after = [System.IO.File]::ReadAllText($palette)
     $rest = $before.Substring($before.IndexOf('  "DockFocusHotkey"'))
     if (-not $after.EndsWith($rest)) {
         throw "Set-CommandPaletteHotkey changed more than the top-level hotkey: $after"
     }
 
-    # A file with no hotkey to replace is put back as it was, not half-written.
-    $bare = Join-Path $sandbox 'bare.json'
-    [System.IO.File]::WriteAllText($bare, '{ "Language": "" }')
-    $refused = $false
-    try { Set-CommandPaletteHotkey $bare $hotkey } catch { $refused = $true }
-    if (-not $refused -or [System.IO.File]::ReadAllText($bare) -ne '{ "Language": "" }') {
-        throw 'Set-CommandPaletteHotkey did not refuse, or changed, a file with no hotkey.'
+    # One part off is a different key, whichever part it is.
+    $nearly = Join-Path $sandbox 'nearly.json'
+    foreach ($part in '"shift":false', '"code":32') {
+        $changed = $part.Replace('false', 'true').Replace('32', '74')
+        if (-not $after.Contains($part)) { throw "The written hotkey has no $part to change: $after" }
+        [System.IO.File]::WriteAllText($nearly, $after.Replace($part, $changed))
+        if (Test-CommandPaletteHotkey $nearly $hotkey) {
+            throw "Test-CommandPaletteHotkey passed a hotkey with $changed."
+        }
+    }
+
+    # A file whose top-level hotkey cannot be found is put back as it was, not
+    # half-written: with no hotkey at all, and with one only deeper in.
+    $odd = Join-Path $sandbox 'odd.json'
+    foreach ($text in '{ "Language": "" }', "{ `"ProviderSettings`": { `"one`": { `"Hotkey`": $other } } }") {
+        [System.IO.File]::WriteAllText($odd, $text)
+        $refused = $false
+        try { Set-CommandPaletteHotkey $odd $hotkey } catch { $refused = $true }
+        if (-not $refused -or [System.IO.File]::ReadAllText($odd) -ne $text) {
+            throw "Set-CommandPaletteHotkey did not refuse, or changed, a file with no top-level hotkey: $text"
+        }
     }
 } finally {
     Remove-Item -LiteralPath $sandbox -Recurse -Force -ErrorAction SilentlyContinue
