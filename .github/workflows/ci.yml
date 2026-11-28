@@ -152,6 +152,9 @@ jobs:
       - name: Test AutoHotkey installer
         shell: pwsh
         run: ./test/install_mac_keys.ps1
+      - name: Test the PowerToys settings check (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./test/powertoys_dsc.ps1
       - name: Test the curtain under AutoHotkey
         shell: pwsh
         run: ./test/curtain_ahk.ps1

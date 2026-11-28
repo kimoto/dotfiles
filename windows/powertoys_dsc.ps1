@@ -9,23 +9,34 @@ function Find-PowerToysDsc {
         Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
 }
 
-# Each module's wanted settings, as the JSON argument PowerToys.DSC.exe takes.
-function Get-PowerToysWanted {
-    $wanted = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'powertoys-settings.json') | ConvertFrom-Json
+# Each module's wanted settings, as the --input argument PowerToys.DSC.exe takes.
+function Get-PowerToysWanted([string]$Path = (Join-Path $PSScriptRoot 'powertoys-settings.json')) {
+    $wanted = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
     foreach ($module in $wanted.psobject.Properties) {
-        $json = $module.Value | ConvertTo-Json -Depth 10 -Compress
+        $argument = $module.Value | ConvertTo-Json -Depth 10 -Compress
         # Windows PowerShell 5.1 drops the quotes inside an argument it hands a
         # native program unless they are escaped; PowerShell 7 passes them as is.
-        if ($PSVersionTable.PSVersion.Major -lt 7) { $json = $json -replace '"', '\"' }
-        [pscustomobject]@{ Module = $module.Name; Json = $json }
+        if ($PSVersionTable.PSVersion.Major -lt 7) { $argument = $argument -replace '"', '\"' }
+        [pscustomobject]@{ Module = $module.Name; Argument = $argument }
     }
 }
 
-# The modules whose settings differ from powertoys-settings.json.
-function Get-PowerToysDrift([string]$Dsc) {
-    foreach ($entry in Get-PowerToysWanted) {
-        $state = & $Dsc test --resource 'settings' --module $entry.Module --input $entry.Json | Select-Object -First 1
-        if ($LASTEXITCODE -ne 0 -or -not $state -or -not ($state | ConvertFrom-Json)._inDesiredState) { $entry.Module }
+# The modules whose settings differ from the wanted ones. A module the tool
+# cannot answer for counts as differing, so a broken tool is not read as done.
+function Get-PowerToysDrift([string]$Dsc, [string]$Path = (Join-Path $PSScriptRoot 'powertoys-settings.json')) {
+    foreach ($entry in Get-PowerToysWanted $Path) {
+        # The whole output before the exit code: a pipeline cut short at the
+        # first line can leave an earlier command's code in $LASTEXITCODE.
+        $output = @(& $Dsc test --resource 'settings' --module $entry.Module --input $entry.Argument)
+        $inDesiredState = $false
+        if ($LASTEXITCODE -eq 0 -and $output.Count -gt 0) {
+            try {
+                $inDesiredState = [bool]($output[0] | ConvertFrom-Json)._inDesiredState
+            } catch {
+                $inDesiredState = $false
+            }
+        }
+        if ($inDesiredState) { Write-Output $entry.Module }
     }
 }
 

@@ -18,17 +18,26 @@ if ($drift.Count -eq 0 -and (Test-PowerToysAutostart)) {
     return
 }
 
-# A running PowerToys would write its own copy of the settings back over these,
-# and it registers "run at startup" only while starting.
-Get-Process -Name PowerToys -ErrorAction SilentlyContinue | Stop-Process -Force
-foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
-    & $dsc set --resource 'settings' --module $entry.Module --input $entry.Json | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "PowerToys.DSC.exe could not set $($entry.Module) (exit $LASTEXITCODE)."
-    }
-    Write-Output "PowerToys: set $($entry.Module)."
+# A running PowerToys, its Settings window included, would write its own copy
+# of the settings back over these, and it registers "run at startup" only
+# while starting. Started again even when a setting could not be written, so a
+# failure does not leave the machine without it.
+$running = @(Get-Process -Name 'PowerToys*' -ErrorAction SilentlyContinue)
+if ($running.Count -gt 0) {
+    $running | Stop-Process -Force
+    $running | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
 }
-Start-Process -FilePath (Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe')
+try {
+    foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
+        & $dsc set --resource 'settings' --module $entry.Module --input $entry.Argument | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "PowerToys.DSC.exe could not set $($entry.Module) (exit $LASTEXITCODE)."
+        }
+        Write-Output "PowerToys: set $($entry.Module)."
+    }
+} finally {
+    Start-Process -FilePath (Join-Path (Split-Path -Parent $dsc) 'PowerToys.exe')
+}
 
 # PowerToys registers its startup task a few seconds into starting, so this
 # waits on it rather than returning before the setup's result can be checked.
