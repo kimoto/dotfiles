@@ -620,6 +620,62 @@ _long_command_bell() {
 add-zsh-hook preexec _long_command_mark
 add-zsh-hook precmd _long_command_bell
 
+# Usage log: which commands get typed, and how often, so tools can be judged by
+# use (bin/usage_counts.sh reads it). Only the name in each command position is
+# kept — never an argument, a path or a time of day — one per line, in a file
+# per local day, on this machine only. The directory is 0700: every command
+# typed passes through it. DOTFILES_NO_USAGE_LOG=1 (e.g. in ~/.zshrc.local) turns it off.
+zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
+_usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
+_usage_log_record() {
+  [[ -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
+  # First line only: preexec gets a heredoc's body too, and a pasted secret
+  # often travels in one.
+  local -a words names
+  words=(${(z)${1%%$'\n'*}})
+  # at_command: the next word is the command. skip_next: the next word is the
+  # file of a redirection.
+  local word at_command=1 skip_next=0
+  for word in $words; do
+    case $word in
+      # `)` and `;;` end a case pattern and a case branch.
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|')'|';;'|';&'|';|') at_command=1 skip_next=0; continue ;;
+    esac
+    (( at_command )) || continue
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+    case $word in
+      # Words that put a command next.
+      ('('|'{'|'!'|do|then|else|elif|if|while|until|time|coproc|nocorrect|noglob|-*|*=*) continue ;;
+      (sudo|command|builtin|exec|nohup) continue ;;
+      (*'<'*|*'>'*) skip_next=1; continue ;;
+      # Words followed by a list, a pattern or a test, not by a command.
+      (for|foreach|select|case|repeat|'[['|'((') at_command=0; continue ;;
+    esac
+    at_command=0
+    # Only a word zsh would run is logged. A password typed at the prompt by
+    # mistake, or a typo, is not a command, so it never reaches the file, and
+    # neither does anything after it.
+    [[ $word == '~/'* ]] && word=$HOME/${word#'~/'}
+    if [[ $word == */* ]]; then
+      [[ -f $word && -x $word ]] || continue
+      word=${word:t}
+    elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] || $+builtins[$word] )); then
+      continue
+    fi
+    [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
+  done
+  (( $#names )) || return 0
+  [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0
+  local day
+  strftime -s day %Y-%m-%d $EPOCHSECONDS
+  print -rl -- $names >>| "$_usage_log_dir/$day.log" 2>/dev/null
+  return 0
+}
+add-zsh-hook preexec _usage_log_record
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {

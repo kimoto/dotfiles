@@ -75,10 +75,12 @@ them: the bootstrap and install scripts (`mkworld.sh`, `mklink.sh`,
 `refresh_cloud_session.sh`) and the human-only scripts `AGENTS.md` lists; they
 change the machine, so only their tests are timed.
 
-How often a typed helper is used lives only in the owner's zsh history, on
-their machine. `bin/usage_report.sh` reads it there, but the history keeps one
-entry per command, so it gives the last use, not a count: a sweep can say
-"used this week", never "used 40 times".
+How often a typed helper is used lives only on the owner's machines.
+`bin/usage_report.sh` reads the zsh history, which keeps one entry per command,
+so it gives the last use, not a count. `bin/usage_counts.sh` reads the usage
+log the `.zshrc` preexec hook keeps (command names only, no arguments) and
+gives counts. Neither output belongs in this public repo: it shows every tool a
+machine uses.
 
 Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
 ## Trends

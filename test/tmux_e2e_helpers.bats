@@ -22,6 +22,7 @@ setup() {
   [[ "$output" == *"ZDOTDIR='/repo'"* ]]
   [[ "$output" == *"DOTFILES_NO_SYNC_CHECK=1"* ]]
   [[ "$output" == *"DOTFILES_NO_BREW_CHECK=1"* ]]
+  [[ "$output" == *"DOTFILES_NO_USAGE_LOG=1"* ]]
   [[ "$output" == *"TERM=xterm-256color"* ]]
   [[ "$output" == *"'/bin/zsh' -i" ]]
 }
