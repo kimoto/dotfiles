@@ -118,6 +118,12 @@ class GuideMcpTest(unittest.TestCase):
         self.assertIn("not running", r["content"][0]["text"])
         self.assertEqual(Spoon.seen, [])
 
+    def test_odd_params_do_not_end_the_server(self):
+        r = self.session({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": []},
+                         {"jsonrpc": "2.0", "id": 2, "method": "ping"})
+        self.assertTrue(r[0]["result"]["isError"])
+        self.assertEqual(r[1]["result"], {})
+
     def test_unknown_method(self):
         r = self.session({"jsonrpc": "2.0", "id": 7, "method": "resources/list"})
         self.assertEqual(r[0]["error"]["code"], -32601)

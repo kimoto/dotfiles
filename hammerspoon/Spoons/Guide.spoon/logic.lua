@@ -186,6 +186,41 @@ function M.curtain_refusal(s, now)
    return nil
 end
 
+-- Seconds since the UTC stamp "YYYY-MM-DDTHH:MM:SS" (the curtain's lastChange()), or nil for none.
+function M.since(stamp, now)
+   local y, mo, d, h, mi, s = (stamp or ""):match("^(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
+   if not y then return nil end
+   y, mo = tonumber(y), tonumber(mo)
+   -- Days from 1970-01-01 to the date (the civil-from-days algorithm), so no time zone is involved.
+   if mo <= 2 then y = y - 1 end
+   local era = math.floor(y / 400)
+   local yoe = y - era * 400
+   local doy = math.floor((153 * (mo + (mo > 2 and -3 or 9)) + 2) / 5) + tonumber(d) - 1
+   local doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+   local days = era * 146097 + doe - 719468
+   return now - (days * 86400 + tonumber(h) * 3600 + tonumber(mi) * 60 + tonumber(s))
+end
+
+-- After the owner chooses, finishes or removes an end, it is theirs for a while: an AI bringing
+-- the curtain back the moment they said "done" would overrule them.
+M.OWNER_SECONDS = 10 * 60
+function M.owner_deciding(stamp, now)
+   local ago = M.since(stamp, now)
+   if ago and ago >= 0 and ago < M.OWNER_SECONDS then return "the owner set or ended the curtain a moment ago" end
+   return nil
+end
+
+-- An AI may bring the end sooner, never later: moving it on before it comes would remove the curtain
+-- in all but name. nil when t is allowed, else why.
+function M.curtain_later(s, t)
+   if s.deadline and t >= s.deadline then return "an AI may only bring the end sooner than it is now" end
+   return nil
+end
+
+-- While the curtain is up, only reading and clearing: anything that draws, or that brings an app
+-- forward (one that turns on Secure Input makes the curtain stand down), is the owner's time to decide.
+M.UNDER_CURTAIN = { status = true, answer = true, clear = true }
+
 -- The end an AI asked for, as an epoch, or nil and why. at: the next HH:MM on the owner's clock
 -- (tz seconds ahead of UTC), within CURTAIN_MAX_MINUTES.
 function M.curtain_end(a, now, tz)
@@ -225,6 +260,11 @@ function M.arrow(r, f)
    local best = room[1]
    for i = 2, 4 do if room[i].n > best.n then best = room[i] end end
    local tip = { x = c.x + best.dx * (r.w / 2 + M.ARROW_GAP), y = c.y + best.dy * (r.h / 2 + M.ARROW_GAP) }
+   -- No room on any side (a maximised window): point down at its middle from inside it instead.
+   if best.n < M.ARROW_GAP + M.HEAD + 50 then
+      best = { dx = 0, dy = -1, n = r.h / 2 }
+      tip = { x = c.x, y = c.y }
+   end
    -- Shorter than ARROW_LENGTH when that side is narrow, but never into the screen edge.
    local len = math.max(40, math.min(M.ARROW_LENGTH, best.n - M.ARROW_GAP - 10))
    local tail = { x = tip.x + best.dx * len, y = tip.y + best.dy * len }

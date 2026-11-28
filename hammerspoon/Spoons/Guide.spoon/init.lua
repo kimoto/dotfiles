@@ -2,13 +2,14 @@
 ---
 --- Lets an AI on this Mac guide where the owner looks: dim every app but one, point an arrow at a
 --- window or a button, outline something, show a message, or ask a question with buttons and hear
---- the answer. It can also set the Curtain spoon's end time. guide_mcp.py beside this file is the
+--- the answer. It can also bring the Curtain spoon's end sooner (never later). guide_mcp.py beside this file is the
 --- MCP server an AI client starts; it reaches this spoon over 127.0.0.1 with a token only this user
 --- can read. Rules: logic.lua.
 ---
 --- What an AI can never do here: run code (a request is one of a fixed set of commands), lift or
---- remove the curtain, or take the keyboard. Nothing here installs a key tap, so the curtain's Esc
---- hold and `exit` work exactly as before, and the curtain sits above every guide overlay.
+--- remove the curtain, push its end later, show anything while it is up, or take the keyboard.
+--- Nothing here installs a key tap, so the curtain's Esc hold and `exit` work exactly as before, and
+--- the curtain sits above every guide overlay.
 --- The owner's own ways out: switching to another app ends a spotlight, a click closes a message,
 --- every overlay ends on its own, and ⌃⌥⌘Esc clears everything and mutes the AI for 30 minutes.
 ---
@@ -30,15 +31,17 @@ obj.logic = L
 -- Settings. Each one can be changed before start().
 -- The endpoint file (port and token) and the log live here; guide_mcp.py reads the same path.
 obj.stateDir = os.getenv("HOME") .. "/.local/state/guide"
--- A fixed port so a client started before a reload still finds it; the token changes each start.
-obj.port = 47790
+-- nil picks a free port at random on each start, like the token: a process that took a fixed port
+-- first would be handed the token and could answer as if it were the owner.
+obj.port = nil
 -- The started Curtain spoon, for the curtain command; nil turns that command off.
 obj.curtain = nil
 obj.muteKey = { { "ctrl", "alt", "cmd" }, "escape" }
 obj.muteSeconds = 30 * 60
 
--- Under the curtain (screenSaver), over every app window.
-local LEVEL = hs.canvas.windowLevels.overlay
+-- Over app windows, under dialogs and the menu bar: a label must never sit on a system prompt's button.
+-- The curtain (screenSaver) is far above.
+local LEVEL = hs.canvas.windowLevels.floating
 local ACCENT = { red = 1, green = 0.62, blue = 0.1, alpha = 1 }
 local CARD = { red = 0.11, green = 0.11, blue = 0.14, alpha = 0.97 }
 local JSONH = { ["Content-Type"] = "application/json" }
@@ -49,9 +52,20 @@ local EVENTS_KEEP = 20
 -- nodes and a hung app answers slowly, so the walk stops at whichever limit comes first.
 local AX_NODES = 3000
 local AX_SECONDS = 1.5
+-- One accessibility call waits this long at most (macOS's own default is about 6 s), and one walk may
+-- start every AX_GAP seconds: the walk runs on the thread the curtain's key tap needs.
+local AX_CALL_SECONDS = 0.2
+local AX_GAP = 2
 local LOG_TRIM_BYTES = 200 * 1000
 
-local function clock(t) return os.date("%H:%M", t) end
+-- On the owner's clock, the curtain's when there is one (its utcOffset may differ from this Mac's).
+function obj:clock(t)
+   if self.curtain and self.curtain.tz then return self.curtain:clock(t) end
+   return os.date("%H:%M", t)
+end
+
+-- Quoted for /bin/sh, so a home directory with a ' in it still gets its permissions set.
+local function sq(s) return "'" .. s:gsub("'", "'\\''") .. "'" end
 
 function obj:log(what, detail)
    local f = io.open(self.stateDir .. "/log.tsv", "a")
@@ -69,13 +83,16 @@ end
 
 -- The state dir and the endpoint file are this user's only: the token is the whole of the access check.
 function obj:writeEndpoint()
-   os.execute("/bin/mkdir -p '" .. self.stateDir .. "' && /bin/chmod 700 '" .. self.stateDir .. "'")
    local p = self.stateDir .. "/endpoint"
    local tmp = p .. ".tmp"
-   os.execute("/usr/bin/touch '" .. tmp .. "' && /bin/chmod 600 '" .. tmp .. "'")
+   -- umask 077 as well as chmod: the file is never readable by others, not even for a moment.
+   local dir = sq(self.stateDir)
+   local ok = os.execute("umask 077 && /bin/mkdir -p " .. dir .. " && /bin/chmod 700 " .. dir
+      .. " && /bin/rm -f " .. sq(tmp) .. " && /usr/bin/touch " .. sq(tmp) .. " && /bin/chmod 600 " .. sq(tmp))
+   if not ok then return false end
    local f = io.open(tmp, "w")
    if not f then return false end
-   f:write(tostring(self.port) .. "\n" .. self.token .. "\n")
+   f:write(tostring(self.boundPort) .. "\n" .. self.token .. "\n")
    f:close()
    return os.rename(tmp, p)
 end
@@ -120,7 +137,9 @@ local AX_TEXT = { "AXTitle", "AXDescription", "AXValue", "AXPlaceholderValue", "
 local function findElement(app, needle)
    local root = hs.axuielement.applicationElement(app)
    if not root then return nil, "cannot read " .. app:name() .. " (accessibility permission?)" end
+   root:setTimeout(AX_CALL_SECONDS)
    local win = root:attributeValue("AXFocusedWindow")
+   if win then win:setTimeout(AX_CALL_SECONDS) end
    local queue, seen, n = { win or root }, 0, 1
    if win then queue[2] = root end
    local deadline = hs.timer.secondsSinceEpoch() + AX_SECONDS
@@ -134,6 +153,7 @@ local function findElement(app, needle)
          end
       end
       for _, child in ipairs(el:attributeValue("AXChildren") or {}) do
+         child:setTimeout(AX_CALL_SECONDS)
          n = n + 1; queue[n] = child
       end
    end
@@ -146,7 +166,14 @@ function obj:resolve(t)
    if t.kind == "rect" then return { x = t.x, y = t.y, w = t.w, h = t.h } end
    local app = findApp(t.app)
    if not app then return nil, "no running app named " .. t.app end
-   if t.text then return findElement(app, t.text) end
+   if t.text then
+      local now = hs.timer.secondsSinceEpoch()
+      if self.lastWalk and now - self.lastWalk < AX_GAP then
+         return nil, "finding by text: one search every " .. AX_GAP .. " seconds"
+      end
+      self.lastWalk = now
+      return findElement(app, t.text)
+   end
    local w = app:focusedWindow() or app:mainWindow() or app:visibleWindows()[1]
    if not w then return nil, t.app .. " has no window on screen" end
    local f = w:frame()
@@ -224,7 +251,9 @@ function obj:pulse(ov, indexes)
    end))
 end
 
+-- Every label says it is from the AI, so it never reads as part of the app underneath.
 local function labelElement(text, p, f)
+   text = "AI・" .. text
    local size = hs.drawing.getTextDrawingSize(text, { size = 20 })
    local w = math.min(size.w + 28, f.w - 16)
    local x = math.max(8, math.min(f.w - w - 8, p.x - w / 2))
@@ -245,6 +274,7 @@ function obj:pointAt(kind, args)
       ov.canvases = {}
       local f = L.screen_of(screenFrames(), L.center(rect))
       local c = fullCanvas(f)
+      ov.canvases[1] = c
       local o = toLocal(rect, f)
       c[1] = { type = "rectangle", action = "stroke", strokeWidth = 5, strokeColor = ACCENT,
                roundedRectRadii = { xRadius = 10, yRadius = 10 },
@@ -267,7 +297,8 @@ function obj:pointAt(kind, args)
       ov.canvases[1] = c
       ov.rect = rect
    end
-   draw(r)
+   local drawn, why = pcall(draw, r)
+   if not drawn then self:remove(ov.id, "error"); return nil, "could not draw: " .. tostring(why) end
    self:pulse(ov, kind == "arrow" and { 1, 2, 3 } or { 1 })
    if args.target.kind == "app" and not args.target.text then
       table.insert(ov.timers, hs.timer.doEvery(0.5, function()
@@ -291,9 +322,9 @@ function obj:card(kind, args)
    local f = r and L.screen_of(frames, L.center(r)) or L.screen_of(frames, hs.mouse.absolutePosition())
    local w = math.min(560, f.w - 32)
    local inner = w - 56
+   -- size.h already covers every line; the widest line over the width adds the wrapped ones (roughly).
    local size = hs.drawing.getTextDrawingSize(args.text, { size = 22 })
-   local lines = math.ceil(size.w / inner) + select(2, args.text:gsub("\n", ""))
-   local textH = math.max(1, lines) * (size.h + 2)
+   local textH = size.h * math.max(1, math.ceil(size.w / inner)) + 6
    local buttons = args.choices and 64 or 0
    local h = 28 + textH + 24 + buttons + 18
    local box = L.box(args.position, w, h, f, r)
@@ -332,7 +363,9 @@ function obj:card(kind, args)
          if a and a.pending then
             a.pending, a.answer, a.at = nil, nil, os.time()
             a.ended = why
-            self:event(ov.id, why == "expired" and "unanswered" or "dismissed", why)
+            -- Only the owner's own act counts as turning the question down.
+            local owner = { dismissed = true, owner = true, muted = true }
+            self:event(ov.id, why == "expired" and "unanswered" or owner[why] and "dismissed" or "ended", why)
          end
       end
    end
@@ -359,6 +392,9 @@ end
 function obj:spotlight(args)
    local app = findApp(args.app)
    if not app then return nil, "no running app named " .. args.app end
+   local first = false
+   for _, w in ipairs(app:visibleWindows()) do first = first or w:isStandard() end
+   if not first then return nil, args.app .. " has no window on screen to keep in the light" end
    for id, o in pairs(self.overlays) do if o.kind == "spotlight" then self:remove(id, "replaced") end end
    local ov = self:add("spotlight", args.seconds, {})
    local dark = { red = 0, green = 0, blue = 0.02, alpha = args.dim }
@@ -408,10 +444,8 @@ function obj:spotlight(args)
    table.insert(ov.timers, hs.timer.doEvery(0.3, function()
       if not pcall(draw) then self:event(ov.id, "left", "app gone"); self:remove(ov.id, "app gone") end
    end))
-   -- Activations in the first moment are the activate() above settling, not the owner leaving.
-   local since = hs.timer.secondsSinceEpoch()
    local watcher = hs.application.watcher.new(function(name, ev, a)
-      if ev ~= hs.application.watcher.activated or hs.timer.secondsSinceEpoch() - since < 1 then return end
+      if ev ~= hs.application.watcher.activated then return end
       if a and a:pid() == app:pid() then return end
       self:event(ov.id, "left", name)
       self:remove(ov.id, "left")
@@ -424,18 +458,22 @@ end
 
 function obj:setCurtain(args)
    local c, now = self.curtain, os.time()
-   local no = L.curtain_refusal(c and c:state(), now)
+   local no = L.curtain_refusal(c and c:state(), now) or L.owner_deciding(c:lastChange(), now)
    if no then return nil, no end
    local t, err = L.curtain_end(args, now, c.tz)
    if not t then return nil, err end
-   c:setDeadline(t, nil, "ai" .. (args.reason and (" " .. args.reason) or ""))
+   no = L.curtain_later(c:state(), t)
+   if no then return nil, no end
+   -- An automatic source, not the owner's choice: it leaves no mark that the owner decided, which
+   -- a request from elsewhere would read as newer than its own.
+   c:setDeadline(t, "ai", args.reason)
    c:step()
-   self:log("curtain", clock(t) .. " " .. (args.reason or ""))
-   return { ["end"] = clock(t), shown = c:state().shown == true }
+   self:log("curtain", self:clock(t) .. " " .. (args.reason or ""))
+   return { ["end"] = self:clock(t), shown = c:state().shown == true }
 end
 
 function obj:status()
-   local s = { screens = {}, windows = {}, overlays = {}, events = self.events, now = clock(os.time()) }
+   local s = { screens = {}, windows = {}, overlays = {}, events = self.events, now = self:clock(os.time()) }
    for i, f in ipairs(screenFrames()) do f.main = i == 1; s.screens[i] = f end
    local front = hs.application.frontmostApplication()
    s.frontmost = front and front:name() or nil
@@ -447,13 +485,13 @@ function obj:status()
                                     frame = { x = f.x, y = f.y, w = f.w, h = f.h } }
    end
    for id, o in pairs(self.overlays) do
-      s.overlays[#s.overlays + 1] = { id = id, kind = o.kind, ends = clock(o.ends) }
+      s.overlays[#s.overlays + 1] = { id = id, kind = o.kind, ends = self:clock(o.ends) }
    end
-   if L.muted(self.muteUntil, os.time()) then s.muted_until = clock(self.muteUntil) end
+   if L.muted(self.muteUntil, os.time()) then s.muted_until = self:clock(self.muteUntil) end
    if self.curtain then
-      local cs = self.curtain:state()
-      s.curtain = { ["end"] = cs.deadline and clock(cs.deadline) or nil, shown = cs.shown == true,
-                    back_at = (cs.snooze_until and cs.snooze_until > os.time()) and clock(cs.snooze_until) or nil,
+      local cs = self.curtain:state() or {}
+      s.curtain = { ["end"] = cs.deadline and self:clock(cs.deadline) or nil, shown = cs.shown == true,
+                    back_at = (cs.snooze_until and cs.snooze_until > os.time()) and self:clock(cs.snooze_until) or nil,
                     paused = cs.paused ~= nil }
    end
    return s
@@ -475,16 +513,24 @@ function obj:run(cmd, a)
       if a.id then self:remove(a.id, "cleared") else self:clearAll("cleared") end
       return { cleared = a.id or "all" }
    end
-   if L.muted(self.muteUntil, now) then return nil, "the owner muted guidance until " .. clock(self.muteUntil) end
+   if L.muted(self.muteUntil, now) then return nil, "the owner muted guidance until " .. self:clock(self.muteUntil) end
+   local cs = self.curtain and self.curtain:state()
+   if cs and cs.shown and not L.UNDER_CURTAIN[cmd] then
+      return nil, "the curtain is up; nothing is shown over it"
+   end
    if cmd == "curtain" then return self:setCurtain(a) end
-   if self:count() >= L.MAX_OVERLAYS then return nil, "too many overlays on screen; clear some first" end
+   local replaces = false
+   for _, o in pairs(self.overlays) do replaces = replaces or (cmd == "spotlight" and o.kind == "spotlight") end
+   if self:count() >= L.MAX_OVERLAYS and not replaces then
+      return nil, "too many overlays on screen; clear some first"
+   end
    if cmd == "spotlight" then return self:spotlight(a) end
    if cmd == "arrow" or cmd == "highlight" then return self:pointAt(cmd, a) end
    return self:card(cmd, a)
 end
 
 function obj:handle(method, path, headers, body)
-   local code, why = L.check_request(method, headers, self.token, self.port)
+   local code, why = L.check_request(method, headers, self.token, self.boundPort)
    if code then return hs.json.encode({ error = why }), code, JSONH end
    if path ~= "/v1" then return hs.json.encode({ error = "not found" }), 404, JSONH end
    local ok, req = pcall(hs.json.decode, body or "")
@@ -504,11 +550,27 @@ end
 
 -- ===== The owner's controls =====
 
+-- A mute outlives a reload (a dotfiles pull reloads Hammerspoon), or the AI would be back early.
+function obj:saveMute()
+   local p = self.stateDir .. "/mute"
+   if not self.muteUntil then os.remove(p); return end
+   local f = io.open(p, "w")
+   if f then f:write(tostring(self.muteUntil) .. "\n"); f:close() end
+end
+
+function obj:loadMute()
+   local f = io.open(self.stateDir .. "/mute", "r")
+   if not f then return end
+   local t = tonumber(f:read("*l") or ""); f:close()
+   self.muteUntil = L.muted(t, os.time()) and t or nil
+end
+
 function obj:mute()
    self:clearAll("muted")
    self.muteUntil = os.time() + self.muteSeconds
-   self:event(nil, "muted", "until " .. clock(self.muteUntil))
-   hs.alert.show("AI の表示を消しました（" .. clock(self.muteUntil) .. " まで出しません）", 3)
+   self:saveMute()
+   self:event(nil, "muted", "until " .. self:clock(self.muteUntil))
+   hs.alert.show("AI の表示を消しました（" .. self:clock(self.muteUntil) .. " まで出しません）", 3)
    self:refreshMenu()
 end
 
@@ -530,13 +592,13 @@ function obj:refreshMenu()
          }
          if L.muted(self.muteUntil, os.time()) then
             table.insert(m, { title = "また出してよい", fn = function()
-               self.muteUntil = nil; self:event(nil, "unmuted", "owner"); self:refreshMenu()
+               self.muteUntil = nil; self:saveMute(); self:event(nil, "unmuted", "owner"); self:refreshMenu()
             end })
          end
          return m
       end)
    end
-   self.menu:setTitle(muted and ("🔕 " .. clock(self.muteUntil)) or ("👁 AI " .. self:count()))
+   self.menu:setTitle(muted and ("🔕 " .. self:clock(self.muteUntil)) or ("👁 AI " .. self:count()))
 end
 
 --- Guide:start()
@@ -546,20 +608,27 @@ function obj:start()
    self:stop()
    self.overlays, self.answers, self.events, self.seq = {}, {}, {}, 0
    self.token = (hs.host.uuid() .. hs.host.uuid()):gsub("-", "")
-   if not self:writeEndpoint() then
-      hs.alert.show("Guide: " .. self.stateDir .. " に書けません", 5)
+   self.server = hs.httpserver.new(false, false)
+   self.server:setInterface("localhost")
+   math.randomseed(os.time() + hs.timer.absoluteTime() % 1000000)
+   self.server:setPort(self.port or math.random(20000, 60999))
+   self.server:setCallback(function(...) return self:handle(...) end)
+   self.server:start()
+   -- The port it really got; the endpoint is written only once something of ours listens there.
+   self.boundPort = self.server:getPort()
+   if not self.boundPort or self.boundPort == 0 or not self:writeEndpoint() then
+      hs.alert.show("Guide: 起動できませんでした", 5)
+      self.server:stop(); self.server = nil
       return self
    end
    self:trimLog()
-   self.server = hs.httpserver.new(false, false)
-   self.server:setInterface("localhost")
-   self.server:setPort(self.port)
-   self.server:setCallback(function(...) return self:handle(...) end)
-   self.server:start()
+   self:loadMute()
+   self:refreshMenu()
+   if self.curtain then self.curtain.fromLabels.ai = self.curtain.fromLabels.ai or "・AI から" end
    self.hotkey = hs.hotkey.bind(self.muteKey[1], self.muteKey[2], function() self:mute() end)
    -- Clears the 🔕 once the mute runs out.
    self.muteTimer = hs.timer.doEvery(60, function() self:refreshMenu() end)
-   self:log("start", tostring(self.port))
+   self:log("start", tostring(self.boundPort))
    return self
 end
 

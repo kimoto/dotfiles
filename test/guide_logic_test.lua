@@ -91,14 +91,32 @@ eq("refusal: just lifted", type(L.curtain_refusal({ snooze_until = now + 60 }, n
 eq("refusal: snooze over", L.curtain_refusal({ snooze_until = now - 1 }, now), nil)
 eq("refusal: paused", type(L.curtain_refusal({ paused = 300 }, now)), "string")
 
+eq("sooner: no end yet", L.curtain_later({}, now + 60), nil)
+eq("sooner: before the end", L.curtain_later({ deadline = now + 600 }, now + 60), nil)
+eq("sooner: never later", type(L.curtain_later({ deadline = now + 600 }, now + 900)), "string")
+eq("sooner: not the same end again", type(L.curtain_later({ deadline = now + 600 }, now + 600)), "string")
+eq("under the curtain: status", L.UNDER_CURTAIN.status, true)
+eq("under the curtain: no spotlight", L.UNDER_CURTAIN.spotlight, nil)
+eq("under the curtain: no message", L.UNDER_CURTAIN.message, nil)
+
 local tz = 9 * 3600
 -- 1700000000 is 2023-11-15 07:13:20 at +09:00.
 eq("end: in minutes", L.curtain_end({ minutes = 10 }, now, tz), now + 600)
 eq("end: later today", L.curtain_end({ at = "08:00" }, now, tz), now + 46 * 60 + 40)
 eq("end: past today means tomorrow, if close", L.curtain_end({ at = "07:00" }, now, tz), nil)
-eq("end: past today, tomorrow within 14 hours", L.curtain_end({ at = "07:20" }, now, tz), now + 400)
+eq("end: a few minutes later today", L.curtain_end({ at = "07:20" }, now, tz), now + 400)
+eq("end: past today, so tomorrow morning", L.curtain_end({ at = "08:00" }, now + 16 * 3600, tz) - (now + 16 * 3600),
+   (8 * 60 + 47) * 60 - 20)
 eq("end: just after midnight", L.curtain_end({ at = "00:30" }, now + 16 * 3600, tz) - (now + 16 * 3600),
    (24 * 60 + 30 - (23 * 60 + 13)) * 60 - 20)
+
+-- 1700000000 is 2023-11-14T22:13:20 UTC.
+eq("since: the curtain's stamp", L.since("2023-11-14T22:13:20", now), 0)
+eq("since: across a month and a leap day", L.since("2024-03-01T00:00:00", 1709251200), 0)
+eq("since: no stamp", L.since("", now), nil)
+eq("owner: just decided", type(L.owner_deciding("2023-11-14T22:10:00", now)), "string")
+eq("owner: long ago", L.owner_deciding("2023-11-14T21:00:00", now), nil)
+eq("owner: never", L.owner_deciding("", now), nil)
 
 eq("muted", L.muted(now + 1, now), true)
 eq("not muted", L.muted(nil, now), false)
@@ -119,6 +137,10 @@ a = L.arrow({ x = 480, y = 700, w = 40, h = 40 }, F)
 eq("arrow: from above a target at the bottom", a.side.dy, -1)
 eq("arrow: tail on screen", a.tail.y >= 0, true)
 eq("arrow: head corners either side", a.left.x ~= a.right.x, true)
+
+a = L.arrow({ x = 0, y = 0, w = 1000, h = 800 }, F)
+eq("arrow: a full-screen target, from inside", a.tip.x, 500)
+eq("arrow: inside, tail above the tip and on screen", a.tail.y < a.tip.y and a.tail.y >= 0, true)
 
 local b = L.box("near", 300, 100, F, { x = 900, y = 750, w = 50, h = 40 })
 eq("box: kept inside on the right", b.x + b.w <= F.w - 8, true)

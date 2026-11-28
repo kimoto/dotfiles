@@ -136,9 +136,9 @@ TOOLS = [
     {
         "name": "guide_curtain",
         "description": (
-            "Set when the dark curtain comes down: in minutes (0 = now) or at HH:MM, within 14 hours. Refused "
-            "while the curtain is up, just after the owner lifted it, or while they paused it. It cannot lift "
-            "or remove the curtain: only the owner can."
+            "Bring the dark curtain down sooner: in minutes (0 = now) or at HH:MM, within 14 hours, and only "
+            "earlier than the end already set. Refused while the curtain is up, just after the owner lifted it, "
+            "or while they paused it. It cannot lift, remove or postpone the curtain: only the owner can."
         ),
         "inputSchema": {
             "type": "object",
@@ -174,15 +174,21 @@ def call(cmd, args):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
         with opener.open(req, timeout=HTTP_TIMEOUT) as r:
-            return json.loads(r.read() or b"{}")
+            res = json.loads(r.read() or b"{}")
+    except ValueError:
+        raise GuideError("Guide answered something that is not JSON") from None
     except urllib.error.HTTPError as e:
         try:
-            why = json.loads(e.read()).get("error")
+            body = json.loads(e.read())
         except ValueError:
-            why = None
+            body = None
+        why = body.get("error") if isinstance(body, dict) else None
         raise GuideError(why or f"Guide answered {e.code}") from None
     except (urllib.error.URLError, OSError):
         raise GuideError("Guide is not answering (is Hammerspoon running?)") from None
+    if not isinstance(res, dict):
+        raise GuideError("Guide answered something that is not an object")
+    return res
 
 
 def ask(args):
@@ -226,8 +232,10 @@ def handle(msg):
     elif method == "tools/list":
         result = {"tools": [{k: v for k, v in t.items() if k != "cmd"} for t in TOOLS]}
     elif method == "tools/call":
-        p = msg.get("params") or {}
-        result = run_tool(p.get("name", ""), p.get("arguments") or {})
+        p = msg.get("params")
+        p = p if isinstance(p, dict) else {}
+        args = p.get("arguments")
+        result = run_tool(str(p.get("name", "")), args if isinstance(args, dict) else {})
     else:
         return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": "unknown method " + str(method)}}
     return {"jsonrpc": "2.0", "id": mid, "result": result}
