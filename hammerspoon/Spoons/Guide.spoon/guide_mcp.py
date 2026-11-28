@@ -29,7 +29,8 @@ TARGET = {
     "type": "object",
     "description": (
         "What to point at. {app} is that app's front window; {app, text} is the first button, field or "
-        "label in it whose visible text contains text; {x, y} is a point and {x, y, w, h} a rectangle, in "
+        "label in it whose visible text contains text, as shown on screen in the Mac's language (a Japanese "
+        "Mac shows ダウンロード, not Downloads); {x, y} is a point and {x, y, w, h} a rectangle, in "
         "screen points with the origin at the top left of the main screen (guide_status lists screens and "
         "window frames)."
     ),
@@ -75,7 +76,11 @@ TOOLS = [
     },
     {
         "name": "guide_arrow",
-        "description": "Draw a pulsing arrow pointing at a target, with an optional label, to move the owner's eye.",
+        "description": (
+            "Draw a pulsing arrow pointing at a target, with an optional label, to move the owner's eye. For an app "
+            "target the reply says in_front; when false the target may be covered, so bring it forward first "
+            "(guide_spotlight does)."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {"target": TARGET, "label": {"type": "string"}, "seconds": SECONDS},

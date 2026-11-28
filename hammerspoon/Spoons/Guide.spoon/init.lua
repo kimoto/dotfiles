@@ -312,7 +312,14 @@ function obj:pointAt(kind, args)
       end))
    end
    self:log(kind, ov.id .. " " .. (args.label or ""))
-   return { id = ov.id, at = r }
+   local out = { id = ov.id, at = r }
+   -- An app behind another window may be covered where the arrow points; say so, so the AI can
+   -- bring it forward (a spotlight does) rather than point at whatever is on top.
+   if args.target.kind == "app" then
+      local front, app = hs.application.frontmostApplication(), findApp(args.target.app)
+      out.in_front = front ~= nil and app ~= nil and front:pid() == app:pid()
+   end
+   return out
 end
 
 -- A card with the text and, for ask, a button per choice. Only the card takes clicks.
