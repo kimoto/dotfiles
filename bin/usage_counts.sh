@@ -22,23 +22,20 @@ set -euo pipefail
 LOG_DIR="${USAGE_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage}"
 
 days=7
+args=1
 case "${1:-}" in
     --all) days=0 ;;
     --days)
-        days="${2:-}"
+        days="${2:-}" args=2
         if ! [[ "$days" =~ ^[1-9][0-9]*$ ]]; then
             echo "usage_counts: --days takes a whole number of days, 1 or more" >&2
             exit 2
         fi
         ;;
     "") ;;
-    *) echo "usage: usage_counts.sh [--days N | --all]" >&2; exit 2 ;;
+    *) args=0 ;;
 esac
-case "${1:-}" in
-    --days) max=2 ;;
-    *) max=1 ;;
-esac
-if [ "$#" -gt "$max" ]; then
+if [ "$#" -gt "$args" ]; then
     echo "usage: usage_counts.sh [--days N | --all]" >&2
     exit 2
 fi

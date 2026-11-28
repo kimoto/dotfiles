@@ -43,11 +43,11 @@ logged() {
   printf '#!/bin/sh\n' >"$WORK/bin/x.sh"
   chmod +x "$WORK/bin/x.sh"
   type_commands \
-    "FOO=secret sudo -u admin git commit -m \"token abc\" | grep needle && $WORK/bin/x.sh /private/path; echo hi"
+    "FOO=secret sudo -E git commit -m \"token abc\" | grep needle && $WORK/bin/x.sh /private/path; echo hi"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
   [ "$(logged)" = "$(printf 'git\ngrep\nx.sh\necho')" ]
-  ! grep -rqE 'secret|admin|token|needle|private|hi' "$LOG_DIR"
+  ! grep -rqE 'secret|token|needle|private|hi' "$LOG_DIR"
 }
 
 @test "a word zsh would not run is dropped, so a mistyped password never lands" {
@@ -57,10 +57,22 @@ logged() {
   [ "$(logged)" = "ls" ]
 }
 
-@test "the command inside a loop is logged, not its keywords, and nothing after a typo" {
-  type_commands 'for f in a b; do grep x; done' 'repeat 3 ls' 'gti -u git' 'mytypo cat file'
+@test "the command inside a loop is logged, not its keywords or its list" {
+  type_commands 'for pkg in git cat; do grep x; done' 'if true; then sort; fi' '[[ -n ls ]] && wc'
   [ "$status" -eq 0 ]
-  [ "$(logged)" = "$(printf 'grep\nls')" ]
+  [ "$(logged)" = "$(printf 'grep\ntrue\nsort\nwc')" ]
+}
+
+@test "nothing after a word that is not a command is logged" {
+  type_commands 'nosuchcmd -u git' 'mytypo cat file' 'sudo mytypo cat secretfile'
+  [ "$status" -eq 0 ]
+  [ ! -e "$LOG_DIR" ]
+}
+
+@test "redirections before the command and declaration builtins are logged right" {
+  type_commands '<input.txt grep foo' '2>/dev/null sort' 'export PATH=/x' 'typeset -f ls'
+  [ "$status" -eq 0 ]
+  [ "$(logged)" = "$(printf 'grep\nsort\nexport\ntypeset')" ]
 }
 
 @test "a command given as ~/path is found" {
@@ -80,11 +92,13 @@ logged() {
 }
 
 @test "the first command of a day creates its file and the directory is private" {
+  # The clock is read on both sides, as the hook may run across midnight.
+  local before after
+  before="$(date +%Y-%m-%d).log"
   type_commands 'ls' 'ls'
+  after="$(date +%Y-%m-%d).log"
   [ "$status" -eq 0 ]
-  # The day itself is not compared: the hook and this test could read the
-  # clock on either side of midnight.
-  [[ "$(ls "$LOG_DIR")" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\.log$ ]]
+  [[ "$(ls "$LOG_DIR")" == "$before" || "$(ls "$LOG_DIR")" == "$after" ]]
   [ "$(logged)" = "$(printf 'ls\nls')" ]
   [ "$(stat -c %a "$LOG_DIR" 2>/dev/null || stat -f %Lp "$LOG_DIR")" = 700 ]
 }

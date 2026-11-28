@@ -633,39 +633,37 @@ _usage_log_record() {
   # often travels in one.
   local -a words names
   words=(${(z)${1%%$'\n'*}})
-  # at_command: the next word may be the command. skip_unknown: a word that
-  # is not a command (sudo's user, repeat's count) is passed over, not taken
-  # as the end of the search.
-  local word at_command=1 skip_unknown=0
+  # at_command: the next word is the command. skip_next: the next word is the
+  # file of a redirection.
+  local word at_command=1 skip_next=0
   for word in $words; do
     case $word in
-      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1 skip_unknown=0; continue ;;
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1 skip_next=0; continue ;;
     esac
     (( at_command )) || continue
-    case $word in
-      ('('|'{'|'!'|-*|*=*) continue ;;
-      (sudo|command|builtin|exec|noglob|nocorrect|time|nohup) skip_unknown=1; continue ;;
-    esac
-    if (( ${reswords[(Ie)$word]} )); then
-      skip_unknown=1
+    if (( skip_next )); then
+      skip_next=0
       continue
     fi
+    case $word in
+      # Words that put a command next.
+      ('('|'{'|'!'|do|then|else|elif|if|while|until|time|coproc|nocorrect|noglob|-*|*=*) continue ;;
+      (sudo|command|builtin|exec|nohup) continue ;;
+      (*'<'*|*'>'*) skip_next=1; continue ;;
+      # Words followed by a list, a pattern or a test, not by a command.
+      (for|foreach|select|case|repeat|'[['|'((') at_command=0; continue ;;
+    esac
+    at_command=0
     # Only a word zsh would run is logged. A password typed at the prompt by
     # mistake, or a typo, is not a command, so it never reaches the file, and
     # neither does anything after it.
     [[ $word == '~/'* ]] && word=$HOME/${word#'~/'}
     if [[ $word == */* ]]; then
-      if [[ -f $word && -x $word ]]; then
-        word=${word:t}
-      else
-        (( skip_unknown )) || at_command=0
-        continue
-      fi
+      [[ -f $word && -x $word ]] || continue
+      word=${word:t}
     elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] || $+builtins[$word] )); then
-      (( skip_unknown )) || at_command=0
       continue
     fi
-    at_command=0
     [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
   done
   (( $#names )) || return 0
