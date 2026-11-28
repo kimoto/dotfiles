@@ -6,7 +6,7 @@
 set -eu
 
 # shellcheck source=bin/claude_settings_lib.sh
-. "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
+. "$(dirname "$(readlink -f "$0" || echo "$0")")/claude_settings_lib.sh"
 
 GATE=$(guarded claude_review_gate.sh)
 

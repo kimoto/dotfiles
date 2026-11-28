@@ -6,7 +6,7 @@
 set -eu
 
 # shellcheck source=bin/claude_settings_lib.sh
-. "$(dirname "$(readlink -f "$0")")/claude_settings_lib.sh"
+. "$(dirname "$(readlink -f "$0" || echo "$0")")/claude_settings_lib.sh"
 
 GUARDED=$(guarded claude_context_check.sh)
 HANDOFF=$(guarded claude_handoff.sh)
