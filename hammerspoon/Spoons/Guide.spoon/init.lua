@@ -303,9 +303,11 @@ function obj:pointAt(kind, args)
    if args.target.kind == "app" and not args.target.text then
       table.insert(ov.timers, hs.timer.doEvery(0.5, function()
          local nr = self:resolve(args.target)
-         if nr and (nr.x ~= ov.rect.x or nr.y ~= ov.rect.y or nr.w ~= ov.rect.w or nr.h ~= ov.rect.h)
+         if not nr then
+            self:event(ov.id, "gone", "target not on screen"); self:remove(ov.id, "gone")
+         elseif (nr.x ~= ov.rect.x or nr.y ~= ov.rect.y or nr.w ~= ov.rect.w or nr.h ~= ov.rect.h)
             and not pcall(draw, nr) then
-            self:remove(ov.id, "error")
+            self:event(ov.id, "gone", "could not redraw"); self:remove(ov.id, "error")
          end
       end))
    end
@@ -367,7 +369,7 @@ function obj:card(kind, args)
             a.pending, a.answer, a.at = nil, nil, os.time()
             a.ended = why
             -- Only the owner's own act counts as turning the question down.
-            local owner = { dismissed = true, owner = true, muted = true }
+            local owner = { clicked = true, owner = true, muted = true }
             self:event(ov.id, why == "expired" and "unanswered" or owner[why] and "dismissed" or "ended", why)
          end
       end
@@ -383,7 +385,7 @@ function obj:card(kind, args)
       elseif el == "close" or kind == "message" then
          -- A question records its own "dismissed" as it ends (onEnd); a message has no onEnd.
          if kind == "message" then self:event(ov.id, "dismissed", "clicked") end
-         self:remove(ov.id, "dismissed")
+         self:remove(ov.id, "clicked")
       end
    end)
    c:show()
@@ -450,6 +452,8 @@ function obj:spotlight(args)
    end))
    local front = hs.application.frontmostApplication()
    local settled = front ~= nil and front:pid() == app:pid()
+   -- An app macOS will not bring forward never sends its own activation: settle anyway, soon.
+   table.insert(ov.timers, hs.timer.doAfter(1.5, function() settled = true end))
    local watcher = hs.application.watcher.new(function(name, ev, a)
       if ev ~= hs.application.watcher.activated then return end
       -- Until the app has come forward, other activations are activate() settling, not the owner.

@@ -97,13 +97,14 @@ Source:
 
 ## AI guide overlays (Mac only)
 
+An AI may only bring the curtain sooner; an end it set has no Enter (done) and no ⏸ pause, only the Esc hold and `exit`.
+
 Source: `hammerspoon/Spoons/Guide.spoon` — arrows, outlines, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
 
 | Key | Action |
 |-----|--------|
 | ⌃⌥⌘Esc | Clear every AI overlay and refuse new ones for 30 minutes (🔕 in the menu bar; its menu lifts the mute) |
 | Switch app | Ends a spotlight that dims everything but one app |
-| — | An AI may only bring the curtain sooner; such an end has no Enter (done) and no ⏸ pause, only the Esc hold and `exit` |
 | Click | Closes a message; on a question, a button answers it and × closes it unanswered |
 
 ---
