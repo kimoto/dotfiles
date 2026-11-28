@@ -42,6 +42,21 @@ if (-not (Test-Path -LiteralPath $shortcutPath)) {
     }
 }
 
+# Read back through PowerToys' own tool, and "run at startup" from the task
+# that does the starting: the setting alone would also pass with no task.
+. (Join-Path $repoDirectory 'windows/powertoys_dsc.ps1')
+$powerToysDsc = Find-PowerToysDsc
+if (-not $powerToysDsc) {
+    $failures.Add('PowerToys.DSC.exe is not installed.')
+} else {
+    foreach ($module in Get-PowerToysDrift $powerToysDsc) {
+        $failures.Add("PowerToys $module differs from windows/powertoys-settings.json.")
+    }
+    if (-not (Test-PowerToysAutostart)) {
+        $failures.Add('PowerToys has no run-at-startup task.')
+    }
+}
+
 $explorerPolicy = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
 $noWinKeys = (Get-ItemProperty -LiteralPath $explorerPolicy -Name NoWinKeys -ErrorAction SilentlyContinue).NoWinKeys
 if ($noWinKeys -ne 1) {

@@ -17,6 +17,9 @@ on:
       - "windows/install_git_hooks.ps1"
       - "windows/install_claude_hooks.ps1"
       - "windows/git_bash.ps1"
+      - "windows/install_powertoys_settings.ps1"
+      - "windows/powertoys_dsc.ps1"
+      - "windows/powertoys-settings.json"
       - "bin/install_claude_*.sh"
       - "bin/claude_*.sh"
       - "bin/git_hook_gitleaks.sh"
@@ -65,7 +68,3 @@ jobs:
 
       - name: The machine is set up
         run: ./test/setup.ps1
-
-      - name: PROBE PowerToys
-        timeout-minutes: 3
-        run: ./test/powertoys_probe.ps1
