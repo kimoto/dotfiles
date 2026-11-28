@@ -4,8 +4,8 @@ The Windows-side counterpart to `Brewfile.macos`: the apps to reinstall after a
 wipe, and which macOS app each one stands in for.
 
 On a fresh machine, one command does the apps, Codex and Claude config, the secret scan before a commit, and
-the AutoHotkey Startup shortcut (`NoWinKeys` and the PowerToys settings below
-stay manual), from the main checkout:
+the AutoHotkey Startup shortcut and the `NoWinKeys` policy (the PowerToys
+settings below stay manual), from the main checkout:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu\<checkout>\windows\setup.ps1"
@@ -186,16 +186,14 @@ shell/editor bindings.
 ## Restoring this machine's arrangement
 
 `winget import` brings the apps back, but not how they are set up. These are
-the steps a wipe has to repeat by hand, in order.
+the steps a wipe has to repeat, in order; `setup.ps1` does the first and the
+third.
 
 ### 1. Turn off the shell's `Win+<key>` shortcuts (`NoWinKeys`)
 
-```powershell
-New-Item -Force 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer' |
-  New-ItemProperty -Name NoWinKeys -PropertyType DWord -Value 1 -Force
-```
-
-Sign out and back in to apply. This is what lets ⌘ (Win on a Mac keyboard)
+`setup.ps1` sets `NoWinKeys` to 1 under
+`HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer`; the one step
+left by hand is to sign out and back in, which applies it. This is what lets ⌘ (Win on a Mac keyboard)
 act as Ctrl everywhere without Windows taking the key first.
 
 What it turns off depends on who registers the hotkey, not on whether it
