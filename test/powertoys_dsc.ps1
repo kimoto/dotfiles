@@ -24,7 +24,7 @@ try {
     $wanted = Join-Path $sandbox 'wanted.json'
     $modules = 'Matches', 'Differs', 'Fails', 'Silent', 'Garbled'
     $entries = $modules | ForEach-Object { "`"$_`": { `"settings`": { `"startup`": true } }" }
-    Set-Content -LiteralPath $wanted -Value ('{' + ($entries -join ',') + '}')
+    Set-Content -LiteralPath $wanted -Value ('{"modules":{' + ($entries -join ',') + '}}')
 
     $drift = @(Get-PowerToysDrift $tool $wanted)
     $expected = 'Differs', 'Fails', 'Silent', 'Garbled'
@@ -44,6 +44,72 @@ try {
         function Get-ScheduledTask { $script:tasks }
         if ((Test-PowerToysAutostart) -ne $case.Expected) {
             throw "Test-PowerToysAutostart did not answer $($case.Expected) for $($case.Why)."
+        }
+    }
+
+    # Command Palette's file as it writes it: the hotkey first, then other
+    # objects with the same shape, one of them under the same name deeper in.
+    $palette = Join-Path $sandbox 'palette.json'
+    $other = '{ "win": true, "ctrl": false, "alt": true, "shift": false, "code": 74, "key": "" }'
+    $before = @(
+        '{'
+        '  "Hotkey": {'
+        '    "win": true,'
+        '    "ctrl": false,'
+        '    "alt": true,'
+        '    "shift": false,'
+        '    "code": 32,'
+        '    "key": ""'
+        '  },'
+        "  `"DockFocusHotkey`": $other,"
+        '  "Language": "",'
+        "  `"ProviderSettings`": { `"one`": { `"Hotkey`": $other, `"PinnedCommandIds`": [] } }"
+        '}'
+    ) -join "`r`n"
+    [System.IO.File]::WriteAllText($palette, $before)
+    $hotkey = Get-CommandPaletteWantedHotkey
+    if (Test-CommandPaletteHotkey $palette $hotkey) {
+        throw 'Test-CommandPaletteHotkey took the default hotkey for the wanted one.'
+    }
+    if (Test-CommandPaletteHotkey (Join-Path $sandbox 'missing.json') $hotkey) {
+        throw 'Test-CommandPaletteHotkey passed a settings file that does not exist.'
+    }
+    $half = Join-Path $sandbox 'half.json'
+    [System.IO.File]::WriteAllText($half, '{ "Hotkey": { "win": true,')
+    if ($null -ne (Get-CommandPaletteHotkey $half)) {
+        throw 'Get-CommandPaletteHotkey read a hotkey out of a half-written file.'
+    }
+    Set-CommandPaletteHotkey $palette $hotkey
+    if (-not (Test-CommandPaletteHotkey $palette $hotkey)) {
+        throw 'Set-CommandPaletteHotkey did not leave the wanted hotkey.'
+    }
+    # Everything after the top-level hotkey is Command Palette's and stays as it was.
+    $after = [System.IO.File]::ReadAllText($palette)
+    $rest = $before.Substring($before.IndexOf('  "DockFocusHotkey"'))
+    if (-not $after.EndsWith($rest)) {
+        throw "Set-CommandPaletteHotkey changed more than the top-level hotkey: $after"
+    }
+
+    # One part off is a different key, whichever part it is.
+    $nearly = Join-Path $sandbox 'nearly.json'
+    foreach ($part in '"shift":false', '"code":32') {
+        $changed = $part.Replace('false', 'true').Replace('32', '74')
+        if (-not $after.Contains($part)) { throw "The written hotkey has no $part to change: $after" }
+        [System.IO.File]::WriteAllText($nearly, $after.Replace($part, $changed))
+        if (Test-CommandPaletteHotkey $nearly $hotkey) {
+            throw "Test-CommandPaletteHotkey passed a hotkey with $changed."
+        }
+    }
+
+    # A file whose top-level hotkey cannot be found is put back as it was, not
+    # half-written: with no hotkey at all, and with one only deeper in.
+    $odd = Join-Path $sandbox 'odd.json'
+    foreach ($text in '{ "Language": "" }', "{ `"ProviderSettings`": { `"one`": { `"Hotkey`": $other } } }") {
+        [System.IO.File]::WriteAllText($odd, $text)
+        $refused = $false
+        try { Set-CommandPaletteHotkey $odd $hotkey } catch { $refused = $true }
+        if (-not $refused -or [System.IO.File]::ReadAllText($odd) -ne $text) {
+            throw "Set-CommandPaletteHotkey did not refuse, or changed, a file with no top-level hotkey: $text"
         }
     }
 } finally {
