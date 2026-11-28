@@ -225,7 +225,9 @@ jobs:
           # a push is cheap next to a missed bug.
           answer = call(API + "/v1/messages", {
               "model": "claude-opus-5-5",
-              "max_tokens": 8000,
+              # Room for 20 findings, the security list and every file name;
+              # a cut answer is not JSON, and the warning below names the cut.
+              "max_tokens": 16000,
               "output_config": {"format": {"type": "json_schema", "schema": SCHEMA}},
               "messages": [{"role": "user", "content": os.environ["PROMPT"]}],
           }, {"content-type": "application/json", "authorization": "Bearer " + token,
@@ -237,7 +239,8 @@ jobs:
           except ValueError:
               print(f"::warning::The reviewer's answer was not JSON (stop_reason {answer.get('stop_reason')}).")
               raise SystemExit(0)
-          public = {"correctness": review.get("correctness", [])[:20],
+          # All findings go on; the post step shows 20 and counts the rest.
+          public = {"correctness": review.get("correctness", []),
                     "looked_at": review.get("looked_at", [])[:100]}
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write("result=" + json.dumps(public, ensure_ascii=False, separators=(",", ":")) + "\n")
