@@ -57,15 +57,21 @@ function Get-CommandPaletteWantedHotkey([string]$Path = (Join-Path $PSScriptRoot
     (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json).commandPaletteHotkey
 }
 
+# The hotkey Command Palette's settings file holds, or nothing while the file
+# is missing or not yet whole.
+function Get-CommandPaletteHotkey([string]$SettingsPath) {
+    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) { return }
+    try {
+        (Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json).Hotkey
+    } catch {
+        return
+    }
+}
+
 # Whether Command Palette's settings file asks for the wanted hotkey. The key's
 # name is left out: Command Palette writes the same key with or without it.
 function Test-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
-    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) { return $false }
-    try {
-        $hotkey = (Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json).Hotkey
-    } catch {
-        return $false
-    }
+    $hotkey = Get-CommandPaletteHotkey $SettingsPath
     if ($null -eq $hotkey) { return $false }
     foreach ($part in 'win', 'ctrl', 'alt', 'shift', 'code') {
         if ($hotkey.$part -ne $Wanted.$part) { return $false }
@@ -78,7 +84,8 @@ function Test-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
 # round trip through ConvertTo-Json would rewrite all of it.
 function Set-CommandPaletteHotkey([string]$SettingsPath, $Wanted) {
     $text = [System.IO.File]::ReadAllText($SettingsPath)
-    $block = '"Hotkey": ' + ($Wanted | ConvertTo-Json -Compress)
+    # "$" doubled, since a replacement string reads "$1" and the like as groups.
+    $block = ('"Hotkey": ' + ($Wanted | ConvertTo-Json -Compress)).Replace('$', '$$')
     # The first match is the top-level one: Command Palette writes it first,
     # and Test-CommandPaletteHotkey below refuses the result if it was not.
     $pattern = [regex]'"Hotkey"\s*:\s*\{[^{}]*\}'

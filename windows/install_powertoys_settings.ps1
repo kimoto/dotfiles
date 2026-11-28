@@ -22,52 +22,61 @@ if ($drift.Count -eq 0 -and $paletteMatches -and (Test-PowerToysAutostart)) {
     return
 }
 
-# Command Palette writes its settings file the first time it runs, and
-# PowerToys is what runs it; there is nothing to edit before that.
-if (-not (Test-Path -LiteralPath $paletteSettings -PathType Leaf)) {
+# A running PowerToys, its Settings window and Command Palette included, would
+# write its own copy of the settings back over these, and it registers "run at
+# startup" only while starting. Started again even when a setting could not be
+# written, so a failure does not leave the machine without it.
+function Invoke-WithPowerToysStopped([scriptblock]$Change) {
+    $running = @(Get-Process -Name 'PowerToys*', 'Microsoft.CmdPal*' -ErrorAction SilentlyContinue)
+    try {
+        if ($running.Count -gt 0) {
+            $running | Stop-Process -Force -ErrorAction SilentlyContinue
+            $running | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
+            $alive = @($running | Where-Object { -not $_.HasExited } | ForEach-Object { $_.Name })
+            if ($alive.Count -gt 0) {
+                throw "PowerToys did not stop ($($alive -join ', ')); close it and run this again."
+            }
+        }
+        & $Change
+    } finally {
+        # A warning, so that it does not replace the error that got here.
+        try {
+            Start-Process -FilePath $powerToys
+        } catch {
+            Write-Warning "PowerToys could not be started again: $_"
+        }
+    }
+}
+
+if ($drift.Count -gt 0 -or -not (Test-PowerToysAutostart)) {
+    Invoke-WithPowerToysStopped {
+        foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
+            & $dsc set --resource 'settings' --module $entry.Module --input $entry.Argument | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                throw "PowerToys.DSC.exe could not set $($entry.Module) (exit $LASTEXITCODE)."
+            }
+            Write-Output "PowerToys: set $($entry.Module)."
+        }
+    }
+}
+
+# After the settings above, which are what turn Command Palette on. It writes
+# its settings file the first time PowerToys runs it, so on a new machine this
+# waits for a whole file with a hotkey in it before stopping it to edit that.
+if (-not $paletteMatches) {
     if (-not (Get-Process -Name PowerToys -ErrorAction SilentlyContinue)) {
         Start-Process -FilePath $powerToys
     }
     $deadline = (Get-Date).AddSeconds(60)
-    while (-not (Test-Path -LiteralPath $paletteSettings -PathType Leaf)) {
+    while ($null -eq (Get-CommandPaletteHotkey $paletteSettings)) {
         if ((Get-Date) -gt $deadline) {
             throw "Command Palette did not write $paletteSettings within 60 seconds of PowerToys starting."
         }
         Start-Sleep -Seconds 1
     }
-}
-
-# A running PowerToys, its Settings window and Command Palette included, would
-# write its own copy of the settings back over these, and it registers "run at
-# startup" only while starting. Started again even when a setting could not be
-# written, so a failure does not leave the machine without it.
-$running = @(Get-Process -Name 'PowerToys*', 'Microsoft.CmdPal*' -ErrorAction SilentlyContinue)
-try {
-    if ($running.Count -gt 0) {
-        $running | Stop-Process -Force -ErrorAction SilentlyContinue
-        $running | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
-        $alive = @($running | Where-Object { -not $_.HasExited } | ForEach-Object { $_.Name })
-        if ($alive.Count -gt 0) {
-            throw "PowerToys did not stop ($($alive -join ', ')); close it and run this again."
-        }
-    }
-    foreach ($entry in Get-PowerToysWanted | Where-Object { $drift -contains $_.Module }) {
-        & $dsc set --resource 'settings' --module $entry.Module --input $entry.Argument | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "PowerToys.DSC.exe could not set $($entry.Module) (exit $LASTEXITCODE)."
-        }
-        Write-Output "PowerToys: set $($entry.Module)."
-    }
-    if (-not $paletteMatches) {
+    Invoke-WithPowerToysStopped {
         Set-CommandPaletteHotkey $paletteSettings $paletteHotkey
         Write-Output 'PowerToys: set the Command Palette hotkey.'
-    }
-} finally {
-    # A warning, so that it does not replace the error that got here.
-    try {
-        Start-Process -FilePath $powerToys
-    } catch {
-        Write-Warning "PowerToys could not be started again: $_"
     }
 }
 

@@ -75,6 +75,11 @@ try {
     if (Test-CommandPaletteHotkey (Join-Path $sandbox 'missing.json') $hotkey) {
         throw 'Test-CommandPaletteHotkey passed a settings file that does not exist.'
     }
+    $half = Join-Path $sandbox 'half.json'
+    [System.IO.File]::WriteAllText($half, '{ "Hotkey": { "win": true,')
+    if ($null -ne (Get-CommandPaletteHotkey $half)) {
+        throw 'Get-CommandPaletteHotkey read a hotkey out of a half-written file.'
+    }
     Set-CommandPaletteHotkey $palette $hotkey
     if (-not (Test-CommandPaletteHotkey $palette $hotkey)) {
         throw 'Set-CommandPaletteHotkey did not leave the wanted hotkey.'

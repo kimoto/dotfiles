@@ -210,9 +210,12 @@ contains `Win`:
 
 ### 2. PowerToys
 
-- `setup.ps1` sets what `powertoys-settings.json` lists, through PowerToys' own
-  `PowerToys.DSC.exe`, and restarts PowerToys when it had to change something:
-  "Run at startup", Advanced Paste turned on, and the hotkeys marked below.
+- `setup.ps1` sets what `powertoys-settings.json` lists, and restarts PowerToys
+  when it had to change something: "Run at startup", Advanced Paste and
+  Command Palette turned on, and the hotkeys marked below. All but one go
+  through PowerToys' own `PowerToys.DSC.exe`; Command Palette's hotkey is
+  written into that app's own settings file, so a change in how it writes the
+  file shows up as `setup.ps1` refusing to edit it.
   An uninstall and install (which winget needs to cross a large version gap)
   resets "Run at startup" to off, and every hotkey below then silently stops
   working after the next reboot, so run `setup.ps1` again after one.
