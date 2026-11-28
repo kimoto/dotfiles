@@ -638,7 +638,8 @@ _usage_log_record() {
   local word at_command=1 skip_next=0
   for word in $words; do
     case $word in
-      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1 skip_next=0; continue ;;
+      # `)` and `;;` end a case pattern and a case branch.
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|')'|';;'|';&'|';|') at_command=1 skip_next=0; continue ;;
     esac
     (( at_command )) || continue
     if (( skip_next )); then

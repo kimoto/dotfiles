@@ -58,9 +58,10 @@ logged() {
 }
 
 @test "the command inside a loop is logged, not its keywords or its list" {
-  type_commands 'for pkg in git cat; do grep x; done' 'if true; then sort; fi' '[[ -n ls ]] && wc'
+  type_commands 'for pkg in git cat; do grep x; done' 'if true; then sort; fi' '[[ -n ls ]] && wc' \
+    'case x in a) ls;; *) cat;; esac'
   [ "$status" -eq 0 ]
-  [ "$(logged)" = "$(printf 'grep\ntrue\nsort\nwc')" ]
+  [ "$(logged)" = "$(printf 'grep\ntrue\nsort\nwc\nls\ncat')" ]
 }
 
 @test "nothing after a word that is not a command is logged" {
@@ -98,7 +99,10 @@ logged() {
   type_commands 'ls' 'ls'
   after="$(date +%Y-%m-%d).log"
   [ "$status" -eq 0 ]
-  [[ "$(ls "$LOG_DIR")" == "$before" || "$(ls "$LOG_DIR")" == "$after" ]]
+  local f
+  for f in "$LOG_DIR"/*; do
+    [[ "${f##*/}" == "$before" || "${f##*/}" == "$after" ]] || return 1
+  done
   [ "$(logged)" = "$(printf 'ls\nls')" ]
   [ "$(stat -c %a "$LOG_DIR" 2>/dev/null || stat -f %Lp "$LOG_DIR")" = 700 ]
 }
