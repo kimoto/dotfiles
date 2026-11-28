@@ -21,23 +21,24 @@ Dropping Hammerspoon would buy nothing: Windows needs its own hotkey layer whate
 
 | Concern | Mac (today) | Windows (new) | Linux |
 |---|---|---|---|
-| Hotkeys | `hs.hotkey.bind` ⌃⌘⇧D/S/L/W | AHK v2 in `mac-keys.ahk`'s include set; Ctrl+Win+Shift+D/S/L/W, the same physical keys, since a Mac keyboard sends Win for ⌘ (`mac-keys.ahk`); Ctrl+Win+Shift+B is the one combination Windows reserves | none: `translate.py` from a terminal |
-| Selected text | ⌘C, then wait on `hs.pasteboard.changeCount` (0.5 s) | `A_Clipboard := ""`, `^c`, `ClipWait 0.5` | stdin, or `wl-paste` / `xclip` if present |
+| Hotkeys | `hs.hotkey.bind` ⌃⌘⇧D/S/L/W | AHK v2 in `mac-keys.ahk`'s include set; Ctrl+Win+Shift+D/S/W, the same physical keys, since a Mac keyboard sends Win for ⌘. Not L: Win+L locks the screen below the hook layer whatever the other modifiers (`mac-keys.ahk` says so), so region moves to Ctrl+Win+Shift+R, noted in `KEYBINDINGS.md` | none: `translate.py` from a terminal |
+| Selected text | ⌘C, then wait on `hs.pasteboard.changeCount` (0.5 s) | `^c`, then wait up to 0.5 s for `GetClipboardSequenceNumber` to move, the Windows twin of `changeCount`. Not `A_Clipboard := ""` + `ClipWait`: with nothing selected that throws away what the user had copied | stdin, or `wl-paste` / `xclip` if present |
 | Which job ⌃⌘⇧W guesses | `AXRole` of the focused element + app bundle ID | process name (`WinGetProcessName`) for chat apps; focused control class for text fields. Weaker in Electron and browsers, so a wrong guess is one tab away, as on the Mac | — |
-| Region (⌃⌘⇧L) | `screencapture -i` | `ms-screenclip:` (Snipping Tool), then the core reads the image from the clipboard | `--image FILE` |
+| Region (⌃⌘⇧L) | `screencapture -i`, which blocks until the region is drawn | `ms-screenclip:` (Snipping Tool) returns at once, so AHK waits for an image on the clipboard (`OnClipboardChange`, up to 60 s, Esc cancels), saves it to a temp file and passes `--image` | `--image FILE` |
 | Popup | `hs.webview` + `POPUP_HTML` | the same page in a pywebview window, started once at login by AHK and kept running, so a key press only sends a job | — |
-| Key store | `security` (Keychain) | Windows Credential Manager | Secret Service, or no key: ant sign-in |
+| Key store | `security` (Keychain), unchanged | Windows Credential Manager through `keyring` | Secret Service, or no key: ant sign-in |
 
 ## The shared core
 
-`translate.py` keeps its CLI and its job logic. Four calls become per-OS behind one small module:
+`translate.py` keeps its CLI and its job logic. Six places become per-OS behind one small module; the Mac branch of each is today's code, unchanged:
 
-- **Key store** → the `keyring` package. Its macOS backend reads the same generic password (`service=desktop-translate`, `account=anthropic`), so the Mac needs no migration. The key is still read inside the process, never from the environment.
+- **Key store** → `security` on the Mac, as now; the `keyring` package elsewhere. Not `keyring` on the Mac: the existing items trust `/usr/bin/security` in their access list, so the venv's Python would raise a Keychain prompt on every key press, and "Always Allow" is lost on each Python rebuild. The key is still read inside the process, never from the environment.
 - **Clipboard** → `pbcopy`/`pbpaste` on the Mac, the Win32 clipboard on Windows (through pywebview's own pythonnet, or `ctypes`), so no extra package for text.
 - **Screen region** → `screencapture` / clipboard image.
-- **Fallback dialog** (`osascript`) → only for `--quiet`-less CLI use; on Windows and Linux the result goes to stdout and the clipboard.
+- **Dialog and notification** (`osascript` in `show()` and in `report()`, which runs on every failure, `--quiet` or not) → stdout/stderr only on Windows and Linux; the popup shows errors there.
+- **Private file mode** → `os.fchmod` does not exist on Windows before Python 3.13; skip it there, and rely on `%LOCALAPPDATA%` being the user's own.
 
-Data stays where it is per OS: `~/.local/share/desktop-translate/` on Mac and Linux, `%LOCALAPPDATA%\desktop-translate\` on Windows (config, instructions, style, rewrite log; same 0600 intent, set with an ACL on Windows).
+Data stays where it is per OS: `~/.local/share/desktop-translate/` on Mac and Linux, `%LOCALAPPDATA%\desktop-translate\` on Windows (config, instructions, style, rewrite log).
 
 ## The shared popup
 
@@ -59,14 +60,14 @@ Data stays where it is per OS: `~/.local/share/desktop-translate/` on Mac and Li
 
 The repo is public, so the extra Windows minutes are free.
 
-- Core: the existing `test/translate.bats` cases, with the OS module stubbed, also on the `windows-2025` job that already runs bats in Git Bash.
+- Core: `test/translate.bats` stays as is on Linux; its `security`/`osascript` stubs still hold, since the Mac path does not change. Windows gets its own cases for the Windows branch of the OS module. They run on the `windows-2025` job, which today runs only `test/claude_*.bats` with no Python: it needs a venv step from the Windows lock (`ci_needs_e2e.sh` already turns that job on for any change to the translator).
 - Popup: a Playwright test that loads `translate-popup.html` with a fake host and checks streaming, tabs and copy, on Linux. It covers both hosts' page.
 - Windows shell: `test/translate_ahk.ps1` next to `test/curtain_ahk.ps1`, driving the real AutoHotkey on the runner with the core replaced by a stub that echoes its arguments.
 - Real translations and the real Mac GUI stay manual, as `hammerspoon_translate_test.sh` does today (`docs/scouts.md`).
 
 ## Order of work
 
-1. Core: the OS module, `keyring`, `--save-key` from stdin. Mac behaviour unchanged, checked by the existing bats.
+1. Core: the OS module (Mac branch = today's code), `keyring` for Windows, `--save-key` from stdin. Mac behaviour unchanged, checked by the existing bats.
 2. Popup page out of `translate.lua`, behind the bridge, with its Playwright test. Mac behaviour unchanged.
 3. Windows: pywebview host, `translate.ahk`, `setup.ps1` step, tests. Then one hand check on the real Windows machine (about 30 minutes: install, sign in, the four keys).
 
