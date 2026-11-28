@@ -620,6 +620,52 @@ _long_command_bell() {
 add-zsh-hook preexec _long_command_mark
 add-zsh-hook precmd _long_command_bell
 
+# Usage log: which commands get typed, and how often, so tools can be judged by
+# use (bin/usage_counts.sh reads it). Only the name in each command position is
+# kept — never an argument, a path or a time of day — one per line, in a file
+# per local day, on this machine only. The directory is 0700: every command
+# typed passes through it. DOTFILES_NO_USAGE_LOG=1 (e.g. in ~/.zshrc.local) turns it off.
+zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
+_usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
+_usage_log_record() {
+  [[ -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
+  # First line only: preexec gets a heredoc's body too, and a pasted secret
+  # often travels in one.
+  local -a words names
+  words=(${(z)${1%%$'\n'*}})
+  local word at_command=1
+  for word in $words; do
+    case $word in
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!') at_command=1; continue ;;
+    esac
+    (( at_command )) || continue
+    case $word in
+      # Precommand modifiers, their options, grouping and assignments: the
+      # command is a later word.
+      ('('|'{'|'!'|sudo|command|builtin|exec|noglob|nocorrect|time|nohup|-*|*=*) continue ;;
+    esac
+    # Only a word zsh would run is logged. A password typed at the prompt by
+    # mistake, or a typo, is not a command, so it never reaches the file. Until
+    # one is found the search goes on, past e.g. the user of `sudo -u <user>`.
+    if [[ $word == */* ]]; then
+      [[ -f $word && -x $word ]] || continue
+      word=${word:t}
+    elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] ||
+              $+builtins[$word] || ${reswords[(Ie)$word]} )); then
+      continue
+    fi
+    at_command=0
+    [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
+  done
+  (( $#names )) || return 0
+  [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0
+  local day
+  strftime -s day %Y-%m-%d $EPOCHSECONDS
+  print -rl -- $names >>| "$_usage_log_dir/$day.log" 2>/dev/null
+  return 0
+}
+add-zsh-hook preexec _usage_log_record
+
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
 dotfiles-ship() {
