@@ -2,10 +2,11 @@
 
 # Interactive `brew bundle install` for every Brewfile this machine uses.
 #
-# Companion to brew_bundle_check.sh: that startup reminder only nags and points
-# here; this script actually installs, and only when a human asks. It is never
-# wired into shell startup, and it refuses to run without a terminal on both
-# stdin and stdout, so CI, hooks, or an AI agent invoking it is a no-op.
+# The Brewfiles alone, for when bin/mkworld.sh (what the startup reminder
+# points to) would stop at each sudo prompt: this one batches them at the end.
+# It installs only when a human asks. It is never wired into shell startup,
+# and it refuses to run without a terminal on both stdin and stdout, so CI,
+# hooks, or an AI agent invoking it is a no-op.
 #
 # Flow: one Y/n confirmation (Enter proceeds), then a fully unattended pass — sudo is disabled
 # via a failing SUDO_ASKPASS so a cask that needs a password fails fast instead

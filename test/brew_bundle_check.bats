@@ -133,12 +133,17 @@ wait_for() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[brew]"* ]]
   [[ "$output" == *"Brewfile.standard"* ]]
-  [[ "$output" == *"brew bundle install --file=$REPO/Brewfile.standard"* ]]
   # `brew bundle check` fails for outdated packages too, so the nag must not
   # claim they are merely uninstalled.
   [[ "$output" == *"missing or outdated"* ]]
-  # Also points at the interactive one-shot installer.
-  [[ "$output" == *"brew_bundle_install.sh"* ]]
+  # A pull that changed a Brewfile may have changed mise.toml or a hook too,
+  # so the fix offered is the whole bootstrap, once, not one Brewfile.
+  # Split, so test/tmux_private_tmpdir.bats does not read it as a run.
+  [[ "$output" == *"$REPO"/bin"/mkworld.sh"* ]]
+  # Every failing Brewfile is named on that one line, not just the first.
+  [[ "$output" == *"in Brewfile.standard, Brewfile.extra, Brewfile."* ]]
+  [[ "$output" != *"brew bundle install"* ]]
+  [ "$(printf '%s\n' "$output" | grep -c mkworld.sh)" -eq 1 ]
 }
 
 @test "a pending nag is re-checked every startup and clears once satisfied" {
@@ -231,8 +236,8 @@ STUBEOF
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$CASK_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
-  [[ "$output" == *"brew_bundle_install.sh"* ]]
+  [[ "$output" == *"missing or outdated packages in Brewfile.standard"* ]]
+  [[ "$output" == *"mkworld.sh"* ]]
   [[ "$output" != *"auto-upgrade"* ]]
 }
 
@@ -241,7 +246,7 @@ STUBEOF
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$TAP_FORMULA_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
+  [[ "$output" == *"missing or outdated packages in Brewfile.standard"* ]]
 }
 
 @test "an agent that has not succeeded for days is reported, with its drift" {
@@ -250,7 +255,7 @@ STUBEOF
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
   [[ "$output" == *"auto-upgrade has not succeeded since 20"* ]]
-  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
+  [[ "$output" == *"missing or outdated packages in Brewfile.standard"* ]]
 }
 
 @test "an agent that never succeeded is reported even with nothing to install" {
@@ -259,13 +264,13 @@ STUBEOF
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=0 run "$SCRIPT"
   [[ "$output" == *"auto-upgrade has not succeeded since never"* ]]
-  [[ "$output" != *"install all at once"* ]]
+  [[ "$output" != *"mkworld.sh"* ]]
 }
 
 @test "without the agent, formula drift is reported as before" {
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
   wait_for '[ -s "$CACHE/brew_missing" ]'
   BREW_CHECK_RC=1 BREW_CHECK_OUT="$FORMULA_DRIFT" run "$SCRIPT"
-  [[ "$output" == *"Brewfile.standard has missing or outdated"* ]]
+  [[ "$output" == *"missing or outdated packages in Brewfile.standard"* ]]
   [[ "$output" != *"auto-upgrade"* ]]
 }

@@ -4,8 +4,8 @@
 #
 # Warns at shell startup when a Brewfile bundle is not satisfied — a package it
 # lists is missing, or an installed one is out of date — so the tools you expect
-# are present and current. `brew bundle check` does not distinguish the two and
-# `brew bundle install` fixes either, which is what the printed command does.
+# are present and current. `brew bundle check` does not distinguish the two;
+# bin/mkworld.sh, the command it points to, fixes either.
 # Notify-only: this script never installs anything.
 #
 # Where the brew_auto_upgrade.sh agent is installed and has succeeded recently,
@@ -59,8 +59,10 @@ if [ -s "$result" ]; then
     cyan=$'\033[36m'
     reset=$'\033[0m'
 
-    # One line per unsatisfied Brewfile, with a ready-to-run install command.
-    listed=0
+    # A single line for all unsatisfied Brewfiles: a pull that changed a Brewfile
+    # may also have changed mise.toml or a hook installer, which `brew bundle
+    # install` would leave behind, so the fix offered is the whole bootstrap.
+    bundles=""
     while IFS= read -r f; do
         case "$f" in
             '') ;;
@@ -68,17 +70,15 @@ if [ -s "$result" ]; then
                 printf '%s[brew]%s daily formula auto-upgrade has not succeeded since %s -> %stail %s%s\n' \
                     "$yellow" "$reset" "${f#!stale }" "$cyan" "$auto_log" "$reset" >&2
                 ;;
-            *)
-                listed=1
-                printf '%s[brew]%s %s has missing or outdated packages -> %sbrew bundle install --file=%s/%s%s\n' \
-                    "$yellow" "$reset" "$f" "$cyan" "$REPO_DIR" "$f" "$reset" >&2
-                ;;
+            *) bundles="${bundles:+$bundles, }$f" ;;
         esac
     done <"$result"
-    # One-shot alternative that installs everything and batches the prompts.
-    if [ "$listed" -eq 1 ]; then
-        printf '%s[brew]%s or install all at once -> %s%s/bin/brew_bundle_install.sh%s\n' \
-            "$yellow" "$reset" "$cyan" "$REPO_DIR" "$reset" >&2
+    # The script name is an argument, not part of the format: a path written
+    # out in full reads as a call to test/tmux_private_tmpdir.bats, which
+    # counts mkworld.sh as a test starting a tmux server.
+    if [ -n "$bundles" ]; then
+        printf '%s[brew]%s missing or outdated packages in %s -> %s%s/bin/%s%s\n' \
+            "$yellow" "$reset" "$bundles" "$cyan" "$REPO_DIR" mkworld.sh "$reset" >&2
     fi
 fi
 
