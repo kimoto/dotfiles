@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+# The installer runs as a script fetched over the network, so it runs from a
+# pinned commit rather than whatever HEAD holds that minute. A commit SHA names
+# the file's exact bytes already, so no separate hash is kept: one would only
+# guard against GitHub itself serving other bytes, and would stop Renovate from
+# moving the pin on its own. Renovate proposes a newer commit in its monthly PR
+# once that commit is a week old.
+# renovate: datasource=github-digest depName=Homebrew/install branch=main
+HOMEBREW_INSTALL_REF="7a3f48c7e498d7df3237fd41c30f4d492857edf4"
+
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
 cd "$BASE_DIR" || exit 1;
 
@@ -13,7 +22,14 @@ if [ -z "${BREW_BIN:-}" ]; then
     if ! command -v brew >/dev/null 2>&1; then
         os="$(uname)"
         if [ "$os" = "Darwin" ] || [ "$os" = "Linux" ]; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            # A fresh Ubuntu has wget, which README uses, but not curl.
+            if ! command -v curl >/dev/null 2>&1; then
+                echo "setup_homebrew: curl is needed to fetch the Homebrew installer;" \
+                    "install it first (Debian/Ubuntu: sudo apt-get install curl)" >&2
+                exit 1
+            fi
+            installer="https://raw.githubusercontent.com/Homebrew/install/$HOMEBREW_INSTALL_REF/install.sh"
+            /bin/bash -c "$(curl -fsSL "$installer")"
         fi
     fi
 
@@ -37,21 +53,21 @@ if [ -z "${BREW_BIN:-}" ]; then
     exit 1
 fi
 
-"$BREW_BIN" bundle install --file=Brewfile.basic
+"$BREW_BIN" bundle install --file=Brewfile.standard
 
-# Brewfile.common is the expensive half, and a caller that only needs a shell to
-# start says so itself. Deliberately not keyed on $CI: Actions exports CI=true
-# into every step, so the one job built to bootstrap with nothing skipped could
-# not opt back in, and installed nothing but Brewfile.basic.
-if [ "${SKIP_BREWFILE_COMMON:-0}" != "1" ]; then
-    "$BREW_BIN" bundle install --file=Brewfile.common
+# Brewfile.extra and the platform Brewfile are the extra and platform phases:
+# the expensive half, and a caller that only needs a shell to start says so.
+# Deliberately not keyed on $CI: Actions exports CI=true into every step, so the
+# one job built to bootstrap with nothing skipped could not opt back in, and
+# installed nothing but Brewfile.standard.
+if [ "${SKIP_BREWFILE_EXTRA:-0}" != "1" ]; then
+    "$BREW_BIN" bundle install --file=Brewfile.extra
+    case "$(uname)" in
+        Darwin)
+            "$BREW_BIN" bundle install --file=Brewfile.macos
+            ;;
+        Linux)
+            "$BREW_BIN" bundle install --file=Brewfile.linux
+            ;;
+    esac
 fi
-
-case "$(uname)" in
-    Darwin)
-        "$BREW_BIN" bundle install --file=Brewfile.macos
-        ;;
-    Linux)
-        "$BREW_BIN" bundle install --file=Brewfile.linux
-        ;;
-esac

@@ -1,8 +1,15 @@
+# Exact versions, not "latest": whatever was newest on install day would reach
+# every machine unreviewed. Renovate's mise manager proposes each bump in its
+# monthly PR once the release is a week old; a repo that needs something newer
+# says so in its own mise.toml.
 [tools]
-bun = "latest"
-go = "latest"
-node = "latest"
-rust = "latest"
+bun = "1.4.4"
+go = "1.27.3"
+node = "26.13.1"
+# The repo's pipx: tools ask for this minor version, and mise resolves them
+# outside the repo, where only this file names a python.
+python = "3.14"
+rust = "1.99.1"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]

@@ -160,6 +160,71 @@ teardown() {
   [ "$(cat "$HOME_SANDBOX/.claude/skills/vendor-skill/SKILL.md")" = vendor ]
 }
 
+@test "mklink.sh links each agent by file and rmworld.sh takes only ours down" {
+  mkdir -p "$HOME_SANDBOX/.claude/agents"
+  echo vendor >"$HOME_SANDBOX/.claude/agents/vendor-agent.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/agents" ]
+  for agent in "$REPO_ROOT"/claudecode/agents/*.md; do
+    [ "$(readlink -f "$HOME_SANDBOX/.claude/agents/$(basename "$agent")")" = "$agent" ]
+  done
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  for agent in "$REPO_ROOT"/claudecode/agents/*.md; do
+    [ ! -e "$HOME_SANDBOX/.claude/agents/$(basename "$agent")" ]
+  done
+  [ "$(cat "$HOME_SANDBOX/.claude/agents/vendor-agent.md")" = vendor ]
+}
+
+@test "mklink.sh links every directory under claudecode/skills, with no list to update" {
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  for skill in "$REPO_ROOT"/claudecode/skills/*/; do
+    name="$(basename "$skill")"
+    [ "$(readlink -f "$HOME_SANDBOX/.claude/skills/$name")" = "${skill%/}" ]
+  done
+}
+
+@test "mklink.sh leaves a real directory under one of our skill names alone" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills/wrapup"
+  echo theirs >"$HOME_SANDBOX/.claude/skills/wrapup/SKILL.md"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/wrapup" ]
+  [ ! -e "$HOME_SANDBOX/.claude/skills/wrapup/wrapup" ]
+  [ "$(cat "$HOME_SANDBOX/.claude/skills/wrapup/SKILL.md")" = theirs ]
+}
+
+@test "mklink.sh takes down links to skills and agents since removed from the repo" {
+  mkdir -p "$HOME_SANDBOX/.claude/skills" "$HOME_SANDBOX/.claude/agents"
+  ln -s "$REPO_ROOT/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+  ln -s "$REPO_ROOT/claudecode/agents/retired-agent.md" \
+    "$HOME_SANDBOX/.claude/agents/retired-agent.md"
+  ln -s "$HOME_SANDBOX/elsewhere/their-skill" \
+    "$HOME_SANDBOX/.claude/skills/their-skill"
+
+  HOME="$HOME_SANDBOX" run sh "$MKLINK"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
+  [ ! -L "$HOME_SANDBOX/.claude/agents/retired-agent.md" ]
+  [ -L "$HOME_SANDBOX/.claude/skills/their-skill" ]
+}
+
+@test "rmworld.sh unlinks a skill link left behind after the skill was removed" {
+  HOME="$HOME_SANDBOX" sh "$MKLINK"
+  ln -s "$REPO_ROOT/claudecode/skills/retired-skill" \
+    "$HOME_SANDBOX/.claude/skills/retired-skill"
+
+  HOME="$HOME_SANDBOX" run sh "$RMWORLD"
+  [ "$status" -eq 0 ]
+  [ ! -L "$HOME_SANDBOX/.claude/skills/retired-skill" ]
+}
+
 @test "rmworld.sh unlinks our rules but leaves another repo's rules in place" {
   HOME="$HOME_SANDBOX" sh "$MKLINK"
   ln -s /nonexistent-other-rules "$HOME_SANDBOX/.claude/rules/other"
@@ -262,6 +327,7 @@ teardown() {
 
   HOME="$HOME_SANDBOX" run sh "$MKLINK"
   [ "$status" -eq 0 ]
+
   [ ! -L "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json" ]
   grep -q mine "$HOME_SANDBOX/.claude/plugins/claude-hud/config.json"
 }

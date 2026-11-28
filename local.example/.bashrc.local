@@ -1,0 +1,5 @@
+# ~/.bashrc.local: this machine's bash layer, sourced last by .bashrc for
+# interactive shells. Copy to ~/.bashrc.local.
+#
+# Belongs here: the same kind of thing as ~/.zshrc.local, for machines or
+# accounts where bash is the shell.

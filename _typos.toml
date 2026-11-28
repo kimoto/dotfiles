@@ -1,0 +1,16 @@
+# typos (bin/lint_typos.sh): a spell checker that only flags known
+# misspellings, so a word allowed here is a real token that collides with one.
+[default.extend-words]
+# "(ba)sh" in Homebrew's own shellcheck description (Brewfile.extra, TOOLS.md).
+ba = "ba"
+# <leader>fo, the telescope keymap for oldfiles.
+fo = "fo"
+# GnuPG's "fingerprint", as in its fpr records (MISE_RELEASE_FPR).
+fpr = "fpr"
+# test(1)'s "older than" operator, `[ a -ot b ]`.
+ot = "ot"
+
+[files]
+# Base64 key data, not prose. The no-argument walk skips it only because it is
+# hidden, so a commit or `lefthook run --all-files` that names it went red.
+extend-exclude = [".public_key.asc"]

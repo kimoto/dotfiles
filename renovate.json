@@ -1,0 +1,137 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "One PR a month carrying every update, majors included, and no automerge: a person reads each bump. The one exception is mise itself (see its rule).",
+    "A release ages 7 days before it is proposed, so a freshly published (possibly compromised) version is not pulled in at once."
+  ],
+  "extends": [
+    "config:recommended",
+    "schedule:monthly"
+  ],
+  "minimumReleaseAge": "7 days",
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^bin/install_check_tools\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[A-Z_]+=\"\\$\\{[A-Z_]+:-(?<currentValue>[^}]+)\\}\""
+      ],
+      "description": "mise itself, which bin/install_check_tools.sh downloads before mise.toml can be read.",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^bin/setup_homebrew\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) branch=(?<currentValue>\\S+)\\n[A-Z_]+=\"(?<currentDigest>[0-9a-f]{40})\""
+      ],
+      "description": "The Homebrew installer, which has no releases: pinned to a commit on its default branch, aged by the commit date."
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^config/sheldon/plugins\\.toml$/"
+      ],
+      "matchStrings": [
+        "github = ['\"](?<depName>[^'\"]+)['\"]\\nrev = '(?<currentDigest>[0-9a-f]{40})' # (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-digest",
+      "description": "zsh plugins, pinned to a commit on the branch the trailing comment names. github-digest, not git-refs: it dates each commit, so minimumReleaseAge applies (measured from the commit date, not from when it reached the branch)."
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^tmux-plugins\\.lock$/"
+      ],
+      "matchStrings": [
+        "(?<depName>[\\w.-]+/[\\w.-]+) (?<currentValue>\\S+) (?<currentDigest>[0-9a-f]{40})"
+      ],
+      "datasourceTemplate": "github-digest",
+      "description": "tmux plugins, same pinning as the zsh plugins above."
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+[A-Z_]+: (?<currentValue>\\S+)"
+      ],
+      "description": "The Neovim release CI tests against, which it downloads rather than installs from a package manager."
+    }
+  ],
+  "pip-compile": {
+    "description": "The translator's Python deps. Renovate bumps the pins in hammerspoon/requirements.in (7-day age) and regenerates this lock, hashes included; indirect deps resolve to whatever PyPI has at that moment.",
+    "managerFilePatterns": [
+      "/^hammerspoon/requirements\\.txt$/"
+    ]
+  },
+  "pip_requirements": {
+    "description": "Off: its only match is the lock above, which pip-compile owns; a second manager would bump versions without regenerating the hashes.",
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "Commit types must pass bin/check_commit_msgs_range.sh.",
+      "matchPackageNames": [
+        "*"
+      ],
+      "groupName": "all dependencies",
+      "groupSlug": "all",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "mise itself: workstations get it from Homebrew, which follows each release within days, and a pin that lags shows the [mise pin] warning in every shell. So it gets its own weekly PR, merged by CI alone: the 7-day age and bin/install_check_tools.sh's signature check still apply, and a bump that changes how mise.lock is written fails `--locked` and stays open.",
+      "matchDepNames": [
+        "jdx/mise"
+      ],
+      "groupName": "mise",
+      "groupSlug": "mise",
+      "schedule": [
+        "before 4am on monday"
+      ],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Python gets its own PR: a new minor often ships before pyyaml has wheels for it, which breaks the pipx: tools' mise lock, and in the shared PR that red hides every other bump.",
+      "matchDepNames": [
+        "core:python",
+        "python"
+      ],
+      "groupName": "python",
+      "groupSlug": "python"
+    },
+    {
+      "description": "GitHub-hosted runner labels have no release date, so the 7-day age would hold them back forever; the datasource lists a release only once GitHub drops its beta tag.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Ubuntu runners held on 24.04: actionlint 1.7.12 rejects the ubuntu-26.04 label, which fails test/lint_actions.bats. Remove this rule once mise.toml pins an actionlint whose release notes add ubuntu-26.04.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "matchDepNames": [
+        "ubuntu"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Biome tags each release as @biomejs/biome@X.Y.Z, alongside tags for its other packages.",
+      "matchDepNames": [
+        "aqua:biomejs/biome"
+      ],
+      "extractVersion": "^@biomejs/biome@(?<version>.+)$"
+    }
+  ],
+  "separateMajorMinor": false
+}

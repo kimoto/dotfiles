@@ -18,6 +18,10 @@ cd "$HOME" || exit 1
 # Unregister the Claude Code tmux-indicator hooks (pairs with mkworld.sh).
 "$BASE_DIR/bin/install_claude_tmux_hooks.sh" --uninstall || true
 "$BASE_DIR/bin/install_claude_idle_hooks.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_context_hooks.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_secret_scan_hook.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_review_gate.sh" --uninstall || true
+"$BASE_DIR/bin/install_claude_pr_hooks.sh" --uninstall || true
 
 # このリポジトリを指すシンボリックリンクのときだけ外す (実ファイルは消さない)。
 # Only remove the entry if it is a symlink (never touch real files).
@@ -61,7 +65,17 @@ if [ "$(readlink -f ./.codex/AGENTS.md 2>/dev/null)" = "$BASE_DIR/codex/AGENTS.m
     unlink_if_symlink "./.codex/AGENTS.md"
 fi
 unlink_if_symlink "./.claude/rules/dotfiles"
-unlink_if_symlink "./.claude/skills/session-resume"
-unlink_if_symlink "./.claude/skills/wrapup"
+# By where the link points rather than by name, so a skill since removed from
+# claudecode/skills/ still has its link taken down.
+for link in ./.claude/skills/*; do
+    case "$(readlink "$link" 2>/dev/null)" in
+        "$BASE_DIR"/claudecode/skills/*) unlink_if_symlink "$link" ;;
+    esac
+done
+for link in ./.claude/agents/*; do
+    case "$(readlink "$link" 2>/dev/null)" in
+        "$BASE_DIR"/claudecode/agents/*) unlink_if_symlink "$link" ;;
+    esac
+done
 unlink_if_symlink "./.claude/settings.json"
 unlink_if_symlink "./.claude/plugins/claude-hud/config.json"

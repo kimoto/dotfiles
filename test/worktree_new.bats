@@ -86,6 +86,29 @@ teardown() {
   [[ "$output" == *"not a git repository"* ]]
 }
 
+@test "refuses when origin names no default branch, and prints no path" {
+  # Stopping here, before any directory is made, is what is guarded: exit 0
+  # with an empty stdout would send `cd "$(worktree_new.sh ...)"` somewhere
+  # unintended, and carrying on would leave half-made directories behind.
+  # The origin has only `trunk`: no origin/HEAD, no main, no master.
+  local lone="$TMP/lone"
+  git init -q -b trunk "$lone"
+  git -C "$lone" -c user.email=t@t.test -c user.name=test commit -q --allow-empty -m "feat: init"
+  git init -q --bare -b trunk "$TMP/trunk.git"
+  git -C "$lone" remote add origin "$TMP/trunk.git"
+  git -C "$lone" -c push.negotiate=false push -q origin trunk
+  git -C "$lone" fetch -q origin
+  # git 2.48+ fetch records origin/HEAD by itself; drop it so none is named.
+  git -C "$lone" remote set-head origin --delete
+
+  cd "$lone"
+  run --separate-stderr "$SCRIPT" feat/thing
+  [ "$status" -ne 0 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"cannot tell which branch origin defaults to"* ]]
+  [ ! -e "$DOTFILES_WORKTREE_ROOT/lone" ]
+}
+
 # --- what it creates -------------------------------------------------------
 
 @test "creates the worktree under the root, one directory per repo" {

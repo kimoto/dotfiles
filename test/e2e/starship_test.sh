@@ -1,0 +1,68 @@
+#!/bin/bash
+# Interactive end-to-end test for the Starship prompt: drives a real terminal via
+# tmux send-keys + capture-pane (the TUI analogue of a browser e2e) and asserts
+# on what Starship actually renders.
+#
+# .zshrc only sets a *fallback* zsh PROMPT; the real prompt is Starship, brought
+# up by sheldon as `_evalcache starship init zsh` (config/sheldon/plugins.toml).
+# Two things can only be proven by rendering it for real:
+#   1. Starship — not the fallback PROMPT — is what reaches the screen. The
+#      fallback has no date; config/starship.toml enables the [time] module
+#      (format '%Y-%m-%d %T'), so a rendered timestamp is an unambiguous
+#      "Starship is live" signal.
+#   2. the [directory] module reflects $PWD: started in a uniquely-named dir, the
+#      prompt shows that dir name.
+#
+# Like test/e2e/tmux_interactive_test.sh, this needs a Starship install and the
+# repo's ~/.config (symlinked by mkworld); it runs in the same CI job, after the
+# loading tests.
+set -euo pipefail
+
+# Shared e2e plumbing: die/need, the brew shellenv, and zsh_pane_cmd.
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$DIR/tmux_e2e_helpers.sh"
+
+need tmux
+need zsh
+command -v starship >/dev/null 2>&1 || die "starship not installed (prompt is rendered by it)"
+ZSH_BIN="$(command -v zsh)"
+REPO="$PWD"
+[ -f "$REPO/.zshrc" ] || die "no .zshrc in $REPO"
+[ -f "$REPO/config/starship.toml" ] || die "no config/starship.toml in $REPO"
+echo "== $(tmux -V), $("$ZSH_BIN" --version), $(starship --version | head -1) =="
+
+SOCK="ci_starship_e2e_$$"
+# A uniquely-named start directory so the [directory] segment is unambiguous: the
+# marker is the final path component, which Starship always shows (it truncates
+# leading components, never the tail).
+WORK="$(mktemp -d)/starship_e2e_zone"
+mkdir -p "$WORK"
+private_tmux_tmpdir
+cleanup() {
+  local swept=0
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # The sweep first: a server revived in between could write there.
+  sweep_private_tmux_tmpdir || swept=$?
+  rm -rf "$(dirname "$WORK")" 2>/dev/null || true
+  return "$swept"
+}
+trap cleanup EXIT
+
+
+# Launch an interactive zsh in a real terminal, started inside the marker dir,
+# under the shared CI pane conventions (see zsh_pane_cmd in tmux_e2e_helpers.sh).
+tmux -L "$SOCK" new-session -d -x 200 -y 50 -c "$WORK" "$(zsh_pane_cmd)" ||
+  die "failed to start tmux session"
+
+# 1) Starship is the live prompt (not the fallback): its [time] module renders a
+#    timestamp the fallback PROMPT never produces.
+wait_for_pane "$SOCK" '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+echo "== Starship prompt is live (time module rendered) =="
+
+# 2) The [directory] module reflects $PWD — the marker dir name is on screen.
+wait_for_pane "$SOCK" 'starship_e2e_zone'
+echo "== directory module reflects \$PWD =="
+
+tmux -L "$SOCK" send-keys C-c
+echo "PASS"

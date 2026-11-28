@@ -10,16 +10,19 @@
      "PackageIdentifier": "DeepL.DeepL"
     },
     {
+     "PackageIdentifier": "Gitleaks.Gitleaks"
+    },
+    {
      "PackageIdentifier": "Google.JapaneseIME"
+    },
+    {
+     "PackageIdentifier": "jqlang.jq"
     },
     {
      "PackageIdentifier": "Microsoft.PowerToys"
     },
     {
      "PackageIdentifier": "Microsoft.WindowsTerminal"
-    },
-    {
-     "PackageIdentifier": "OliverSchwendener.ueli"
     },
     {
      "PackageIdentifier": "ShareX.ShareX"

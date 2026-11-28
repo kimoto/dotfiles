@@ -1,13 +1,21 @@
 ---
 name: ci
 on:
-  push: {}
+  # stable only moves to a commit already on main, where this workflow ran on
+  # the push; a run on stable would gate nothing, and the PAT that moves it
+  # fires push every time.
+  # No tags: the repo has none, and a tag trigger makes zizmor treat the cache
+  # steps as release builds.
+  push:
+    branches-ignore: [stable]
   workflow_dispatch: {}
-  # A push only ever restores the Homebrew cache keyed on Brewfile.basic's
+  # A push only ever restores the Homebrew cache keyed on Brewfile.standard's
   # hash, so a green push proves nothing about whether that cached tmux/zsh
   # still matches what Homebrew serves today (#272). This weekly run skips
-  # the restore in zsh_loading_test to force a real install, and every other
-  # job is skipped for this trigger since only that job touches brew.
+  # the restore in zsh_loading_test to force a real install. tmux_latest_test
+  # runs too, so a new tmux release that changes the look of .tmux.conf turns
+  # main red within a week even with no push; every other job is skipped for
+  # this trigger.
   schedule:
     - cron: "17 6 * * 1"
 
@@ -18,17 +26,68 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Each timeout is a few times the job's slowest run, so a hang stops there
+# instead of at the 6-hour default: 20 where Homebrew may install from cold
+# (~5 min), 10 for the rest (~1 min).
+#
+# Each runner names its OS release, never -latest: GitHub moves that label on
+# its own date, and the apt packages and cached builds move with it. Renovate
+# proposes the next release in its monthly PR.
 jobs:
+  # Lets a prose-only branch skip the e2e jobs, which hold every push for
+  # minutes while testing nothing it touched. They skip only on an explicit
+  # "false" and run after a failed scope job too (!cancelled()), so a broken
+  # check costs time, never an untested merge — a required check skipped by
+  # its `if:` reports success. static_checks has no `needs:`: it is what
+  # checks the prose.
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      e2e: ${{ steps.scope.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The merge base with origin/main has to be in the clone.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Decide whether the e2e jobs run
+        id: scope
+        # Only a push is scoped: the weekly cold run and a manual dispatch
+        # exist to run everything.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "e2e=$(./bin/ci_needs_e2e.sh)" >>"$GITHUB_OUTPUT"
+          else
+            echo "e2e=true" >>"$GITHUB_OUTPUT"
+          fi
+
   static_checks:
     if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Cache the apt packages install_check_tools.sh fetches
+        # The runners' Ubuntu mirror sometimes serves these at ~60 kB/s, which
+        # turns a 15 s install into two minutes. Saved
+        # only on a miss, so a package the distro updates is fetched again
+        # each run until the script changes or the vN is bumped. *.deb rather
+        # than the directory: apt's partial/ is unreadable to the runner user.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: /tmp/check-tools-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-check-tools-${{ hashFiles('bin/install_check_tools.sh') }}-v1
       - name: Install check tools
         run: ./bin/install_check_tools.sh
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
+          CHECK_TOOLS_APT_ARCHIVES: /tmp/check-tools-apt
       - name: Lint shell scripts
         run: ./bin/lint_shell.sh
       - name: Run unit tests (bats)
@@ -47,14 +106,24 @@ jobs:
         run: ./bin/check_claude_settings.sh
       - name: Check editorconfig (line length, whitespace, final newline)
         run: ./bin/lint_editorconfig.sh
+      - name: Spell-check (typos)
+        run: ./bin/lint_typos.sh
+      - name: Lint Python (ruff)
+        run: ./bin/lint_python.sh
       - name: Lint YAML style (yamllint)
         run: ./bin/lint_yaml.sh
       - name: Lint workflows (ratchet pinning + actionlint)
         run: ./bin/lint_actions.sh
+      - name: Check lockfiles for known vulnerabilities (osv-scanner)
+        run: ./bin/lint_osv.sh
       - name: Check Brewfile sort
         run: ./bin/check_brewfile_sort.sh
       - name: Check tools catalog (TOOLS.md) is in sync with the Brewfiles
         run: ./bin/gen_tools_list.sh --check
+      - name: Check KEYBINDINGS.md against config/ghostty/config, .aerospace.toml and .tmux.conf
+        run: ./bin/check_keybindings.sh
+      - name: Check AGENTS.md stays an index (size cap)
+        run: ./bin/check_agents_size.sh
       - name: Check for sensitive filenames
         run: ./bin/check_secret_files.sh
       - name: Scan for secrets (gitleaks)
@@ -66,46 +135,96 @@ jobs:
         run: ./bin/check_commit_msgs_range.sh
 
   windows_codex_setup:
-    if: github.event_name != 'schedule'
-    runs-on: windows-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: windows-2025
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Test Codex config merge
         shell: pwsh
         run: ./test/link_codex.ps1
+      # A workstation runs the script in Windows PowerShell 5.1, not pwsh, and
+      # the two differ in how native-command errors and link targets surface.
+      - name: Test Codex config merge (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./test/link_codex.ps1
+      - name: Test AutoHotkey installer
+        shell: pwsh
+        run: ./test/install_mac_keys.ps1
+      - name: Test the PowerToys settings check (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./test/powertoys_dsc.ps1
+      - name: Test the curtain under AutoHotkey
+        shell: pwsh
+        run: ./test/curtain_ahk.ps1
+      # Claude Code on Windows runs a hook's command in Git Bash, which is what
+      # `shell: bash` is on this runner. bats is not on the image; the commit
+      # is the v1.14.0 tag. autocrlf off, or bats' own scripts arrive with CRs.
+      - name: The Claude Code hooks pass their tests under Git Bash
+        shell: bash
+        run: |
+          # RUNNER_TEMP is D:\a\_temp, and its colon would split PATH.
+          bats_dir="$(cygpath -u "$RUNNER_TEMP")/bats"
+          git init --quiet "$bats_dir"
+          git -C "$bats_dir" fetch --quiet --depth 1 \
+            https://github.com/bats-core/bats-core eb7f42f8d608ac693d7a4b67474f6714ea68cfc5
+          git -C "$bats_dir" -c core.autocrlf=false checkout --quiet FETCH_HEAD
+          PATH="$bats_dir/bin:$PATH" ./bin/run_tests.sh test/claude_*.bats
 
-  # bin/install_check_tools.sh maps uname -m onto each project's release-asset
-  # naming, and the Claude Code web sandbox that runs it via the SessionStart
-  # hook can be arm64. Every other job covers x86_64 only; this one downloads
+  # mise picks each tool's release asset for the host arch, and the Claude Code
+  # web sandbox that runs bin/install_check_tools.sh via the SessionStart hook
+  # can be arm64. Every other job covers x86_64 only; this one downloads
   # the arm64 assets and exercises each installed binary for real via the lint
   # scripts that depend on it.
   toolchain_arm64:
-    if: github.event_name != 'schedule'
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
     runs-on: ubuntu-24.04-arm
+    # Below the usual 10: this is a required check, and an arm64 runner has been
+    # seen to take the job and never start a step, holding the PR for the whole
+    # timeout. 3 is still several times its ~45s worst run.
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Install check tools (arm64 release assets)
         run: ./bin/install_check_tools.sh
-      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec)
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Exercise the toolchain (yq+biome, check-jsonschema, ratchet, ec, typos, ruff, osv-scanner)
         run: |
           ./bin/lint_config.sh
           ./bin/lint_schema.sh
           ./bin/lint_yaml.sh
           ./bin/lint_actions.sh
           ./bin/lint_editorconfig.sh
+          ./bin/lint_typos.sh
+          ./bin/lint_python.sh
+          osv-scanner --version
           gitleaks version
           lefthook version
 
   zsh_loading_test:
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
 
       - name: Restore Homebrew cache
         id: cache-brew
@@ -114,35 +233,35 @@ jobs:
         # test whatever Homebrew served on the day the cache was last built,
         # not today's.
         if: github.event_name != 'schedule'
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             /opt/homebrew
             /home/linuxbrew/.linuxbrew
-          # The -fzf-v3 suffix is part of the key on purpose: fzf is installed
-          # into this cache below but is not in Brewfile.basic, so the suffix
-          # forces a rebuild that bakes it in. Bump the vN to evict a bad cache
-          # or when the set of extra brew installs changes. (tmux IS in
-          # Brewfile.basic, so the hash already covers it.)
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile.basic') }}-fzf-v3
+          # The cache holds Brewfile.standard plus tmux, which ci/prepare.sh
+          # installs on demand because it lives in Brewfile.extra; the -tmux
+          # suffix forces a rebuild that bakes it in. Bump the vN to evict a
+          # bad cache or when the set of extra brew installs changes.
+          key: ${{ steps.image.outputs.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
 
       - name: Restore tmux plugins cache
         id: cache-tmux-plugins
         if: github.event_name != 'schedule'
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           # tpm clones every @tpm_plugins entry into here; cache them so later
-          # runs skip the clones. Keyed on .tmux.conf since that is where the
-          # plugin list lives — editing it re-resolves the plugin set. Bump the
-          # vN to evict a bad cache (same manual lever as the brew key).
+          # runs skip the clones. Keyed on .tmux.conf (the plugin list) and
+          # tmux-plugins.lock (the commit each is pinned to), so a bump saves
+          # a cache holding the new commits. Bump the vN to evict a bad cache
+          # (same manual lever as the brew key).
           path: ~/.tmux/plugins
-          key: ${{ runner.os }}-tmux-plugins-${{ hashFiles('.tmux.conf') }}-v1
+          key: ${{ steps.image.outputs.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
 
       - name: Prepare world (cache phase)
-        # One entry point owns the installs (Homebrew + Brewfile.basic, then fzf,
+        # One entry point owns the installs (Homebrew + Brewfile.standard,
         # then mkworld for symlinks/hooks/tpm plugins). BREW_CACHE_HIT lets it
         # skip the brew work on a hit; the actions/cache restore/save stay in YAML.
-        run: ./bin/ci_prepare.sh
+        run: ./ci/prepare.sh
         env:
           BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
 
@@ -153,7 +272,7 @@ jobs:
         # Also skipped on schedule: the restore above never ran, so this would
         # otherwise overwrite the push-triggered cache with the cold run's own.
         if: github.event_name != 'schedule' && steps.cache-brew.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             /opt/homebrew
@@ -162,17 +281,33 @@ jobs:
 
       - name: Save tmux plugins cache
         if: github.event_name != 'schedule' && steps.cache-tmux-plugins.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.tmux/plugins
           key: ${{ steps.cache-tmux-plugins.outputs.cache-primary-key }}
 
+      - name: Cache the apt packages install_check_tools.sh fetches
+        # The runners' Ubuntu mirror sometimes serves these at ~60 kB/s, which
+        # turns a 15 s install into two minutes. Saved
+        # only on a miss, so a package the distro updates is fetched again
+        # each run until the script changes or the vN is bumped. *.deb rather
+        # than the directory: apt's partial/ is unreadable to the runner user.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: /tmp/check-tools-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-check-tools-${{ hashFiles('bin/install_check_tools.sh') }}-v1
+
       - name: Install check tools
-        # This job installs Brewfile.basic only, and bats-core is in
-        # Brewfile.common — so the suite below has no runner without this. The
+        # This job installs Brewfile.standard only, and bats-core is in
+        # Brewfile.extra — so the suite below has no runner without this. The
         # whole toolchain rather than bats alone: the lint_*.bats cases drive
         # the real binaries and fail rather than skip when one is missing.
         run: ./bin/install_check_tools.sh
+        env:
+          # mise resolves aqua/github tools through the GitHub API, which
+          # rate-limits an unauthenticated runner.
+          GITHUB_TOKEN: ${{ github.token }}
+          CHECK_TOOLS_APT_ARCHIVES: /tmp/check-tools-apt
 
       - name: Unit tests (bats) with the dotfiles linked into $HOME
         # Deliberately a second run of the same suite static_checks runs: that
@@ -184,7 +319,7 @@ jobs:
         run: ./bin/run_tests.sh
 
       - name: Load to test .zshrc
-        run: ./bin/ci_zsh_loading_test.sh
+        run: ./test/e2e/zsh_loading_test.sh
 
       # ~1 min per run, so not on every branch push: record on main (one data
       # point per merged commit, comparable over time) and on manual dispatch.
@@ -192,73 +327,278 @@ jobs:
       # future check.
       - name: Benchmark zsh startup (timing loop -> job summary + artifact)
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: ./bin/ci_zsh_bench.sh
+        run: ./ci/zsh_bench.sh
 
       - name: Upload zsh startup bench results
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: zsh-startup-bench
           path: ${{ runner.temp }}/zsh-startup-bench.txt
 
-      - name: Load to test .tmux.conf
-        run: ./bin/ci_tmux_loading_test.sh
-
-      - name: Interactive e2e (drive a real terminal, assert on rendered screen)
-        run: ./bin/ci_tmux_interactive_test.sh
-
-      - name: Interactive e2e for tmux key bindings (nested tmux, assert binds fire)
-        run: ./bin/ci_tmux_keybinding_test.sh
-
-      - name: Interactive e2e for tmux copy-mode (select + yank)
-        run: ./bin/ci_tmux_copymode_test.sh
-
-      - name: e2e for the status bar and dynamic window/pane formats
-        run: ./bin/ci_tmux_status_test.sh
-
-      - name: e2e for the Claude Code tmux state indicator (hook script + formats)
-        run: ./bin/ci_claude_tmux_indicator_test.sh
-
       - name: Starship prompt e2e (render in a real terminal, assert segments)
-        run: ./bin/ci_starship_test.sh
+        run: ./test/e2e/starship_test.sh
 
       - name: Interactive e2e for the g repo-jump command (ghq -> fzf -> cd)
-        run: ./bin/ci_g_command_test.sh
+        run: ./test/e2e/g_command_test.sh
 
       - name: Interactive e2e for the w worktree-jump command (git worktree -> fzf -> cd)
-        run: ./bin/ci_w_command_test.sh
-
-      - name: Interactive e2e for the keybinding cheatsheet (zsh ^X? + tmux prefix+?)
-        run: ./bin/ci_keys_command_test.sh
+        run: ./test/e2e/w_command_test.sh
 
       - name: Interactive e2e for completion candidate colours (list-colors)
-        run: ./bin/ci_completion_colors_test.sh
+        run: ./test/e2e/completion_colors_test.sh
 
-  vim_guard_test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+  # The tmux suite on two releases. The brew cache only rebuilds when
+  # Brewfile.standard changes, so its tmux stays on an old release for months.
+  # That old one is worth keeping: it catches config an older tmux cannot parse.
+  # Homebrew's current release is where the newer-only bindings are actually
+  # live. Both passes live here, not one in zsh_loading_test: that job is the
+  # longest on every push, and the suite is over a quarter of it.
+  tmux_latest_test:
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
+      - name: Restore Homebrew cache
+        id: cache-brew
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          # Same key as zsh_loading_test, which owns saving it.
+          key: ${{ steps.image.outputs.os }}-brew-${{ hashFiles('Brewfile.standard') }}-tmux-v5
+
+      - name: Restore tmux plugins cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.tmux/plugins
+          key: ${{ steps.image.outputs.os }}-tmux-plugins-${{ hashFiles('.tmux.conf', 'tmux-plugins.lock') }}-v1
+
+      - name: Prepare world (cache phase)
+        run: ./ci/prepare.sh
+        env:
+          BREW_CACHE_HIT: ${{ steps.cache-brew.outputs.cache-hit }}
+
+      - name: tmux e2e suite (cached release)
+        id: cached
+        # The suite puts Homebrew first on PATH itself; without that, tmux -V
+        # here would name the runner's apt tmux.
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "version=$(tmux -V)" >>"$GITHUB_OUTPUT"
+          ./ci/tmux_suite.sh
+
+      - name: Upgrade tmux to Homebrew's current release
+        id: upgrade
+        if: (success() || failure()) && steps.cached.outcome != 'skipped'
+        # Fails rather than passes when the upgrade leaves tmux below 3.8: every
+        # 3.8-only case skips itself on an older tmux, so this job would go green
+        # while testing the same release as the pass above.
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew update --quiet
+          brew upgrade tmux
+          v="$(tmux -V | awk '{ print $2 }')"
+          echo "== tmux $v =="
+          if ! printf '%s\n' 3.8 "$v" | sort -V -C; then
+            echo "::error::tmux $v is older than 3.8"
+            exit 1
+          fi
+          echo "version=$(tmux -V)" >>"$GITHUB_OUTPUT"
+
+      - name: tmux e2e suite (current release)
+        # The same release twice would only repeat the pass above.
+        if: >-
+          (success() || failure()) && steps.upgrade.outcome == 'success'
+          && steps.upgrade.outputs.version != steps.cached.outputs.version
+        run: ./ci/tmux_suite.sh
+
+      # The golden is drawn by the latest release, so only this job can compare
+      # against it. A red here is not always a regression: the fix is either a
+      # .tmux.conf change or `bin/tmux_render_snapshot.sh update`, picked in a
+      # PR (the trend-intake skill makes that PR).
+      - name: The look of .tmux.conf matches the golden
+        if: (success() || failure()) && steps.upgrade.outcome == 'success'
+        run: ./bin/tmux_render_snapshot.sh check
+
+  # The standard-phase gate from docs/staged-bootstrap.md: zsh_loading_test
+  # above also runs mkworld.sh (tmux plugins, Claude hooks, lefthook), so a
+  # break in Brewfile.standard alone would still pass it. This job installs
+  # nothing beyond Brewfile.standard plus the symlinks and checks that the
+  # shell still loads on its own.
+  zsh_loading_test_standard_only:
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Identify the runner image
+        id: image
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
+      - name: Restore Homebrew cache (Brewfile.standard only)
+        id: cache-brew
+        # Its own key: zsh_loading_test's tree also holds tmux, which this gate
+        # must not see. The key covers the installer too, so a change to either
+        # file installs from cold. The weekly cold install in zsh_loading_test
+        # already checks Brewfile.standard against what Homebrew serves today.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          key: ${{ steps.image.outputs.os }}-brew-std-${{ hashFiles('Brewfile.standard', 'bin/setup_homebrew.sh') }}-v1
+
+      - name: Install Homebrew + Brewfile.standard only
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: SKIP_BREWFILE_EXTRA=1 ./bin/setup_homebrew.sh
+
+      - name: Save Homebrew cache (Brewfile.standard only)
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            /opt/homebrew
+            /home/linuxbrew/.linuxbrew
+          key: ${{ steps.cache-brew.outputs.cache-primary-key }}
+
+      - name: Symlink dotfiles (stage 0, no network)
+        run: ./bin/mklink.sh
+
+      - name: Load to test .zshrc (Brewfile.standard only)
+        run: ./test/e2e/zsh_loading_test.sh
+
+  # The minimal and basic phases: distro bash, zsh and vim only, as a non-root
+  # user, so the config must work before any extra tool is installed.
+  plain_shell_test:
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # By digest: the tag moves, and whatever it points at that day would run
+    # here unreviewed. Renovate moves the digest in its monthly PR.
+    container: debian:stable-slim@sha256:a717a33469731894e77e912ea7d714e27c2dc38ee6554fd1a3102e92999cfc66
+    steps:
+      - name: Install the distro shells only
+        run: |
+          apt-get update
+          # curl so mkworld really tries the Homebrew installer and is refused
+          # for want of sudo, the way a locked-down account refuses it.
+          apt-get install -y --no-install-recommends ca-certificates curl git zsh vim
+          useradd --create-home tester
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: mkworld stops at minimal without zsh, and at basic without sudo
+        run: |
+          chown -R tester "$GITHUB_WORKSPACE"
+          runuser -u tester -- ./test/e2e/mkworld_phase_test.sh minimal
+          runuser -u tester -- ./test/e2e/mkworld_phase_test.sh basic
+
+      - name: bash and zsh start clean without the rich tools
+        run: runuser -u tester -- ./test/e2e/plain_shell_test.sh
+
+  # README's install steps on a fresh Ubuntu, all the way to platform. The
+  # runner image and bootstrap-linux.yml already hold curl, git, zsh and
+  # libatomic1, so a package a fresh machine lacks never shows up there.
+  bare_ubuntu_bootstrap:
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    # As long as a full bootstrap-linux.yml run, since the target is the same.
+    timeout-minutes: 120
+    # By digest, like plain_shell_test's image.
+    container: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
+    steps:
+      - name: Install git only long enough to check out
+        # Without git, actions/checkout downloads a tarball with no .git, and
+        # README's clone has nothing to clone from.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Bring the image down to a fresh Ubuntu account
+        # The image is barer than any installed Ubuntu. Put back only what a
+        # person's own fresh install has: sudo for a non-root account, since
+        # Homebrew refuses root. Everything else README needs has to come from
+        # README.
+        run: |
+          apt-get purge -y --autoremove git
+          apt-get install -y --no-install-recommends sudo
+          useradd --create-home tester
+          echo 'tester ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/tester
+          chown -R tester "$GITHUB_WORKSPACE"
+
+      - name: Run README as that account, and expect platform
+        # Clones this checkout instead of GitHub, and keeps it at this commit
+        # instead of resetting to stable: what is under test is this branch.
+        # NONINTERACTIVE: no terminal here to answer the Homebrew installer.
+        run: |
+          sed -e "s#https://github.com/kimoto/dotfiles.git#$GITHUB_WORKSPACE dotfiles#" \
+              -e '/origin\/stable/d' README >/tmp/install.sh
+          sudo -u tester -H env NONINTERACTIVE=1 MKWORLD_EXPECT=platform sh /tmp/install.sh
+
+  vim_guard_test:
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Cache the vim + neovim + tmux apt packages
+        # The same slow-mirror tail as the check-tools cache above: neovim's
+        # 7 MB of .debs sometimes take three minutes instead of one second.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: /tmp/vim-guard-apt/*.deb
+          key: ${{ runner.os }}-${{ runner.arch }}-apt-vim-neovim-tmux-v1
 
       - name: Ensure vim + neovim + tmux are present
         run: |
           set -e
+          sudo mkdir -p /tmp/vim-guard-apt/partial
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends vim neovim tmux
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::Archives=/tmp/vim-guard-apt vim neovim tmux
 
-      - name: Legacy .vimrc guard (no-plugin startup must be clean)
-        run: ./bin/ci_vim_guard_test.sh
+      - name: .vimrc guard (startup must be clean)
+        run: ./test/e2e/vim_guard_test.sh
 
       - name: Neovim config guard (pure-Lua config loads clean, no plugins)
-        run: ./bin/ci_nvim_guard_test.sh
+        run: ./test/e2e/nvim_guard_test.sh
 
   nvim_loading_test:
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.scope.outputs.e2e != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -268,40 +608,52 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends tmux
 
-      - name: Install Neovim (upstream stable tarball)
+      - name: Install Neovim (upstream release tarball)
         # apt ships 0.9.x, but the real environment runs the latest brew nvim
-        # and the config carries 0.10+/0.12+ API usage (vim.uv plugins, the
-        # vim.list jetpack patch in setup_plugin.lua), so test against
-        # upstream's stable channel — the same thing brew tracks.
+        # and the config carries 0.12+ API usage (vim.pack in
+        # setup_plugin.lua), so test against an upstream release. A version
+        # rather than the moving `stable` tag, so what runs here changes only
+        # through a reviewed bump; Renovate proposes each release a week old.
+        env:
+          # renovate: datasource=github-releases depName=neovim/neovim
+          NVIM_VERSION: v0.12.6
         run: |
           set -e
           curl -fsSL -o /tmp/nvim.tar.gz \
-            https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
+            "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz"
           sudo tar -C /opt -xzf /tmp/nvim.tar.gz
           sudo ln -sfn /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
           nvim --version | head -1
 
+      - name: Identify the runner image
+        id: image
+        # The OS release (ubuntu24) goes into each cache key: Homebrew bottles
+        # and compiled plugins built on one release break on the next.
+        run: echo "os=${ImageOS:?}" >>"$GITHUB_OUTPUT"
+
       - name: Restore nvim plugins cache
         id: cache-nvim-plugins
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          # ci_nvim_loading_test.sh points XDG_DATA_HOME here (via
-          # NVIM_E2E_DATA_DIR), so this holds the jetpack clones of every
-          # plugin. Keyed on setup_plugin.lua since that is where the plugin
-          # list lives — editing it re-resolves the plugin set. Bump the vN to
+          # test/e2e/nvim_loading_test.sh points XDG_DATA_HOME here (via
+          # NVIM_E2E_DATA_DIR), so this holds the vim.pack clones of every
+          # plugin. Keyed on the plugin list and the lockfile that pins each
+          # revision — changing either re-resolves the plugin set. Bump the vN to
           # evict a bad cache (same manual lever as the brew/tmux keys).
           path: ~/.nvim-e2e-data
-          key: ${{ runner.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua') }}-v1
+          key: >-
+            ${{ steps.image.outputs.os }}-nvim-plugins-${{ hashFiles('config/nvim/lua/kimoto/setup_plugin.lua',
+            'config/nvim/nvim-pack-lock.json') }}-v1
 
       - name: Neovim e2e (install all plugins, assert clean startup)
-        run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./bin/ci_nvim_loading_test.sh
+        run: NVIM_E2E_DATA_DIR="$HOME/.nvim-e2e-data" ./test/e2e/nvim_loading_test.sh
 
       - name: Save nvim plugins cache
         # Runs only when the e2e passed (a failed step stops the job), so a
         # half-installed tree never poisons the cache; skip on hit because
         # saving over the same key fails with "Cache already exists".
         if: steps.cache-nvim-plugins.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.nvim-e2e-data
           key: ${{ steps.cache-nvim-plugins.outputs.cache-primary-key }}

@@ -3,21 +3,27 @@
 # Enforce .editorconfig rules (max_line_length, trailing whitespace, final
 # newline) with editorconfig-checker. Indentation enforcement is turned off in
 # .editorconfig-checker.json; .editorconfig still advertises indent rules to
-# editors. Single source of truth shared by CI and the lefthook pre-commit hook.
+# editors.
 #
 # Pass files as arguments (lefthook feeds {staged_files}); with none, the whole
 # tree is walked (CI), honouring the excludes in .editorconfig-checker.json.
 
 set -euo pipefail
 
-BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." || exit 1; pwd)
-cd "$BASE_DIR" || exit 1
+# shellcheck source=bin/lint_lib.sh
+. "$(dirname "$(readlink -f "$0")")/lint_lib.sh"
 
-if ! command -v editorconfig-checker >/dev/null 2>&1; then
-    echo "x editorconfig-checker not found; install it (brew install editorconfig-checker)" >&2
+# The release binary mise.toml installs is named `ec`; Homebrew uses the long
+# name.
+if command -v editorconfig-checker >/dev/null 2>&1; then
+    checker=editorconfig-checker
+elif command -v ec >/dev/null 2>&1; then
+    checker=ec
+else
+    echo "x editorconfig-checker not found; run 'mise install' in this repo" >&2
     exit 1
 fi
 
 # With explicit files, editorconfig-checker still reads .editorconfig + .editorconfig-checker.json
 # from the repo root, so per-file rules and disabled checks are respected.
-editorconfig-checker "$@"
+"$checker" "$@"

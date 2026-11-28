@@ -1,12 +1,17 @@
 #!/bin/sh
 
 set -eu
-set -x
+# Same rule as mkworld.sh: traced in CI or with MKWORLD_TRACE=1, quiet otherwise.
+if [ -n "${CI:-}" ] || [ "${MKWORLD_TRACE:-0}" = 1 ]; then
+    set -x
+fi
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
 cd "$HOME"
 ln -nsf "$BASE_DIR/bin/" ./bin
+# ~/.config must be the repo's config/, not a real directory: macOS CI runners
+# ship a real one, so an existing directory is moved aside first.
 if [ -d "$HOME/.config" ] && [ ! -L "$HOME/.config" ]; then
     backup_path="$HOME/.config.bak.$(date +%Y%m%d%H%M%S)"
     mv "$HOME/.config" "$backup_path"
@@ -78,13 +83,35 @@ fi
 
 # Claude Code user skills. Unlike rules/, ~/.claude/skills/ also holds skills
 # installed by other tools, so each of ours is linked by name — never the
-# directory. Adding one means a line here and in bin/rmworld.sh (a test fails
-# if the two lists drift).
+# directory — and an existing real directory under that name is theirs.
+# claudecode/skills/ is the list: adding a skill is adding its directory.
 mkdir -p ./.claude/skills
-ln -nsf "$BASE_DIR/claudecode/skills/session-resume" ./.claude/skills/session-resume
-ln -nsf "$BASE_DIR/claudecode/skills/wrapup" ./.claude/skills/wrapup
+for skill in "$BASE_DIR"/claudecode/skills/*/; do
+    [ -d "$skill" ] || continue
+    dest="./.claude/skills/$(basename "$skill")"
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        echo "$HOME/.claude/skills/$(basename "$skill") is not ours; left alone" >&2
+        continue
+    fi
+    ln -nsf "${skill%/}" "$dest"
+done
 
-# claude-hud's look. Only the file: the directory also holds its caches.
+# Subagents, by the same rule as skills; each is a single file.
+mkdir -p ./.claude/agents
+for agent in "$BASE_DIR"/claudecode/agents/*.md; do
+    [ -f "$agent" ] || continue
+    dest="./.claude/agents/$(basename "$agent")"
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        echo "$HOME/.claude/agents/$(basename "$agent") is not ours; left alone" >&2
+        continue
+    fi
+    ln -nsf "$agent" "$dest"
+done
+
+"$BASE_DIR/bin/prune_claude_links.sh" "$HOME/.claude"
+
+# claude-hud's look. Only the file: the directory also holds its caches. A real
+# file there is this machine's until someone moves it in by hand.
 mkdir -p ./.claude/plugins/claude-hud
 if [ -e ./.claude/plugins/claude-hud/config.json ] && [ ! -L ./.claude/plugins/claude-hud/config.json ]; then
     echo "$HOME/.claude/plugins/claude-hud/config.json is not ours; left alone" >&2

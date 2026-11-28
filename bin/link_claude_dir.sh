@@ -17,7 +17,7 @@ CLAUDE_DIR="${HOME}/.claude"
 with_cloud=0
 [ "${1:-}" = "--cloud" ] && with_cloud=1
 
-mkdir -p "$CLAUDE_DIR/rules" "$CLAUDE_DIR/skills"
+mkdir -p "$CLAUDE_DIR/rules" "$CLAUDE_DIR/skills" "$CLAUDE_DIR/agents"
 
 cloud_dest="$CLAUDE_DIR/rules/dotfiles-cloud"
 settings_src="$BASE_DIR/claudecode/settings-cloud.json"
@@ -63,8 +63,24 @@ for skill in "$BASE_DIR"/claudecode/skills/*/; do
   ln -nsf "${skill%/}" "$dest"
 done
 
+# Agents are single files, and other tools put theirs here too.
+for agent in "$BASE_DIR"/claudecode/agents/*.md; do
+  [ -f "$agent" ] || continue
+  dest="$CLAUDE_DIR/agents/$(basename "$agent")"
+  if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+    echo "[claude-dir] $dest is not ours; left alone" >&2
+    continue
+  fi
+  ln -nsf "$agent" "$dest"
+done
+
 # A failed link looks like one that worked; silence is the failure mode.
 missing=0
+
+if ! "$BASE_DIR/bin/prune_claude_links.sh" "$CLAUDE_DIR" >/dev/null; then
+  echo "  MISS broken links left in $CLAUDE_DIR" >&2
+  missing=1
+fi
 
 # Any .md: retiring a rule must not read as a broken link.
 report_rules() {
@@ -115,6 +131,10 @@ for skill in "$BASE_DIR"/claudecode/skills/*/; do
   [ -d "$skill" ] || continue
   name="$(basename "$skill")"
   report_skill "$name" "$CLAUDE_DIR/skills/$name" "${skill%/}"
+done
+for agent in "$BASE_DIR"/claudecode/agents/*.md; do
+  [ -f "$agent" ] || continue
+  report_link "agent $(basename "$agent" .md)" "$CLAUDE_DIR/agents/$(basename "$agent")" "$agent"
 done
 
 exit "$missing"

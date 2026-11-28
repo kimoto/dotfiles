@@ -1,0 +1,97 @@
+# Brewfile.extra — tools you reach for by typing their name (git / k8s /
+# security utilities, linters, toys). Installing one changes nothing about
+# everyday use, so nothing in the config may break without it. Installed on
+# real machines; skipped in CI. Phases: docs/staged-bootstrap.md.
+# NOTE: Keep entries sorted A-Z within this file.
+# Static checker for GitHub Actions workflow files
+brew "actionlint"
+# Simple, modern, secure file encryption (bin/seal.sh)
+brew "age"
+# Bash Automated Testing System (bin/run_tests.sh)
+brew "bats-core"
+# Searches a binary image for embedded files and executable code
+brew "binwalk"
+# Bitwarden CLI, where secrets live (bin/secret.sh)
+brew "bitwarden-cli"
+# Versatile and fast Unicode/ASCII/ANSI graphics renderer
+brew "chafa"
+# Structural diff that understands syntax (on-demand via `git dft`)
+brew "difftastic"
+# Perl lib for reading and writing EXIF metadata
+brew "exiftool"
+# Like neofetch, but much faster because written mostly in C
+brew "fastfetch"
+# GNU internationalization (i18n) and localization (l10n) library
+brew "gettext"
+# GitHub command-line tool
+brew "gh"
+# Remote repository management made easy
+brew "ghq"
+# Audit git repos for secrets
+brew "gitleaks"
+# Render markdown on the CLI
+brew "glow"
+# GNU implementation of the famous stream editor
+brew "gnu-sed"
+# GNU Privacy Guard (OpenPGP)
+brew "gnupg"
+# Review-first terminal diff viewer for agent-authored changesets
+brew "hunk"
+# Lightweight and flexible command-line JSON processor
+brew "jq"
+# Kubernetes CLI To Manage Your Clusters In Style!
+brew "k9s"
+# Kubernetes command-line tool
+brew "kubectl"
+# Tool that can switch between kubectl contexts easily and create aliases
+brew "kubectx"
+# Fast and powerful Git hooks manager
+brew "lefthook"
+# Pager program similar to more
+brew "less"
+# Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check)
+brew "luajit"
+# Open source relational database management system
+brew "mysql-client"
+# Text-based UI library
+brew "ncurses"
+# Utility for managing network connections
+brew "netcat"
+# Port scanning utility for large networks
+brew "nmap"
+# Perl language server (nvim LSP: perlnavigator)
+brew "perlnavigator"
+# Static type checker and language server for Python (nvim LSP: pyright)
+brew "pyright"
+# Generic machine emulator and virtualizer
+brew "qemu"
+# Extremely fast Python linter, written in Rust (bin/lint_python.sh)
+brew "ruff"
+# Static analysis and lint tool, for (ba)sh scripts
+brew "shellcheck"
+# Ruby language server (nvim LSP: solargraph)
+brew "solargraph"
+# TOML toolkit and language server (nvim LSP: taplo)
+brew "taplo"
+# Terminal multiplexer
+brew "tmux"
+# Parser generator tool (nvim-treesitter CLI)
+brew "tree-sitter-cli"
+# Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls)
+brew "typescript-language-server"
+# Source code spell checker (bin/lint_typos.sh)
+brew "typos-cli"
+# Maintained, actively developed ctags implementation
+brew "universal-ctags"
+# Vi 'workalike' with many additional features
+brew "vim"
+# Language servers for HTML/CSS/JSON/ESLint (nvim LSP: jsonls, cssls, eslint)
+brew "vscode-langservers-extracted"
+# Vue.js language server (nvim LSP: vue_ls)
+brew "vue-language-server"
+# Executes a program periodically, showing output fullscreen
+brew "watch"
+# Internet file retriever
+brew "wget"
+# Process YAML, JSON, XML, CSV and properties documents from the CLI
+brew "yq"

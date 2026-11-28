@@ -4,7 +4,8 @@
 own machine, earlier, so you hear about a problem before you push.** A hook can
 be turned off with `--no-verify`, or never installed, so never assume one ran.
 ⚠️ Look in `.git/hooks/` yourself — an installer sitting in the repo is not the
-same as an installed hook.
+same as an installed hook. When CI fails, read `gh run view <id> --log-failed`
+before guessing.
 
 **Have hooks call the same scripts CI calls.** They run fewer of them, because
 they have to be quick. But if you write a quick version of a check instead of

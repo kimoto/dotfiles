@@ -23,9 +23,9 @@ On Windows, run the setup script from the repository in PowerShell:
 ./windows/link_codex.ps1
 ```
 
-The script derives the checkout path from its own location and uses `USERPROFILE` for the Windows home and `CODEX_HOME` when set. It creates native Windows symlinks for `AGENTS.md` and `.claude/rules/dotfiles`, preserves existing destinations, and can be rerun. No username, drive, or WSL distribution name is embedded in the instructions or script. If Windows requires elevation, run the same script from an administrator PowerShell; it does not elevate itself.
+The script derives the checkout path from its own location and uses `USERPROFILE` for the Windows home and `CODEX_HOME` when set. It creates native Windows symlinks for `AGENTS.md`, `.claude/rules/dotfiles`, and each Claude skill and agent, replaces its own links from an older checkout while preserving anything another setup put there, and can be rerun. No username, drive, or WSL distribution name is embedded in the instructions or script. Symlinks need Developer Mode or an administrator PowerShell; the script does not elevate itself.
 
-Use `-SkipLinks` only when syncing the config on a machine that cannot create symlinks; a normal install should omit it so the shared instructions are installed too.
+Use `-SkipLinks` only when syncing the config on a machine that cannot create symlinks; a normal install should omit it so the shared instructions, skills, and agents are installed too.
 
 Windows execution policy may reject an unsigned script on a WSL UNC share even before link creation. In that case, use a trusted local Windows checkout or follow the machine's script-signing policy; this script does not change execution policy.
 
@@ -35,7 +35,7 @@ A non-empty `~/.codex/AGENTS.override.md` takes precedence over `AGENTS.md`. Sta
 
 ## Cloud environments
 
-Use `./bin/setup_cloud_session.sh` as the setup script for this repository's Codex cloud environment. The same entry point remains the Claude Code web setup: it installs the check toolchain and hooks, links the Claude rules and cloud-only guidance, and now also links `codex/config.toml` and the instruction bridge into `${CODEX_HOME:-$HOME/.codex}`. Existing destinations owned by another setup are preserved and reported as `MISS`.
+Use `./bin/setup_cloud_session.sh` as the setup script for this repository's Codex cloud environment; an environment opened on other repos uses `bin/setup_agent.sh` from a clone of this one. The same entry point remains the Claude Code web setup: it installs the check toolchain and hooks, links the Claude rules and cloud-only guidance, and also links `codex/config.toml` and the instruction bridge into `${CODEX_HOME:-$HOME/.codex}`. Existing destinations owned by another setup are preserved and reported as `MISS`.
 
 Codex cloud environment setup is configured outside the repository, so checking in the script does not select it automatically. Set the environment's setup command to `./bin/setup_cloud_session.sh`; Codex invalidates its environment cache when that configured script changes.
 

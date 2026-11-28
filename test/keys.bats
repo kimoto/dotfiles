@@ -4,7 +4,7 @@
 # (`keys` / ⌃+X ?) and tmux (prefix + ?).
 #
 # Only the extraction half is unit-testable here (--list skips fzf); driving the
-# picker itself is bin/ci_keys_command_test.sh. What must hold: every table row
+# picker itself is test/e2e/keys_command_test.sh. What must hold: every table row
 # in KEYBINDINGS.md is emitted exactly once, prefixed with the layer it belongs
 # to (plus the subsection, so `prefix + g` is distinguishable from a zsh key),
 # and the Markdown scaffolding — header rows and |---| separators — never leaks
@@ -60,6 +60,13 @@ teardown() {
   KEYBINDINGS_MD="$DOC" run "$SCRIPT" --list
   [ "$status" -eq 0 ]
   [[ "$output" == *"[Layer One] A | do alpha"* ]]
+}
+
+@test "shows a key cell's escaped pipe as the | key" {
+  printf '%s\n' '' '## Pipes' '' '| Key | Action |' '|-----|--------|' '| prefix + \| | split |' >>"$DOC"
+  KEYBINDINGS_MD="$DOC" run "$SCRIPT" --list
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[Pipes] prefix + | | split"* ]]
 }
 
 @test "appends the subsection to the layer when there is one" {

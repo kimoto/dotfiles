@@ -70,6 +70,29 @@ teardown() {
   [ "$(git -C "$FIXTURE" log --oneline | wc -l | tr -d ' ')" = "1" ]
 }
 
+@test "isolate_git_env keeps the machine-wide commit hook out of fixture commits" {
+  # .gitconfig registers [hook "dotfiles-gitleaks"] for every repo; a hook that
+  # always fails stands in for it, so a fixture commit that still runs it dies.
+  v=$(git --version | sed -nE 's/^git version ([0-9]+)\.([0-9]+).*/\1 \2/p')
+  read -r maj min <<<"$v"
+  { [ "$maj" -gt 2 ] || { [ "$maj" -eq 2 ] && [ "$min" -ge 54 ]; }; } || skip "git $maj.$min has no config hooks"
+  FIXTURE="$TMP/hooked"
+  git init -q -b main "$FIXTURE"
+  git -C "$FIXTURE" config user.email t@t.test
+  git -C "$FIXTURE" config user.name test
+  git -C "$FIXTURE" config hook.dotfiles-gitleaks.event pre-commit
+  git -C "$FIXTURE" config hook.dotfiles-gitleaks.command false
+
+  # Red without the helper: the hook runs and refuses the commit.
+  unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_2 GIT_CONFIG_VALUE_2
+  run git -C "$FIXTURE" -c commit.gpgsign=false commit -q --allow-empty -m "feat: hooked"
+  [ "$status" -ne 0 ]
+
+  isolate_git_env
+  git -C "$FIXTURE" commit -q --allow-empty -m "feat: unhooked"
+  [ "$(git -C "$FIXTURE" log --oneline | wc -l | tr -d ' ')" = "1" ]
+}
+
 @test "every fixture that runs git isolates the git env first" {
   cd "$REPO_ROOT"
   missing=""

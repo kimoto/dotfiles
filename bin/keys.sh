@@ -53,6 +53,8 @@ extract() {
             row = $0
             sub(/^\|[[:space:]]*/, "", row)
             sub(/[[:space:]]*\|[[:space:]]*$/, "", row)
+            # A cell holds the | key only escaped; show the key itself.
+            gsub(/\\\|/, "|", row)
             context = layer
             if (section != "") context = context " / " section
             printf "[%s] %s\n", context, row

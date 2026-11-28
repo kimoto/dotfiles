@@ -1,208 +1,111 @@
 ## Dotfiles Agent Notes
 
 Shared instructions for AI assistants in this repo. `CLAUDE.md` is a symlink to
-this file — edit `AGENTS.md`, never break the symlink.
+this file — edit `AGENTS.md`, never break the symlink. This file is an index:
+every session reads all of it, so the why of each entry lives in the file the
+entry points at (`bin/check_agents_size.sh` caps the size).
 
 ### What this repo is
 
 Personal macOS/Linux dotfiles, symlinked into `$HOME` by `bin/mklink.sh`, tools
-installed via Homebrew (`Brewfile.*`). It's also a CI-tested project: the same
-`bin/` lint scripts run locally (lefthook) and in GitHub Actions — one source of
-truth, so the two never diverge.
+installed via Homebrew (`Brewfile.*`). The same `bin/` lint scripts run locally
+(lefthook) and in GitHub Actions — one source of truth, so the two never diverge.
 
 ### Repository map
 
-- `bin/` — install scripts + the `lint_*`/`check_*` toolchain (shared by CI and
-  lefthook). Key scripts: `mkworld.sh` (full bootstrap), `mklink.sh` (symlinks,
-  `rmworld.sh` reverses), `install_check_tools.sh` (pinned tool versions — bump
-  here), `dotfiles_sync_check.sh` (dirty/unpushed startup reminder),
-  `gen_tools_list.sh` (regenerates `TOOLS.md` from the Brewfiles),
-  `claude_idle_recap.sh` + `install_claude_idle_hooks.sh` (on the first prompt
-  after a long absence, tell the model the reader lost the thread — it opens
-  with the problem instead of a diff; see `claudecode/skills/session-resume`).
-  ⚠️ The gap is measured from the end of the last assistant turn, never wall
-  clock: a 40-minute tool run leaves the same hole as someone leaving the desk,
-  and only one of those is an absence. ⚠️ Nothing fires when a person merely
-  looks at a terminal that stayed open — Claude Code has no such event — so the
-  notice rides the first prompt after the gap,
-  `keys.sh` (the keybinding cheatsheet picker behind zsh's `keys`/`⌃+X ?` — it
-  reads `KEYBINDINGS.md`, so adding a row there is what makes a binding
-  discoverable; tmux also binds it to `prefix + ?`, but tmux-which-key rebinds
-  that same key once its plugin loads and wins, so in practice tmux's
-  `prefix + ?` opens which-key instead),
-  `brew_bundle_install.sh` (interactive one-shot Brewfile install — human-only,
-  refuses to run without a terminal; never invoke it from an agent),
-  `ci_zsh_loading_test.sh` / `ci_tmux_loading_test.sh`.
+Each script's header says what it is for and why it is shaped that way; read it
+before changing or calling the script.
+
+- `bin/` — install scripts and the `lint_*`/`check_*` toolchain (CI + lefthook).
+  Bootstrap: `mkworld.sh` (climbs the phases in `docs/staged-bootstrap.md`),
+  `mklink.sh` / `rmworld.sh`, `install_check_tools.sh`, `setup_agent.sh` (any
+  agent container), `setup_cloud_session.sh` (a container on this repo),
+  `link_claude_dir.sh`, `prune_claude_links.sh`, `refresh_cloud_session.sh`. Startup reminders: `dotfiles_sync_check.sh`,
+  `brew_bundle_check.sh`, `mise_missing_check.sh`. Generated files:
+  `gen_tools_list.sh` (`TOOLS.md`), `keys.sh` (reads `KEYBINDINGS.md`).
+  Human-only, never from an agent: `brew_bundle_install.sh`,
+  `check_cloned_repo_hooks.sh`, and the repo-root `vscode/install_vscode.sh`.
 - `config/` — XDG configs symlinked to `~/.config` (nvim, ghostty, starship, …).
-- `claudecode/rules/` — Claude Code user rules, linked in as
-  `~/.claude/rules/dotfiles`. Every `.md` under `~/.claude/rules/` loads into
-  every session on the machine; no frontmatter needed (add `paths:` only to
-  scope a rule to matching files). A rule belongs here when it holds on every
-  machine regardless of what is being built: a quirk this setup creates — shell
-  aliases and functions that shadow standard commands, zsh options that change
-  how redirects behave — or a standing judgement short enough that always
-  loading it costs nothing. ⚠️ Both are acted on by the session that reads
-  them; guidance for the person supervising it costs every session and moves
-  none — that goes to the person directly, or to an issue, never here.
-  Machine-specific instructions go in another repo's own `~/.claude/rules/`
-  entry; project-specific ones go in that project's `CLAUDE.md`. It is a conf.d: each source repo links its
-  own subdirectory into `~/.claude/rules/`, so another repo can keep its rules
-  there without this one ever seeing them — which is why mklink/rmworld touch
-  only our own entry, and why `claudecode/rules/` is an allow-list in
-  `.gitignore`. `~/.claude` itself is never symlinked: it also holds runtime state
-  (transcripts, sessions, plugin caches). The directory name avoids `claude/`,
-  which is both too close to this repo's own `.claude/` and, via
-  `core.excludesfile = ~/.gitignore`, would make `claude/*` ignore rules apply
-  in every repo on the machine.
-- `claudecode/skills/` — Claude Code user skills, linked in one by one as
-  `~/.claude/skills/<name>`. A rule costs every session; a skill costs only the
-  session that invokes it, so anything procedural belongs here rather than in
-  `rules/`. Two entries share a machine with skills other tools install, which
-  is why the link is per skill and the `.gitignore` allow-list names each one.
-  ⚠️ These are written in Japanese, against the language rule below, for two
-  reasons: the `description` is what a request is matched against and the
-  requests arrive in Japanese, and a skill is also read by the person deciding
-  whether it says the right thing.
-- `claudecode/rules-cloud/` — linked in as `~/.claude/rules/dotfiles-cloud` only
-  by `bin/link_claude_dir.sh --cloud`. It says what a container lacks, so every
-  line of it is false on a workstation and it must never reach one. Which is
-  why a run *without* the flag, and `mklink.sh`, take the entry back out rather
-  than merely not make it: those two are the workstation, and a `$HOME` that was
-  a container first would otherwise keep telling it `cat` is cat.
-- `claudecode/settings-cloud.json` — `~/.claude/settings.json` for a cloud
-  session, for a setting that must hold whichever repo the session was opened
-  on.
-- `claudecode/settings.json` — a workstation's `~/.claude/settings.json`,
-  linked in by `mklink.sh`. Claude Code writes through the link (`/config`, a
-  plugin install), so a change made on any machine shows up here as a diff.
-  ⚠️ This repo is public: `bin/check_claude_settings.sh` (pre-commit and CI)
-  refuses keys outside its allow-list, home-directory paths and local
-  marketplaces. A key it refuses belongs on that machine, not here — add it to
-  the allow-list only once it is known to be safe to publish.
-- `claudecode/claude-hud/config.json` — claude-hud's look, linked in by
-  `mklink.sh`. `/claude-hud:configure` edits this file, not a copy.
-- `bin/setup_cloud_session.sh` — a cloud container: toolchain, this checkout's
-  git hooks, fzf, the `~/.claude` entries.
-- `bin/link_claude_dir.sh` — the `~/.claude` entries, called from there. Its own
-  script because those entries must also be takeable back out (`mklink.sh`).
-- `vscode/install_vscode.sh` — symlinks VS Code's live `settings.json`/
-  `keybindings.json` to this repo (replacing any existing file) and
-  installs/overwrites the `extensions` list. Manual, human-only setup step —
-  not called from `mkworld.sh`, CI, or lefthook; never invoke it from an agent.
+- `claudecode/` — Claude Code user configuration (rules, skills, settings).
+  What belongs where: `claudecode/README.md`.
+- `codex/`, `.codex/skills/` — Codex user defaults and the shared skills
+  (`.claude/skills/<name>/SKILL.md` symlinks to the `.codex/` copy). See
+  `codex/README.md`.
+- `.claude/settings.json`, `.claude/hooks/` — this repo's Claude Code hooks and
+  the allow-list for the read-only check toolchain. Each hook's header says
+  what it does and what it never does. `git-leftovers-reminder.sh` is the
+  exception: registered per machine, not by this file.
 - Root dotfiles — `.zshrc`, `.tmux.conf`, `.vimrc`, `.gitconfig`, … into `$HOME`.
-- `windows/` — the Windows half of the same workstation, for the WSL host: the
-  `Brewfile.macos` → winget mapping, a winget manifest, the Windows Terminal
-  scheme and the AutoHotkey port of `hammerspoon/init.lua`. Reference and
-  manual `winget import` only — nothing in `bin/` reads it, because a symlink
-  made from WSL under `/mnt/c` is not one Windows follows, so every file here
-  is a copy someone applies by hand.
+- `local.example/` — what goes in each `~/*.local` file those source last; the
+  files themselves stay on the machine.
+- `windows/` — the Windows half of the same workstation; manual copies, nothing
+  in `bin/` reads it. See `windows/README.md`.
 - `KEYBINDINGS.md` — layered keybinding reference (macOS → AeroSpace → Ghostty →
-  tmux → zsh → nvim; upper layers intercept first). When you add, remove, or
-  rebind a key anywhere (`.tmux.conf`, `config/ghostty`, AeroSpace, zsh,
-  `config/nvim`), update it in the same PR. It is also data, not just docs:
-  `bin/keys.sh` parses its tables into the on-demand cheatsheet, so keep the
-  `| key | action |` table shape and the heading levels intact.
-- `Brewfile.{basic,common,macos,linux}` — Homebrew bundles, sorted A–Z per
-  section (`check_brewfile_sort.sh`). Split rule: `basic` = anything the shell
-  needs at load time (prompt, completion, plugin manager, eval-cache inlines,
-  startup aliases/`LS_COLORS`) — litmus test: if removing it breaks
-  `ci_zsh_loading_test.sh`/`ci_tmux_loading_test.sh`, it's `basic`; CI installs
-  only `basic`. `common` = full-workstation tooling not required to start the
-  shell. `macos`/`linux` = platform-specific additions.
-- `TOOLS.md` — generated catalog of every installed tool, built from the
-  `brew bundle dump --describe` comments in `Brewfile.*` by `gen_tools_list.sh`.
-  Never hand-edit; run `./bin/gen_tools_list.sh` after touching a Brewfile
-  (CI + lefthook run `--check` to enforce it stays in sync).
-- `docs/` — design notes for work that is planned but not built. They record
-  *why* and the change list, so the work starts from a list rather than from
-  scratch; each says so at the top. Nothing here describes current behaviour —
-  that lives next to the code it describes.
-- `test/fixtures/` — helpers the `ci_*_test.sh` e2e checks need but that are
-  not themselves under test: `stub_lsp.py` is a language server that only
-  completes the handshake, so CI can assert "opening a .ts file attaches a
-  client" without installing a real one (which would test npm, not this repo).
+  tmux → zsh → nvim). Update it in the same PR as any binding change. It is
+  data: `bin/keys.sh` parses its tables, so keep the table shape and headings.
+- `mise.toml` / `mise.lock` — the pinned check toolchain on every platform;
+  Renovate bumps it monthly. A bump needs `mise lock` in the same PR.
+- `Brewfile.{standard,extra,macos,linux}` — Homebrew bundles, sorted A–Z per
+  section. Where a tool goes: `docs/staged-bootstrap.md`.
+- `TOOLS.md` — generated from the Brewfiles. Never hand-edit; run
+  `./bin/gen_tools_list.sh` after touching a Brewfile.
+- `docs/` — design notes: why, and the change list. A note whose work is built
+  stays as the reference for that behaviour (`staged-bootstrap.md` is one).
+- `test/` — bats unit tests. `test/e2e/` holds the end-to-end checks CI runs
+  against a real shell/tmux/vim; `test/fixtures/` what they need but do not
+  test. `ci/` is CI-only plumbing (prepare, bench, caches).
 - `.github/workflows/ci.yml`, `lefthook.yml` — CI and its local mirror. ⚠️ The
-  local half only exists where `lefthook install` ran; a checkout without it
-  commits unchecked, CI green the whole way.
-- `.claude/settings.json` wires three hooks: `SessionStart` (`session-start.sh`,
-  which checks this is the web sandbox and hands the rest to
-  `bin/setup_cloud_session.sh`), `SessionEnd` (`auto-main-sync.sh` — after a PR
-  merges, switches back to `main`, pulls, and deletes the merged branch; a
-  dirty tree, a still-open PR, or a linked worktree just prints a reminder
-  instead — a worktree is told to remove itself, never switched to `main`), and
-  `PostToolUse` on Bash (`pr-description-reminder.sh` — after a real `git push`,
-  reminds to update the PR description to match what was just pushed; a command
-  that only quotes a push stays silent). It also allow-lists the repo's own read-only check
-  toolchain (`bin/lint_*.sh`, `bin/check_*.sh`, `bin/run_tests.sh`,
-  `bin/ci_zsh_loading_test.sh`, `bin/ci_tmux_loading_test.sh`,
-  `bin/gen_tools_list.sh --check`, `bats test/…`) so running a check the way CI
-  runs it needs no prompt; anything that writes (`gen_tools_list.sh` without
-  `--check`, `mklink.sh`, `brew bundle`) stays out.
-- `.claude/hooks/git-leftovers-reminder.sh` — a `Stop` hook that reports how
-  much is uncommitted, untracked, or unpushed as context the agent sees rather
-  than output the user reads, and stays quiet until those counts change.
-  Unlike every other hook here it is **not wired by `.claude/settings.json`**:
-  it is registered per machine in `~/.claude/settings.json` and reached by a
-  symlink nothing in `bin/` creates, so `mkworld.sh` installs the script
-  without enabling it.
-- `codex/` — Codex user defaults and an `AGENTS.md` bridge that reads the
-  current host's `~/.claude/CLAUDE.md` and `~/.claude/rules/`. `mklink.sh`
-  links the config and bridge only when absent; `rmworld.sh` removes only our
-  links. Windows merges config values and uses native Windows symlinks for
-  the bridge and rules; see `codex/README.md`.
-- `.codex/skills/` — the skills, and the single source for both agents:
-  `.claude/skills/<name>/SKILL.md` is a symlink to the `.codex/` copy, so a skill
-  is written once. A real directory holding a symlinked `SKILL.md` (not a
-  symlinked directory) keeps discovery working regardless of how each agent
-  walks the tree. `dotfiles-pr-flow` is deliberately Codex-only — it restates
-  the PR rules Claude already reads from this file.
+  local half only exists where `lefthook install` ran.
 
 ### Hooks & CI
 
 - lefthook runs the `bin/` checks on commit/push; CI runs the same. Reproduce a
   check locally exactly as CI does, e.g. `./bin/lint_shell.sh`.
-- Commits follow Conventional Commits `type(scope): description`, type ∈ {feat,
-  fix, chore, docs, refactor, ci, revert, test} (`test` = test-only changes).
-- Bypass a hook with `--no-verify`. CI failures: `gh run view <id> --log-failed`.
 - GitHub Actions `uses:` must be pinned to a full commit SHA, not a tag.
 - Config files with a top-level `$schema` are validated against it
   (`lint_schema.sh`) — keep the key accurate.
-- TDD: when adding or changing a test, prove it fails first (red), then make it
-  pass (green) — never ship a test you've only seen pass. Break the thing under
-  test (or the assertion) so the test actually fails for the expected reason,
-  then revert and confirm green. Especially for the `ci_*_test.sh` e2e checks,
-  where a typo'd assertion can silently pass forever.
+- Red before green matters most for the `test/e2e/` checks, where a typo'd
+  assertion can silently pass forever.
 
 ### Conventions
 
 - `~/.config` must be a symlink to this repo's `config/` (mklink backs up a real
-  one first). Reason: macOS CI runners ship a real `~/.config` that blocks it.
+  one first).
 - `.editorconfig` (enforced): ≤120 cols, no trailing whitespace, final newline.
   Indentation is advisory; Markdown is exempt from line length — don't hard-wrap.
 - Zsh/CI: set `ZDOTDIR` to the repo root; skip `.zshrc` sections in CI via an env
   flag (e.g. `DOTFILES_NO_SYNC_CHECK`), not an early return.
-- If `git commit -S` hangs: `export GPG_TTY=$(tty)` and check pinentry-mac.
-
-### Interaction
-
-- When offering the user a choice between options (next step, approach, where to
-  put something), prefer the `AskUserQuestion` tool over free-text questions —
-  use it whenever the options are discrete enough to enumerate.
 
 ### Branch & PR workflow
 
-- Never commit/push to `main` — branch first: `git switch -c <type>/<short-desc>`.
-  lefthook and GitHub branch protection both block it.
-- One PR per change, prefer 1 commit; fill `.github/PULL_REQUEST_TEMPLATE.md`
-  with `gh pr edit --body-file`. How to write one is in the shared rules.
-- An auto-created PR (web/remote) starts with an empty body — the template is
-  only injected by the GitHub UI; backfill it from the template before anything.
-- Claude Code auto-appends its PR-body / commit trailers — don't remove them.
-- After creating a PR from a session that can receive PR events, subscribe to
-  its activity (`subscribe_pr_activity`) right away without asking — watch CI
-  and review comments and act on them until the PR is merged or closed.
+The flow is in the shared rules (`claudecode/rules/git.md`, `pull-requests.md`);
+here it is enforced: lefthook and branch protection block a commit to `main`,
+and a hook refuses a worktree reached by `cd`. A routine's PR (label
+`routine:<name>`) follows `docs/routine-prs.md`.
 
 ### Language
 
 "Respond in Japanese" applies to chat replies, not artifact content. Commits,
 PRs, comments, and docs are file content — always English; chat stays Japanese.
+
+## Scouts
+
+Read by every skill that names this section (`grep -l Scouts
+claudecode/skills/*/SKILL.md`); the why, and the calls already made, are in
+`docs/scouts.md`.
+
+- Checks: `./bin/run_tests.sh` and `lefthook run pre-commit --all-files`.
+- Proof of no change: `./bin/behavior_snapshot.sh compare origin/main`. Plugin
+  config is outside it.
+- Test gaps: `bin/mutation_sweep.sh` (also lists files no test selects). How a
+  new e2e check gets run: `docs/scouts.md`.
+- Leave alone: `TOOLS.md`, the `KEYBINDINGS.md` table shape, and the self-contained
+  `bin/mkworld.sh` / `bin/setup_homebrew.sh`.
+- Speed: `./bin/speed_report.sh` on `main`, one comment per run on #392; scripts
+  never run to time are in `docs/scouts.md`.
+- Security audit: findings go only to the private tracker the routine's prompt
+  names; what is pinned where, and the `stable` branch, are in `docs/scouts.md`.
+- Trends: the ledger, and where to read what is in use, are in `docs/scouts.md`.
+- Commits and PRs: `docs/routine-prs.md` (it holds the open PR cap). The author
+  comes from `.gitconfig.agent`; if your commit's is not kimoto, say so.
+- Decided against: see `docs/scouts.md`.

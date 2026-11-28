@@ -1,0 +1,182 @@
+---
+# Daily, no-cache, full-workstation bootstrap on Ubuntu.
+#
+# ci.yml already runs entirely on ubuntu-latest, but on a deliberately narrow
+# slice of it: ci/prepare.sh asks setup_homebrew.sh to leave Brewfile.extra out,
+# ci/prepare.sh runs mkworld with SKIP_BREW=1, and the job that runs the bats
+# suite never links the dotfiles into $HOME. So the parts of the bootstrap a
+# human actually executes are the parts CI never touches, and a run of bugs
+# escaped that way — a `sh <bash script>` that only dash rejects, a formula with
+# no Linux bottle, fixtures inheriting commit.gpgsign from the real ~/.gitconfig.
+#
+# This job closes that gap by doing what a person does on a fresh machine:
+# ./bin/mkworld.sh with nothing skipped, from inside a tmux session, under the
+# same locale the real machine uses. Slow and network-bound (it installs every
+# Brewfile), hence scheduled + manual rather than per-push.
+name: bootstrap-linux
+on:
+  schedule:
+    # Daily while the full bootstrap keeps breaking unseen (monthly left a
+    # break unnoticed for two weeks); free on a public repo. Back to weekly once
+    # it has stayed green for a month.
+    - cron: '0 7 * * *'   # 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  full-bootstrap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      # The real machine is Japanese, and that is not cosmetic: Vim translates
+      # the UI strings the e2e assertions read off the pane, so a check can pass
+      # under the C locale CI defaults to and fail on the actual workstation.
+      LANG: ja_JP.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate the ja_JP locale
+        run: sudo locale-gen ja_JP.UTF-8
+
+      - name: Install the OS packages a person installs first
+        # zsh is what the basic phase means by "the OS has zsh": the runner
+        # image ships without it, and mkworld stops at minimal rather than
+        # install a shell itself. tmux only *hosts* the bootstrap;
+        # Brewfile.extra installs the tmux everything afterwards actually uses.
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tmux zsh
+
+      - name: Bootstrap from scratch, from inside a tmux session
+        # Nothing skipped: neither SKIP_BREW nor SKIP_BREWFILE_EXTRA is set, so
+        # this is the first place `brew bundle` sees Brewfile.extra and
+        # Brewfile.linux, and the first place mkworld runs its own helper
+        # scripts for real. Both are opt-in for exactly this reason -- the
+        # earlier $CI test could not be opted out of, since Actions sets CI=true
+        # in every step including this one, and the run that proved it installed
+        # Brewfile.standard and then failed the check below.
+        #
+        # Inside tmux on purpose. $TMUX is then inherited all the way down to
+        # tpm, which resolves its server from it like any bare tmux client —
+        # that is how install_tmux_plugins.sh came to talk to the wrong server
+        # and abort the rest of the bootstrap. A bootstrap launched from a login
+        # shell that already runs tmux is the normal case, not the exotic one.
+        #
+        # tmux detaches the pane's process, so the exit status has to come back
+        # out of band: the pane writes it to a file and signals a wait-for
+        # channel. A signal sent before anyone waits is remembered by tmux, so
+        # a fast bootstrap cannot slip past the wait below.
+        #
+        # The pane's output is copied to a file and printed after, pass or
+        # fail: without it the job log shows only the exit status, and a
+        # failure cannot be told apart from any other.
+        run: |
+          set -e
+          cat >"$RUNNER_TEMP/bootstrap.sh" <<'EOF'
+          #!/bin/sh
+          tmux pipe-pane "cat >>'$RUNNER_TEMP/mkworld.log'"
+          cd "$GITHUB_WORKSPACE" || exit 1
+          MKWORLD_EXPECT=platform ./bin/mkworld.sh
+          echo $? >"$RUNNER_TEMP/mkworld.rc"
+          tmux wait-for -S bootstrapped
+          EOF
+          chmod +x "$RUNNER_TEMP/bootstrap.sh"
+          tmux new-session -d -x 200 -y 50 "$RUNNER_TEMP/bootstrap.sh"
+          tmux wait-for bootstrapped
+          cat "$RUNNER_TEMP/mkworld.log"
+          rc="$(cat "$RUNNER_TEMP/mkworld.rc")"
+          echo "mkworld.sh exit=$rc"
+          [ "$rc" = "0" ]
+
+      - name: Every Brewfile for this platform is satisfied
+        # The direct canary for a formula that has no Linux bottle: `brew bundle
+        # install` reports it and moves on, so only an explicit check fails.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          for f in Brewfile.standard Brewfile.extra Brewfile.linux; do
+            echo "== $f =="
+            brew bundle check --verbose --file="$f"
+          done
+
+      - name: A check of the machine just built agrees it is at platform
+        # The command a machine in use is asked: it installs nothing, so a
+        # pass here is what a pass there means.
+        run: MKWORLD_CHECK=1 MKWORLD_EXPECT=platform ./bin/mkworld.sh
+
+      - name: Unit tests (bats) against a $HOME the dotfiles are linked into
+        # ci.yml runs these in a job with a pristine $HOME. Here ~/.gitconfig is
+        # the repo's, so the fixtures inherit commit.gpgsign = true and a
+        # signing key this runner has no secret half of — exactly the machine
+        # every fresh checkout is.
+        #
+        # Each step is a fresh shell, so brew has to go back on PATH: bats comes
+        # from Brewfile.extra. The linters the suite shells out to are mise's,
+        # reached through the same shims sheldon puts on PATH for zsh.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          eval "$(mise activate --shims bash)"
+          ./bin/run_tests.sh
+
+      - name: Interactive e2e that only bite with the full toolchain installed
+        # ci.yml runs these too, but with Brewfile.extra absent. `g` stubs ghq
+        # on PATH, and a real ghq is only here to shadow that stub once
+        # Brewfile.extra is in.
+        run: |
+          set -e
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ./test/e2e/zsh_loading_test.sh
+          ./test/e2e/tmux_loading_test.sh
+          ./test/e2e/g_command_test.sh
+          ./test/e2e/w_command_test.sh
+
+  # README's install line starts a new machine from `stable`, so it only ever
+  # points at a commit this full bootstrap passed on, a week ago or more: the
+  # daily run finds a breakage fast, the week lets one surface in use first.
+  # Only when today's run is green too, so a main that broke since stays put.
+  advance-stable:
+    needs: full-bootstrap
+    if: github.ref == 'refs/heads/main'
+    # STABLE_TOKEN lives in this environment, which only main may use, so a
+    # workflow edited on another branch cannot read it.
+    environment: stable
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read # stable moves with STABLE_TOKEN, not this job's token
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Find the newest pass at least a week old
+        id: aged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          sha="$(./ci/aged_pass.sh bootstrap-linux.yml 7 schedule workflow_dispatch)"
+          if [ -z "$sha" ]; then
+            echo "no passing run a week old yet; stable stays where it is"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN cannot be granted workflows:write, so it gets a 403 moving
+      # stable onto any commit that changes .github/workflows. STABLE_TOKEN is a
+      # fine-grained PAT for this repo only, with contents and workflows write,
+      # and only this step sees it.
+      - name: Fast-forward stable to it
+        if: steps.aged.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.STABLE_TOKEN }}
+          SHA: ${{ steps.aged.outputs.sha }}
+        run: |
+          : "${GH_TOKEN:?the STABLE_TOKEN secret is not set}"
+          ./ci/advance_stable.sh "$SHA"

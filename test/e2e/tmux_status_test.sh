@@ -1,0 +1,221 @@
+#!/bin/bash
+# End-to-end test for the status bar and the dynamic window/pane formats. Each
+# configured format is expanded with `display-message -p`, which evaluates a
+# format string exactly as tmux does when drawing it — so we assert the
+# rendering *logic* (conditionals and fields) without brittle pixel capture of
+# the status line. Covers: status-left (session), status-right (clock and the
+# which-key prefix hint, both branches),
+# window-status-current-format (#I:#W), automatic-rename-format (its
+# panes/title conditional, both branches), and pane-border-format.
+set -euo pipefail
+
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$DIR/tmux_e2e_helpers.sh"
+
+need tmux
+echo "== $(tmux -V) =="
+
+CONF="$(tmux_conf_path)"
+echo "== formats from: $CONF =="
+
+SOCK="ci_tmux_status_$$"
+SESS="STATUSCHECK"
+private_tmux_tmpdir
+cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; sweep_private_tmux_tmpdir; }
+trap cleanup EXIT
+
+tmux -L "$SOCK" -f "$CONF" new-session -d -s "$SESS" -x 200 -y 50 || die "failed to start tmux"
+disable_continuum_restore "$SOCK"
+
+# Expand a configured option's format string the way tmux would draw it.
+opt() { tmux -L "$SOCK" show-options -gqv "$1"; }
+expand() { tmux -L "$SOCK" display-message -p "$1" 2>/dev/null | tr -d '\000'; }
+
+# 1) status-left renders the session name.
+expand "$(opt status-left)" | grep -q "$SESS" \
+  || die "status-left did not render the session name ($SESS)"
+echo "== status-left shows session name =="
+
+# 2) status-right renders today's date (the %F clock field).
+today="$(date +%F)"
+expand "$(opt status-right)" | grep -q "$today" \
+  || die "status-right did not render today's date ($today)"
+echo "== status-right shows the clock ($today) =="
+
+# 2b) The which-key prefix hint. Three parts, all worth pinning: it must be
+#     invisible until the prefix is held (display-message expands with
+#     client_prefix off, so the plain status-right must not carry it), the
+#     held-prefix branch must expand to every key pair, and it must *replace*
+#     the kube/clock segment instead of stacking in front of it. The last one is
+#     the whole point of the layout: tmux draws status-left and status-right to
+#     their full width first and gives the window list what is left, so a hint
+#     that stacked stole its own width from the window list and hid half the
+#     open windows for as long as the prefix was held.
+#     The key pairs are not cosmetic either — a `,` anywhere inside a #{?...}
+#     branch silently ends the branch, so a hint written inline would truncate
+#     at the first comma with no error anywhere.
+case "$(expand "$(opt status-right)")" in
+  *"v hunk"*) die "the prefix hint renders even when the prefix is not held" ;;
+esac
+# display-message cannot hold the prefix down, so render the configured
+# status-right with its condition forced true — same string, other branch.
+# The `#[...]` styles are stripped so each key sits next to its label again:
+# the hint colors the key and the word after it differently, so a style run
+# lands between them in the raw expansion.
+held="$(expand "$(opt status-right | sed 's/client_prefix/session_name/')" |
+  sed 's/#\[[^]]*\]//g')"
+for pair in "? help" "v hunk" "t shell"; do
+  case "$held" in
+    *"$pair"*) ;;
+    *) die "prefix hint is missing '$pair' (rendered: $held)" ;;
+  esac
+done
+# Each key the hint names must open what its label promises. The hint and
+# KEYBINDINGS.md can agree with each other and both be wrong: a binding can
+# move to another key while the hint keeps naming the old one.
+# Only the live binding table can tell, so ask it rather than another copy.
+# `?` is which-key once its plugin loads (a display-menu where it inlines its
+# root menu), keys.sh where plugins are absent. The key is picked out of the
+# whole table by field, so a failure can print what the table really holds.
+prefix_table="$(tmux -L "$SOCK" list-keys -T prefix)"
+while read -r key pattern; do
+  bound="$(printf '%s\n' "$prefix_table" |
+    awk -v k="$key" '{
+      for (i = 1; i < NF; i++)
+        if ($i == "-T" && $(i + 1) == "prefix") { if ($(i + 2) == k) print; break }
+    }')"
+  printf '%s\n' "$bound" | grep -Eq "$pattern" \
+    || die "the prefix hint names '$key', but prefix + $key is not /$pattern/ (bound: ${bound:-nothing})"
+done <<'EOF'
+? show-wk-menu|display-menu|keys\.sh
+v hunk
+t new-pane|display-popup
+EOF
+case "$held" in
+  *"$today"*) die "the prefix hint stacked in front of the clock instead of replacing it" ;;
+esac
+# ...and replacing it is only worth anything while the hint stays about as wide
+# as what it replaces. The ceiling is on the hint alone: the SYNC indicator sits
+# outside the swap, so it costs both states the same, and a kube context only
+# ever makes the segment being replaced wider. Counted as ASCII characters (the
+# styles are already gone; dropping the powerline glyphs keeps this the same
+# number on every locale) that segment is ~18 on a machine with no kube context
+# — the clock alone, since the guard in .tmux.conf drops the ⎈ box rather than
+# drawing it empty. That is the worst case, and the one this ceiling is set
+# against.
+cols="$(printf %s "$held" | LC_ALL=C tr -cd '\40-\176' | wc -c | tr -d ' ')"
+[ "$cols" -le 32 ] \
+  || die "the prefix hint is $cols columns wide; keep it under 32 or the window list loses a slice of itself"
+echo "== prefix hint renders only while the prefix is held, replacing the clock ($cols cols) =="
+
+# 3) window-status-current-format renders the active window's #I:#W.
+cur="$(tmux -L "$SOCK" display-message -p '#I:#W')"
+expand "$(opt window-status-current-format)" | grep -qF "$cur" \
+  || die "window-status-current-format did not render '$cur'"
+echo "== window-status-current-format shows '$cur' =="
+
+# 4) automatic-rename-format: single pane with an explicit title -> the title.
+arf="$(opt automatic-rename-format)"
+tmux -L "$SOCK" select-pane -T "MYTITLE"
+got="$(expand "$arf")"
+[ "$got" = "MYTITLE" ] || die "rename-format (1 pane, titled) expected 'MYTITLE', got '$got'"
+echo "== automatic-rename-format uses pane_title when single-pane =="
+
+# 5) automatic-rename-format: with a second pane the AND condition fails, so it
+#    falls back to the current path's basename (not the title).
+tmux -L "$SOCK" split-window -d
+base="$(basename "$(tmux -L "$SOCK" display-message -p '#{pane_current_path}')")"
+got="$(expand "$arf")"
+[ "$got" = "$base" ] || die "rename-format (2 panes) expected basename '$base', got '$got'"
+echo "== automatic-rename-format falls back to path basename when split =="
+
+# 6) pane-border-format shows '#<index>: <title>' for the titled pane.
+expand "$(opt pane-border-format)" | grep -q "MYTITLE" \
+  || die "pane-border-format did not render the pane title"
+echo "== pane-border-format renders the pane title =="
+
+# 7) Solarized theme options actually land. The load test only proves the file
+#    parses: a stray quote inside one of the version-guarded blocks drops every
+#    option after it without any error, so read the values back. Options behind
+#    a guard are asserted only on a tmux new enough to have them.
+tmux_at_least() {
+  local want_major="$1" want_minor="$2" v major minor
+  v="$(tmux -V | sed -En 's/^tmux ([0-9]+)\.([0-9]+).*/\1 \2/p')"
+  [ -n "$v" ] || return 1
+  major="${v% *}"; minor="${v#* }"
+  [ "$major" -gt "$want_major" ] ||
+    { [ "$major" -eq "$want_major" ] && [ "$minor" -ge "$want_minor" ]; }
+}
+theme_is() {
+  local got; got="$(opt "$1")"
+  [ "$got" = "$2" ] || die "$1 expected '$2', got '${got:-<unset>}'"
+}
+theme_is popup-style "bg=#073642,fg=#839496"
+theme_is popup-border-style "fg=#2aa198"
+theme_is copy-mode-match-style "bg=#b58900,fg=#002b36"
+theme_is copy-mode-current-match-style "bg=#cb4b16,fg=#002b36,bold"
+theme_is copy-mode-mark-style "bg=#d33682,fg=#002b36"
+echo "== popup and copy-mode search styles are Solarized =="
+
+if tmux_at_least 3 6; then
+  theme_is menu-selected-style "bg=#2aa198,fg=#002b36,bold"
+  theme_is copy-mode-position-style "bg=#073642,fg=#2aa198"
+  theme_is copy-mode-selection-style "bg=#2aa198,fg=#002b36"
+  echo "== 3.6+ guarded block applied (menu selection, copy-mode position) =="
+else
+  echo "== 3.6+ guarded block skipped on $(tmux -V) =="
+fi
+
+if tmux_at_least 3 7; then
+  theme_is copy-mode-line-number-style "fg=#586e75"
+  theme_is copy-mode-current-line-number-style "fg=#b58900,bold"
+  echo "== 3.7+ guarded block applied (copy-mode line numbers) =="
+else
+  echo "== 3.7+ guarded block skipped on $(tmux -V) =="
+fi
+
+# 8) The status bar draws without spawning a process per redraw. status-left
+#    shows one dot per session; #{S:...} loops over the sessions as a format,
+#    where a `#(tmux list-sessions)` job would fork on every redraw.
+case "$(opt status-left)" in
+  *'#('*) die "status-left runs a shell job again; #{S:...} needs no process per redraw" ;;
+esac
+tmux -L "$SOCK" new-session -d -s "${SESS}2"
+tmux -L "$SOCK" new-session -d -s "${SESS}3"
+dots="$(expand "$(opt status-left)" | grep -o '[●•]' | grep -c .)"
+[ "$dots" = "3" ] || die "status-left expected one dot per session (3), rendered ${dots:-0}"
+tmux -L "$SOCK" kill-session -t "${SESS}3"
+dots="$(expand "$(opt status-left)" | grep -o '[●•]' | grep -c .)"
+[ "$dots" = "2" ] || die "status-left did not follow a session going away (expected 2, got ${dots:-0})"
+echo "== status-left renders a dot per session with no shell job =="
+
+# 9) The kube segment. Which of the two branches .tmux.conf picked depends on
+#    whether this machine has a current context, so assert the one that
+#    applies -- both have something worth pinning.
+#    With a context: the name is read by a job that sleeps between prints. A
+#    bare `kubectl config current-context` here is a ~35ms process on every
+#    redraw.
+#    Without one: the segment must be gone entirely, not drawn empty. An empty
+#    green box is indistinguishable from a context whose name did not arrive
+#    yet, and the job behind it would wake once a minute forever to print
+#    nothing.
+if kubectl config current-context >/dev/null 2>&1; then
+  case "$(opt @status_info)" in
+    *sleep*) ;;
+    *) die "the kube job no longer throttles itself; it will run kubectl every status-interval" ;;
+  esac
+  echo "== the kube context job throttles itself =="
+else
+  case "$(opt @status_info)" in
+    *kubectl*) die "no current context here, but @status_info still runs kubectl behind an empty segment" ;;
+  esac
+  case "$(opt @status_info)" in
+    *'⎈'*) die "no current context here, but the kube glyph is still drawn" ;;
+  esac
+  expand "$(opt @status_info)" | grep -q "$today" \
+    || die "the no-context branch dropped the clock along with the kube segment"
+  echo "== no current context on this machine: the kube segment and its job are absent =="
+fi
+
+echo "PASS"

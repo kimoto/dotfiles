@@ -13,21 +13,23 @@
       "Bash(./bin/lint_yaml.sh:*)",
       "Bash(./bin/check_brewfile_sort.sh:*)",
       "Bash(./bin/check_secret_files.sh:*)",
+      "Bash(./bin/check_agents_size.sh:*)",
       "Bash(./bin/gen_tools_list.sh --check)",
       "Bash(./bin/run_tests.sh:*)",
       "Bash(bats test/:*)",
-      "Bash(./bin/ci_zsh_loading_test.sh:*)",
-      "Bash(./bin/ci_tmux_loading_test.sh:*)"
+      "Bash(./test/e2e/zsh_loading_test.sh:*)",
+      "Bash(./test/e2e/tmux_loading_test.sh:*)"
     ]
   },
   "hooks": {
-    "PostToolUse": [
+    "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pr-description-reminder.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/worktree-guard.sh",
+          "timeout": 5
           }
         ]
       }
@@ -38,16 +40,11 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
+          },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-main-sync.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/merged-branch-notice.sh",
+          "timeout": 10
           }
         ]
       }

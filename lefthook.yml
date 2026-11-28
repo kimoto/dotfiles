@@ -15,8 +15,10 @@ pre-commit:
     unit-tests:
       glob:
         - "bin/*.sh"
+        - "test/e2e/*.sh"
+        - "ci/*.sh"
         - "test/*.bats"
-      run: ./bin/run_tests.sh
+      run: ./bin/run_tests.sh {staged_files}
     zsh-syntax:
       glob:
         - ".zshrc"
@@ -57,6 +59,11 @@ pre-commit:
       run: ./bin/check_claude_settings.sh {staged_files}
     editorconfig:
       run: ./bin/lint_editorconfig.sh {staged_files}
+    typos:
+      run: ./bin/lint_typos.sh {staged_files}
+    python-lint:
+      glob: "*.py"
+      run: ./bin/lint_python.sh {staged_files}
     yaml-lint:
       glob:
         - "*.yml"
@@ -76,6 +83,19 @@ pre-commit:
         - "TOOLS.md"
         - "bin/gen_tools_list.sh"
       run: ./bin/gen_tools_list.sh --check
+    agents-size:
+      glob:
+        - "AGENTS.md"
+        - "bin/check_agents_size.sh"
+      run: ./bin/check_agents_size.sh
+    keybindings:
+      glob:
+        - "KEYBINDINGS.md"
+        - "config/ghostty/config"
+        - ".aerospace.toml"
+        - ".tmux.conf"
+        - "bin/check_keybindings.sh"
+      run: ./bin/check_keybindings.sh
     secret-files:
       run: ./bin/check_secret_files.sh {staged_files}
     gitleaks:

@@ -7,104 +7,93 @@ Every CLI tool and app this repo installs via Homebrew, catalogued straight from
 `Brewfile.*` bundles. Descriptions are Homebrew's own (`brew bundle dump --describe`),
 so this page never drifts from what actually gets installed. Grouped by bundle layer.
 
-## Basic — shell startup layer
+## Standard — changes everyday use once installed
 
-The minimal layer the shell depends on at load time; CI installs only this bundle.
+Prompt, completion, and the replacements the config uses; CI installs only this.
 
-_Source: `Brewfile.basic`._
+_Source: `Brewfile.standard`._
 
 | Tool | Description |
 | --- | --- |
+| [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
+| [btop](https://formulae.brew.sh/formula/btop) | Resource monitor with a nice TUI (top/htop replacement) |
 | [carapace](https://formulae.brew.sh/formula/carapace) | Multi-shell completion engine with specs for 1000+ commands |
 | [coreutils](https://formulae.brew.sh/formula/coreutils) | GNU File, Shell, and Text utilities |
 | [curl](https://formulae.brew.sh/formula/curl) | Get a file from an HTTP, HTTPS or FTP server |
-| [direnv](https://formulae.brew.sh/formula/direnv) | Load/unload environment variables based on $PWD |
+| [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
+| [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
 | [expect](https://formulae.brew.sh/formula/expect) | Program that can automate interactive applications |
 | [eza](https://formulae.brew.sh/formula/eza) | Modern, maintained replacement for ls |
+| [fd](https://formulae.brew.sh/formula/fd) | Simple, fast and user-friendly alternative to find |
+| [fzf](https://formulae.brew.sh/formula/fzf) | Command-line fuzzy finder written in Go |
 | [git](https://formulae.brew.sh/formula/git) | Distributed revision control system |
+| [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
+| [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
+| [hyperfine](https://formulae.brew.sh/formula/hyperfine) | Command-line benchmarking tool (required by test/e2e/zsh_loading_test.sh) |
 | [mise](https://formulae.brew.sh/formula/mise) | Polyglot runtime manager (asdf rust clone) |
+| [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [ripgrep](https://formulae.brew.sh/formula/ripgrep) | Search tool like grep and The Silver Searcher |
 | [sheldon](https://formulae.brew.sh/formula/sheldon) | Fast, configurable, shell plugin manager |
 | [starship](https://formulae.brew.sh/formula/starship) | Cross-shell prompt for astronauts |
-| [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer (required by bin/ci_tmux_loading_test.sh) |
 | [vivid](https://formulae.brew.sh/formula/vivid) | Generator for LS_COLORS with support for multiple color themes |
 | [zoxide](https://formulae.brew.sh/formula/zoxide) | Shell extension to navigate your filesystem faster |
 | [zsh](https://formulae.brew.sh/formula/zsh) | UNIX shell (command interpreter) |
+| [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
-## Common — full workstation toolkit
+## Extra — tools you run by name
 
-Full-workstation tooling not required to start the shell.
+Installing one changes nothing about everyday use.
 
-_Source: `Brewfile.common`._
+_Source: `Brewfile.extra`._
 
 | Tool | Description |
 | --- | --- |
 | [actionlint](https://formulae.brew.sh/formula/actionlint) | Static checker for GitHub Actions workflow files |
-| [ast-grep](https://formulae.brew.sh/formula/ast-grep) | Code searching, linting, rewriting tool that understands syntax (AST-based grep) |
-| [bat](https://formulae.brew.sh/formula/bat) | Clone of cat(1) with syntax highlighting and Git integration |
+| [age](https://formulae.brew.sh/formula/age) | Simple, modern, secure file encryption (bin/seal.sh) |
 | [bats-core](https://formulae.brew.sh/formula/bats-core) | Bash Automated Testing System (bin/run_tests.sh) |
 | [binwalk](https://formulae.brew.sh/formula/binwalk) | Searches a binary image for embedded files and executable code |
-| [biome](https://formulae.brew.sh/formula/biome) | Toolchain of the web; parses/validates JSON with comments (JSONC) |
-| [btop](https://formulae.brew.sh/formula/btop) | Resource monitor with a nice TUI (top/htop replacement) |
-| [check-jsonschema](https://formulae.brew.sh/formula/check-jsonschema) | Validate JSON/TOML/YAML against the JSON Schema they declare ($schema) |
-| [cowsay](https://formulae.brew.sh/formula/cowsay) | Apjanke's fork of the classic cowsay project |
-| [curlie](https://formulae.brew.sh/formula/curlie) | Power of curl, ease of use of httpie |
+| [bitwarden-cli](https://formulae.brew.sh/formula/bitwarden-cli) | Bitwarden CLI, where secrets live (bin/secret.sh) |
+| [chafa](https://formulae.brew.sh/formula/chafa) | Versatile and fast Unicode/ASCII/ANSI graphics renderer |
 | [difftastic](https://formulae.brew.sh/formula/difftastic) | Structural diff that understands syntax (on-demand via `git dft`) |
-| [doggo](https://formulae.brew.sh/formula/doggo) | Command-line DNS client (dig replacement) with colored output |
-| [dust](https://formulae.brew.sh/formula/dust) | More intuitive version of du in rust |
-| [editorconfig-checker](https://formulae.brew.sh/formula/editorconfig-checker) | Enforce .editorconfig rules (line length, trailing whitespace, final newline) |
-| [entr](https://formulae.brew.sh/formula/entr) | Run arbitrary commands when files change |
 | [exiftool](https://formulae.brew.sh/formula/exiftool) | Perl lib for reading and writing EXIF metadata |
 | [fastfetch](https://formulae.brew.sh/formula/fastfetch) | Like neofetch, but much faster because written mostly in C |
-| [fd](https://formulae.brew.sh/formula/fd) | Simple, fast and user-friendly alternative to find |
-| [figlet](https://formulae.brew.sh/formula/figlet) | Banner-like program prints strings as ASCII art |
-| [fortune](https://formulae.brew.sh/formula/fortune) | Infamous electronic fortune-cookie generator |
-| [fzf](https://formulae.brew.sh/formula/fzf) | Command-line fuzzy finder written in Go |
 | [gettext](https://formulae.brew.sh/formula/gettext) | GNU internationalization (i18n) and localization (l10n) library |
 | [gh](https://formulae.brew.sh/formula/gh) | GitHub command-line tool |
 | [ghq](https://formulae.brew.sh/formula/ghq) | Remote repository management made easy |
-| [git-delta](https://formulae.brew.sh/formula/git-delta) | Syntax-highlighting pager for git and diff output |
 | [gitleaks](https://formulae.brew.sh/formula/gitleaks) | Audit git repos for secrets |
 | [glow](https://formulae.brew.sh/formula/glow) | Render markdown on the CLI |
 | [gnu-sed](https://formulae.brew.sh/formula/gnu-sed) | GNU implementation of the famous stream editor |
 | [gnupg](https://formulae.brew.sh/formula/gnupg) | GNU Privacy Guard (OpenPGP) |
-| [gping](https://formulae.brew.sh/formula/gping) | Ping, but with a graph (ping replacement) |
 | [hunk](https://formulae.brew.sh/formula/hunk) | Review-first terminal diff viewer for agent-authored changesets |
-| [john-jumbo](https://formulae.brew.sh/formula/john-jumbo) | Enhanced version of john, a UNIX password cracker |
 | [jq](https://formulae.brew.sh/formula/jq) | Lightweight and flexible command-line JSON processor |
 | [k9s](https://formulae.brew.sh/formula/k9s) | Kubernetes CLI To Manage Your Clusters In Style! |
 | [kubectl](https://formulae.brew.sh/formula/kubectl) | Kubernetes command-line tool |
 | [kubectx](https://formulae.brew.sh/formula/kubectx) | Tool that can switch between kubectl contexts easily and create aliases |
-| [lazygit](https://formulae.brew.sh/formula/lazygit) | Simple terminal UI for git commands |
 | [lefthook](https://formulae.brew.sh/formula/lefthook) | Fast and powerful Git hooks manager |
 | [less](https://formulae.brew.sh/formula/less) | Pager program similar to more |
-| [lima](https://formulae.brew.sh/formula/lima) | Linux virtual machines |
-| [lolcat](https://formulae.brew.sh/formula/lolcat) | Rainbows and unicorns in your console! |
 | [luajit](https://formulae.brew.sh/formula/luajit) | Just-in-time compiler for the Lua programming language (bin/lint_lua.sh syntax check) |
 | [mysql-client](https://formulae.brew.sh/formula/mysql-client) | Open source relational database management system |
 | [ncurses](https://formulae.brew.sh/formula/ncurses) | Text-based UI library |
-| [neovim](https://formulae.brew.sh/formula/neovim) | Ambitious Vim-fork focused on extensibility and agility |
 | [netcat](https://formulae.brew.sh/formula/netcat) | Utility for managing network connections |
 | [nmap](https://formulae.brew.sh/formula/nmap) | Port scanning utility for large networks |
-| [openvpn](https://formulae.brew.sh/formula/openvpn) | SSL/TLS VPN implementing OSI layer 2 or 3 secure network extension |
+| [perlnavigator](https://formulae.brew.sh/formula/perlnavigator) | Perl language server (nvim LSP: perlnavigator) |
+| [pyright](https://formulae.brew.sh/formula/pyright) | Static type checker and language server for Python (nvim LSP: pyright) |
 | [qemu](https://formulae.brew.sh/formula/qemu) | Generic machine emulator and virtualizer |
-| [ratchet](https://formulae.brew.sh/formula/ratchet) | Pin/lint GitHub Actions workflows to immutable commit SHAs |
-| [redis](https://formulae.brew.sh/formula/redis) | Persistent key-value database, with built-in net interface |
-| [ripgrep-all](https://formulae.brew.sh/formula/ripgrep-all) | Wrapper around ripgrep that adds multiple rich file types |
-| [rust-analyzer](https://formulae.brew.sh/formula/rust-analyzer) | Experimental Rust compiler front-end for IDEs |
-| [sevenzip](https://formulae.brew.sh/formula/sevenzip) | 7-Zip is a file archiver with a high compression ratio |
+| [ruff](https://formulae.brew.sh/formula/ruff) | Extremely fast Python linter, written in Rust (bin/lint_python.sh) |
 | [shellcheck](https://formulae.brew.sh/formula/shellcheck) | Static analysis and lint tool, for (ba)sh scripts |
-| [silicon](https://formulae.brew.sh/formula/silicon) | Create beautiful image of your source code |
-| [tmuxinator](https://formulae.brew.sh/formula/tmuxinator) | Manage complex tmux sessions easily |
-| [tree-sitter](https://formulae.brew.sh/formula/tree-sitter) | Parser generator tool and incremental parsing library (nvim-treesitter CLI) |
+| [solargraph](https://formulae.brew.sh/formula/solargraph) | Ruby language server (nvim LSP: solargraph) |
+| [taplo](https://formulae.brew.sh/formula/taplo) | TOML toolkit and language server (nvim LSP: taplo) |
+| [tmux](https://formulae.brew.sh/formula/tmux) | Terminal multiplexer |
+| [tree-sitter-cli](https://formulae.brew.sh/formula/tree-sitter-cli) | Parser generator tool (nvim-treesitter CLI) |
+| [typescript-language-server](https://formulae.brew.sh/formula/typescript-language-server) | Language Server Protocol implementation for TypeScript (nvim LSP: ts_ls) |
+| [typos-cli](https://formulae.brew.sh/formula/typos-cli) | Source code spell checker (bin/lint_typos.sh) |
 | [universal-ctags](https://formulae.brew.sh/formula/universal-ctags) | Maintained, actively developed ctags implementation |
 | [vim](https://formulae.brew.sh/formula/vim) | Vi 'workalike' with many additional features |
+| [vscode-langservers-extracted](https://formulae.brew.sh/formula/vscode-langservers-extracted) | Language servers for HTML/CSS/JSON/ESLint (nvim LSP: jsonls, cssls, eslint) |
+| [vue-language-server](https://formulae.brew.sh/formula/vue-language-server) | Vue.js language server (nvim LSP: vue_ls) |
 | [watch](https://formulae.brew.sh/formula/watch) | Executes a program periodically, showing output fullscreen |
 | [wget](https://formulae.brew.sh/formula/wget) | Internet file retriever |
-| [yamllint](https://formulae.brew.sh/formula/yamllint) | Linter for YAML files |
 | [yq](https://formulae.brew.sh/formula/yq) | Process YAML, JSON, XML, CSV and properties documents from the CLI |
-| [zizmor](https://formulae.brew.sh/formula/zizmor) | Find security issues in GitHub Actions setups |
-| [zsh-completions](https://formulae.brew.sh/formula/zsh-completions) | Additional completion definitions for zsh |
 
 ## macOS apps
 
@@ -115,20 +104,18 @@ _Source: `Brewfile.macos`._
 | Tool | Description |
 | --- | --- |
 | [telnet](https://formulae.brew.sh/formula/telnet) | User interface to the TELNET protocol |
-| [cleanshot](https://formulae.brew.sh/cask/cleanshot) | Screen capturing tool |
-| [deepl](https://formulae.brew.sh/cask/deepl) | AI-powered translator |
+| [codex](https://formulae.brew.sh/cask/codex) | OpenAI's coding agent that runs in your terminal |
 | [font-bitstream-vera-sans-mono-nerd-font](https://formulae.brew.sh/cask/font-bitstream-vera-sans-mono-nerd-font) | Bitstream Vera Sans Mono patched with Nerd Font icons |
 | [font-jetbrains-mono-nerd-font](https://formulae.brew.sh/cask/font-jetbrains-mono-nerd-font) | JetBrains Mono patched with Nerd Font icons |
 | [ghostty](https://formulae.brew.sh/cask/ghostty) | Terminal emulator that uses platform-native UI and GPU acceleration |
-| [gitify](https://formulae.brew.sh/cask/gitify) | GitHub notifications on your menu bar |
 | [google-japanese-ime](https://formulae.brew.sh/cask/google-japanese-ime) | Japanese input software |
 | [hammerspoon](https://formulae.brew.sh/cask/hammerspoon) | Desktop automation application |
+| `kimoto/dotfiles/cleanshot@4` | Screen capturing tool |
 | [monitorcontrol](https://formulae.brew.sh/cask/monitorcontrol) | Tool to control external monitor brightness & volume |
 | [mysql-shell](https://formulae.brew.sh/cask/mysql-shell) | MySQL Shell (mysqlsh) — the .zshrc alias and mysqlsh/ config target this, not mysql-client |
 | `nikitabobko/tap/aerospace` | AeroSpace is an i3-like tiling window manager for macOS |
 | [raycast](https://formulae.brew.sh/cask/raycast) | Control your tools with a few keystrokes |
 | [rectangle](https://formulae.brew.sh/cask/rectangle) | Move and resize windows using keyboard shortcuts or snap areas |
-| [stats](https://formulae.brew.sh/cask/stats) | System monitor for the menu bar |
 
 ## Linux
 

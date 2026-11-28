@@ -38,6 +38,8 @@ STUBEOF
 
   chmod +x "$STUB/defaults" "$STUB/nvram" "$STUB/sudo"
   PATH="$STUB:$PATH"
+  export HOME="$TMP/home"
+  mkdir -p "$HOME"
 }
 
 teardown() {
@@ -62,4 +64,20 @@ teardown() {
   STUB_STARTUP_MUTE='%01' run "$SCRIPT"
   run cat "$CMD_LOG"
   [[ "$output" == *"defaults write com.apple.finder AppleShowAllFiles -bool YES"* ]]
+}
+
+@test "saves CleanShot captures under this user's home, creating the folder" {
+  STUB_STARTUP_MUTE='%01' run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -d "$HOME/Pictures/Screenshots" ]
+  run cat "$CMD_LOG"
+  [[ "$output" == *"defaults write pl.maketheweb.cleanshotx exportPath -string $HOME/Pictures/Screenshots"* ]]
+}
+
+# CleanShot reads the after-capture rows as integers; strings make it fall
+# back to its default silently, and `defaults read` prints both the same.
+@test "writes CleanShot's after-capture rows as integers" {
+  STUB_STARTUP_MUTE='%01' run "$SCRIPT"
+  run cat "$CMD_LOG"
+  [[ "$output" == *"defaults write pl.maketheweb.cleanshotx afterScreenshotActions -array -integer 1 -integer 2"* ]]
 }

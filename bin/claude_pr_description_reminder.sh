@@ -1,0 +1,60 @@
+#!/bin/bash
+# Claude Code PostToolUse hook for Bash and PowerShell calls (registered in every repo by
+# bin/install_claude_pr_hooks.sh, and by settings-cloud.json in a container):
+# after a push, remind the agent that the PR description may no longer hold;
+# after `gh pr create`, have it watch the new PR so a merge, a close or a
+# failing check reaches the session the way a cloud session's PR subscription
+# would.
+#
+# Claude Code sends the tool call as JSON on stdin and reads hookSpecificOutput
+# JSON back on stdout; printing nothing means "no comment". Quoted text is
+# stripped before matching, so a command that only mentions a push — a grep
+# pattern, an echo — leaves the hook silent.
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+payload=$(cat)
+# shellcheck source=bin/claude_shell_cmd.sh
+. "${0%/*}/claude_shell_cmd.sh" || exit 1
+# Runs after every shell call; leave before jq unless it can be a push or a
+# PR create.
+shopt -s nocasematch
+case "${payload//\`/}" in *push* | *pr*create*) ;; *) exit 0 ;; esac
+shopt -u nocasematch
+cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null) || exit 0
+[ -n "$cmd" ] || exit 0
+tool=$(jq -r '.tool_name // empty' <<<"$payload" 2>/dev/null | tr -d '\r')
+cmd=$(shell_cmd_plain "$tool" "$cmd")
+
+# Drop quoted strings, so only commands that actually ran are matched, at the
+# start of a command in the line.
+bare=$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")
+starts='(^|[;&|(]|&&|\|\|)[[:space:]]*'
+
+context=""
+
+# git with any options (e.g. -C <dir>), then the push subcommand. What a
+# description may hold lives in one place, the pull-requests rule every session
+# already loads; the reminder only points there, so the two never drift.
+if printf '%s' "$bare" | grep -qE "${starts}git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|\$)"; then
+  context="A git push just ran. If the pushed branch has an open pull request, re-check its title and body against ~/.claude/rules/dotfiles/pull-requests.md and fix what this push made untrue."
+fi
+
+# The URL gh prints is the proof a PR exists; without one the create failed.
+# A cloud session already hears its PRs, and its container may have no gh.
+if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && printf '%s' "$bare" | grep -qE "${starts}gh[[:space:]]+pr[[:space:]]+create([[:space:]]|\$)"; then
+  url=$(jq -r '.tool_response | tostring' <<<"$payload" 2>/dev/null \
+    | grep -oE 'https://github\.com/[^/[:space:]"]+/[^/[:space:]"]+/pull/[0-9]+' | head -1)
+  if [ -n "$url" ]; then
+    context="${context:+$context }A pull request was just created: $url. Unless this session can subscribe to PR activity, start \`~/bin/watch_pr.sh $url\` with run_in_background now, so passing checks, a failing check, a merge or a close reaches you; re-arm it after you push a fix for a failed check, or with --until-merged to wait for the merge."
+  fi
+fi
+
+[ -n "$context" ] || exit 0
+jq -cn --arg ctx "$context" '{
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: $ctx
+  }
+}'

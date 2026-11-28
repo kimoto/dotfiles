@@ -133,3 +133,34 @@ teardown() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "count_entries counts taps, formulae and casks, not comments" {
+  local bf="$TMP/Brewfile"
+  printf '%s\n' '# a comment' 'tap "a/b"' 'brew "gh"' '  cask "stats"' '' >"$bf"
+  run bash -c "source '$SCRIPT'; count_entries '$bf'"
+  [ "$status" -eq 0 ]
+  [ "$output" = "3" ]
+}
+
+@test "announce_batch names the batch right after the last entry line" {
+  run bash -c "source '$SCRIPT'
+    printf '%s\n' 'Using a/b' 'Upgrading gh' 'Using yq' '==> Fetching gh' | announce_batch 3"
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "Using yq" ]
+  [ "${lines[3]}" = "==> Installing or upgrading 1 in one batch now: gh" ]
+  [ "${lines[4]}" = "==> Fetching gh" ]
+}
+
+@test "announce_batch stays quiet when nothing needs installing" {
+  run bash -c "source '$SCRIPT'
+    printf '%s\n' 'Using gh' 'Using yq' | announce_batch 2"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf '%s\n' 'Using gh' 'Using yq')" ]
+}
+
+@test "announce_batch reads past brew's colour codes" {
+  run bash -c "source '$SCRIPT'
+    printf '\033[32mInstalling codex\033[0m\nUsing yq\n' | announce_batch 2"
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "==> Installing or upgrading 1 in one batch now: codex" ]
+}

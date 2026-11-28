@@ -76,6 +76,15 @@ format = '[$time]($style) '
 time_format = '%Y-%m-%d %T'
 style = "hidden"
 
+[status]
+disabled = false
+pipestatus = true
+# Empty: a single failed command is already said by the red `$`. Only a pipeline adds something.
+format = ""
+pipestatus_format = '[\[$pipestatus\]]($style) '
+pipestatus_segment_format = "$status"
+style = "red"
+
 [shlvl]
 disabled = false
 symbol = '> '
@@ -114,9 +123,6 @@ disabled = true
 disabled = true
 
 [aws]
-disabled = true
-
-[status]
 disabled = true
 
 [battery]

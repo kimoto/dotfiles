@@ -25,6 +25,7 @@ Same keys on both.
 | ⌃+K | Delete to end of line |
 | ⌘+A/C/F/N/P/R/S/T/V/W/X/Z | Select all, copy, find, new, print, reload, save, new tab, paste, close, cut, undo |
 | ⌘+⇧+Z / T | Redo / reopen closed tab |
+| ⌘+1~9 | Select tab 1~9 |
 
 On Windows these work outside text fields too; close tabs with ⌘+W.
 
@@ -33,12 +34,14 @@ On Windows these work outside text fields too; close tabs with ⌘+W.
 ## Screenshots
 
 Source:
-- Mac: CleanShot X, in-app (`LAVA*` keys of `pl.maketheweb.cleanshotx`)
+- Mac: CleanShot X, in-app (`LAVA*` keys of `pl.maketheweb.cleanshotx`); every capture
+  goes to the clipboard and `~/Pictures/Screenshots` (`bin/setup_macosx.sh`)
 - Windows: ShareX, `HotkeysConfig.json` under `%USERPROFILE%`
 
 | Mac (CleanShot X) | Windows (ShareX) | Action |
 |-------------------|------------------|--------|
 | ⌃+⌘+⇧+4 | same | Region → annotate → clipboard |
+| ⌘+⇧+2 | — | Region → pin on screen |
 | ⌘+⇧+4 | Ctrl+PrintScreen (clipboard + file) | Region |
 | ⌘+⇧+3 | PrintScreen (clipboard + file) | Full screen |
 | ⌘+⇧+4, then Space | Alt+PrintScreen (clipboard + file) | Active window |
@@ -63,6 +66,37 @@ Same keys on both.
 
 ---
 
+## Translation (Mac only)
+
+Source:
+- `hammerspoon/translate.lua`, which runs `hammerspoon/translate.py` (Claude API)
+
+| Key | Action |
+|-----|--------|
+| ⌃+⌘+⇧+D | Translate the selection into a popup by the mouse: Japanese → English, anything else → Japanese. The popup's ⚙ sets another own language in place of Japanese |
+| ⌃+⌘+⇧+S | Summarize the selection in your own language, whatever it is and wherever it is. Translation (⌃⌘⇧D) never adds a summary |
+| ⌃+⌘+⇧+L | Region → translate the text in it |
+| ⌃+⌘+⇧+W | The written job the selection needs, into the same popup, guessed with no menu: in a text field 清書 (rough notes → a message in your own voice), a message in a chat app or Mail 返信案 (a reply in your voice), anything else 要約 (summary in your own language). The popup's tabs rerun the same text as any other job: 誤字チェック (typos only), 図解 (a diagram, copied as an image), 翻訳 too, and ⌃⌘⇧D's popup has them as well. Your voice comes from `~/.local/share/desktop-translate/style.md`; without it 清書 is plain and polite, and 返信案 asks for the file |
+| ⌥+click ⧉ | In a 返信案 or 要約 popup: copy the Markdown as it came, instead of rich text (pastes as bold and bullets) with plain text (・ bullets) |
+| Drag the header | Move the popup |
+
+---
+
+## Curtain (Mac / Windows)
+
+Source:
+- Mac: `hammerspoon/Spoons/Curtain.spoon`, end times from the ⏳ menu bar item
+- Windows: `windows/autohotkey/curtain.ahk`, end times from the tray icon's 暗い幕 menu
+
+| Key | Action |
+|-----|--------|
+| Esc held 5 s | Lift the curtain (after the questions below, and 5 s longer for each lift of the same end, up to 30 s); it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
+| 1–5, then 1–2 | After the hold, answer why you keep going and whether it is the main task; the answers go to the log and the curtain lifts. Releasing Esc and holding it again lifts without them |
+| Enter | The work is done: the curtain goes at once and the end is removed, so it does not come back; logged as done. Only for an end you chose, not the daily one |
+| type `exit` | Lift the curtain at once, a way out if it goes wrong, written small at the bottom of the curtain; logged as 非常口 and counted like any lift |
+
+---
+
 ## Terminal (intercepts before tmux)
 
 Source:
@@ -73,13 +107,15 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 
 | Key | Action |
 |-----|--------|
+| ⌘+V | Paste; built into Ghostty, mapped by AutoHotkey, where selecting copies in place of ⌘+C (Windows only) |
 | ⌘+1~9 | tmux window 1~9 (sends ESC+1~9) |
 | ⌘+⌥+← / → | Previous / next tmux window |
 | ⌘+⌥+↑ / ↓ | Previous / next tmux session |
 | ⇧+Enter / ⌥+Enter | Newline in Claude Code (Windows only) |
-| F12 | Toggle quick terminal (Mac only) |
-| ⌘+⇧+O | Toggle background opacity (Mac only) |
 | ¥ | Insert `\` (Mac only) |
+| ⌃+⌥+[ / ] | Send as CSI u, for tmux's float top-left / top-right quarter (Mac only) |
+| ⌃+⌥+' / \ | Send as CSI u, for tmux's float bottom-left / bottom-right quarter (Mac only) |
+| ⌃+⌥+; / - | Send as CSI u, for tmux's float larger / smaller (Mac only) |
 
 - Mac: ⌥ is Meta; ⌥+0~5 go to AeroSpace.
 - Windows: at a shell prompt, Shift/Alt+Enter run the command. F11 is fullscreen.
@@ -106,15 +142,21 @@ Mac: Ghostty. Windows: Windows Terminal. Same keys on both.
 ## Launcher
 
 Source:
-- Mac: Raycast, in-app
-- Windows: PowerToys Command Palette, in-app
+- Mac: Raycast, in-app; `hammerspoon/init.lua` for Ctrl+3 (give Raycast no Ctrl+3 hotkey, or it takes the key first)
+- Windows: PowerToys Command Palette and Advanced Paste, AutoHotkey (`windows/autohotkey/mac-keys.ahk`) for Ctrl+1..3, in-app
 
 | Key | Action |
 |-----|--------|
 | Ctrl+Space | Open launcher |
-| ⌃⌘+V | Clipboard history (Mac only) |
+| ⌃⌘+V | Clipboard history (Windows: Advanced Paste) |
 | ⌘+⇧+V | Paste clipboard history items one by one (Mac only, Paste Sequentially) |
 | ⌃⌘+C | Snippets (Mac only) |
+| Ctrl+1 | Bring Chrome to the front, starting it if needed; hide it if already in front |
+| Ctrl+2 | Bring the terminal to the front, starting it if needed (Mac: Ghostty, Windows: Windows Terminal); hide it if already in front |
+| Ctrl+3 | Bring the Claude desktop app to the front, starting it if needed; hide it if already in front |
+| Ctrl+. | Toggle Raycast Notes (Mac only) |
+| ⌃⌘+H | Search Chrome history (Mac only) |
+| Caps Lock | Hyper Key: ⌃⌥⇧⌘ (Mac only) |
 
 ---
 
@@ -206,7 +248,7 @@ Source:
 
 ### With prefix (C-t)
 
-While the prefix is held, status-right shows `? help  g lazygit  t shell`.
+While the prefix is held, status-right shows `? help  v hunk  t shell`.
 
 | Key | Action |
 |-----|--------|
@@ -217,21 +259,50 @@ While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 | prefix + m | Mark pane |
 | prefix + M | Move marked pane here (join-pane) |
 | prefix + Space | Cycle layout |
+| prefix + h, prefix + j, prefix + k, prefix + l (or prefix + C-h, prefix + C-j, prefix + C-k, prefix + C-l) | Select the pane left / below / above / right |
+| prefix + H, prefix + J, prefix + K, prefix + L | Resize the pane by 5 left / down / up / right (repeatable) |
+| prefix + \|, prefix + % | Split right, same cwd |
+| prefix + -, prefix + " | Split below, same cwd |
+| prefix + _ | Split below across the whole window, same cwd |
+| prefix + c | New window, same cwd |
+| prefix + C-n, prefix + C-p | Next / previous window |
+| prefix + <, prefix + > | Swap the window with the previous / next one (repeatable) |
 | prefix + r | Reload ~/.tmux.conf |
+| prefix + R | Reload ~/.tmux.conf, with a message |
 | prefix + e | Toggle synchronize-panes (⚠ SYNC in status-right while on) |
 | prefix + b | Toggle status bar (screen sharing) |
-| prefix + g | lazygit in a popup (floating pane on tmux 3.7+) |
 | prefix + t | Throwaway shell in a popup (floating pane on tmux 3.7+) |
+| prefix + G | Pick a ghq repo in a popup (same list as `g`); go to its window, or open a shell window there |
 | prefix + a | New Claude Code session in a floating pane, same cwd (tmux 3.7+) |
 | prefix + A | Same, but forking this pane's Claude Code session |
-| prefix + f | fzf switcher across all panes of all sessions, most recent first |
+| prefix + v | `hunk diff --watch` in a split to the right, same cwd |
+| prefix + V | The same, for the whole branch since it left main (commits too) |
+| prefix + f | fzf switcher across all panes of all sessions: Claude Code waiting on you (⏳) first, then finished (✳), then most recent |
 | prefix + F | tmux-fzf: fzf menu for sessions/windows/panes (switch, rename, kill, etc.) |
-| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions) |
+| prefix + \ (or prefix + Enter) | tmux-menus: open popup menu (session/window/pane actions); split right across the whole window until the plugin is installed |
 | prefix + ? | tmux-which-key: menu of tmux commands |
 | prefix + Ctrl-s | Save session state, incl. Claude Code (auto every 15 min) |
 | prefix + Ctrl-r | Restore the last saved session state |
-| prefix + Tab | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
+| prefix + y | extrakto: pick a word/path/url/line from scrollback (Tab copies, Enter inserts) |
+| prefix + Tab / ⇧+Tab | Fuzzy-pick a window / session (tmux 3.8+ default binding) |
+| prefix + g, then 1–4 / arrows | Move the floating pane to a corner / edge; ⌥ also resizes it (tmux 3.8+ default binding) |
 | prefix + * | New floating pane (tmux 3.7+ default binding) |
+
+### Floating pane (no prefix, tmux 3.8+)
+
+Rectangle's keys with ⌃⌥ in place of ⌃⌘, for the active floating pane. On a tiled pane they reach the program.
+
+| Key | Action |
+|-----|--------|
+| ⌃⌥+A / D | Left / right half; again for ⅔, then ⅓ |
+| ⌃⌥+K / J | Top / bottom half; again for ⅔, then ⅓ |
+| ⌃⌥+[ / ] | Top-left / top-right quarter |
+| ⌃⌥+' / \ | Bottom-left / bottom-right quarter |
+| ⌃⌥+F | Maximize |
+| ⌃⌥+S | Center (keeps size) |
+| ⌃⌥+X | Center half |
+| ⌃⌥+; / - | Larger / smaller |
+| ⌃⌥+←/↓/↑/→ | Move to left / bottom / top / right edge (keeps size) |
 
 ### Copy mode (vi)
 
@@ -241,6 +312,8 @@ While the prefix is held, status-right shows `? help  g lazygit  t shell`.
 | y | Copy to clipboard and exit |
 | [ | Jump to previous prompt |
 | ] | Jump to next prompt |
+| WheelUpPane | Scroll up 3 lines |
+| WheelDownPane | Scroll down 3 lines |
 
 ---
 
@@ -293,15 +366,10 @@ Source:
 
 | Command | Action |
 |---------|--------|
-| `g [query]` | Jump to a ghq-cloned repo (fzf; README preview) |
-| `lg [args]` | lazygit; cd to where you left it |
-| `b [query]` | Switch git branch (fzf; last-15-commits preview) |
-| `B` | GitHub branch browser (`gh branch` extension) |
+| `g [query]` | Jump to a ghq-cloned repo (fzf; most visited first, by zoxide; README preview) |
 | `w [query]` | Jump to a git worktree (fzf) |
 | `W <type>/<short-desc>` | New worktree for that branch off the default branch, and cd into it |
 | `c` | Switch Kubernetes context (`kubectx`) |
-| `l [path]` | Smart viewer: `ll` for dirs, `bat` for files |
-| `px` | Toggle between main and sub starship prompt config |
 | `temp [prefix]` | cd into a fresh scratch directory under `~/tmp` |
 | `snip add [note]` | Save the previous command as a snippet; bare `snip` edits them |
 | `keys [query]` | Search these tables (same as ⌃+X ?) |
@@ -351,8 +419,9 @@ Hold a prefix and which-key shows the rest.
 | gd / gy / gi | Definition / type definition / implementation |
 | grn / gra / grr | Rename / code action / references (nvim builtin) |
 | K | Hover (nvim builtin) |
-| Enter (insert) | Confirm completion (nvim-cmp) |
-| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip) |
+| ⌃+Y (insert) | Accept the selected completion (the menu opens as you type) |
+| ⌃+N / ⌃+P (insert) | Next / previous completion |
+| Tab / ⇧+Tab (insert) | Next / previous snippet placeholder (LuaSnip or LSP snippet) |
 
 ### Diagnostics (trouble)
 

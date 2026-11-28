@@ -31,18 +31,20 @@ config/*
 !config/fastfetch/
 !config/fsh/
 !config/gh/
+!config/git/
 !config/ghostty/
 !config/glow/
+!config/hunk/
 !config/k9s/
-!config/lazygit/
 !config/mise/
 !config/nvim/
 !config/sheldon/
+!config/tmux-agent-status/
 !config/zsh/
 !config/starship.toml
-!config/starship_sub.toml
 # Inner ignores within allowed directories (preserve previous behavior)
 config/gh/hosts.yml
+config/hunk/state.json
 
 # claudecode/rules/: whitelist model, same reason as config/ above. Everything
 # under ~/.claude/rules/ loads into every Claude Code session, and other repos
@@ -51,14 +53,20 @@ config/gh/hosts.yml
 #   !claudecode/rules/<name>.md
 claudecode/rules/*
 !claudecode/rules/autonomy.md
+!claudecode/rules/backups.md
 !claudecode/rules/captures.md
+!claudecode/rules/ci-cost.md
+!claudecode/rules/closing.md
 !claudecode/rules/comments.md
+!claudecode/rules/debugging.md
 !claudecode/rules/environment.md
 !claudecode/rules/experiments.md
 !claudecode/rules/git.md
 !claudecode/rules/hooks.md
 !claudecode/rules/latency.md
 !claudecode/rules/pull-requests.md
+!claudecode/rules/reuse.md
+!claudecode/rules/security.md
 !claudecode/rules/tooling.md
 !claudecode/rules/writing.md
 
@@ -67,12 +75,28 @@ claudecode/rules/*
 # container and false of a workstation.
 claudecode/rules-cloud/*
 !claudecode/rules-cloud/scope.md
+!claudecode/rules-cloud/sources.md
 
 # claudecode/skills/: whitelist too. Other tools install their own skills into
 # ~/.claude/skills/, and a skill is a directory, so an accidental copy would
 # arrive as a whole tree.
 claudecode/skills/*
+!claudecode/skills/bottleneck-sweep/
+!claudecode/skills/cloud-refresh/
+!claudecode/skills/handoff/
+!claudecode/skills/issue-sweep/
+!claudecode/skills/load-test-sweep/
+!claudecode/skills/machine-audit/
+!claudecode/skills/machine-tuneup/
+!claudecode/skills/project-goal/
+!claudecode/skills/prune-sweep/
+!claudecode/skills/refactor-sweep/
+!claudecode/skills/review-branch/
+!claudecode/skills/security-audit/
 !claudecode/skills/session-resume/
+!claudecode/skills/test-sweep/
+!claudecode/skills/tool-intake/
+!claudecode/skills/trend-intake/
 !claudecode/skills/wrapup/
 
 # mysqlsh
@@ -89,7 +113,7 @@ mysqlsh/*
 # local-only (machine-specific / editor state)
 .vim/.netrwhist
 .vim/undodir/
-.zshrc.local
+/.zshrc.local
 
 **/.claude/settings.local.json
 

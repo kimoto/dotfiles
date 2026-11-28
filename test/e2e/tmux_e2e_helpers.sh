@@ -1,0 +1,126 @@
+#!/bin/bash
+# Shared helpers for the tmux e2e tests (test/e2e/tmux_*_test.sh). This file is
+# *sourced*, not executed — it only defines functions and, as a side effect of
+# sourcing, puts a Homebrew tmux/zsh on PATH when available. Keep it dependency-
+# free so every test can source it the same way:
+#
+#   DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+#   # shellcheck source=/dev/null
+#   . "$DIR/tmux_e2e_helpers.sh"
+
+# Prefer a Homebrew tmux/zsh (newer) when the shellenv is available.
+# shellcheck source=bin/brew_lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../../bin/brew_lib.sh"
+load_brew
+# shellcheck source=test/tmux_private_tmpdir.sh
+. "$(dirname "${BASH_SOURCE[0]}")/../tmux_private_tmpdir.sh"
+
+die() { echo "CI error: $*" >&2; exit 1; }
+
+# need <cmd>: abort unless <cmd> is on PATH.
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 not installed"; }
+
+# sh_quote <string>: wrap <string> in single quotes for /bin/sh, escaping any
+# single quote it already contains ('"'"' is the only way to get one inside a
+# single-quoted word). Used for every value interpolated into a command string
+# that tmux will hand to sh.
+sh_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+# zsh_pane_cmd [VAR=value ...]: build the new-session command string that
+# launches an interactive zsh pane under the shared CI conventions:
+#   - CI is cleared so .zshrc does not enable err_exit and abort on the first
+#     non-zero command;
+#   - the startup sync-check and brew bundle check are silenced so the pane
+#     neither touches the network nor burns seconds of its first-render budget;
+#   - TERM is pinned for reproducible rendering.
+# Extra VAR=value assignments (e.g. a stubbed PATH) land before zsh, with the
+# value quoted here — pass it raw. Requires $REPO (the ZDOTDIR under test) and
+# $ZSH_BIN, set by every caller.
+#
+# The quoting is not cosmetic: tmux runs this whole string through /bin/sh, and
+# under WSL the inherited PATH has the Windows one appended to it, entries and
+# all — "/mnt/c/Program Files (x86)/...". Unquoted, sh answers `Syntax error:
+# "(" unexpected`, the pane dies before zsh starts, and the caller only sees an
+# empty pane time out 15 seconds later.
+zsh_pane_cmd() {
+  if [ -z "${REPO:-}" ] || [ -z "${ZSH_BIN:-}" ]; then
+    die "zsh_pane_cmd needs REPO and ZSH_BIN"
+  fi
+  local cmd="env CI= ZDOTDIR='$REPO' DOTFILES_NO_SYNC_CHECK=1"
+  # DOTFILES_NO_USAGE_LOG: what a test types must not count as the owner's use.
+  cmd="$cmd DOTFILES_NO_BREW_CHECK=1 DOTFILES_NO_MISE_CHECK=1 DOTFILES_NO_USAGE_LOG=1 TERM=xterm-256color"
+  local a name value
+  for a in "$@"; do
+    name="${a%%=*}"
+    value="${a#*=}"
+    cmd="$cmd $name=$(sh_quote "$value")"
+  done
+  printf '%s' "$cmd '$ZSH_BIN' -i"
+}
+
+# tmux_conf_path: echo the .tmux.conf under test — TMUX_CONF override, else the
+# copy in the checkout these scripts came from. Not $HOME/.tmux.conf: from a
+# worktree that links to the main checkout, and a run would test main instead
+# of the branch. In CI the two are the same file.
+_TMUX_E2E_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmux_conf_path() {
+  local conf="${TMUX_CONF:-$_TMUX_E2E_REPO/.tmux.conf}"
+  [ -f "$conf" ] || die "no .tmux.conf at $conf"
+  printf '%s\n' "$conf"
+}
+
+# disable_continuum_restore <socket>: turn @continuum-restore off on a scratch
+# server that has just loaded the repo .tmux.conf. The config sets the option
+# globally to 'on', so tmux-continuum restores the developer's *saved* session
+# into any server a few seconds after it starts — spawning a shell per saved
+# pane in a server the test never accounts for, and leaking those shells if the
+# test dies before its cleanup trap fires (issue #207). The restore is
+# asynchronous and off the startup path, so disabling the option the instant the
+# server is up disarms it before it can trigger. CI runners have no
+# ~/.tmux/resurrect state, so the restore is a no-op there; this guards the local
+# `./test/e2e/tmux_*` runs AGENTS.md documents as the way to reproduce CI. Every
+# e2e server started with the real config must call this right after new-session.
+disable_continuum_restore() {
+  [ -n "${1:-}" ] || die "disable_continuum_restore needs a socket"
+  tmux -L "$1" set-option -g @continuum-restore 'off' 2>/dev/null || true
+}
+
+# wait_for_pane <socket> <pattern> [tries] [target]: poll `capture-pane -p`
+# (the active pane, or <target>) until the grep -E <pattern> appears, or time
+# out (default 150 tries * 0.1s = 15s).
+# Polling beats a fixed sleep — as fast as the shell on a quick runner, as
+# forgiving as needed on a slow one; since it returns the instant the pattern
+# appears, a larger ceiling never slows a passing assertion, it only widens the
+# margin before a genuine failure. The default is deliberately generous: these
+# panes run the real .zshrc, whose zsh-defer keeps draining the deferred plugin
+# init (fast-syntax-highlighting, autosuggestions, carapace) AFTER the first
+# prompt renders, so the shell can be busy for several seconds past the point it
+# first looks live — a 5s budget flaked on loaded runners (see the vi-alias step
+# in test/e2e/tmux_interactive_test.sh). A step that needs longer still passes an
+# explicit larger value.
+wait_for_pane() {
+  local sock="$1" pattern="$2" tries="${3:-150}" i=0
+  local -a target=()
+  [ -n "${4:-}" ] && target=(-t "$4")
+  while [ "$i" -lt "$tries" ]; do
+    tmux -L "$sock" capture-pane -p ${target[@]+"${target[@]}"} 2>/dev/null | grep -qE "$pattern" && return 0
+    i=$((i + 1)); sleep 0.1
+  done
+  echo "---- pane contents at timeout ----" >&2
+  tmux -L "$sock" capture-pane -p ${target[@]+"${target[@]}"} >&2 2>/dev/null || true
+  die "timed out waiting for: $pattern"
+}
+
+# wait_absent_pane <socket> <pattern> [tries]: poll until <pattern> is no longer
+# on screen (e.g. to confirm a clear-screen landed before asserting a redraw).
+# Same 15s default and rationale as wait_for_pane above.
+wait_absent_pane() {
+  local sock="$1" pattern="$2" tries="${3:-150}" i=0
+  while [ "$i" -lt "$tries" ]; do
+    tmux -L "$sock" capture-pane -p 2>/dev/null | grep -qE "$pattern" || return 0
+    i=$((i + 1)); sleep 0.1
+  done
+  die "expected to disappear but still on screen: $pattern"
+}

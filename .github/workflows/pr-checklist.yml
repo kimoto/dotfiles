@@ -6,9 +6,12 @@ name: pr-checklist
 # is exactly what claudecode/rules/pull-requests.md says a checklist box must
 # not be, so nothing here is actually required to exist.
 # Runs on `edited` too, so ticking a box in the PR body re-evaluates the check.
-# The result attaches to the PR head SHA; make this job a *required* status
-# check in the branch protection / ruleset for `main` to actually gate merges
-# (that part is a repo admin setting, it cannot live in this file).
+#
+# The gate is the commit status `require-checklist`, which branch protection
+# requires. An unticked box is the owner's to tick, not a failure, and a
+# failed run mails the owner on every push, so the job passes and the status
+# says "pending" instead; the merge waits just the same. The job still fails
+# when the checklist could not be read or the status not set.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
@@ -16,20 +19,52 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  statuses: write
 
 concurrency:
   group: pr-checklist-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  require-checklist:
-    runs-on: ubuntu-latest
+  checklist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10  # runs in seconds; only a hang reaches this
     steps:
       # requireChecklist: false — a checklist is optional; if one is present,
       # every box in it must be ticked. Mutually-exclusive choices (e.g. a
       # Type section) use `<!-- TaskRadio name -->` so only one box per group
       # is required; strike through N/A items to skip them.
-      - name: Require PR checklist complete
+      # Renovate always adds an unticked "rebase/retry" box to its PR bodies,
+      # which would block every update, so its PRs are not read.
+      # continue-on-error: an unticked box is reported by the next step as a
+      # pending status, not as a failed job.
+      - name: Read the PR checklist
+        id: read
+        if: github.event.pull_request.user.login != 'renovate[bot]'
+        continue-on-error: true
         uses: mheap/require-checklist-action@9c8100a52aa9726d4648e61aa92415f6c843c990 # v2.6.1
         with:
           requireChecklist: false
+
+      - name: Set the require-checklist status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+          OUTCOME: ${{ steps.read.outcome }}
+        run: |
+          case "$OUTCOME" in
+            success | skipped) state=success description="Every box is ticked" ;;
+            *)
+              # The action failed. Only an unticked box makes that a wait;
+              # anything else is a broken check and fails loudly.
+              if ! gh api "repos/$REPO/pulls/$PR" --jq .body | grep -Eq '^[[:space:]]*[-*] \[ \]'; then
+                echo "::error::The checklist could not be read, and the PR body has no unticked box."
+                exit 1
+              fi
+              state=pending description="Waiting for a box in the PR body to be ticked" ;;
+          esac
+          gh api -X POST "repos/$REPO/statuses/$SHA" -f state="$state" \
+            -f context=require-checklist -f description="$description" >/dev/null
+          echo "require-checklist: $state ($description)"

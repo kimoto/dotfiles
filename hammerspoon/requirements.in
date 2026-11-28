@@ -1,0 +1,5 @@
+# The translator's Python dependencies (hammerspoon/translate.py). Direct
+# dependencies are pinned here so Renovate proposes each bump after the usual
+# 7-day age; the lock next to it (hashes included) is regenerated from this.
+anthropic==2.6.0
+openai==3.46.0

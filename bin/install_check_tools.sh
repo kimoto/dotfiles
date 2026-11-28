@@ -1,27 +1,20 @@
 #!/bin/bash
-# Single source of truth for the lint/check toolchain (pinned versions + install).
-# Shared by GitHub Actions CI and the Claude Code web SessionStart hook so the
-# versions live in exactly ONE place. Targets Linux (apt + GitHub release
-# binaries); on a real machine use `brew bundle` (Brewfile.*) instead.
+# Install the lint/check toolchain on Linux: GitHub Actions CI and the cloud
+# session setup both call this. Versions live in mise.toml, not here; this
+# script only gets mise, runs it, and puts the tools on PATH. On a workstation
+# mkworld.sh runs `mise install` instead and mise's shims do the PATH part.
 set -euo pipefail
 
-# The one place to bump versions (override via env if needed).
-GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
-RATCHET_VERSION="${RATCHET_VERSION:-0.12.0}"
-ACTIONLINT_VERSION="${ACTIONLINT_VERSION:-1.7.12}"
-YQ_VERSION="${YQ_VERSION:-4.53.6}"
-BIOME_VERSION="${BIOME_VERSION:-2.5.10}"
-EC_VERSION="${EC_VERSION:-3.11.2}"
-CHECK_JSONSCHEMA_VERSION="${CHECK_JSONSCHEMA_VERSION:-0.38.0}"
-YAMLLINT_VERSION="${YAMLLINT_VERSION:-1.38.0}"
-LEFTHOOK_VERSION="${LEFTHOOK_VERSION:-2.1.11}"
-ZIZMOR_VERSION="${ZIZMOR_VERSION:-1.30.0}"
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
 
-# Map uname -m onto each project's release-asset arch suffix (projects differ:
-# amd64/arm64 vs x64/arm64 vs x86_64/arm64).
+# The same mise a workstation runs `mise lock` with: releases write the pipx:
+# entries of mise.lock differently, and `--locked` below rejects another's.
+# renovate: datasource=github-releases depName=jdx/mise
+MISE_VERSION="${MISE_VERSION:-2026.11.14}"
+
 case "$(uname -m)" in
-  x86_64)        ARCH_AMD64=amd64; ARCH_X64=x64; ARCH_X86_64=x86_64 ;;
-  aarch64|arm64) ARCH_AMD64=arm64; ARCH_X64=arm64; ARCH_X86_64=arm64 ;;
+  x86_64)        MISE_ARCH=x64 ;;
+  aarch64|arm64) MISE_ARCH=arm64 ;;
   *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 
@@ -34,88 +27,128 @@ as_root() {
   fi
 }
 
-# zsh (zsh-syntax) + shellcheck (shell-lint) + bats (unit tests) + luajit
+# zsh (zsh-syntax) + bats (unit tests) + luajit
 # (lua-syntax: parse nvim's Lua with its own runtime) + jq (unit tests:
-# install_claude_tmux_hooks.sh and its bats suite) via apt.
+# install_claude_tmux_hooks.sh and its bats suite) + gpg (checks mise's
+# signature below) via apt. Unpinned: these follow the distro, as they always
+# have.
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   as_root apt-get update -qq || true
-  as_root apt-get install -y -qq zsh shellcheck bats luajit jq >/dev/null
-fi
-
-# mikefarah yq (config-syntax: `yq -p toml|json|yaml`).
-if ! { command -v yq >/dev/null 2>&1 && yq --version 2>/dev/null | grep -qi mikefarah; }; then
-  as_root curl -sSfL -o /usr/local/bin/yq \
-    "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH_AMD64}"
-  as_root chmod +x /usr/local/bin/yq
-fi
-
-# gitleaks (secret scanning).
-if ! command -v gitleaks >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH_X64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin gitleaks
-fi
-
-# ratchet (GitHub Actions pinning check).
-if ! command -v ratchet >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/sethvargo/ratchet/releases/download/v${RATCHET_VERSION}/ratchet_${RATCHET_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin ratchet
-fi
-
-# actionlint (GitHub Actions workflow checker: expressions, contexts, runner
-# labels, and shellcheck over `run:` blocks).
-if ! command -v actionlint >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin actionlint
-fi
-
-# biome (config-syntax: validates .jsonc, e.g. config/fastfetch/config.jsonc).
-if ! command -v biome >/dev/null 2>&1; then
-  as_root curl -sSfL -o /usr/local/bin/biome \
-    "https://github.com/biomejs/biome/releases/download/@biomejs/biome@${BIOME_VERSION}/biome-linux-${ARCH_X64}"
-  as_root chmod +x /usr/local/bin/biome
-fi
-
-# editorconfig-checker (editorconfig: max line length, trailing ws, final newline).
-if ! command -v editorconfig-checker >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EC_VERSION}/ec-linux-${ARCH_AMD64}.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin --strip-components=1 "bin/ec-linux-${ARCH_AMD64}"
-  as_root mv "/usr/local/bin/ec-linux-${ARCH_AMD64}" /usr/local/bin/editorconfig-checker
-fi
-
-# zizmor (GitHub Actions security auditor, run --offline via bin/lint_actions.sh).
-# Rust target triples use uname -m verbatim on Linux (x86_64/aarch64), unlike
-# the ARCH_* maps above.
-if ! command -v zizmor >/dev/null 2>&1; then
-  curl -sSfL "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-$(uname -m)-unknown-linux-gnu.tar.gz" \
-    | as_root tar -xz -C /usr/local/bin zizmor
-fi
-
-# lefthook (git hook runner: pre-commit/pre-push run the bin/ checks locally).
-if ! command -v lefthook >/dev/null 2>&1; then
-  tmp="$(mktemp)"
-  curl -sSfL "https://github.com/evilmartians/lefthook/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_Linux_${ARCH_X86_64}.gz" \
-    | gunzip > "$tmp"
-  as_root install -m 0755 "$tmp" /usr/local/bin/lefthook
-  rm -f "$tmp"
-fi
-
-# check-jsonschema (schema-validate: validates files declaring a "$schema").
-if ! command -v check-jsonschema >/dev/null 2>&1; then
-  if command -v pipx >/dev/null 2>&1; then
-    pipx install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-  else
-    pip install --break-system-packages "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}" \
-      || pip install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
+  # The cloud image ships its own /etc/zsh/zshrc without the zsh package, so
+  # dpkg stops at a conffile prompt; with no terminal that aborts the install.
+  # Keep the file already there: it belongs to the image, not to us.
+  # CHECK_TOOLS_APT_ARCHIVES lets CI keep the .debs in a directory it caches:
+  # the runners' mirror sometimes serves them at ~60 kB/s, which turns a 10 s
+  # step into two minutes. apt still resolves against today's lists, so a stale
+  # cache only means downloading what changed.
+  apt_cache=()
+  if [ -n "${CHECK_TOOLS_APT_ARCHIVES:-}" ]; then
+    as_root mkdir -p "$CHECK_TOOLS_APT_ARCHIVES/partial"
+    apt_cache=(-o "Dir::Cache::Archives=$CHECK_TOOLS_APT_ARCHIVES")
   fi
+  as_root apt-get install -y -qq ${apt_cache[@]+"${apt_cache[@]}"} \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+    zsh bats luajit jq gpg >/dev/null
 fi
 
-# yamllint (yaml-lint: style of every tracked .yml/.yaml, per .yamllint.yml).
-if ! command -v yamllint >/dev/null 2>&1; then
-  if command -v pipx >/dev/null 2>&1; then
-    pipx install "yamllint==${YAMLLINT_VERSION}"
-  else
-    pip install --break-system-packages "yamllint==${YAMLLINT_VERSION}" \
-      || pip install "yamllint==${YAMLLINT_VERSION}"
+# A pinned release binary rather than mise.run's installer script, which would
+# install whatever is newest on the day. A version names no bytes, so the binary
+# must also match the SHASUMS256 list mise's release key signed: mise is what
+# checks every other tool against mise.lock, so a swapped mise would make that
+# check meaningless. A signature rather than a sha256 written here keeps
+# Renovate able to bump MISE_VERSION alone.
+# The key is the one https://mise.jdx.dev/gpg-key.pub serves; it expires
+# 2028-01-02, after which a new one from there replaces both values.
+MISE_RELEASE_KEY="${MISE_RELEASE_KEY:-$BASE_DIR/bin/keys/mise-release.asc}"
+MISE_RELEASE_FPR="${MISE_RELEASE_FPR:-24853EC9F655CE80B48E6C3A8B81C9D17413A06D}"
+# Overridable only so the bats suite can install somewhere it may write.
+MISE_INSTALL_DIR="${MISE_INSTALL_DIR:-/usr/local/bin}"
+
+# Prints the sha256 list in $1 (a clearsigned SHASUMS256.asc) if, and only if,
+# the pinned key made a good signature over it.
+verified_sums() {
+  local gnupghome status
+  gnupghome="$(mktemp -d)"
+  GNUPGHOME="$gnupghome" gpg --batch --quiet --import "$MISE_RELEASE_KEY" 2>/dev/null
+  status="$(GNUPGHOME="$gnupghome" gpg --batch --status-fd 1 --output - --decrypt "$1" 2>/dev/null)"
+  rm -rf "$gnupghome"
+  # VALIDSIG's last field is the primary key's fingerprint, which is what
+  # MISE_RELEASE_FPR names; GOODSIG alone would accept any key in the file.
+  grep -qE "^\[GNUPG:\] VALIDSIG .* ${MISE_RELEASE_FPR}\$" <<<"$status" || return 1
+  grep -v '^\[GNUPG:\]' <<<"$status"
+}
+
+if ! command -v mise >/dev/null 2>&1; then
+  tmp="$(mktemp -d)"
+  asset="mise-v${MISE_VERSION}-linux-${MISE_ARCH}"
+  release="https://github.com/jdx/mise/releases/download/v${MISE_VERSION}"
+  curl -sSfL -o "$tmp/$asset" "$release/$asset"
+  curl -sSfL -o "$tmp/SHASUMS256.asc" "$release/SHASUMS256.asc"
+  sums="$(verified_sums "$tmp/SHASUMS256.asc")" || {
+    echo "mise $MISE_VERSION: SHASUMS256.asc is not signed by $MISE_RELEASE_FPR" >&2
+    exit 1
+  }
+  want="$(awk -v f="./$asset" '$2 == f { print $1 }' <<<"$sums")"
+  got="$(sha256sum "$tmp/$asset" | cut -d' ' -f1)"
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    echo "mise $MISE_VERSION: $asset does not match its signed sha256" >&2
+    exit 1
   fi
+  as_root install -m 0755 "$tmp/$asset" "$MISE_INSTALL_DIR/mise"
+  rm -rf "$tmp"
 fi
+
+# A mise the image already ships is not replaced: anything outside this script
+# (lefthook, `mise lock`) would still find it first on PATH. Stop with both
+# versions instead of letting `--locked` fail below with no hint why.
+found_mise="$(mise --version 2>/dev/null || true)"
+found_mise="${found_mise%% *}"
+if [ "$found_mise" != "$MISE_VERSION" ]; then
+  echo "mise on PATH is ${found_mise:-unknown}, but mise.lock is written by $MISE_VERSION;" \
+    "put mise $MISE_VERSION first on PATH and run this again" >&2
+  exit 1
+fi
+
+cd "$BASE_DIR"
+# A fresh container has never trusted this checkout, and mise refuses an
+# untrusted config rather than prompting when there is no terminal.
+export MISE_TRUSTED_CONFIG_PATHS="$BASE_DIR/mise.toml"
+# A tool that fails to install must not cost the ones that did: a shared egress
+# IP can spend api.github.com's unauthenticated quota before we arrive, and an
+# early exit here would leave every tool off PATH, installed or not.
+# --locked downloads from the URL and checks the sha256 in mise.lock, with no
+# GitHub API call: on a shared egress IP the unauthenticated API quota is often
+# already spent. A version bumped in mise.toml without `mise lock` fails here.
+# Only this repo's tools (--local) are installed and linked: a global mise
+# config (CI links config/ into ~/.config) asks for unpinned tools the lockfile
+# cannot hold, and they are not ours to put on PATH.
+# A read loop rather than mapfile: macOS's /bin/bash is 3.2, which has no
+# mapfile, and the bats suite for this script runs there from lefthook.
+tools=()
+while IFS= read -r tool; do
+  tools+=("$tool")
+done < <(mise ls --local --json | jq -r 'keys[]')
+failed=0
+mise install --locked "${tools[@]}" || failed=1
+
+# Links into /usr/local/bin rather than mise's shims: a shim picks the version
+# from the current directory, and the bats suites run these tools from temp
+# directories outside the repo. -f so a version bump replaces an older link.
+# Every executable in each tool's bin dir is linked under its own name, so
+# mise.toml stays the only list of tools; that also links a few harmless
+# extras (an arch-suffixed copy of a binary, uv's uvx).
+# CHECK_TOOLS_BIN_DIR exists for the tests, which cannot write /usr/local/bin.
+bin_dir="${CHECK_TOOLS_BIN_DIR:-/usr/local/bin}"
+for tool in "${tools[@]}"; do
+  # A tool the install above skipped may have no bin path to report; it is
+  # already counted in $failed.
+  { mise bin-paths "$tool" 2>/dev/null || true; } | while read -r dir; do
+    for exe in "$dir"/*; do
+      if [ -f "$exe" ] && [ -x "$exe" ]; then
+        as_root ln -sf "$exe" "$bin_dir/${exe##*/}"
+      fi
+    done
+  done
+done
+exit "$failed"

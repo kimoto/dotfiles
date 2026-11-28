@@ -1,15 +1,13 @@
 #!/usr/bin/env bats
 
-# Guards how bin/ scripts launch each other.
+# Guards how the repo's scripts (bin/, ci/, test/e2e/) launch each other.
 #
-# bin/mkworld.sh used to run its helpers as `sh "$BASE_DIR/bin/<script>"`. On
-# macOS that is harmless — /bin/sh there is bash in POSIX mode — but on Linux
-# /bin/sh is dash, and bin/setup_homebrew.sh opens with `set -euo pipefail`.
-# dash rejects it ("Illegal option -o pipefail") and, under mkworld's own
-# `set -e`, the whole bootstrap died at the Homebrew step: no submodules, no
-# tpm plugins, no Claude tmux hooks, no lefthook. Failing on the *first* Linux
-# machine to run it, and only there, is exactly the failure mode this repo's
-# CI cannot see, so pin it here instead.
+# A helper launched as `sh "$BASE_DIR/bin/<script>"` runs fine on macOS, where
+# /bin/sh is bash in POSIX mode, but on Linux /bin/sh is dash, which rejects
+# `set -euo pipefail` ("Illegal option -o pipefail"). Under mkworld's own
+# `set -e` the whole bootstrap then dies at that step, and only on the first
+# Linux machine to run it: a failure this repo's CI cannot see, so it is
+# pinned here instead.
 #
 # The rule: a script's shebang decides its interpreter. Helpers are executed
 # directly, which means they must also stay executable.
@@ -21,7 +19,7 @@ setup() {
 
 @test "no bin script launches another one through a hard-coded sh/bash" {
   offenders=""
-  for f in bin/*.sh; do
+  for f in bin/*.sh ci/*.sh test/e2e/*.sh; do
     while IFS= read -r hit; do
       offenders="$offenders
   $f: $hit"
@@ -35,7 +33,7 @@ setup() {
   # Sourced libraries are exempt, and say so in their own header — the same
   # marker that tells a reader not to run them.
   offenders=""
-  for f in bin/*.sh; do
+  for f in bin/*.sh ci/*.sh test/e2e/*.sh; do
     grep -q '\*sourced\*, not executed' "$f" && continue
     [ -x "$f" ] || offenders="$offenders $f"
   done
@@ -49,7 +47,7 @@ setup() {
   # bash's [[ always has a space after it, which is what keeps a POSIX
   # character class ([[:space:]]) from reading as the bash keyword.
   offenders=""
-  for f in bin/*.sh; do
+  for f in bin/*.sh ci/*.sh test/e2e/*.sh; do
     head -1 "$f" | grep -q 'bash' && continue
     if grep -qE '(set .*pipefail|\[\[[[:space:]]|^[[:space:]]*[A-Za-z_][A-Za-z_0-9]*=\()' "$f"; then
       offenders="$offenders $f"

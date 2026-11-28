@@ -85,7 +85,7 @@ float getSdfRectangle(in vec2 point, in vec2 center, in vec2 halfSize)
 }
 
 // Based on Inigo Quilez's 2D distance functions article: https://iquilezles.org/articles/distfunctions2d/
-// Potencially optimized by eliminating conditionals and loops to enhance performance and reduce branching
+// Potentially optimized by eliminating conditionals and loops to enhance performance and reduce branching
 
 float seg(in vec2 p, in vec2 a, in vec2 b, inout float s, float d) {
     vec2 e = b - a;
@@ -120,7 +120,7 @@ vec2 normalize(vec2 value, float isPosition) {
     return (value * 2.0 - (iResolution.xy * isPosition)) / iResolution.y;
 }
 
-float antialising(float distance) {
+float antialiasing(float distance) {
 	return 1. - smoothstep(0., normalize(vec2(BLUR, BLUR), 0.).x, distance);
 }
 
@@ -205,7 +205,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
         float sdfTrail = mix(sdfTrail_diag, sdfTrail_rect, isStraightMove);
 
         vec4 trail = TRAIL_COLOR;
-        float trailAlpha = antialising(sdfTrail);
+        float trailAlpha = antialiasing(sdfTrail);
         newColor = mix(newColor, trail, trailAlpha);
 
         // Punch hole

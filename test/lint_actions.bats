@@ -13,6 +13,12 @@ setup() {
   isolate_git_env
   SCRIPT="$REPO_ROOT/bin/lint_actions.sh"
   TMP="$(mktemp -d)"
+  # The fixture repo has no mise.toml, so a mise shim run from inside it finds
+  # no version and fails. Put this repo's installed tools on PATH directly, as
+  # CI's /usr/local/bin links already do.
+  if command -v mise >/dev/null 2>&1; then
+    PATH="$(cd "$REPO_ROOT" && mise bin-paths 2>/dev/null | paste -sd: -)${PATH:+:$PATH}"
+  fi
 }
 
 teardown() {
@@ -25,7 +31,7 @@ teardown() {
 make_fixture_repo() {
   local ref="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 permissions:
@@ -56,7 +62,7 @@ EOF
 
 @test "a repo with no workflows exits 0" {
   mkdir -p "$TMP/repo/bin"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   git -C "$TMP/repo" init -q
   run "$TMP/repo/bin/lint_actions.sh"
   [ "$status" -eq 0 ]
@@ -69,7 +75,7 @@ EOF
 make_actionlint_fixture_repo() {
   local runner="$1"
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 permissions:
@@ -110,7 +116,7 @@ EOF
 # actionlint (both would accept this workflow).
 make_zizmor_fixture_repo() {
   mkdir -p "$TMP/repo/bin" "$TMP/repo/.github/workflows"
-  cp "$SCRIPT" "$TMP/repo/bin/"
+  cp "$SCRIPT" "$REPO_ROOT/bin/lint_lib.sh" "$TMP/repo/bin/"
   cat >"$TMP/repo/.github/workflows/ci.yml" <<EOF
 on: push
 jobs:

@@ -1,17 +1,17 @@
 #!/usr/bin/env bats
 
-# Guards the shared e2e pane conventions in bin/tmux_e2e_helpers.sh.
+# Guards the shared e2e pane conventions in test/e2e/tmux_e2e_helpers.sh.
 # zsh_pane_cmd is the single source of truth for how the interactive-zsh e2e
 # tests spawn their pane (CI cleared, sync/brew startup checks silenced, TERM
 # pinned). These tests pin down every flag it must carry, and — like the
 # mklink/rmworld sync test — enforce that no e2e test hand-builds that env
-# string again: a hand-built copy is exactly how DOTFILES_NO_BREW_CHECK got
-# forgotten in three tests at once (PR #83, CI run 1).
+# string again: with hand-built copies, a new flag such as
+# DOTFILES_NO_BREW_CHECK would be added to some tests and forgotten in others.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   # shellcheck source=/dev/null
-  . "$REPO_ROOT/bin/tmux_e2e_helpers.sh"
+  . "$REPO_ROOT/test/e2e/tmux_e2e_helpers.sh"
 }
 
 @test "zsh_pane_cmd carries every CI pane convention" {
@@ -22,6 +22,7 @@ setup() {
   [[ "$output" == *"ZDOTDIR='/repo'"* ]]
   [[ "$output" == *"DOTFILES_NO_SYNC_CHECK=1"* ]]
   [[ "$output" == *"DOTFILES_NO_BREW_CHECK=1"* ]]
+  [[ "$output" == *"DOTFILES_NO_USAGE_LOG=1"* ]]
   [[ "$output" == *"TERM=xterm-256color"* ]]
   [[ "$output" == *"'/bin/zsh' -i" ]]
 }
@@ -72,7 +73,8 @@ setup() {
 
 @test "every e2e test that loads the real .tmux.conf disarms continuum restore" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_tmux_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/tmux_*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'tmux_conf_path' "$f" || continue   # doesn't load the real config
     if ! grep -q 'disable_continuum_restore' "$f"; then
       echo "$f loads .tmux.conf but never calls disable_continuum_restore (issue #207)" >&2
@@ -83,7 +85,8 @@ setup() {
 
 @test "every e2e test that spawns an interactive zsh pane uses zsh_pane_cmd" {
   local f
-  for f in "$REPO_ROOT"/bin/ci_*_test.sh; do
+  for f in "$REPO_ROOT"/test/e2e/*_test.sh; do
+    [ -f "$f" ] || { echo "no e2e test matched $f" >&2; return 1; }
     grep -q 'ZSH_BIN' "$f" || continue       # doesn't launch zsh
     grep -q 'new-session' "$f" || continue   # doesn't spawn a pane
     if ! grep -q 'zsh_pane_cmd' "$f"; then
@@ -95,4 +98,25 @@ setup() {
       return 1
     fi
   done
+}
+
+@test "tmux_conf_path picks the checkout's .tmux.conf over the one in \$HOME" {
+  # From a worktree, ~/.tmux.conf links to the main checkout, so testing it
+  # would test main and say nothing about the branch (#360).
+  local home
+  home="$(mktemp -d)"
+  : >"$home/.tmux.conf"
+  HOME="$home" run tmux_conf_path
+  rm -rf "$home"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$REPO_ROOT/.tmux.conf" ]
+}
+
+@test "tmux_conf_path still lets TMUX_CONF override it" {
+  local conf
+  conf="$(mktemp)"
+  TMUX_CONF="$conf" run tmux_conf_path
+  rm -f "$conf"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$conf" ]
 }

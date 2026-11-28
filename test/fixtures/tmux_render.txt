@@ -1,0 +1,28 @@
+== normal ==
+[fg=#2aa198]━━ #1: left ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳[fg=#2c4a52]━━ #2: right ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[]first line                                            [bg=#2aa198] [fg=#2aa198]┃[]right pane
+[]second line                                           [bg=#2aa198] [fg=#2aa198]┃
+[]third line                                            [bg=#2aa198] [fg=#2aa198]┃
+[]                                                      [bg=#2aa198] [fg=#2aa198]┃
+[]                                                      [bg=#2aa198] [fg=#2aa198]┃
+[]                                                      [bg=#2aa198] [fg=#2c4a52]┃
+[]                                                      [bg=#2aa198] [fg=#2c4a52]┃
+[]                                                      [bg=#2aa198] [fg=#2c4a52]┃
+[]                                                      [bg=#2aa198] [fg=#2c4a52]┃
+[]                                                      [bg=#2aa198] [fg=#2c4a52]┃
+[bg=#268bd2 bold] [fg=#fdf6e3 bg=#268bd2 bold]●[fg=#002b36 bg=#268bd2 bold] work [fg=#268bd2 bg=#073642] [fg=#073642 bg=#2aa198][fg=#002b36 bg=#2aa198 bold] 1:editor [fg=#2aa198 bg=#073642 bold][fg=#dc322f bg=#073642 bold] 2:logs  3:agent ✳ [fg=#586e75 bg=#073642] 4:zoomed 🔍  5:plain[bg=#073642]                             [fg=#268bd2 bg=#073642][fg=#002b36 bg=#268bd2 bold] <clock>
+== prefix held (status line) ==
+[bg=#b58900 bold] [fg=#fdf6e3 bg=#b58900 bold]●[fg=#002b36 bg=#b58900 bold] work [fg=#b58900 bg=#073642] [fg=#073642 bg=#2aa198][fg=#002b36 bg=#2aa198 bold] 1:editor [fg=#2aa198 bg=#073642 bold][fg=#dc322f bg=#073642 bold] 2:logs  3:agent ✳ [fg=#586e75 bg=#073642] 4:zoomed 🔍  5:plain[bg=#073642]                        [fg=#b58900 bg=#073642 bold]?[fg=#586e75 bg=#073642] help  [fg=#b58900 bg=#073642 bold]v[fg=#586e75 bg=#073642] hunk  [fg=#b58900 bg=#073642 bold]t[fg=#586e75 bg=#073642] shell
+== copy mode ==
+[fg=#2aa198]━━ #1: left ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳[fg=#2c4a52]━━ #2: right ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[fg=#586e75]  3 []first line                                  [fg=#2aa198 bg=#073642][1/10][bg=#2aa198] [fg=#2aa198]┃[]right pane
+[fg=#586e75]  2 []second line                                       [bg=#2aa198] [fg=#2aa198]┃
+[fg=#586e75]  1 []third line                                        [bg=#2aa198] [fg=#2aa198]┃
+[fg=#b58900 bold]  4 []                                                  [bg=#2aa198] [fg=#2aa198]┃
+[fg=#586e75]  1[]                                                   [bg=#2aa198] [fg=#2aa198]┃
+[fg=#586e75]  2[]                                                   [bg=#2aa198] [fg=#2c4a52]┃
+[fg=#586e75]  3[]                                                   [bg=#2aa198] [fg=#2c4a52]┃
+[fg=#586e75]  4[]                                                   [bg=#2aa198] [fg=#2c4a52]┃
+[fg=#586e75]  5[]                                                   [bg=#2aa198] [fg=#2c4a52]┃
+[fg=#586e75]  6[]                                                   [bg=#2aa198] [fg=#2c4a52]┃
+[bg=#268bd2 bold] [fg=#fdf6e3 bg=#268bd2 bold]●[fg=#002b36 bg=#268bd2 bold] work [fg=#268bd2 bg=#073642] [fg=#073642 bg=#2aa198][fg=#002b36 bg=#2aa198 bold] 1:editor [fg=#2aa198 bg=#073642 bold][fg=#dc322f bg=#073642 bold] 2:logs  3:agent ✳ [fg=#586e75 bg=#073642] 4:zoomed 🔍  5:plain[bg=#073642]                             [fg=#268bd2 bg=#073642][fg=#002b36 bg=#268bd2 bold] <clock>

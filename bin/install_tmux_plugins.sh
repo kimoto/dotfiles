@@ -8,11 +8,9 @@ set -euo pipefail
 die() { echo "CI error: $*" >&2; exit 1; }
 
 # Prefer a Homebrew tmux (newer) when the shellenv is available.
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# shellcheck source=bin/brew_lib.sh
+. "$(dirname "$(readlink -f "$0")")/brew_lib.sh"
+load_brew
 
 command -v tmux >/dev/null 2>&1 || die "tmux not installed"
 command -v git >/dev/null 2>&1 || die "git not installed"
@@ -21,6 +19,23 @@ CONF="${TMUX_CONF:-$HOME/.tmux.conf}"
 [ -f "$CONF" ] || CONF="$PWD/.tmux.conf"
 [ -f "$CONF" ] || die "no .tmux.conf found"
 
+BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+LOCK="$BASE_DIR/tmux-plugins.lock"
+
+# Check out a clone at the commit tmux-plugins.lock pins it to. tpm clones the
+# branch head, which is whatever upstream pushed last; the pin is what makes a
+# push reach this machine only through a reviewed bump. The checkout is
+# detached, so tpm's own update (`prefix + U`) fails instead of moving past it.
+pin() {
+  local repo=$1 dir=$2 sha
+  sha=$(awk -v r="$repo" '$1 == r { print $3 }' "$LOCK")
+  [ -n "$sha" ] || die "$repo has no pinned commit in $LOCK"
+  if ! git -C "$dir" cat-file -e "$sha^{commit}" 2>/dev/null; then
+    git -C "$dir" fetch -q --depth 1 origin "$sha" || die "cannot fetch $repo at $sha"
+  fi
+  git -C "$dir" checkout -q --detach "$sha"
+}
+
 PLUGIN_DIR="$HOME/.tmux/plugins"
 TPM="$PLUGIN_DIR/tpm"
 if [ ! -d "$TPM" ]; then
@@ -28,6 +43,8 @@ if [ ! -d "$TPM" ]; then
   mkdir -p "$PLUGIN_DIR"
   git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM"
 fi
+# Before tpm runs, so the installer code below is the pinned one too.
+pin tmux-plugins/tpm "$TPM"
 
 # tpm's installer reads @tpm_plugins from a running server and clones into
 # $TMUX_PLUGIN_MANAGER_PATH. Spin up a throwaway server, source the real config
@@ -53,8 +70,18 @@ tmux -L "$SOCK" source-file "$CONF" 2>/dev/null || true
 TMUX="$(tmux -L "$SOCK" display-message -p '#{socket_path},#{pid},0')"
 export TMUX
 
+# Read the list while the server is known to be up: asked after tpm ran, a
+# server that has gone away answers with nothing, and nothing would be pinned.
+PLUGINS=$(tmux -L "$SOCK" show-option -gqv @tpm_plugins) || die "cannot read @tpm_plugins"
+[ -n "$PLUGINS" ] || die "@tpm_plugins is empty in $CONF"
+
 echo "== installing plugins from @tpm_plugins =="
 "$TPM/bin/install_plugins"
+
+echo "== pinning to $LOCK =="
+for repo in $PLUGINS; do
+  pin "$repo" "$PLUGIN_DIR/${repo##*/}"
+done
 
 echo "== installed under $PLUGIN_DIR =="
 ls -1 "$PLUGIN_DIR"

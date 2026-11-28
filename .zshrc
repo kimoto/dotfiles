@@ -7,14 +7,6 @@
 # (__)________|_______/    |__|  |__| | _| `._____| \______|
 #
 # Author: kimoto
-#
-# Load order matters in a few places (kept intentionally):
-#   - compinit runs before `sheldon source` so plugin compdefs (e.g. carapace)
-#     can register against an initialized completion system.
-#   - the completion list-colors style is registered with `zstyle -e`, because
-#     LS_COLORS only arrives later (deferred vivid plugin) - see below.
-#   - CI strict mode (err_exit) is enabled after plugins load, so a missing
-#     optional plugin doesn't abort the interactive load test.
 #===============================================================
 
 #=====================
@@ -33,8 +25,6 @@ PROMPT="%n@${HOST} %{$fg[blue]%}${OMITTED_DIR}%{$reset_color%}[%!]%{%(?..$fg[red
 # completion system
 #=====================
 # Initialized before plugins so plugin-provided compdefs register correctly.
-# Rebuild the dump only when missing or older than a day; otherwise trust the
-# cache (-C) to keep startup fast.
 autoload -Uz compinit
 _zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
 # Rebuild the dump when it's missing or out of date, otherwise load it with
@@ -62,12 +52,11 @@ unset _zcompdump _zcompdump_stale
 #=====================
 typeset -U path # 重複したパスをPATHに登録しない
 typeset -U manpath
-typeset -xUT SUDO_PATH sudo_path # 重複したパスをSUDO_PATHに登録しない
 # /home/linuxbrew is added on Linux only: on macOS /home is an autofs mount,
 # so even stat()ing /home/* (which the (N-/) glob does) can fire a Directory
 # Services lookup — with corporate AD binding that is a network round trip per
-# shell. Same reason the inherited $path is scrubbed of it off-Linux (a tmux
-# server started before this fix may still inject it).
+# shell. Same reason the inherited $path is scrubbed of it off-Linux (a
+# long-lived tmux server can still pass it down from an older environment).
 _brew_bins=(/opt/homebrew/bin)
 if [[ $OSTYPE == linux* ]]; then
   _brew_bins+=(/home/linuxbrew/.linuxbrew/bin)
@@ -82,9 +71,9 @@ path=(
 
 # _evalcache (mroth/evalcache, loaded as a sheldon plugin and driven by the
 # inlines in config/sheldon/plugins.toml) names its cache after the command
-# line alone — nothing about the binary. So `brew upgrade direnv` leaves a
-# cache that still `source`s the previous Cellar path, and every prompt prints
-#   _direnv_hook:2: no such file or directory: .../Cellar/direnv/2.35.0/bin/direnv
+# line alone — nothing about the binary. So a `brew upgrade` of a cached tool
+# leaves a cache that still `source`s the previous Cellar path, and every
+# prompt prints "no such file or directory: .../Cellar/<tool>/<old>/bin/<tool>"
 # until someone deletes the file by hand. Drop any entry the binary has
 # outlived; the sheldon inlines below regenerate it on this same startup.
 #
@@ -94,7 +83,7 @@ path=(
 # under WSL that is the inherited Windows path over the 9p mount, ~90ms each.
 # This way it is one stat per Homebrew prefix per entry.
 for _evalcache_file in ${ZSH_EVALCACHE_DIR:-$HOME/.zsh-evalcache}/init-*.sh(N); do
-  # init-direnv-hook-zsh.sh -> direnv
+  # init-starship-init-zsh.sh -> starship
   _evalcache_cmd=${${_evalcache_file:t}#init-}
   _evalcache_cmd=${_evalcache_cmd%%-*}
   for _evalcache_bin in ${^_brew_bins}/$_evalcache_cmd(N-*); do
@@ -109,10 +98,6 @@ unset _brew_bins
 manpath=(
   {$HOME/.local,/opt/local,/usr/local,/usr}/share/man(N-/)
   $manpath
-)
-sudo_path=(
-  {,/usr/pkg,/usr/local,/usr}/sbin(N-/)
-  $sudo_path
 )
 
 #=====================
@@ -144,24 +129,6 @@ if builtin command -v sheldon >/dev/null; then
   unset _sheldon_cache _sheldon_toml _sheldon_lock
 fi
 
-# direnv's own hook (`direnv hook zsh`, above) reruns `direnv export zsh` -
-# a real fork - on every single prompt, not just on cd, so an .envrc edited
-# in place reloads without leaving and re-entering the directory. Measured
-# at ~10-15ms per prompt on this machine (EDR-backed exec overhead), same
-# story as update_tmux_window below: skip the recheck unless $PWD actually
-# changed since the last one. Trade-off: an .envrc edited while sitting in
-# the same directory won't reload until the next real cd (or `direnv reload`).
-if (( ${precmd_functions[(I)_direnv_hook]} )); then
-  _direnv_hook_if_pwd_changed() {
-    [[ "$PWD" == "${_direnv_checked_pwd:-}" ]] && return
-    _direnv_checked_pwd="$PWD"
-    _direnv_hook
-  }
-  _direnv_note_pwd() { _direnv_checked_pwd="$PWD" }
-  precmd_functions[${precmd_functions[(I)_direnv_hook]}]=_direnv_hook_if_pwd_changed
-  chpwd_functions+=(_direnv_note_pwd)
-fi
-
 # CI strict mode: fail on actual command errors during .zshrc load.
 # Enabled after plugins so an absent optional plugin doesn't abort the load.
 if [[ -n "$CI" ]]; then
@@ -172,32 +139,32 @@ fi
 #=====================
 # setopts
 #=====================
-setopt autocd # cd不要
-setopt autopushd # cdの履歴に残す
-setopt nocorrectall # correctallの無効化
-setopt histignoredups # 重複を記録しない
-setopt histignorealldups # 古い方を削除
-setopt pushdignoredups # 重複を記録しない
-setopt interactivecomments # コメントを有効化
-setopt share_history # historyを共有
-setopt incappendhistory # incrementalに追加
+setopt autocd # ディレクトリ名だけ打てば cd する
+setopt autopushd # cd のたびに移動元を積む（cd -<Tab> で戻れる）
+setopt nocorrectall # 引数のスペル訂正を聞いてこない
+setopt histignoredups # 直前と同じコマンドは履歴に積まない
+setopt histignorealldups # 同じコマンドを打つと古い方を履歴から消す
+setopt pushdignoredups # 同じディレクトリを重ねて積まない
+setopt interactivecomments # コマンドラインでも # 以降をコメントにする
+setopt share_history # 他のシェルで打ったコマンドも履歴に出てくる
+setopt incappendhistory # シェルの終了を待たず、実行のたびに履歴へ書く
 setopt hist_fcntl_lock # fcntl histfile locking: cheaper than the default per-command lockfile dance
-setopt multios # 複数のリダイレクトやパイプに対応
-setopt extended_history # ヒストリに時刻を追加
-setopt noclobber # リダイレクトで上書き禁止
-setopt listpacked # 詰めて表示
-setopt nopromptcr # 改行コードで終わらない出力をケア、しない
-setopt complete_in_word # 語の途中でも補完
-setopt always_last_prompt # カーソル位置は保持したままファイル名一覧を順次その場で表示
+setopt multios # cmd >a >b で両方に書く（tee いらず）
+setopt extended_history # 履歴に実行時刻を残す（bin/usage_report.sh が読む）
+setopt noclobber # > で既存ファイルを上書きしない（>| で強制）
+setopt listpacked # 補完候補を幅を詰めて並べる
+setopt nopromptcr # 改行なしで終わった出力をプロンプトで消さない
+setopt complete_in_word # カーソルが単語の途中でも補完する
+setopt always_last_prompt # 補完候補を出してもプロンプトの位置を動かさない
 setopt magic_equal_subst # --prefix=~/local の~も展開できるように
-setopt ignore_eof # Ctrl-Dを無視
-setopt auto_param_slash # 末尾/を自動的に付加
-setopt mark_dirs # ディレクトリは末尾に/追加
-setopt list_types #
-setopt auto_menu # 補完キー連打
-setopt auto_param_keys # カッコの対応などを自動的に補完
-setopt print_eight_bit
-setopt globdots # dotも補完
+setopt ignore_eof # ⌃D でシェルを閉じない（exit で抜ける）
+setopt auto_param_slash # ディレクトリを補完したら末尾に / を付ける
+setopt mark_dirs # グロブで展開したディレクトリにも / を付ける
+setopt list_types # 補完候補に種類の印（/ * @）を付ける
+setopt auto_menu # Tab を続けて押すと候補を順に選ぶ
+setopt auto_param_keys # 補完で付いた空白や / を、続けて打った ) などに合わせて消す
+setopt print_eight_bit # 補完候補の日本語をエスケープせずに出す
+setopt globdots # * や補完でドットファイルも対象にする
 
 #=====================
 # history & shell vars
@@ -218,16 +185,25 @@ zle_highlight+=(paste:none)
 export PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen --mouse -X"
 export BAT_PAGER="less --RAW-CONTROL-CHARS --quit-if-one-screen -X"
 export LESS='-M -i -f -Q'
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"
-export EDITOR=nvim
+(( $+commands[bat] )) && export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+# A coding agent's shell has no controlling terminal, so launching nvim here
+# would hang a tool call indefinitely instead of erroring (e.g. `git commit`
+# with no -m). $CLAUDECODE is set by Claude Code specifically; -t 0 alone
+# would also misdetect a human's own non-interactive `zsh -c '...'`.
+# The best editor that exists: a machine without nvim still gets one that
+# opens, instead of `git commit` failing on a missing binary.
+if [[ -t 0 && -z "$CLAUDECODE" ]]; then
+  export EDITOR=vi
+  for _e in vim nvim; do (( $+commands[$_e] )) && EDITOR=$_e; done
+  unset _e
+else
+  export EDITOR=true
+fi
 export VISUAL="$EDITOR"
 export GIT_EDITOR="$EDITOR"
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export XDG_CONFIG_HOME="$HOME/.config"
-# LS_COLORS is exported by the vivid-ls-colors inline plugin in
-# config/sheldon/plugins.toml, which zsh-defer runs after the first prompt —
-# so nothing in this file may read it eagerly (see the list-colors zstyle).
 export GPG_TTY=$TTY # zsh sets $TTY itself; saves a tty(1) fork per shell
 # carapace: fall back to zsh's native completions for commands it has no spec for
 export CARAPACE_BRIDGES='zsh,bash'
@@ -235,20 +211,18 @@ export CARAPACE_BRIDGES='zsh,bash'
 #=====================
 # completion zstyles
 #=====================
-zstyle ':completion:*:default' menu select=1
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 大文字/小文字を無視
-zstyle ':completion:*' completer _complete _match _approximate # 曖昧な入力でも補完キーにより自動でマッチさせる
-zstyle ':completion:*' squeeze-slashes true # 引数の最後の補完時は、スラッシュを除去
-zstyle ':completion:*:cd:*' ignore-parents parent pwd # ../ってやったときは現在の居るディレクトリが補完候補にならないように
+zstyle ':completion:*:default' menu select=1 # 補完候補の一覧をカーソルキーで選べる
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' # 小文字で打っても大文字の候補に当たる
+# 候補が無ければ * などのパターンを展開し、それでも無ければ打ち間違いを直して出す
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*' squeeze-slashes true # a//b を a/b とみなして補完する
+zstyle ':completion:*:cd:*' ignore-parents parent pwd # cd ../<Tab> に今いるディレクトリを出さない
+# パッケージ名など遅い補完の結果を貯めて、2回目から速く出す
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zcompcache
-# `-e` (evaluate on lookup), not a plain value: LS_COLORS is not set yet when
-# this line runs. It is exported by the vivid-ls-colors plugin, which
-# config/sheldon/plugins.toml loads through zsh-defer, i.e. after the first
-# prompt - so a plain `list-colors ${(s.:.)LS_COLORS}` captured an empty value
-# and completion candidates were listed uncoloured on every machine. With -e
-# the style body is evaluated each time the completion system looks the style
-# up, so it picks up whatever LS_COLORS holds by then.
+# `-e` (evaluated on each lookup): LS_COLORS is exported by the vivid-ls-colors
+# plugin, which config/sheldon/plugins.toml defers until after the first prompt,
+# so a plain value would capture it empty. Nothing else here may read it eagerly.
 zstyle -e ':completion:*' list-colors 'reply=( ${(s.:.)LS_COLORS} )'
 
 #=====================
@@ -257,8 +231,12 @@ zstyle -e ':completion:*' list-colors 'reply=( ${(s.:.)LS_COLORS} )'
 # --hyperlinkはeza側にauto相当の指定がなく常時有効になるため、パイプ/リダイレクト時に
 # OSC8エスケープシーケンスがterminal/tmux側で正しく解釈されず表示が乱れることがある。
 # TTY出力時のみ有効化する。
+# Without eza (a machine that has only the basics) ls stays the system ls, and
+# ll falls back to the same listing in plain ls flags.
 ls() {
-  if [[ -t 1 ]]; then
+  if (( ! $+commands[eza] )); then
+    if [[ $OSTYPE == linux* ]]; then command ls --color=auto "$@"; else command ls -G "$@"; fi
+  elif [[ -t 1 ]]; then
     eza --hyperlink --icons auto "$@"
   else
     eza --icons auto "$@"
@@ -271,9 +249,12 @@ ls() {
 # `ll`, and as an alias it reached them as a bare unresolvable word in every
 # shell but the first one on a machine (`command not found: ll` on every cd).
 ll() {
-  ls --long --all --git-repos-no-status --time-style=relative --sort=modified "$@"
+  if (( $+commands[eza] )); then
+    ls --long --all --git-repos-no-status --time-style=relative --sort=modified "$@"
+  else
+    ls -lAtr "$@"
+  fi
 }
-alias tree='ll -T'
 alias mv='nocorrect mv'
 alias cp='nocorrect cp -v' # verbose
 alias mkdir='nocorrect mkdir'
@@ -284,7 +265,7 @@ alias reload="exec zsh"
 # reaches them depends on which of the two load paths ran. Nothing is lost:
 # zoxide records the jump from its own chpwd hook, however the directory
 # changed.
-[[ $- == *i* ]] && alias cd="z"
+[[ $- == *i* ]] && (( $+commands[zoxide] )) && alias cd="z"
 # Guarded because each shadows a command that works without the dotfiles: an
 # unguarded alias does not replace `cat`, it takes it away.
 (( $+commands[bat] ))    && alias cat='bat'
@@ -294,12 +275,9 @@ alias reload="exec zsh"
 (( $+commands[gping] ))  && alias ping='gping'
 (( $+commands[doggo] ))  && alias dig='doggo'
 alias grep='grep --color=auto'
-# egrep/fgrep are obsolescent (grep >=3.8 warns): keep the muscle memory but
-# route through the grep alias above, so they get color and skip the warning.
+# egrep is obsolescent (grep >=3.8 warns): keep the muscle memory but route
+# through the grep alias above, so it gets color and skips the warning.
 alias egrep='grep -E'
-alias fgrep='grep -F'
-alias mysqlsh='mysqlsh --quiet-start=2 --no-name-cache'
-alias gist='gh gist create --web'
 
 #=====================
 # macOS parity shims
@@ -379,40 +357,21 @@ bindkey "^\\" undo
 # read files shipped in the repo (e.g. `keys` -> KEYBINDINGS.md).
 DOTFILES_ROOT="${${(%):-%x}:A:h}"
 
+# Nothing else creates ~/tmp, so a new machine would otherwise fail here.
 temp(){
-  builtin cd "$(mktemp -d $HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX)"
+  local dir
+  mkdir -p "$HOME/tmp" &&
+    dir="$(mktemp -d "$HOME/tmp/$(date +'%Y%m%d').$1${1:+.}XXXXXX")" &&
+    builtin cd "$dir"
 }
 
-# lazygit: chase into the directory it was left in (newdir file), if any.
-lg() {
-  export LAZYGIT_NEW_DIR_FILE=~/.lazygit/newdir
-  lazygit "$@"
-  if [ -f $LAZYGIT_NEW_DIR_FILE ]; then
-    builtin cd "$(cat $LAZYGIT_NEW_DIR_FILE)"
-    rm -f $LAZYGIT_NEW_DIR_FILE > /dev/null
-  fi
-}
-
-# ghq + fzf: jump to a cloned repo.
+# Jump to a cloned repo; tmux's prefix + G picks from the same list.
 g() {
-  local dir=$(ghq list | fzf --preview "bat --style=plain --color=always $(ghq root)/{}/README.*" --query="$*")
-  [ -n "$dir" ] && builtin cd "$(ghq root)/$dir" || return
+  local dir
+  dir=$("$DOTFILES_ROOT/bin/ghq_pick.sh" "$*") && builtin cd "$dir"
 }
 
-# git branch switch via fzf.
-b() {
-  local preview='git log --color=always --oneline -15 {}'
-  local branch=$(git branch -l --format='%(refname:short)' --sort=-authordate | fzf --preview "$preview" --query="$*")
-  test -z "$branch" || git switch "$branch"
-}
-
-# Requires a gh CLI extension providing `branch` (e.g. `gh extension install
-# mislav/gh-branch`) — not installed by bin/mkworld.sh; install it manually.
-B() {
-  gh branch
-}
-
-# git worktree jump via fzf (in the style of b/g): cd into a chosen worktree.
+# git worktree jump via fzf (in the style of g): cd into a chosen worktree.
 w() {
   local dir=$(git worktree list | fzf --preview '' --query="$*" | awk '{print $1}')
   test -z "$dir" || builtin cd "$dir"
@@ -457,30 +416,17 @@ keys() {
   "$DOTFILES_ROOT/bin/keys.sh" "$@"
 }
 
-# ls if no arg / directory arg, otherwise bat the file.
-l() {
-  if [[ "$#" == 0 ]]; then
-    ll
-  else
-    if [[ -d "$1" ]]; then
-      ll $@
-    else
-      bat $@
-    fi
-  fi
+# Encrypts a file or folder into PATH.tar.age and, unless --public-only,
+# checks it opens before saying so; `seal --remove` then drops the original.
+# See bin/seal.sh.
+seal() {
+  "$DOTFILES_ROOT/bin/seal.sh" "$@"
 }
 
-# test: switch starship main / sub prompt
-starship_conf_main="$XDG_CONFIG_HOME/starship.toml"
-starship_conf_sub="$XDG_CONFIG_HOME/starship_sub.toml"
-px() {
-  if [ "$STARSHIP_CONFIG" = "$starship_conf_main" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  elif [ "$STARSHIP_CONFIG" = "" ]; then
-    export STARSHIP_CONFIG="$starship_conf_sub"
-  else
-    export STARSHIP_CONFIG="$starship_conf_main"
-  fi
+# Prints a secret from Bitwarden, through a Keychain copy so a new shell
+# never asks for the master password. See bin/secret.sh.
+secret() {
+  "$DOTFILES_ROOT/bin/secret.sh" "$@"
 }
 
 #=====================
@@ -554,7 +500,7 @@ export FZF_DEFAULT_OPTS=" \
   --bind='alt-a:select-all,alt-d:deselect-all' \
 "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview 'bat --color=always {1}'"
+export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS --preview '$DOTFILES_ROOT/bin/fzf_preview.sh {1}'"
 # Ctrl-R history search: the one-line list truncates long/multi-line commands,
 # so show the full selected entry in a wrapped preview and give the widget more
 # height than the default 20% (appended after DEFAULT_OPTS, so --height wins here
@@ -576,18 +522,6 @@ _fzf_compgen_path() {
 _fzf_compgen_dir() {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
-
-# This speeds up pasting w/ autosuggest
-# https://github.com/zsh-users/zsh-autosuggestions/issues/238
-pasteinit() {
-  OLD_SELF_INSERT=${${(s.:.)widgets[self-insert]}[2,3]}
-  zle -N self-insert url-quote-magic # I wonder if you'd need `.url-quote-magic`?
-}
-pastefinish() {
-  zle -N self-insert $OLD_SELF_INSERT
-}
-zstyle :bracketed-paste-magic paste-init pasteinit
-zstyle :bracketed-paste-magic paste-finish pastefinish
 
 #=====================
 # hooks
@@ -630,6 +564,117 @@ _tmux_prompt_mark() {
   PROMPT=$'%{\e]133;A\a%}'"$PROMPT"
 }
 add-zsh-hook precmd _tmux_prompt_mark
+
+# Feature hints: a tmux key gets forgotten unless it is named when it would
+# have helped. Inside tmux, a command below leaves a one-line reminder of its
+# key at the next prompt, once per key per shell. The text is the binding's own
+# -N note from .tmux.conf, so a rebind changes the hint with it. Printed from
+# precmd, not preexec: a pager (git diff, git log) would bury it.
+typeset -gA _feature_hint_shown
+_feature_hint_key=
+_feature_hint_match() {
+  [[ -n "$TMUX" ]] || return 0
+  case "$1" in
+    'git diff'*) _feature_hint_key=v ;;
+    'git log'*) _feature_hint_key=V ;;
+    'tmux a'*|'tmux ls'*) _feature_hint_key=f ;;
+  esac
+  return 0
+}
+_feature_hint() {
+  local key=$_feature_hint_key
+  _feature_hint_key=
+  [[ -n "$key" && -z "${_feature_hint_shown[$key]}" ]] || return 0
+  _feature_hint_shown[$key]=1
+  # list-keys prints "[C-t] v note": drop words up to the key itself, as tmux
+  # versions differ on whether the prefix comes first.
+  local -a note=(${=$(tmux list-keys -N -T prefix -- "$key" 2>/dev/null)})
+  note=("${(@)note[${note[(i)$key]}+1,-1]}")
+  (( $#note )) && print -r -- $'\e[2m'"hint: prefix + $key → ${note[*]}"$'\e[0m'
+  return 0
+}
+add-zsh-hook preexec _feature_hint_match
+add-zsh-hook precmd _feature_hint
+
+# Ring the bell when a command over 30s ends in a pane nobody is looking at, so
+# tmux marks its window (Ghostty's own notice needs OSC 133, which tmux eats).
+# Watched means a client shows this pane and its terminal has focus
+# (focus-events in .tmux.conf); a terminal that never reports focus stays
+# focused from attach, so there it falls back to "shown".
+_long_command_started=
+_long_command_mark() { _long_command_started=$SECONDS }
+_long_command_bell() {
+  local started=$_long_command_started
+  _long_command_started=
+  [[ -n "$TMUX" && -n "$started" ]] || return 0
+  # Anything but whole seconds (`30s`) would print `bad math expression` above
+  # every prompt and never ring, so it gets the default instead.
+  local limit=${LONG_COMMAND_BELL_SECONDS:-30}
+  [[ $limit == <-> ]] || limit=30
+  (( SECONDS - started >= limit )) || return 0
+  local -a viewers
+  viewers=(${(f)"$(tmux list-clients -F '#{m:*focused*,#{client_flags}} #{pane_id}' 2>/dev/null)"})
+  (( ${viewers[(Ie)1 $TMUX_PANE]} )) || print -n '\a'
+  return 0
+}
+add-zsh-hook preexec _long_command_mark
+add-zsh-hook precmd _long_command_bell
+
+# Usage log: which commands get typed, and how often, so tools can be judged by
+# use (bin/usage_counts.sh reads it). Only the name in each command position is
+# kept — never an argument, a path or a time of day — one per line, in a file
+# per local day, on this machine only. The directory is 0700: every command
+# typed passes through it. DOTFILES_NO_USAGE_LOG=1 (e.g. in ~/.zshrc.local) turns it off.
+zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
+_usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
+_usage_log_record() {
+  [[ -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
+  # First line only: preexec gets a heredoc's body too, and a pasted secret
+  # often travels in one.
+  local -a words names
+  words=(${(z)${1%%$'\n'*}})
+  # at_command: the next word is the command. skip_next: the next word is the
+  # file of a redirection.
+  local word at_command=1 skip_next=0
+  for word in $words; do
+    case $word in
+      # `)` and `;;` end a case pattern and a case branch.
+      ('|'|'||'|'&&'|';'|'|&'|'&'|'&|'|'&!'|')'|';;'|';&'|';|') at_command=1 skip_next=0; continue ;;
+    esac
+    (( at_command )) || continue
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+    case $word in
+      # Words that put a command next.
+      ('('|'{'|'!'|do|then|else|elif|if|while|until|time|coproc|nocorrect|noglob|-*|*=*) continue ;;
+      (sudo|command|builtin|exec|nohup) continue ;;
+      (*'<'*|*'>'*) skip_next=1; continue ;;
+      # Words followed by a list, a pattern or a test, not by a command.
+      (for|foreach|select|case|repeat|'[['|'((') at_command=0; continue ;;
+    esac
+    at_command=0
+    # Only a word zsh would run is logged. A password typed at the prompt by
+    # mistake, or a typo, is not a command, so it never reaches the file, and
+    # neither does anything after it.
+    [[ $word == '~/'* ]] && word=$HOME/${word#'~/'}
+    if [[ $word == */* ]]; then
+      [[ -f $word && -x $word ]] || continue
+      word=${word:t}
+    elif ! (( $+commands[$word] || $+aliases[$word] || $+functions[$word] || $+builtins[$word] )); then
+      continue
+    fi
+    [[ $word != *[^A-Za-z0-9_.+:@-]* && ${#word} -le 64 ]] && names+=($word)
+  done
+  (( $#names )) || return 0
+  [[ -d $_usage_log_dir ]] || mkdir -m 700 -p -- "$_usage_log_dir" 2>/dev/null || return 0
+  local day
+  strftime -s day %Y-%m-%d $EPOCHSECONDS
+  print -rl -- $names >>| "$_usage_log_dir/$day.log" 2>/dev/null
+  return 0
+}
+add-zsh-hook preexec _usage_log_record
 
 # Ship a dotfiles PR: push → create PR → auto-merge → wait for MERGED → switch to main.
 # Stays on the branch until the PR actually merges, so symlinked dotfiles never revert mid-flight.
@@ -700,7 +745,8 @@ fi
 # mise missing-tool reminder
 #=====================
 # A tool in mise's config that is not installed is re-resolved on every precmd,
-# so it taxes each prompt and says nothing. Notify-only: prints the cached
+# so it taxes each prompt and says nothing; a mise other than the release CI
+# pins writes mise.lock entries CI rejects. Notify-only: prints the cached
 # result and refreshes it in a background job, so startup never waits on mise.
 # Skipped in CI via DOTFILES_NO_MISE_CHECK.
 if [[ -z "${DOTFILES_NO_MISE_CHECK:-}" ]]; then

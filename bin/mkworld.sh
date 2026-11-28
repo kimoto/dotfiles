@@ -1,65 +1,233 @@
 #!/bin/bash
+# Bootstrap this machine by climbing the phases in docs/staged-bootstrap.md:
+# minimal -> basic -> standard -> extra -> platform. A phase that cannot be reached (no zsh,
+# no sudo for Homebrew, a failed `brew bundle`) ends the climb there instead of
+# the whole run: the phases below it already work on their own, so the machine
+# is left usable one step down. The last line names the phase reached and why
+# the climb stopped.
+#
+# Exit status is 0 whenever minimal was reached. MKWORLD_EXPECT=<phase> turns a
+# lower result into exit 1, for callers (CI) that know how far they should get.
+#
+# MKWORLD_CHECK=1 climbs without installing, linking or changing anything, and
+# names the phase this machine is already at: the question to ask of a machine
+# in use, where a real run would upgrade tools and ask for sudo.
 
 set -euo pipefail
-set -x
+# Traced in CI, where the log is all anyone sees afterwards; on a person's
+# terminal the trace buries the one line that matters. MKWORLD_TRACE=1 opts in.
+if [ -n "${CI:-}" ] || [ "${MKWORLD_TRACE:-0}" = 1 ]; then
+    set -x
+fi
 
 BASE_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.."; pwd)
 
+PHASES=(minimal basic standard extra platform)
+phase_rank() {
+    local i
+    for i in "${!PHASES[@]}"; do
+        [ "${PHASES[$i]}" = "$1" ] && { echo "$i"; return; }
+    done
+    echo "mkworld: unknown phase: $1" >&2
+    exit 2
+}
+# Fail on a typo before doing any work, not after a Homebrew install.
+[ -z "${MKWORLD_EXPECT:-}" ] || phase_rank "$MKWORLD_EXPECT" >/dev/null
+
+check="${MKWORLD_CHECK:-0}"
+if [ "$check" = 1 ]; then
+    # A check never installs, which is what SKIP_BREW already means to the climb.
+    SKIP_BREW=1
+    # Which checkout is answering: ~/bin is a link, so ~/bin/mkworld.sh and
+    # ./bin/mkworld.sh typed at home run the linked checkout, not always the
+    # one just pulled.
+    checked_commit=$(git -C "$BASE_DIR" rev-parse --short HEAD 2>/dev/null || echo 'an unknown commit')
+    echo "mkworld: checking $BASE_DIR at $checked_commit"
+fi
+
+reached=""
+stopped=""
+stop() { stopped="$1"; echo "mkworld: stopping at $reached: $1" >&2; }
+
+load_brew() {
+    if [ -x "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
+}
+
+# The last line of every run. Nothing reached is a check's result only: a real
+# run aborts in mklink.sh before it gets here.
+report() {
+    echo "mkworld: reached ${reached:-nothing}${stopped:+ (stopped: $stopped)}"
+    [ -n "$reached" ] || exit 1
+    if [ -n "${MKWORLD_EXPECT:-}" ] && [ "$(phase_rank "$reached")" -lt "$(phase_rank "$MKWORLD_EXPECT")" ]; then
+        echo "mkworld: expected to reach $MKWORLD_EXPECT" >&2
+        exit 1
+    fi
+}
+
+# What mklink.sh would have linked, as far as the phase gates lean on it: bash,
+# vim and git for minimal, zsh for basic, ~/.config for the Homebrew tools.
+links_in_place() {
+    local name target
+    for name in .bashrc .vimrc .gitconfig .zshrc .config; do
+        target="$BASE_DIR/$name"
+        [ "$name" = .config ] && target="$BASE_DIR/config"
+        if [ "$(readlink -f "$HOME/$name" 2>/dev/null)" != "$(readlink -f "$target")" ]; then
+            # shellcheck disable=SC2088  # a message, not a path to expand
+            stop "~/$name is not linked to this checkout"; return 1
+        fi
+    done
+}
+
 cd "$HOME"
+
+# Before the climb, so a fresh Ubuntu gets zsh, curl and libatomic1 from apt.
+# A failure only warns: each step that needs a package names it.
+[ "$check" = 1 ] || "$BASE_DIR/bin/install_os_packages.sh" || echo "mkworld: OS packages failed to install" >&2
 
 # Helpers are executed directly, never as `sh <script>`: each one's shebang
 # picks its interpreter. `sh` would be bash-in-POSIX-mode on macOS but dash on
 # Linux, and setup_homebrew.sh (and friends) open with `set -euo pipefail`,
-# which dash rejects outright — under the set -e above that killed the whole
-# bootstrap at the Homebrew step, on Linux only.
-mkdir -p ./tmp
-"$BASE_DIR/bin/mklink.sh"
-if [ "${SKIP_BREW:-0}" = "0" ]; then
-    "$BASE_DIR/bin/setup_homebrew.sh"
+# which dash rejects outright.
+climb() {
+    # minimal: the OS's bash, vim and git. The links are the one step whose
+    # failure is fatal, since nothing below works without them.
+    if [ "$check" = 1 ]; then
+        links_in_place || return 0
+    else
+        mkdir -p ./tmp
+        "$BASE_DIR/bin/mklink.sh"
+    fi
+    reached=minimal
+
+    # basic: the OS's zsh, plus what a git clone brings.
+    if ! command -v zsh >/dev/null 2>&1; then
+        stop "zsh not installed"; return
+    fi
+    reached=basic
+
+    # standard: Homebrew and Brewfile.standard.
+    # SKIP_BREW=1 means the caller already installed them; that is checked
+    # below like any other install.
+    if [ "${SKIP_BREW:-0}" = "0" ]; then
+        if ! SKIP_BREWFILE_EXTRA=1 "$BASE_DIR/bin/setup_homebrew.sh"; then
+            stop "Homebrew or Brewfile.standard failed to install"; return
+        fi
+    fi
+    load_brew
+    if ! command -v brew >/dev/null 2>&1; then
+        stop "brew not installed"; return
+    fi
+    # --no-upgrade: a phase is reached when its tools are installed. Without
+    # it `brew bundle check` also fails on a formula that is merely outdated,
+    # and `brew bundle` updates Homebrew first, so CI's cached install stops
+    # satisfying the same Brewfile the moment upstream publishes a release.
+    # Outdated tools are brew_bundle_check.sh's job at shell startup.
+    if ! brew bundle check --no-upgrade --file="$BASE_DIR/Brewfile.standard"; then
+        stop "Brewfile.standard not satisfied"; return
+    fi
+    reached=standard
+
+    # extra: Brewfile.extra, tools that only run when typed. SKIP_BREWFILE_EXTRA=1
+    # leaves it and the platform Brewfile to the caller too.
+    bundle_phase Brewfile.extra || return 0
+    reached=extra
+
+    # platform: what only this OS gets, and the likeliest to fail (GUI casks,
+    # system settings that need sudo), hence last.
+    case "$(uname)" in
+        Darwin)
+            bundle_phase Brewfile.macos || return 0
+            # System preferences: Finder, key repeat, CleanShot, startup mute (sudo for nvram).
+            # A check takes them as set: the script only writes, and no one
+            # place reads them all back.
+            if [ "$check" != 1 ] && ! "$BASE_DIR/bin/setup_macosx.sh"; then
+                stop "setup_macosx.sh failed"; return
+            fi
+            ;;
+        Linux)
+            bundle_phase Brewfile.linux || return 0
+            ;;
+    esac
+    reached=platform
+}
+
+# Install (unless the caller did) and check one Brewfile; a miss ends the climb.
+bundle_phase() {
+    if [ "${SKIP_BREW:-0}" = "0" ] && [ "${SKIP_BREWFILE_EXTRA:-0}" != "1" ]; then
+        if ! brew bundle install --file="$BASE_DIR/$1"; then
+            stop "$1 failed to install"; return 1
+        fi
+    fi
+    # --no-upgrade: installed is enough, see the standard check above.
+    if ! brew bundle check --no-upgrade --file="$BASE_DIR/$1"; then
+        stop "$1 not satisfied"; return 1
+    fi
+}
+
+climb
+if [ "$check" = 1 ]; then
+    report
+    exit 0
 fi
+load_brew
 
-# Vim (legacy .vimrc): fetch the NeoBundle plugin manager, tracked as a
-# submodule under .vim/bundle/. With it present, the first `vim` launch runs
-# NeoBundleCheck to install the remaining plugins instead of erroring on every
-# NeoBundle command. (.vimrc also self-bootstraps neobundle at launch; this just
-# makes it available up front, at install time.)
-git -C "$BASE_DIR" submodule update --init --recursive
+# What follows is not a phase: each step runs when its own tool is present,
+# whatever phase was reached, and a failure only warns. CI installs tmux without
+# the rest of Brewfile.extra and still needs the tmux plugins.
 
-# Make brew-installed tools (e.g. lefthook) available on PATH
-if [ -x "/opt/homebrew/bin/brew" ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-fi
-
-# Install tpm and its plugins headlessly (idempotent). Needs tmux on PATH; on a
-# fresh box that doesn't have it yet, skip rather than fail so the rest of the
-# bootstrap (symlinks, hooks) still completes.
+# tpm and its plugins, headlessly (idempotent).
 if command -v tmux >/dev/null 2>&1; then
-    "$BASE_DIR/bin/install_tmux_plugins.sh"
+    "$BASE_DIR/bin/install_tmux_plugins.sh" || echo "tmux plugin install failed" >&2
 else
     echo "tmux not found on PATH; skipping tmux plugin install" >&2
 fi
 
-# Claude Code: register the tmux state-indicator hooks (pane/window colors for
-# waiting-for-input / finished states) in ~/.claude/settings.json. Idempotent;
-# warns and skips instead of failing when jq is missing.
-"$BASE_DIR/bin/install_claude_tmux_hooks.sh"
-"$BASE_DIR/bin/install_claude_idle_hooks.sh"
+# Claude Code: the tmux state-indicator, idle, context, secret-scan and PR hooks.
+# Each one skips with a warning when jq is missing.
+"$BASE_DIR/bin/install_claude_tmux_hooks.sh" || echo "Claude tmux hooks failed" >&2
+"$BASE_DIR/bin/install_claude_idle_hooks.sh" || echo "Claude idle hooks failed" >&2
+"$BASE_DIR/bin/install_claude_context_hooks.sh" || echo "Claude context hook failed" >&2
+"$BASE_DIR/bin/install_claude_secret_scan_hook.sh" || echo "Claude secret scan hook failed" >&2
+"$BASE_DIR/bin/install_claude_review_gate.sh" || echo "Claude review gate hook failed" >&2
+"$BASE_DIR/bin/install_claude_pr_hooks.sh" || echo "Claude PR hook failed" >&2
 
-# Install git hooks (lefthook) and the commit message template
+# The check toolchain pinned in mise.toml, before the hooks below that run it.
+# Each bin/lint_*.sh names the tool that is missing.
+if command -v mise >/dev/null 2>&1; then
+    # node's Linux build links libatomic, which a minimal Ubuntu leaves out and
+    # CI's runner image ships, so only mise's "exit code 127" would say so.
+    # Captured, not piped into `grep -q`: under pipefail its early exit makes
+    # ldconfig's SIGPIPE the pipeline's status, which reads as "not found".
+    # An empty list means no ldconfig to ask, not a missing library.
+    if [ "$(uname)" = "Linux" ]; then
+        ld_libs="$(ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null || true)"
+        if [ -n "$ld_libs" ] && [[ "$ld_libs" != *libatomic.so.1* ]]; then
+            echo "mkworld: node (config/mise/config.toml) needs libatomic.so.1;" \
+                "install it first (Debian/Ubuntu: sudo apt-get install libatomic1)" >&2
+        fi
+    fi
+    (cd "$BASE_DIR" && mise trust --quiet mise.toml && mise install) \
+        || echo "mise install failed; the git hooks will refuse commits until it succeeds" >&2
+fi
+
+# Git hooks (lefthook) and the commit message template.
 if command -v lefthook >/dev/null 2>&1; then
-    (cd "$BASE_DIR" && lefthook install && git config --local commit.template .gitmessage)
+    (cd "$BASE_DIR" && lefthook install && git config --local commit.template .gitmessage) \
+        || echo "lefthook install failed" >&2
 fi
 
-# macOS: enable weekly background brew auto-upgrade (formulae; casks stay manual).
-# Non-fatal so a hiccup here never aborts the bootstrap.
-if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ]; then
-    "$BASE_DIR/bin/setup_brew_autoupdate.sh" || true
+# macOS: daily background install/upgrade of homebrew/core formulae (casks and
+# third-party taps stay manual).
+if [ "$(uname)" = "Darwin" ] && [ "${SKIP_BREW:-0}" = "0" ] && command -v brew >/dev/null 2>&1; then
+    "$BASE_DIR/bin/setup_brew_auto_upgrade.sh" || true
 fi
 
-# macOS: apply system preferences (Finder, key repeat, startup mute — needs
-# sudo for nvram). Non-fatal so a denied sudo never aborts the bootstrap.
-if [ "$(uname)" = "Darwin" ]; then
-    "$BASE_DIR/bin/setup_macosx.sh" || true
-fi
+# The per-machine files the dotfiles source, which never enter the repo.
+"$BASE_DIR/bin/local_layer_report.sh" || true
+
+set +x
+report

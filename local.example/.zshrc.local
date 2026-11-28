@@ -1,0 +1,23 @@
+# ~/.zshrc.local: this machine's zsh layer, sourced last by .zshrc.
+# Copy to ~/.zshrc.local and fill in. It never enters the repo (.gitignore).
+#
+# Belongs here: what is true of this machine only, or must not be public.
+#   - environment variables for this machine's tools and accounts
+#   - PATH entries for software installed only here
+#   - proxy settings
+#   - aliases and functions that only make sense here
+#
+# Not here: anything every machine wants (put it in .zshrc), and settings
+# shared by every machine with the same hostname
+# (~/.config/hosts/<hostname>.zshrc, sourced just before this file).
+
+# seal (bin/seal.sh): the age public key to encrypt to, and how to fetch the
+# secret one for the check and --open, so it never sits in a file.
+# export SEAL_RECIPIENT=age1...
+# export SEAL_IDENTITY_CMD='bw get notes "<item name>"'
+
+# API keys (bin/secret.sh): kept in Bitwarden, read from the Keychain copy at
+# startup. To add or replace a key, press the provider's copy button, then:
+#   export BW_SESSION=$(bw unlock --raw); secret --set "<item name>"; bw lock
+# After changing the item in Bitwarden itself, `secret --refresh` instead.
+# SOME_API_KEY="$(secret "<item name>")" && export SOME_API_KEY

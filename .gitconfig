@@ -10,8 +10,11 @@
 
 [core]
   excludesfile = ~/.gitignore
-  pager = delta
-  editor = nvim
+  # delta when installed, then less, then cat: a fresh clone has no delta yet,
+  # and a slim container has no less either. No editor here:
+  # git falls back to $VISUAL/$EDITOR, which .zshrc points at the best one
+  # installed, so a machine without nvim can still commit.
+  pager = "for p in delta less cat; do command -v $p >/dev/null && exec $p; done"
   autoCRLF = false
 
 [commit]
@@ -24,13 +27,13 @@
   tool = difftastic
 
 [diff "exif"]
-  textconv = exiftool
+  textconv = "$HOME/bin/git_textconv_exif.sh"
 
 [gui]
   encoding = utf-8
 
 [interactive]
-  diffFilter = delta --color-only
+  diffFilter = "if command -v delta >/dev/null 2>&1; then delta --color-only; else cat; fi"
 
 [merge]
   ff = false
@@ -65,7 +68,6 @@
   sort = -committerdate
 
 [url "git@github.com:"]
-  pushinsteadof = "git://github.com/"
   pushinsteadof = "https://github.com/"
 
 # --------
@@ -91,6 +93,15 @@
 
 [rerere]
   enabled = true
+
+# Secret scan before every commit in every repo, alongside the repo's own
+# pre-commit (Git 2.54+; older Git ignores this). Why and how the repo's own
+# setup wins: bin/git_hook_gitleaks.sh. The -x guard keeps a machine without
+# ~/bin committing.
+[hook "dotfiles-gitleaks"]
+  event = pre-commit
+  command = "[ ! -x \"$HOME/bin/git_hook_gitleaks.sh\" ] || \"$HOME/bin/git_hook_gitleaks.sh\""
+
 
 # --------
 # local

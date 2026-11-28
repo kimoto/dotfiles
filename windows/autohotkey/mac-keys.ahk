@@ -77,6 +77,19 @@
 #x::Send("^x")
 #z::Send("^z")
 
+; ⌘+1..9 picks a tab, as on the mac, by sending the Ctrl+1..9 that Windows apps
+; bind for it. That frees the physical ⌃+1..9 for the app launcher, as Raycast
+; has it on the mac.
+#1::Send("^1")
+#2::Send("^2")
+#3::Send("^3")
+#4::Send("^4")
+#5::Send("^5")
+#6::Send("^6")
+#7::Send("^7")
+#8::Send("^8")
+#9::Send("^9")
+
 #+z::Send("^y")        ; ⇧⌘+Z  redo
 #+t::Send("^+t")       ; ⇧⌘+T  reopen the tab just closed
 
@@ -119,7 +132,52 @@
 #!Up::Send("!{Up}")
 #!Down::Send("!{Down}")
 
+; ⌘+V pastes, as Ghostty does it itself on the mac. ⌘+C is not mapped: a copy
+; key with nothing selected reaches the shell as ^C, so the Windows Terminal
+; fragment turns on copyOnSelect instead (windows/README.md).
+#v::Send("^+v")
+
 #HotIf
+
+; ⌃+1..3 bring an app to the front, starting it if it is not running, and
+; minimize it when it is already in front, as the Raycast hotkeys do on the mac
+; (⌃+4..9 are unassigned there too). Global, like Raycast's: it works from
+; inside the terminal too. The $ makes these hook hotkeys, so the Ctrl+N that
+; ⌘+N sends above (script-generated input) cannot trigger them. Windows
+; Terminal stands in for Ghostty, as everywhere else in this file.
+$^1::ToggleOrRun("ahk_exe chrome.exe", "chrome.exe")
+$^2::ToggleOrRun("ahk_exe WindowsTerminal.exe", "wt.exe")
+; The window class keeps a Claude Code console out of the match, and starting it
+; by path or shortcut keeps Run from finding Claude Code's claude.exe on PATH.
+$^3::ToggleOrRun("ahk_exe claude.exe ahk_class Chrome_WidgetWin_1", ClaudeDesktopCommand())
+
+; The per-user installer's path first, then any Start menu shortcut named Claude,
+; so an install made another way still starts.
+ClaudeDesktopCommand() {
+    squirrel := EnvGet("LOCALAPPDATA") "\AnthropicClaude\claude.exe"
+    if FileExist(squirrel)
+        return squirrel
+    for dir in [A_Programs, A_ProgramsCommon]
+        loop files dir "\Claude.lnk", "R"
+            return A_LoopFileFullPath
+    return squirrel
+}
+
+; Every window of the app, so the next one does not come forward in its place.
+ToggleOrRun(winTitle, command) {
+    if WinActive(winTitle) {
+        for hwnd in WinGetList(winTitle)
+            WinMinimize("ahk_id " hwnd)
+        return
+    }
+    if WinExist(winTitle) {
+        WinActivate()
+        return
+    }
+    try Run(command)
+    catch OSError as err
+        TrayTip("Could not start " command ": " err.Message, "App hotkeys")
+}
 
 ; ShareX's image editor hard-codes Ctrl+Shift+C to "copy annotation", so ⇧⌘C
 ; sends Enter ("done", which copies the image) instead, as in CleanShot X.
@@ -295,3 +353,7 @@ RectangleMonitor(hwnd) {
     }
     return MonitorGetPrimary()
 }
+
+; The dark curtain at an end time, the Windows half of the Mac's Curtain Spoon.
+; Here so it starts, restarts and follows a pull with these hotkeys.
+#Include %A_LineFile%\..\curtain.ahk

@@ -18,6 +18,9 @@ setup() {
   # shellcheck source=/dev/null
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
+  # shellcheck source=test/tmux_private_tmpdir.sh
+  . "$REPO_ROOT/test/tmux_private_tmpdir.sh"
+  private_tmux_tmpdir
   cd "$REPO_ROOT"
 }
 
@@ -63,4 +66,75 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" != *"Tmux Plugin Manager not configured"* ]]
   [[ "$output" != *"server version is too old"* ]]
+}
+
+@test "stops when a plugin cannot be checked out at its pinned commit" {
+  command -v tmux >/dev/null 2>&1 || skip "tmux not installed"
+  # tpm is already cloned, but from a remote that does not have the commit
+  # tmux-plugins.lock pins: the script must stop rather than run tpm unpinned.
+  git init -q --bare "$BATS_TEST_TMPDIR/empty.git"
+  git init -q "$BATS_TEST_TMPDIR/home/.tmux/plugins/tpm"
+  git -C "$BATS_TEST_TMPDIR/home/.tmux/plugins/tpm" remote add origin "$BATS_TEST_TMPDIR/empty.git"
+
+  run env HOME="$BATS_TEST_TMPDIR/home" ./bin/install_tmux_plugins.sh
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"CI error: cannot fetch tmux-plugins/tpm at "* ]]
+}
+
+# A throwaway home holding the plugins. Copies this machine's installed
+# plugins when there are any, so the usual run clones nothing.
+plugin_home() {
+  command -v tmux >/dev/null 2>&1 || skip "tmux not installed"
+  command -v git >/dev/null 2>&1 || skip "git not installed"
+  home="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$home/.tmux"
+  ln -s "$REPO_ROOT/.tmux.conf" "$home/.tmux.conf"
+  ln -s "$REPO_ROOT/bin" "$home/bin"
+  if [ -d "$HOME/.tmux/plugins/tpm" ]; then
+    cp -R "$HOME/.tmux/plugins" "$home/.tmux/plugins"
+  else
+    install_in_plugin_home || skip "no installed plugins to copy, and cloning them failed"
+  fi
+}
+
+install_in_plugin_home() {
+  env -u TMUX HOME="$home" "$@" ./bin/install_tmux_plugins.sh
+}
+
+teardown() {
+  # The older build's server takes a kill only from its own client: left to
+  # the sweep, a test that failed before its own kill would read as "will
+  # not die" and hide what failed.
+  if [ -n "${old:-}" ] && [ -n "${HOST_SOCK:-}" ]; then
+    "$old" -L "$HOST_SOCK" kill-server 2>/dev/null || true
+  fi
+  sweep_private_tmux_tmpdir
+}
+
+@test "pins every plugin even when the throwaway server is gone after tpm ran" {
+  plugin_home
+  # One plugin drifts off its pin, and tpm's installer takes the server down.
+  drifted="$home/.tmux/plugins/extrakto"
+  git -C "$drifted" -c user.name=t -c user.email=t@example.invalid commit -q --allow-empty -m drift
+  printf '#!/bin/sh\ntmux kill-server\n' >"$home/.tmux/plugins/tpm/bin/install_plugins"
+
+  run install_in_plugin_home
+
+  [ "$status" -eq 0 ]
+  pinned=$(awk '$1 == "laktak/extrakto" { print $3 }' tmux-plugins.lock)
+  [ -n "$pinned" ]
+  [ "$(git -C "$drifted" rev-parse HEAD)" = "$pinned" ]
+}
+
+@test "stops when the config names no plugins, rather than pinning none" {
+  plugin_home
+  # The server reads ~/.tmux.conf by itself at start, so that one goes too.
+  rm "$home/.tmux.conf"
+  : >"$BATS_TEST_TMPDIR/empty.conf"
+
+  run install_in_plugin_home TMUX_CONF="$BATS_TEST_TMPDIR/empty.conf"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"CI error: @tpm_plugins is empty"* ]]
 }

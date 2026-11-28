@@ -12,6 +12,9 @@ failed once.** Second time, not fifth.
 3. **Break it once and watch the test go red.** Put the bug back in, see it
    fail, take it out. ★A test that has only ever passed is a habit, not a check.
 
+★**The same goes for any test you add or change:** red first, then green. A
+typo'd assertion otherwise passes forever.
+
 **Cannot see whether it worked? You are guessing.** ★Before you send anything,
 pick what you will look at after — something that only moves if it really
 happened. A fan spinning. A new row. ⚠️ Reading the setting back just shows what

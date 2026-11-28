@@ -33,9 +33,40 @@ check() {
 }
 
 @test "stops a key that is not on the allow-list, naming it" {
-  check '{"theme": "auto", "env": {"TOKEN": "x"}}'
+  check '{"theme": "auto", "apiKeyHelper": "x"}'
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"env"'* ]]
+  [[ "$output" == *'"apiKeyHelper"'* ]]
+}
+
+@test "stops an env variable that is not one of Claude Code's own" {
+  check '{"env": {"TOKEN": "x"}}'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'"TOKEN"'* ]]
+}
+
+@test "passes Claude Code's own env variables" {
+  check '{"env": {"CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS": "400000"}}'
+  [ "$status" -eq 0 ]
+}
+
+@test "passes permissions that only deny" {
+  check '{"permissions": {"deny": ["Bash(security dump-keychain:*)"]}}'
+  [ "$status" -eq 0 ]
+}
+
+@test "passes permissions that ask: an ask rule only adds a prompt" {
+  check '{"permissions": {"ask": ["Edit(~/.claude/rules/**)"]}}'
+  [ "$status" -eq 0 ]
+}
+
+@test "stops any other permissions key, such as defaultMode" {
+  check '{"permissions": {"defaultMode": "bypassPermissions"}}'
+  [ "$status" -eq 1 ]
+}
+
+@test "passes model and attribution" {
+  check '{"model": "opus", "attribution": {"pr": ""}}'
+  [ "$status" -eq 0 ]
 }
 
 @test "stops permissions: allow rules name paths from wherever they were granted" {
@@ -72,7 +103,7 @@ check() {
 }
 
 @test "with no arguments, checks every tracked settings file" {
-  printf '{"env": {}}\n' >"$TMP/repo/$F"
+  printf '{"apiKeyHelper": "x"}\n' >"$TMP/repo/$F"
   git -C "$TMP/repo" add "$F"
   run "$SCRIPT"
   [ "$status" -eq 1 ]
