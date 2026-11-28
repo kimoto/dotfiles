@@ -20,6 +20,12 @@ M.MAX_OVERLAYS = 12
 -- How a pointed-at target is marked: a box round it, a line under text, corner brackets that leave
 -- the glyphs clear, rings that spread from a small icon, or a cursor-shaped marker for "click here".
 M.STYLES = { box = true, underline = true, bracket = true, ripple = true, click = true }
+-- A one-shot movement, under a second, that brings the eye to a target before its mark settles:
+-- iris, a ring that closes in from the size of the screen; sunburst, rays from the target across every
+-- screen; halo, a glow round the edge of the target's screen ("this monitor"); comet, a spark that
+-- flies from the pointer to the target. auto picks from where the pointer is (M.intro_for).
+M.INTROS = { none = true, auto = true, iris = true, sunburst = true, halo = true, comet = true }
+
 -- More numbered steps on screen than this stop reading as one sequence.
 M.MAX_STEPS = 5
 -- The lit circle round the pointer in a focus: under 60 the pointer is lost in the dark, over 400 the
@@ -126,6 +132,10 @@ function M.validate(cmd, a)
       end
       out.style = a.style or "box"
       if not M.STYLES[out.style] then return nil, "style must be box, underline, bracket, ripple or click" end
+      out.intro = a.intro or "none"
+      if not M.INTROS[out.intro] then
+         return nil, "intro must be none, auto, iris, sunburst, halo or comet"
+      end
       out.seconds, err = M.seconds(cmd, a.seconds)
       if not out.seconds then return nil, err end
       return out
@@ -401,6 +411,40 @@ function M.cursor(p, s)
    local pts = { { 0, 0 }, { 0, 17 }, { 4.5, 13 }, { 7.5, 20 }, { 10.5, 18.7 }, { 7.5, 12 }, { 13, 12 } }
    local out = {}
    for i, q in ipairs(pts) do out[i] = { x = p.x + q[1] * k, y = p.y + q[2] * k } end
+   return out
+end
+
+-- The intros auto plays, from the pointer p to target r on screens (frames). On another screen the
+-- question is "which monitor?" first, then "where on it?"; far away on the same screen, a spark from
+-- the hand and a ring closing on the spot; close by, the ring alone; right there, nothing.
+M.NEAR = 150
+M.FAR = 800
+function M.intro_for(p, r, screens)
+   local c = M.center(r)
+   if M.screen_of(screens, p) ~= M.screen_of(screens, c) then return { "halo", "comet" } end
+   if M.inside(p, r, M.NEAR) then return {} end
+   local dx, dy = c.x - p.x, c.y - p.y
+   if math.sqrt(dx * dx + dy * dy) > M.FAR then return { "comet", "iris" } end
+   return { "iris" }
+end
+
+-- Fast at first and settling at the end, so a movement reads as arriving rather than stopping.
+function M.ease(t)
+   t = math.max(0, math.min(1, t))
+   return 1 - (1 - t) ^ 3
+end
+
+-- n thin wedges from point c, turned by angle (radians), each len long and 2 * far wide at its end:
+-- whichever way the eye is, one passes near it and leads back to c.
+function M.rays(c, n, angle, len, far)
+   local out = {}
+   for i = 0, n - 1 do
+      local a = angle + i * 2 * math.pi / n
+      local ux, uy = math.cos(a), math.sin(a)
+      local ex, ey = c.x + ux * len, c.y + uy * len
+      out[#out + 1] = { { x = c.x, y = c.y }, { x = ex - uy * far, y = ey + ux * far },
+                        { x = ex + uy * far, y = ey - ux * far } }
+   end
    return out
 end
 

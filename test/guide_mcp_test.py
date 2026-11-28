@@ -110,16 +110,17 @@ class GuideMcpTest(unittest.TestCase):
         self.assertEqual([c for _, c, _ in Spoon.seen], ["focus", "steps"])
         self.assertEqual(Spoon.seen[1][2], steps)
 
-    def test_the_styles_offered_are_the_ones_the_spoon_takes(self):
+    def test_the_choices_offered_are_the_ones_the_spoon_takes(self):
         logic = os.path.join(os.path.dirname(SERVER), "logic.lua")
         with open(logic, encoding="utf-8") as f:
-            line = next(x for x in f if x.startswith("M.STYLES"))
-        spoon = set(re.findall(r"(\w+) = true", line))
+            lines = f.readlines()
         tools = self.session({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})[0]["result"]["tools"]
-        for t in tools:
-            style = t["inputSchema"]["properties"].get("style")
-            if style:
-                self.assertEqual(set(style["enum"]), spoon, t["name"])
+        for field, table in (("style", "M.STYLES"), ("intro", "M.INTROS")):
+            spoon = set(re.findall(r"(\w+) = true", next(x for x in lines if x.startswith(table))))
+            offered = [t for t in tools if field in t["inputSchema"]["properties"]]
+            self.assertTrue(offered, field)
+            for t in offered:
+                self.assertEqual(set(t["inputSchema"]["properties"][field]["enum"]), spoon, t["name"])
 
     def test_ask_waits_for_the_click(self):
         r = self.tool("guide_ask", {"text": "どうする?", "choices": ["今やる", "あとで"]})
