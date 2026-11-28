@@ -92,8 +92,20 @@ Source:
 |-----|--------|
 | Esc held 5 s | Lift the curtain (after the questions below, and 5 s longer for each lift of the same end, up to 30 s); it comes back 5 minutes later while the machine is in use. Every other key is swallowed while it is up |
 | 1–5, then 1–2 | After the hold, answer why you keep going and whether it is the main task; the answers go to the log and the curtain lifts. Releasing Esc and holding it again lifts without them |
-| Enter | The work is done: the curtain goes at once and the end is removed, so it does not come back; logged as done. Only for an end you chose, not the daily one |
+| Enter | The work is done: the curtain goes at once and the end is removed, so it does not come back; logged as done. Only for an end you chose, not the daily one or one an AI set |
 | type `exit` | Lift the curtain at once, a way out if it goes wrong, written small at the bottom of the curtain; logged as 非常口 and counted like any lift |
+
+## AI guide overlays (Mac only)
+
+An AI may only bring the curtain sooner; an end it set has no Enter (done) and no ⏸ pause, only the Esc hold and `exit`.
+
+Source: `hammerspoon/Spoons/Guide.spoon` — arrows, outlines, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
+
+| Key | Action |
+|-----|--------|
+| ⌃⌥⌘Esc | Clear every AI overlay and refuse new ones for 30 minutes (🔕 in the menu bar; its menu lifts the mute) |
+| Switch app | Ends a spotlight that dims everything but one app |
+| Click | Closes a message; on a question, a button answers it and × closes it unanswered |
 
 ---
 
