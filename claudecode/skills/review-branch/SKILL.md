@@ -55,7 +55,7 @@ subagent には Agent tool が無いので、全員を回す subagent を1つ挟
 ## 終わったら
 
 1. 指摘を直して commit する。直さないものは、なぜかを返事に書く。直しても指摘が続いて終わらないなら、それ以上は回さず本人に聞く。
-2. レビューを求めてきた側（push を止めた hook など）が完了の印を頼んでいたら、そのとおりにする。
+2. 完了の印を付ける。レビューを求めてきた側（push を止めた hook など）が印を頼んでいたら、そのとおりにする。★止められる前に回したときも、push を止める hook がある機械では、push の前に印を付ける。ただし、見た範囲が `git log <branch> --not --remotes` の commit を全部覆い、1 の直しの commit も見直しが済んでいる時だけ。dotfiles の hook なら `<dotfiles>/bin/claude_review_gate.sh mark <push する checkout のパス>`（`<dotfiles>` は上の 5 と同じく、この skill の base directory を `readlink -f` で解いた3つ上。session は省いてよい）。⚠️ 印は HEAD に付く。印のあとに amend や commit をすると、push はもう一度止まる。
 3. push や PR 作成を止められていたなら、もう一度やる。
 
 ## PR の題と本文
