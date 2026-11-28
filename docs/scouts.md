@@ -75,6 +75,10 @@ them: the bootstrap and install scripts (`mkworld.sh`, `mklink.sh`,
 `refresh_cloud_session.sh`) and the human-only scripts `AGENTS.md` lists; they
 change the machine, so only their tests are timed.
 
+Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
+
+## Usage
+
 How often a typed helper is used lives only on the owner's machines.
 `bin/usage_report.sh` reads the zsh history, which keeps one entry per command,
 so it gives the last use, not a count. `bin/usage_counts.sh` gives counts
@@ -83,7 +87,11 @@ from the usage log the `.zshrc` preexec hook keeps on machines that set
 subcommand and option names, never a value. Neither output belongs in this
 public repo: it shows every tool a machine uses.
 
-Decided against: inlining tpm plugins into `.tmux.conf` (#225, #402).
+Where Claude itself gets stopped (a permission refused, a hook that blocked a
+call, a failed tool) is counted by `bin/claude_stumbles.sh`, from the local
+transcripts or a cloud session's events. Its output quotes the start of each
+message, so it goes to private places only.
+
 ## Trends
 
 The `trend-intake` ledger lives outside the repo, at
