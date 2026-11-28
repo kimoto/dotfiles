@@ -114,7 +114,8 @@ done | jq -rR --arg since "$since" '
         | add) catch null;
 
     # A line of an unexpected shape is skipped, not the whole run.
-    fromjson? | select(type == "object" or type == "array") | "P", try (events | (day // "") as $day | body | (decisions // {}) as $decision
+    fromjson? | select(type == "object" or type == "array") | "P",
+    try (events | (day // "") as $day | body | (decisions // {}) as $decision
     | .message.content? | arrays | .[] | objects
     | if .type == "tool_use" and (.id | type == "string") then
         ["T", .id, (.name | if type == "string" then clean else "?" end), (if .name == "Bash" then program else "" end)]

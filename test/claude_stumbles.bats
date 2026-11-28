@@ -95,7 +95,7 @@ result() { # <id> <day> <is_error> <text>
 
 @test "a failing command is told apart by its program, a hook by what it says" {
   {
-    call a Bash 2026-11-28 'cd /x && git push'
+    call a Bash 2026-11-28 'cd /x && make all'
     result a 2026-11-28 true 'Exit code 1'
     call b Bash 2026-11-28 'bats test'
     result b 2026-11-28 true 'Exit code 1'
@@ -108,7 +108,7 @@ result() { # <id> <day> <is_error> <text>
   } >"$WORK/t.jsonl"
   stumbles "$WORK/t.jsonl"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(printf '1\terror\tBash git: exit 1')"* ]]
+  [[ "$output" == *"$(printf '1\terror\tBash make: exit 1')"* ]]
   [[ "$output" == *"$(printf '1\terror\tBash bats: exit 1')"* ]]
   [[ "$output" == *"$(printf '2\thook\tPreToolUse:mcp__x: Before opening the PR for <path>')"* ]]
   [[ "$output" == *"$(printf '1\tpermission\tBash: a built-in safety check, so it')"* ]]
@@ -206,8 +206,10 @@ result() { # <id> <day> <is_error> <text>
 }
 
 @test "a reason is cut at a new sentence, not at an abbreviation" {
-  { call a Bash 2026-11-28; result a 2026-11-28 true 'Permission for this action was denied. Reason: Uses e.g. rm here.'; } \
-    >"$WORK/t.jsonl"
+  {
+    call a Bash 2026-11-28
+    result a 2026-11-28 true 'Permission for this action was denied. Reason: Uses e.g. rm here.'
+  } >"$WORK/t.jsonl"
   stumbles "$WORK/t.jsonl"
   [ "$output" = "$(printf '1\tpermission\tBash: Uses e.g. rm here')" ]
 }
