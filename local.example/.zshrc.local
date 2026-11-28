@@ -16,6 +16,10 @@
 # export SEAL_RECIPIENT=age1...
 # export SEAL_IDENTITY_CMD='bw get notes "<item name>"'
 
+# Usage log (.zshrc): count the commands typed here, names only, kept on this
+# machine. Off unless set, so leave it out on a machine you do not own.
+# export DOTFILES_USAGE_LOG=1
+
 # API keys (bin/secret.sh): kept in Bitwarden, read from the Keychain copy at
 # startup. To add or replace a key, press the provider's copy button, then:
 #   export BW_SESSION=$(bw unlock --raw); secret --set "<item name>"; bw lock

@@ -624,11 +624,12 @@ add-zsh-hook precmd _long_command_bell
 # use (bin/usage_counts.sh reads it). Only the name in each command position is
 # kept — never an argument, a path or a time of day — one per line, in a file
 # per local day, on this machine only. The directory is 0700: every command
-# typed passes through it. DOTFILES_NO_USAGE_LOG=1 (e.g. in ~/.zshrc.local) turns it off.
+# typed passes through it. Off unless DOTFILES_USAGE_LOG=1 (in ~/.zshrc.local):
+# a machine that has not been asked keeps nothing. DOTFILES_NO_USAGE_LOG=1 wins over it, for test shells.
 zmodload -F zsh/datetime +b:strftime +p:EPOCHSECONDS
 _usage_log_dir=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/usage
 _usage_log_record() {
-  [[ -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
+  [[ "${DOTFILES_USAGE_LOG:-}" == 1 && -z "${DOTFILES_NO_USAGE_LOG:-}" ]] || return 0
   # First line only: preexec gets a heredoc's body too, and a pasted secret
   # often travels in one.
   local -a words names

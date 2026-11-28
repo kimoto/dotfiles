@@ -6,6 +6,8 @@
 # line, one file per local day) and counts it. The log holds names only, so
 # this output does too: it is safe to hand to a scout as it is, but it still
 # shows every tool a machine uses, so it goes to private places only.
+# The log is kept only where DOTFILES_USAGE_LOG=1; elsewhere this says so, so
+# an empty count is not read as "nothing was used".
 #
 # Usage: usage_counts.sh [--days N | --all]
 #   --days N  the last N days, today included (default 7)
@@ -38,6 +40,10 @@ esac
 if [ "$#" -gt "$args" ]; then
     echo "usage: usage_counts.sh [--days N | --all]" >&2
     exit 2
+fi
+
+if [ "${DOTFILES_USAGE_LOG:-}" != 1 ]; then
+    echo "usage_counts: the usage log is off here (DOTFILES_USAGE_LOG is not 1)" >&2
 fi
 
 if [ ! -d "$LOG_DIR" ]; then

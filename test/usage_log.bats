@@ -12,7 +12,10 @@ setup() {
   . "$REPO_ROOT/bin/git_fixture_helpers.sh"
   isolate_git_env
   WORK="$(mktemp -d)"
-  export XDG_STATE_HOME="$WORK/state"
+  export XDG_STATE_HOME="$WORK/state" DOTFILES_USAGE_LOG=1
+  # .zshrc sources ~/.zshrc.local, which may turn the log on: keep it out.
+  export HOME="$WORK/home"
+  mkdir -p "$HOME"
   LOG_DIR="$XDG_STATE_HOME/dotfiles/usage"
 }
 
@@ -107,7 +110,14 @@ logged() {
   [ "$(stat -c %a "$LOG_DIR" 2>/dev/null || stat -f %Lp "$LOG_DIR")" = 700 ]
 }
 
-@test "DOTFILES_NO_USAGE_LOG turns the log off" {
+@test "the log is off on a machine that did not turn it on" {
+  unset DOTFILES_USAGE_LOG
+  type_commands 'ls'
+  [ "$status" -eq 0 ]
+  [ ! -e "$LOG_DIR" ]
+}
+
+@test "DOTFILES_NO_USAGE_LOG turns the log off even where it is on" {
   export DOTFILES_NO_USAGE_LOG=1
   type_commands 'ls'
   [ "$status" -eq 0 ]
@@ -161,6 +171,13 @@ write_day() {
   counts
   [ "$status" -eq 1 ]
   [[ "$output" == *"no usage log yet"* ]]
+}
+
+@test "counts on a machine with the log off say it is off" {
+  write_day 2026-11-28 git
+  DOTFILES_USAGE_LOG= counts
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"usage log is off here"* ]]
 }
 
 @test "an empty window says so" {
