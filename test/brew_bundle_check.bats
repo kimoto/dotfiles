@@ -15,6 +15,9 @@
 # into $output.
 
 setup() {
+  # The opt-out a caller's shell may export would short-circuit every test
+  # below into silence; the test that wants it sets it itself.
+  unset DOTFILES_NO_BREW_CHECK
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   TMP="$(mktemp -d)"
   export XDG_CACHE_HOME="$TMP/cache"
