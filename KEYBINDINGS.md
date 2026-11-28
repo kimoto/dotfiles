@@ -99,12 +99,13 @@ Source:
 
 An AI may only bring the curtain sooner; an end it set has no Enter (done) and no ⏸ pause, only the Esc hold and `exit`.
 
-Source: `hammerspoon/Spoons/Guide.spoon` — arrows, outlines, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
+Source: `hammerspoon/Spoons/Guide.spoon` — arrows, marks, numbered steps, dimming and messages an AI draws through `guide_mcp.py`; the 👁 menu bar item is there while any is up
 
 | Key | Action |
 |-----|--------|
 | ⌃⌥⌘Esc | Clear every AI overlay and refuse new ones for 30 minutes (🔕 in the menu bar; its menu lifts the mute) |
 | Switch app | Ends a spotlight that dims everything but one app |
+| Move the pointer to the lit target | Ends a focus that dims everything but the pointer and one target |
 | Click | Closes a message; on a question, a button answers it and × closes it unanswered |
 
 ---

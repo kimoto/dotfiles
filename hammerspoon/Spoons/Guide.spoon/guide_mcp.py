@@ -44,6 +44,15 @@ TARGET = {
     },
 }
 SECONDS = {"type": "number", "description": "How long it stays up; it always ends on its own."}
+STYLE = {
+    "type": "string",
+    "enum": ["box", "underline", "bracket", "ripple", "click"],
+    "description": (
+        "How the target is marked: box (default) round it; underline under a line of text; bracket, corner "
+        "brackets that leave text readable; ripple, rings spreading from a small icon three times; click, a "
+        "pointer shape where to click."
+    ),
+}
 
 TOOLS = [
     {
@@ -83,20 +92,73 @@ TOOLS = [
         ),
         "inputSchema": {
             "type": "object",
-            "properties": {"target": TARGET, "label": {"type": "string"}, "seconds": SECONDS},
+            "properties": {"target": TARGET, "label": {"type": "string"}, "style": STYLE, "seconds": SECONDS},
             "required": ["target"],
         },
         "cmd": "arrow",
     },
     {
         "name": "guide_highlight",
-        "description": "Outline a target with a pulsing frame, with an optional label.",
+        "description": "Mark a target with a pulsing frame (or another style), with an optional label.",
         "inputSchema": {
             "type": "object",
-            "properties": {"target": TARGET, "label": {"type": "string"}, "seconds": SECONDS},
+            "properties": {"target": TARGET, "label": {"type": "string"}, "style": STYLE, "seconds": SECONDS},
             "required": ["target"],
         },
         "cmd": "highlight",
+    },
+    {
+        "name": "guide_focus",
+        "description": (
+            "Dim every screen except a lit circle that follows the mouse pointer and the target, with a line "
+            "from the pointer to the target. Use it when the target is far from where the owner is looking. "
+            "It lifts by itself when the owner brings the pointer onto the target (a 'reached' event in "
+            "guide_status). An app target is brought forward and followed; the reply says in_front."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": TARGET,
+                "label": {"type": "string"},
+                "dim": {"type": "number", "description": "0.3 (faint) to 0.97 (near black); default 0.7"},
+                "radius": {
+                    "type": "number",
+                    "description": "Lit circle round the pointer, 60 to 400 points; default 140",
+                },
+                "trail": {"type": "boolean", "description": "Draw the line from the pointer; default true"},
+                "seconds": dict(SECONDS, description="Default 30, at most 300"),
+            },
+            "required": ["target"],
+        },
+        "cmd": "focus",
+    },
+    {
+        "name": "guide_steps",
+        "description": (
+            "Number up to 5 targets as a sequence: the current step is outlined, pulses and shows its label; "
+            "done steps show a grey tick, later ones are faint. Call it again with the next current to move on "
+            "(it replaces the old one); current one past the last marks all done. At most one step may use "
+            "{app, text}."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "items": {
+                        "type": "object",
+                        "properties": {"target": TARGET, "label": {"type": "string"}},
+                        "required": ["target"],
+                    },
+                },
+                "current": {"type": "integer", "description": "1-based step being done now; default 1"},
+                "seconds": dict(SECONDS, description="Default 120, at most 600"),
+            },
+            "required": ["steps"],
+        },
+        "cmd": "steps",
     },
     {
         "name": "guide_message",

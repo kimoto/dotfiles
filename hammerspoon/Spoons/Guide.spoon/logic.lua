@@ -11,9 +11,22 @@ M.SECONDS = {
    highlight = { 30, 600 },
    spotlight = { 300, 1800 },
    ask = { 120, 600 },
+   -- Short by default: a screen dimmed for long reads as a broken display.
+   focus = { 30, 300 },
+   steps = { 120, 600 },
 }
 -- Enough for one step of a walkthrough; more on the screen at once stops guiding the eye.
 M.MAX_OVERLAYS = 12
+-- How a pointed-at target is marked: a box round it, a line under text, corner brackets that leave
+-- the glyphs clear, rings that spread from a small icon, or a cursor-shaped marker for "click here".
+M.STYLES = { box = true, underline = true, bracket = true, ripple = true, click = true }
+-- More numbered steps on screen than this stop reading as one sequence.
+M.MAX_STEPS = 5
+-- The lit circle round the pointer in a focus: under 60 the pointer is lost in the dark, over 400 the
+-- dark no longer narrows the eye.
+M.RADIUS = { 60, 140, 400 }
+-- focus dims less than a spotlight by default: two holes have to read through it.
+M.FOCUS_DIM = 0.7
 M.MAX_TEXT = 400
 M.MAX_LABEL = 80
 M.MAX_CHOICE = 30
@@ -110,6 +123,57 @@ function M.validate(cmd, a)
       if a.label ~= nil then
          out.label, err = text(a.label, M.MAX_LABEL, "label")
          if not out.label then return nil, err end
+      end
+      out.style = a.style or "box"
+      if not M.STYLES[out.style] then return nil, "style must be box, underline, bracket, ripple or click" end
+      out.seconds, err = M.seconds(cmd, a.seconds)
+      if not out.seconds then return nil, err end
+      return out
+   elseif cmd == "focus" then
+      out.target, err = M.target(a.target)
+      if not out.target then return nil, err end
+      if a.label ~= nil then
+         out.label, err = text(a.label, M.MAX_LABEL, "label")
+         if not out.label then return nil, err end
+      end
+      if a.dim == nil then out.dim = M.FOCUS_DIM
+      elseif finite(a.dim) then out.dim = math.max(M.DIM[1], math.min(M.DIM[3], a.dim))
+      else return nil, "dim must be a number" end
+      if a.radius == nil then out.radius = M.RADIUS[2]
+      elseif finite(a.radius) then out.radius = math.max(M.RADIUS[1], math.min(M.RADIUS[3], a.radius))
+      else return nil, "radius must be a number" end
+      if a.trail ~= nil and type(a.trail) ~= "boolean" then return nil, "trail must be true or false" end
+      out.trail = a.trail ~= false
+      out.seconds, err = M.seconds(cmd, a.seconds)
+      if not out.seconds then return nil, err end
+      return out
+   elseif cmd == "steps" then
+      if type(a.steps) ~= "table" or #a.steps < 1 or #a.steps > M.MAX_STEPS then
+         return nil, "steps must list 1 to " .. M.MAX_STEPS .. " steps"
+      end
+      out.steps = {}
+      local byText = 0
+      for i, s in ipairs(a.steps) do
+         if type(s) ~= "table" then return nil, "each step must be an object" end
+         local t
+         t, err = M.target(s.target)
+         if not t then return nil, "step " .. i .. ": " .. err end
+         -- Finding by text walks the accessibility tree, and one walk is allowed every few seconds.
+         if t.text then byText = byText + 1 end
+         if byText > 1 then return nil, "at most one step may find its target by text" end
+         local label
+         if s.label ~= nil then
+            label, err = text(s.label, M.MAX_LABEL, "step " .. i .. " label")
+            if not label then return nil, err end
+         end
+         out.steps[i] = { target = t, label = label }
+      end
+      if a.current == nil then out.current = 1
+      elseif finite(a.current) and a.current == math.floor(a.current) and a.current >= 1
+         and a.current <= #out.steps + 1 then
+         out.current = a.current
+      else
+         return nil, "current must be a step number, or one past the last when all are done"
       end
       out.seconds, err = M.seconds(cmd, a.seconds)
       if not out.seconds then return nil, err end
@@ -273,6 +337,81 @@ function M.arrow(r, f)
    local px, py = -best.dy * M.HEAD * 0.6, best.dx * M.HEAD * 0.6
    return { tail = tail, tip = tip, left = { x = bx + px, y = by + py }, right = { x = bx - px, y = by - py },
             side = best }
+end
+
+-- Whether p is within pad of rectangle r.
+function M.inside(p, r, pad)
+   pad = pad or 0
+   return p.x >= r.x - pad and p.x <= r.x + r.w + pad and p.y >= r.y - pad and p.y <= r.y + r.h + pad
+end
+
+-- Whether a focus has done its job: the pointer is on the target (within REACH_PAD) and was brought
+-- there, at least REACH_MOVE from where it started. A pointer that starts inside a big target (a whole
+-- window) still counts once the owner moves it, rather than leaving the screen dark until it expires.
+M.REACH_PAD = 4
+M.REACH_MOVE = 30
+function M.reached(start, p, r)
+   if not M.inside(p, r, M.REACH_PAD) then return false end
+   local dx, dy = p.x - start.x, p.y - start.y
+   return not M.inside(start, r, M.REACH_PAD) or dx * dx + dy * dy >= M.REACH_MOVE * M.REACH_MOVE
+end
+
+-- The line a focus draws from the pointer to the target: it leaves the lit circle round the pointer
+-- (radius) and stops just outside r, with the head's back corners. nil when the pointer is already
+-- at the target or the gap is too short to draw.
+M.TRAIL_HEAD = 18
+function M.trail(p, r, radius)
+   local c = M.center(r)
+   local dx, dy = c.x - p.x, c.y - p.y
+   local d = math.sqrt(dx * dx + dy * dy)
+   if d == 0 or M.inside(p, r, M.ARROW_GAP) then return nil end
+   local ux, uy = dx / d, dy / d
+   -- Where the line meets r's outline, ARROW_GAP out: the nearer of its vertical and horizontal sides.
+   local hw, hh = r.w / 2 + M.ARROW_GAP, r.h / 2 + M.ARROW_GAP
+   local tx = ux ~= 0 and hw / math.abs(ux) or math.huge
+   local ty = uy ~= 0 and hh / math.abs(uy) or math.huge
+   local toEdge = d - math.min(tx, ty)
+   local from = radius
+   if toEdge - from < M.TRAIL_HEAD * 1.5 then return nil end
+   local tip = { x = p.x + ux * toEdge, y = p.y + uy * toEdge }
+   local bx, by = tip.x - ux * M.TRAIL_HEAD, tip.y - uy * M.TRAIL_HEAD
+   local px, py = -uy * M.TRAIL_HEAD * 0.6, ux * M.TRAIL_HEAD * 0.6
+   return { tail = { x = p.x + ux * from, y = p.y + uy * from }, tip = tip, neck = { x = bx, y = by },
+            left = { x = bx + px, y = by + py }, right = { x = bx - px, y = by - py } }
+end
+
+-- Corner brackets round r, pad out: four L-shapes of arm length n (never more than a third of a side),
+-- each three points running along one edge, round the corner, and down the other.
+function M.brackets(r, pad, n)
+   local x1, y1, x2, y2 = r.x - pad, r.y - pad, r.x + r.w + pad, r.y + r.h + pad
+   local ax = math.min(n, (x2 - x1) / 3)
+   local ay = math.min(n, (y2 - y1) / 3)
+   return {
+      { { x = x1 + ax, y = y1 }, { x = x1, y = y1 }, { x = x1, y = y1 + ay } },
+      { { x = x2 - ax, y = y1 }, { x = x2, y = y1 }, { x = x2, y = y1 + ay } },
+      { { x = x1 + ax, y = y2 }, { x = x1, y = y2 }, { x = x1, y = y2 - ay } },
+      { { x = x2 - ax, y = y2 }, { x = x2, y = y2 }, { x = x2, y = y2 - ay } },
+   }
+end
+
+-- A pointer-shaped outline of height s with its tip at p, for "click exactly here". It leans the
+-- way the system pointer does, so it reads as "a pointer goes here" rather than as an arrow.
+function M.cursor(p, s)
+   local k = s / 22
+   local pts = { { 0, 0 }, { 0, 17 }, { 4.5, 13 }, { 7.5, 20 }, { 10.5, 18.7 }, { 7.5, 12 }, { 13, 12 } }
+   local out = {}
+   for i, q in ipairs(pts) do out[i] = { x = p.x + q[1] * k, y = p.y + q[2] * k } end
+   return out
+end
+
+-- Where a step's numbered badge sits: on r's top-left corner, pulled inside the screen f so a target
+-- at the edge still shows its number.
+M.BADGE = 30
+function M.badge(r, f)
+   local half = M.BADGE / 2
+   local x = math.max(f.x + half + 2, math.min(f.x + f.w - half - 2, r.x))
+   local y = math.max(f.y + half + 2, math.min(f.y + f.h - half - 2, r.y))
+   return { x = x, y = y }
 end
 
 -- Where a w×h box goes on screen f: centred, at the top or bottom, or beside target rect r

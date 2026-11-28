@@ -153,5 +153,100 @@ eq("clip: inside", L.clip({ x = 10, y = 10, w = 5, h = 5 }, F).w, 5)
 eq("clip: across the edge", L.clip({ x = 990, y = 10, w = 50, h = 5 }, F).w, 10)
 eq("clip: outside", L.clip({ x = 1100, y = 10, w = 5, h = 5 }, F), nil)
 
+-- Styles: a fixed list, the box by default.
+eq("style: box by default", L.validate("highlight", { target = { x = 5, y = 6 } }).style, "box")
+eq("style: brackets", L.validate("highlight", { target = { x = 5, y = 6 }, style = "bracket" }).style, "bracket")
+eq("style: on an arrow too", L.validate("arrow", { target = { x = 5, y = 6 }, style = "click" }).style, "click")
+refused("style: unknown", "highlight", { target = { x = 5, y = 6 }, style = "sparkles" })
+
+-- focus: two lit places in the dark, the pointer and the target.
+local fo = L.validate("focus", { target = { x = 5, y = 6 } })
+eq("focus: default dim", fo.dim, L.FOCUS_DIM)
+eq("focus: default radius", fo.radius, L.RADIUS[2])
+eq("focus: a trail by default", fo.trail, true)
+eq("focus: short by default", fo.seconds, 30)
+eq("focus: capped", L.validate("focus", { target = { x = 5, y = 6 }, seconds = 9999 }).seconds, 300)
+eq("focus: no trail", L.validate("focus", { target = { x = 5, y = 6 }, trail = false }).trail, false)
+eq("focus: radius kept on screen", L.validate("focus", { target = { x = 5, y = 6 }, radius = 5000 }).radius, 400)
+eq("focus: radius never too small", L.validate("focus", { target = { x = 5, y = 6 }, radius = 1 }).radius, 60)
+eq("focus: dim never black", L.validate("focus", { target = { x = 5, y = 6 }, dim = 1 }).dim, 0.97)
+refused("focus: no target", "focus", {})
+refused("focus: trail as text", "focus", { target = { x = 5, y = 6 }, trail = "yes" })
+
+-- steps: a short numbered sequence.
+local st = L.validate("steps",
+   { steps = { { target = { x = 1, y = 2 }, label = "a" }, { target = { app = "Mail" } } } })
+eq("steps: two", #st.steps, 2)
+eq("steps: start at the first", st.current, 1)
+eq("steps: labels kept", st.steps[1].label, "a")
+eq("steps: all done", L.validate("steps", { steps = { { target = { x = 1, y = 2 } } }, current = 2 }).current, 2)
+refused("steps: none", "steps", { steps = {} })
+refused("steps: too many", "steps", { steps = { { target = { x = 1, y = 1 } }, { target = { x = 1, y = 1 } },
+   { target = { x = 1, y = 1 } }, { target = { x = 1, y = 1 } }, { target = { x = 1, y = 1 } },
+   { target = { x = 1, y = 1 } } } })
+refused("steps: current past the end", "steps", { steps = { { target = { x = 1, y = 2 } } }, current = 3 })
+refused("steps: current not whole", "steps", { steps = { { target = { x = 1, y = 2 } } }, current = 1.5 })
+refused("steps: a step without a target", "steps", { steps = { { label = "a" } } })
+refused("steps: two text searches", "steps", { steps = { { target = { app = "Mail", text = "a" } },
+   { target = { app = "Mail", text = "b" } } } })
+
+-- The trail leaves the pointer's circle and stops just outside the target.
+local R = { x = 500, y = 380, w = 40, h = 40 }
+local tr = L.trail({ x = 100, y = 400 }, R, 140)
+eq("trail: starts at the circle's edge", tr.tail.x, 240)
+eq("trail: stops outside the target", tr.tip.x, 500 - L.ARROW_GAP)
+eq("trail: level when level", tr.tip.y, 400)
+eq("trail: head behind the tip", tr.neck.x < tr.tip.x, true)
+eq("trail: none once the pointer is there", L.trail({ x = 510, y = 400 }, R, 140), nil)
+eq("trail: none when too short to draw", L.trail({ x = 470, y = 400 }, R, 20), nil)
+tr = L.trail({ x = 480, y = 400 }, R, 140)
+eq("trail: none when the pointer is just short of the target", tr, nil)
+tr = L.trail({ x = 520, y = 100 }, R, 60)
+eq("trail: from above, stops above the top side", tr.tip.y, 380 - L.ARROW_GAP)
+
+eq("inside: within the pad", L.inside({ x = 495, y = 400 }, R, 8), true)
+eq("inside: outside the pad", L.inside({ x = 480, y = 400 }, R, 8), false)
+
+local br = L.brackets({ x = 100, y = 100, w = 300, h = 30 }, 6, 16)
+eq("brackets: four corners", #br, 4)
+eq("brackets: arm along the long side", br[1][1].x - br[1][2].x, 16)
+eq("brackets: short side never fully closed", br[1][3].y - br[1][2].y, 14)
+local narrow = L.brackets({ x = 100, y = 100, w = 18, h = 300 }, 6, 16)
+eq("brackets: narrow target, arms a third of its width", narrow[2][2].x - narrow[2][1].x, 10)
+
+local cu = L.cursor({ x = 50, y = 60 }, 22)
+eq("cursor: tip on the point", cu[1].x == 50 and cu[1].y == 60, true)
+eq("cursor: drawn below and right of it", cu[4].x > 50 and cu[4].y > 60, true)
+
+eq("badge: on the corner", L.badge({ x = 300, y = 200, w = 10, h = 10 }, F).x, 300)
+eq("badge: kept on screen", L.badge({ x = 0, y = 0, w = 10, h = 10 }, F).x, L.BADGE / 2 + 2)
+
+-- Edges the first tests left open.
+eq("steps: current 1 named", L.validate("steps", { steps = { { target = { x = 1, y = 2 } } }, current = 1 }).current, 1)
+refused("steps: current 0", "steps", { steps = { { target = { x = 1, y = 2 } } }, current = 0 })
+refused("steps: a step that is not an object", "steps", { steps = { "a" } })
+local long = { steps = { { target = { x = 1, y = 2 }, label = string.rep("a", 200) } } }
+eq("steps: long label cut", #L.validate("steps", long).steps[1].label, L.MAX_LABEL + #"…")
+refused("focus: dim as text", "focus", { target = { x = 5, y = 6 }, dim = "dark" })
+refused("focus: radius as text", "focus", { target = { x = 5, y = 6 }, radius = "big" })
+eq("focus: dim never too faint", L.validate("focus", { target = { x = 5, y = 6 }, dim = 0 }).dim, 0.3)
+eq("badge: kept on screen at the bottom right", L.badge({ x = 995, y = 795, w = 10, h = 10 }, F).x,
+   F.w - L.BADGE / 2 - 2)
+eq("badge: kept on screen at the top", L.badge({ x = 300, y = -20, w = 10, h = 10 }, F).y, L.BADGE / 2 + 2)
+eq("badge: kept on screen at the bottom", L.badge({ x = 300, y = 900, w = 10, h = 10 }, F).y, F.h - L.BADGE / 2 - 2)
+
+-- A focus ends when the owner brings the pointer to the target.
+local T = { x = 500, y = 380, w = 40, h = 40 }
+eq("reached: brought onto the target", L.reached({ x = 100, y = 100 }, { x = 510, y = 400 }, T), true)
+eq("reached: just outside the pad", L.reached({ x = 100, y = 100 }, { x = 500 - L.REACH_PAD - 1, y = 400 }, T), false)
+eq("reached: on the pad's edge", L.reached({ x = 100, y = 100 }, { x = 500 - L.REACH_PAD, y = 400 }, T), true)
+eq("reached: from just outside, a short move in",
+   L.reached({ x = 500 - L.REACH_PAD - 2, y = 400 }, { x = 502, y = 400 }, T), true)
+eq("reached: started inside, not moved", L.reached({ x = 510, y = 400 }, { x = 515, y = 400 }, T), false)
+eq("reached: started inside a big target, then moved", L.reached({ x = 0, y = 0 }, { x = L.REACH_MOVE, y = 0 },
+   { x = -100, y = -100, w = 1000, h = 1000 }), true)
+eq("reached: moved, but not far enough", L.reached({ x = 0, y = 0 }, { x = L.REACH_MOVE - 1, y = 0 },
+   { x = -100, y = -100, w = 1000, h = 1000 }), false)
+
 if fails > 0 then os.exit(1) end
 print("ok")

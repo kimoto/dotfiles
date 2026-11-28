@@ -1,17 +1,19 @@
 --- === Guide ===
 ---
---- Lets an AI on this Mac guide where the owner looks: dim every app but one, point an arrow at a
---- window or a button, outline something, show a message, or ask a question with buttons and hear
---- the answer. It can also bring the Curtain spoon's end sooner (never later). guide_mcp.py beside this file is the
---- MCP server an AI client starts; it reaches this spoon over 127.0.0.1 with a token only this user
---- can read. Rules: logic.lua.
+--- Lets an AI on this Mac guide where the owner looks: dim every app but one, dim all but the pointer
+--- and a target, point an arrow at a window or a button, mark something (box, underline, brackets,
+--- ripple, click), number the steps of a sequence, show a message, or ask a question with buttons and
+--- hear the answer. It can also bring the Curtain spoon's end sooner (never later). guide_mcp.py
+--- beside this file is the MCP server an AI client starts; it reaches this spoon over 127.0.0.1 with
+--- a token only this user can read. Rules: logic.lua.
 ---
 --- What an AI can never do here: run code (a request is one of a fixed set of commands), lift or
 --- remove the curtain, push its end later, show anything while it is up, or take the keyboard.
 --- Nothing here installs a key tap, so the curtain's Esc hold and `exit` work exactly as before, and
 --- the curtain sits above every guide overlay.
---- The owner's own ways out: switching to another app ends a spotlight, a click closes a message,
---- every overlay ends on its own, and ⌃⌥⌘Esc clears everything and mutes the AI for 30 minutes.
+--- The owner's own ways out: switching to another app ends a spotlight, bringing the pointer to the
+--- target ends a focus, a click closes a message, every overlay ends on its own, and ⌃⌥⌘Esc clears
+--- everything and mutes the AI for 30 minutes.
 ---
 --- Opt in per machine, in ~/.hammerspoon.local, after the curtain (or without it):
 ---   local guide = hs.loadSpoon("Guide")
@@ -237,12 +239,13 @@ function obj:add(kind, seconds, ov)
    return ov
 end
 
--- A slow pulse in the accent colour, so the eye finds it without it flashing.
+-- A slow pulse in the accent colour, so the eye finds it without it flashing. ov.pulseCanvas, when
+-- set, keeps it to that one canvas: the others use the same indexes for other things.
 function obj:pulse(ov, indexes)
    local t0 = hs.timer.secondsSinceEpoch()
    table.insert(ov.timers, hs.timer.doEvery(1 / 20, function()
       local a = 0.65 + 0.35 * math.cos((hs.timer.secondsSinceEpoch() - t0) * math.pi)
-      for _, c in ipairs(ov.canvases) do
+      for _, c in ipairs(ov.pulseCanvas and { ov.pulseCanvas } or ov.canvases) do
          for _, i in ipairs(indexes) do
             local col = { red = ACCENT.red, green = ACCENT.green, blue = ACCENT.blue, alpha = a }
             if c[i].action == "fill" then c[i].fillColor = col else c[i].strokeColor = col end
@@ -264,7 +267,73 @@ local function labelElement(text, p, f)
             frame = { x = x, y = y + 5, w = w, h = 30 } }
 end
 
--- Draws the outline (and for an arrow, the arrow) around rect r, and redraws when an app's window moves.
+local function stroke(width, coordinates)
+   return { type = "segments", action = "stroke", strokeWidth = width, strokeColor = ACCENT, withShadow = true,
+            strokeCapStyle = "round", strokeJoinStyle = "round", coordinates = coordinates }
+end
+
+-- Appends the mark of `style` round o (r's position on canvas c). Returns { pulse = the indexes
+-- pulse() animates }, and for a ripple also rings (its spreading rings' indexes) and base (their radius).
+local function mark(c, style, o, r)
+   local n = #c
+   local box = { x = o.x, y = o.y, w = r.w, h = r.h }
+   local mid = L.center(box)
+   if style == "underline" then
+      c[n + 1] = stroke(5, { { x = o.x - 4, y = o.y + r.h + 5 }, { x = o.x + r.w + 4, y = o.y + r.h + 5 } })
+      return { pulse = { n + 1 } }
+   elseif style == "bracket" then
+      local out = {}
+      for i, arm in ipairs(L.brackets(box, 6, 18)) do c[n + i] = stroke(5, arm); out[i] = n + i end
+      return { pulse = out }
+   elseif style == "ripple" then
+      local base = math.max(r.w, r.h) / 2 + 6
+      for i = 1, 3 do
+         c[n + i] = { type = "circle", action = "stroke", strokeWidth = i == 1 and 4 or 3, strokeColor = ACCENT,
+                      center = mid, radius = base }
+      end
+      return { pulse = { n + 1 }, rings = { n + 2, n + 3 }, base = base }
+   elseif style == "click" then
+      -- A ring where the click lands, and a pointer shape on it with a white edge. Twice the system
+      -- pointer's size and never fading, so it is not taken for the real one; only the ring pulses.
+      c[n + 1] = { type = "circle", action = "stroke", strokeWidth = 3, strokeColor = ACCENT,
+                   center = mid, radius = 18 }
+      local shape = L.cursor(mid, 44)
+      c[n + 2] = { type = "segments", action = "fill", closed = true, fillColor = ACCENT, withShadow = true,
+                   coordinates = shape }
+      c[n + 3] = { type = "segments", action = "stroke", closed = true, strokeWidth = 1.5,
+                   strokeColor = { white = 1 }, coordinates = shape }
+      return { pulse = { n + 1 } }
+   end
+   c[n + 1] = { type = "rectangle", action = "stroke", strokeWidth = 5, strokeColor = ACCENT,
+                roundedRectRadii = { xRadius = 10, yRadius = 10 },
+                frame = { x = o.x - 6, y = o.y - 6, w = r.w + 12, h = r.h + 12 } }
+   return { pulse = { n + 1 } }
+end
+
+-- Rings that spread out from the target and fade, three times over, then stop: motion finds the eye,
+-- and motion that never stops becomes noise to tune out.
+local RIPPLE_PERIOD, RIPPLE_TIMES, RIPPLE_SPREAD = 1.2, 3, 60
+function obj:ripple(ov)
+   local t0 = hs.timer.secondsSinceEpoch()
+   local timer
+   timer = hs.timer.doEvery(1 / 30, function()
+      local t = (hs.timer.secondsSinceEpoch() - t0) / RIPPLE_PERIOD
+      local c = ov.canvases[1]
+      if not c then return end
+      local done = t >= RIPPLE_TIMES
+      for k, i in ipairs(ov.marked.rings) do
+         local phase = (t + (k - 1) * 0.5) % 1
+         c[i].radius = ov.marked.base + RIPPLE_SPREAD * phase
+         c[i].strokeColor = { red = ACCENT.red, green = ACCENT.green, blue = ACCENT.blue,
+                              alpha = done and 0 or 0.9 * (1 - phase) }
+      end
+      -- A redraw after this (the window moved) draws the rings again; they must stay hidden.
+      if done then ov.rippleDone = true; timer:stop() end
+   end)
+   table.insert(ov.timers, timer)
+end
+
+-- Draws the mark (and for an arrow, the arrow) around rect r, and redraws when an app's window moves.
 function obj:pointAt(kind, args)
    local r, err = self:resolve(args.target)
    if not r then return nil, err end
@@ -276,17 +345,21 @@ function obj:pointAt(kind, args)
       local c = fullCanvas(f)
       ov.canvases[1] = c
       local o = toLocal(rect, f)
-      c[1] = { type = "rectangle", action = "stroke", strokeWidth = 5, strokeColor = ACCENT,
-               roundedRectRadii = { xRadius = 10, yRadius = 10 },
-               frame = { x = o.x - 6, y = o.y - 6, w = rect.w + 12, h = rect.h + 12 } }
-      local labelAt = { x = o.x + rect.w / 2, y = o.y + rect.h + 14 }
+      local marked = mark(c, args.style, o, rect)
+      if marked.rings and ov.rippleDone then
+         for _, i in ipairs(marked.rings) do c[i].strokeColor = { white = 0, alpha = 0 } end
+      end
+      local labelAt = { x = o.x + rect.w / 2, y = o.y + rect.h + (args.style == "click" and 48 or 14) }
       if kind == "arrow" then
          local a = L.arrow(rect, f)
          local tail, tip, l, rt = toLocal(a.tail, f), toLocal(a.tip, f), toLocal(a.left, f), toLocal(a.right, f)
-         c[2] = { type = "segments", action = "stroke", strokeWidth = 10, strokeColor = ACCENT, withShadow = true,
-                  coordinates = { tail, { x = (l.x + rt.x) / 2, y = (l.y + rt.y) / 2 } } }
-         c[3] = { type = "segments", action = "fill", closed = true, fillColor = ACCENT, withShadow = true,
-                  coordinates = { tip, l, rt } }
+         local n = #c
+         c[n + 1] = { type = "segments", action = "stroke", strokeWidth = 10, strokeColor = ACCENT, withShadow = true,
+                      coordinates = { tail, { x = (l.x + rt.x) / 2, y = (l.y + rt.y) / 2 } } }
+         c[n + 2] = { type = "segments", action = "fill", closed = true, fillColor = ACCENT, withShadow = true,
+                      coordinates = { tip, l, rt } }
+         table.insert(marked.pulse, n + 1)
+         table.insert(marked.pulse, n + 2)
          labelAt = { x = tail.x, y = tail.y + (a.side.dy < 0 and -50 or 14) }
       end
       if args.label then
@@ -296,10 +369,12 @@ function obj:pointAt(kind, args)
       c:show()
       ov.canvases[1] = c
       ov.rect = rect
+      ov.marked = marked
    end
    local drawn, why = pcall(draw, r)
    if not drawn then self:remove(ov.id, "error"); return nil, "could not draw: " .. tostring(why) end
-   self:pulse(ov, kind == "arrow" and { 1, 2, 3 } or { 1 })
+   self:pulse(ov, ov.marked.pulse)
+   if ov.marked.rings then self:ripple(ov) end
    if args.target.kind == "app" and not args.target.text then
       table.insert(ov.timers, hs.timer.doEvery(0.5, function()
          local nr = self:resolve(args.target)
@@ -408,7 +483,7 @@ function obj:spotlight(args)
    local first = false
    for _, w in ipairs(app:visibleWindows()) do first = first or w:isStandard() end
    if not first then return nil, args.app .. " has no window on screen to keep in the light" end
-   for id, o in pairs(self.overlays) do if o.kind == "spotlight" then self:remove(id, "replaced") end end
+   self:replaceFor("spotlight")
    local ov = self:add("spotlight", args.seconds, {})
    local dark = { red = 0, green = 0, blue = 0.02, alpha = args.dim }
    local function holes()
@@ -475,6 +550,199 @@ function obj:spotlight(args)
    return { id = ov.id }
 end
 
+-- spotlight and focus both dim the screen, so a new one of either takes the place of the old;
+-- a new steps takes the place of the old steps.
+local REPLACES = { spotlight = { spotlight = true, focus = true }, focus = { spotlight = true, focus = true },
+                   steps = { steps = true } }
+function obj:replaceFor(kind)
+   for id, o in pairs(self.overlays) do
+      if REPLACES[kind] and REPLACES[kind][o.kind] then self:remove(id, "replaced") end
+   end
+end
+
+-- Dims every screen but two lit places: a circle round the pointer, which follows it, and the target,
+-- with a line from one to the other. Bringing the pointer to the target is the owner finding it, so
+-- the dark lifts by itself and the AI reads a "reached" event. An app target is brought forward,
+-- or the hole would show whatever covers it, and followed when its window moves.
+local FOLLOW_HZ = 30
+local TRACK_SECONDS = 0.5
+function obj:focus(args)
+   local r, err = self:resolve(args.target)
+   if not r then return nil, err end
+   local app = args.target.kind == "app" and findApp(args.target.app) or nil
+   if app then app:activate() end
+   self:replaceFor("focus")
+   local ov = self:add("focus", args.seconds, {})
+   ov.frames = {}
+   local dark = { red = 0, green = 0, blue = 0.02, alpha = args.dim }
+   local clear = { white = 0 }
+   local none = { x = 0, y = 0 }
+   local frames = screenFrames()
+   local home = L.screen_of(frames, L.center(r))
+   local start = hs.mouse.absolutePosition()
+   -- The same element at the same index on every screen's canvas, so the ticks can move them.
+   local HOLE, POINTER, FRAME, SHAFT, HEAD, LABEL = 2, 3, 4, 5, 6, 7
+   local function holeFrame(o, rect, pad)
+      return { x = o.x - pad, y = o.y - pad, w = rect.w + 2 * pad, h = rect.h + 2 * pad }
+   end
+   for _, f in ipairs(frames) do
+      local c = fullCanvas(f)
+      local o = toLocal(r, f)
+      c[1] = { type = "rectangle", action = "fill", fillColor = dark }
+      c[HOLE] = { type = "rectangle", action = "fill", compositeRule = "clear", fillColor = clear,
+                  roundedRectRadii = { xRadius = 10, yRadius = 10 }, frame = holeFrame(o, r, 10) }
+      c[POINTER] = { type = "circle", action = "fill", compositeRule = "clear", fillColor = clear,
+                     center = toLocal(start, f), radius = args.radius }
+      c[FRAME] = { type = "rectangle", action = "stroke", strokeWidth = 4, strokeColor = ACCENT, withShadow = true,
+                   roundedRectRadii = { xRadius = 12, yRadius = 12 }, frame = holeFrame(o, r, 12) }
+      -- Butt caps: a zero-length shaft (no trail yet) then draws nothing at all.
+      c[SHAFT] = { type = "segments", action = "stroke", strokeWidth = 5, strokeColor = ACCENT, withShadow = true,
+                   coordinates = { none, none } }
+      c[HEAD] = { type = "segments", action = "fill", closed = true, fillColor = ACCENT, withShadow = true,
+                  coordinates = { none, none, none } }
+      if args.label and f == home then
+         local bg, tx = labelElement(args.label, { x = o.x + r.w / 2, y = o.y + r.h + 20 }, f)
+         c[LABEL] = bg; c[LABEL + 1] = tx
+      end
+      c:show()
+      ov.canvases[#ov.canvases + 1] = c
+      ov.frames[#ov.frames + 1] = f
+   end
+   local last
+   local function follow(force)
+      local p = hs.mouse.absolutePosition()
+      if not force and last and p.x == last.x and p.y == last.y then return end
+      last = p
+      if L.reached(start, p, r) then
+         self:event(ov.id, "reached", args.label or "")
+         self:remove(ov.id, "reached")
+         return
+      end
+      local t = args.trail and L.trail(p, r, args.radius)
+      for i, c in ipairs(ov.canvases) do
+         local f = ov.frames[i]
+         c[POINTER].center = toLocal(p, f)
+         if args.trail then
+            c[SHAFT].coordinates = t and { toLocal(t.tail, f), toLocal(t.neck, f) } or { none, none }
+            c[HEAD].coordinates = t and { toLocal(t.tip, f), toLocal(t.left, f), toLocal(t.right, f) }
+               or { none, none, none }
+         end
+      end
+   end
+   -- The hole, its frame and the label move with the app's window; the label stays on the screen it
+   -- started on, which is where the owner was told to look.
+   local function place(nr)
+      r = nr
+      for i, c in ipairs(ov.canvases) do
+         local f = ov.frames[i]
+         local o = toLocal(r, f)
+         c[HOLE].frame = holeFrame(o, r, 10)
+         c[FRAME].frame = holeFrame(o, r, 12)
+         if c[LABEL] then
+            local bg, tx = labelElement(args.label, { x = o.x + r.w / 2, y = o.y + r.h + 20 }, f)
+            c[LABEL].frame = bg.frame; c[LABEL + 1].frame = tx.frame
+         end
+      end
+      follow(true)
+   end
+   local drawn, why = pcall(follow)
+   if not drawn then self:remove(ov.id, "error"); return nil, "could not draw: " .. tostring(why) end
+   table.insert(ov.timers, hs.timer.doEvery(1 / FOLLOW_HZ, function()
+      if self.overlays[ov.id] and not pcall(follow) then self:remove(ov.id, "error") end
+   end))
+   if app and not args.target.text then
+      table.insert(ov.timers, hs.timer.doEvery(TRACK_SECONDS, function()
+         if not self.overlays[ov.id] then return end
+         local nr = self:resolve(args.target)
+         if not nr then
+            self:event(ov.id, "gone", "target not on screen"); self:remove(ov.id, "gone")
+         elseif nr.x ~= r.x or nr.y ~= r.y or nr.w ~= r.w or nr.h ~= r.h then
+            if not pcall(place, nr) then self:remove(ov.id, "error") end
+         end
+      end))
+   end
+   -- No pulse: the dark already does the work, and a pulse would redraw every screen 20 times a second.
+   self:log("focus", ov.id .. " " .. (args.label or ""))
+   local out = { id = ov.id, at = r }
+   if app then
+      local front = hs.application.frontmostApplication()
+      out.in_front = front ~= nil and front:pid() == app:pid()
+   end
+   return out
+end
+
+-- A short numbered sequence: a badge on each target, the current one outlined and pulsing with its
+-- label, the done ones grey with a tick, the later ones faint. The AI sends it again with the next
+-- `current` to move on; a new one replaces the old.
+local DONE = { white = 0.45, alpha = 0.95 }
+local LATER = { red = ACCENT.red, green = ACCENT.green, blue = ACCENT.blue, alpha = 0.35 }
+
+-- One step's target as a rectangle. A target found by its text is remembered, so moving on neither
+-- walks the accessibility tree again (one walk every AX_GAP seconds) nor fails when a done step's
+-- button has gone, as a pressed dialog button does.
+function obj:stepRect(t, done)
+   local key = t.text and (t.app .. "\0" .. t.text) or nil
+   if key and self.stepTexts[key] then return self.stepTexts[key] end
+   local r, err = self:resolve(t)
+   if r and key then self.stepTexts[key] = r end
+   if not r and done then return false end
+   return r, err
+end
+
+function obj:steps(args)
+   -- A sequence started again from the first step finds its buttons afresh.
+   if args.current == 1 then self.stepTexts = {} end
+   local rects = {}
+   for i, s in ipairs(args.steps) do
+      local r, err = self:stepRect(s.target, i < args.current)
+      if r == nil then return nil, "step " .. i .. ": " .. err end
+      rects[i] = r
+   end
+   self:replaceFor("steps")
+   local ov = self:add("steps", args.seconds, {})
+   local frames = screenFrames()
+   local byScreen, order = {}, {}
+   local function canvasFor(f)
+      local key = f.x .. "," .. f.y
+      if not byScreen[key] then
+         byScreen[key] = fullCanvas(f)
+         order[#order + 1] = byScreen[key]
+      end
+      return byScreen[key]
+   end
+   local pulsing = {}
+   for i, r in ipairs(rects) do
+      -- A done step whose target has gone keeps its place in the count but has nothing to mark.
+      if r then
+         local f = L.screen_of(frames, L.center(r))
+         local c = canvasFor(f)
+         local o = toLocal(r, f)
+         local b = toLocal(L.badge(r, f), f)
+         local now, done = i == args.current, i < args.current
+         if now then
+            pulsing = mark(c, "box", o, r).pulse
+            ov.pulseCanvas = c
+            if args.steps[i].label then
+               local bg, tx = labelElement(i .. ". " .. args.steps[i].label,
+                  { x = o.x + r.w / 2, y = o.y + r.h + 14 }, f)
+               c[#c + 1] = bg; c[#c + 1] = tx
+            end
+         end
+         local half = L.BADGE / 2
+         c[#c + 1] = { type = "circle", action = "fill", withShadow = true, center = b, radius = half,
+                       fillColor = done and DONE or now and ACCENT or LATER }
+         c[#c + 1] = { type = "circle", action = "stroke", strokeWidth = 2, strokeColor = { white = 1, alpha = 0.9 },
+                       center = b, radius = half }
+         c[#c + 1] = { type = "text", text = done and "✓" or tostring(i), textSize = 17, textColor = { white = 1 },
+                       textAlignment = "center", frame = { x = b.x - half, y = b.y - 11, w = L.BADGE, h = 24 } }
+      end
+   end
+   for _, c in ipairs(order) do c:show(); ov.canvases[#ov.canvases + 1] = c end
+   if #pulsing > 0 then self:pulse(ov, pulsing) end
+   self:log("steps", ov.id .. " " .. args.current .. "/" .. #rects)
+   return { id = ov.id, current = args.current, of = #rects }
+end
+
 function obj:setCurtain(args)
    local c, now = self.curtain, os.time()
    local no = L.curtain_refusal(c and c:state(), now) or L.owner_deciding(c:lastChange(), now)
@@ -539,11 +807,15 @@ function obj:run(cmd, a)
    end
    if cmd == "curtain" then return self:setCurtain(a) end
    local replaces = false
-   for _, o in pairs(self.overlays) do replaces = replaces or (cmd == "spotlight" and o.kind == "spotlight") end
+   for _, o in pairs(self.overlays) do
+      replaces = replaces or (REPLACES[cmd] ~= nil and REPLACES[cmd][o.kind] == true)
+   end
    if self:count() >= L.MAX_OVERLAYS and not replaces then
       return nil, "too many overlays on screen; clear some first"
    end
    if cmd == "spotlight" then return self:spotlight(a) end
+   if cmd == "focus" then return self:focus(a) end
+   if cmd == "steps" then return self:steps(a) end
    if cmd == "arrow" or cmd == "highlight" then return self:pointAt(cmd, a) end
    return self:card(cmd, a)
 end
@@ -625,7 +897,7 @@ end
 --- Starts the local server, the mute hotkey and a new token.
 function obj:start()
    self:stop()
-   self.overlays, self.answers, self.events, self.seq = {}, {}, {}, 0
+   self.overlays, self.answers, self.events, self.seq, self.stepTexts = {}, {}, {}, 0, {}
    self.token = (hs.host.uuid() .. hs.host.uuid()):gsub("-", "")
    math.randomseed(os.time() + hs.timer.absoluteTime() % 1000000)
    -- A random port can be taken by another service: a few tries, then give up with an alert.
