@@ -36,7 +36,7 @@ function Get-PowerToysDrift([string]$Dsc, [string]$Path = (Join-Path $PSScriptRo
                 $inDesiredState = $false
             }
         }
-        if ($inDesiredState) { Write-Output $entry.Module }
+        if (-not $inDesiredState) { Write-Output $entry.Module }
     }
 }
 
